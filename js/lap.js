@@ -46,9 +46,11 @@ function create(view, opts) {
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(256, 256), new THREE.MeshLambertMaterial({ map: ft })); floor.rotation.x = -Math.PI / 2; scene.add(floor);
   // The chair: a plank seat (top at y = 4, where Gerda's thighs rest) and a straight back.
   const wood = new THREE.MeshLambertMaterial({ color: srgb(0x6a4a2e) });
-  const seat = new THREE.Mesh(new THREE.BoxGeometry(14, 4, 18), wood); seat.position.set(0, 2, -3.5); scene.add(seat);
-  const back = new THREE.Mesh(new THREE.BoxGeometry(14, 14, 1.5), wood); back.position.set(0, 11, -12.5); scene.add(back);
-  for (const [x, z] of [[-6, -6], [6, -6]]) { const post = new THREE.Mesh(new THREE.BoxGeometry(1.5, 18, 1.5), wood); post.position.set(x, 9, z - 6.5); scene.add(post); }
+  // The seat runs from just behind the chair's back to past her knees; the back stands close behind Gerda (her back is at z -4, in her upright
+  // sitting pose) and rises only as far as the top of her torso (y 16).
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(14, 4, 11.8), wood); seat.position.set(0, 2, -0.2); scene.add(seat);
+  const back = new THREE.Mesh(new THREE.BoxGeometry(14, 12, 1.5), wood); back.position.set(0, 10, -5.35); scene.add(back);
+  for (const x of [-6, 6]) { const post = new THREE.Mesh(new THREE.BoxGeometry(1.5, 16, 1.5), wood); post.position.set(x, 8, -6.4); scene.add(post); }
 
   // ── The cast ────────────────────────────────────────────────────────────────────────────────────────────────────────────
   const gerda = B.makeGerda(), jack = B.makeJack();

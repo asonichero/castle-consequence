@@ -125,7 +125,7 @@ function paintJackInto(k, st) {
   k.fill('body', 'back', C.vest, 0, 0, undefined, 9); k.fill('body', 'back', C.vestDk, 3, 0, 2, 9);
   k.fill('body', 'right', C.linen, 0, 0, undefined, 9); k.fill('body', 'left', C.linen, 0, 0, undefined, 9);
   k.fill('body', 'right', C.vest, 0, 3, undefined, 6); k.fill('body', 'left', C.vest, 0, 3, undefined, 6);
-  k.fill('body', 'top', C.linen);
+  k.fill('body', 'top', C.vest);
   // The shirt-tail stays on the torso whatever is up or down. The seat (the glutes block in the lap pose) and the upper thighs take the colour of
   // the trousers, drawers or bare skin; bare rows on the legs are remembered (with their cheek) so the marks can be laid on afterwards.
   const bare = [];
@@ -142,9 +142,10 @@ function paintJackInto(k, st) {
   for (const side of ['rArm', 'lArm']) {
     k.all(side, C.skin);
     k.band(side, C.linen, 0, 5); k.band(side, C.linenSh, 5, 1); k.fill(side, 'top', C.linen); k.fill(side, 'bottom', C.skinSh);
+    k.band(side, C.vest, 0, 3); k.fill(side, 'top', C.vest);      // the shoulders are the jerkin's green
     k.band(side, C.belt, 8, 2); k.band(side, C.skinHi, 6, 1);
     for (const f of SIDES) { k.px(side, f, 0, 7, C.skinSh); k.px(side, f, 0, 11, C.skinSh); }
-    k.band(sideOuter(side), C.vest, 0, 2);
+    k.band(sideOuter(side), C.vest, 0, 3);
   }
   k.px('rArm', 'front', 2, 10, C.skinSh); k.px('lArm', 'front', 1, 11, C.skinSh);
 
