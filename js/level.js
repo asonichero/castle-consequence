@@ -146,9 +146,9 @@ function create(els, ui) {
 
   // Dirt to sweep (world coordinates) and the footprints left in it.
   const patches = [];
-  function makePatch(x, z, grainy) {
+  function makePatch(x, z, grainy, rad) {
     const g = new THREE.Group(); g.position.set(x, 0.12, z);
-    const d = new THREE.Mesh(new THREE.CircleGeometry(5.2 * K, 12), mat(0x4a3722)); d.rotation.x = -Math.PI / 2; g.add(d);
+    const d = new THREE.Mesh(new THREE.CircleGeometry(5.2 * K * (rad || 1), 12), mat(0x4a3722)); d.rotation.x = -Math.PI / 2; g.add(d);
     if (grainy) for (let i = 0; i < 6; i++) box(2.2, 0.4, 0.7, (i - 2.5) * 2.4, 0.5, ((i * 7) % 5 - 2) * 1.7, 0xc9a54a, g).rotation.y = i;
     scene.add(g); const p = { g, x, z, amount: 1 }; patches.push(p); return p;
   }
@@ -184,7 +184,7 @@ function create(els, ui) {
     sitting: false, sneak: false, runOn: false, running: false, pos: new V3(-40 * K, 0, 6 * K), heading: 0, speedN: 0, creeping: false, phaseWalk: 0, stride: 0, dirt: 0, foot: 1,
     holding: null, water: 0, spillAcc: 0, spillCool: 0, sweeping: false, clapCool: 0,
     items: { broom: { where: 'home', x: 0, z: 0 }, bucket: { where: 'home', x: 0, z: 0 } },
-    chores: { sweep: false, dish: false, water: false, trust: false }, dishFilled: false, troughFilled: false,
+    chores: { sweep: false, dish: false, water: false, trust: false }, dishFilled: false, troughFilled: false, troughLevel: 0,
     counts: { claps: 0, spills: 0, startles: 0, unfinished: 0, dawdle: 0, litter: 0, tracked: 0 }, lie: false, told: null,
     hen: { pos: new V3(30 * K, 0, 24 * K), target: new V3(30 * K, 0, 24 * K), mode: 'wander', timer: 2, trust: 50, startleCool: 0, heading: 0, bob: 0, settled: false, dirt: 0, stride: 0 },
     cam: { yaw: 0, pitch: 0.85 }, shrunk: [], hint: '', msg: '',
@@ -252,6 +252,7 @@ function create(els, ui) {
   function dumpWater(why) {
     spillDrops(Math.ceil(S.water / 8)); S.water = 0; S.counts.spills++; shrink(COST.spill, why); dirty(false, 'The water makes a muddy patch.');
   }
+  function setTrough() { const f = S.troughLevel / 100; props.water.visible = f > 0; props.water.scale.y = Math.max(0.2, f); props.water.position.y = 3.65 + 0.35 * Math.max(0.2, f); }
   function releaseHen() {
     const h = S.hen; h.pos.copy(S.pos).addScaledVector(new V3(Math.sin(S.heading), 0, Math.cos(S.heading)), 8); h.pos.y = 0; h.mode = 'wander'; h.timer = 1.5; h.settled = false; h.target.copy(h.pos);
     if (h.trust < 100) S.chores.trust = false;
@@ -266,8 +267,8 @@ function create(els, ui) {
       if (what === 'hen') { releaseHen(); return; }
       if (what === 'broom') { setHeld(null); if (near(SPOT.rack)) { placeItem('broom', 'home'); note('You hang the broom back up.', 'good'); } else { placeItem('broom', 'floor'); note('You drop the broom here.'); } return; }
       if (what === 'bucket') {
+        if (S.water > 0) dumpWater('Dropping the water');                          // (a bucket put down with water in it slops it all over the floor)
         if (near(SPOT.bucket, 13)) { setHeld(null); S.water = 0; placeItem('bucket', 'home'); note('You put the bucket back by the broom.', 'good'); return; }
-        if (S.water > 0) dumpWater('Dropping the water');
         setHeld(null); placeItem('bucket', 'floor'); note('You drop the bucket here.'); return;
       }
       if (what === 'grain') { setHeld(null); if (near(SPOT.sack)) note('You tip the grain back.'); else { dirty(true, 'The grain scatters across the floor.'); } return; }
@@ -305,9 +306,12 @@ function create(els, ui) {
     if (w === 'bucket') {
       if (near(SPOT.well, 21)) { if (S.water < 100) { S.water = 100; S.spillAcc = 0; note('You fill the bucket. Sneak (C) so it does not slop.'); } else note('The bucket is full.'); return; }
       if (near(SPOT.trough, 19)) {
-        if (S.water < 50) { note('Too little left in the bucket: go and fill it again.'); return; }
-        S.troughFilled = true; S.chores.water = true; props.water.visible = true;
-        note(S.counts.spills ? 'You pour the water in. ✔ (you did spill some on the way)' : 'You pour the water in without a drop lost. ✔', 'good'); S.water = 0; return;
+        if (S.water < 1) { note('The bucket is empty: fill it at the basin.'); return; }
+        if (S.troughLevel >= 99.5) { note('The trough is already full.'); return; }
+        const poured = Math.min(S.water, 100 - S.troughLevel); S.troughLevel += poured; S.water = 0; setTrough();
+        if (S.troughLevel >= 99.5) { S.troughFilled = true; S.chores.water = true; note('The trough is full. ✔', 'good'); }
+        else note(`You pour in ${Math.round(poured)}% of a trough. It is ${Math.round(S.troughLevel)}% full: back to the basin for more.`);
+        return;
       }
       if (S.water > 0) dumpWater('Pouring the water out'); else note('The bucket is empty: fill it at the well (Space).');
     }
@@ -394,9 +398,10 @@ function create(els, ui) {
       addPrint(S.pos.x + side.x, S.pos.z + side.z, S.heading, scale * 1.1, false, true); S.chores.sweep = false;
     }
     // The water.
-    if (S.holding === 'bucket' && S.speedN > SPILL_ABOVE) {
-      const loss = (S.speedN - SPILL_ABOVE) * 4.5 * dt; S.water = Math.max(0, S.water - loss); S.spillAcc += loss; if (Math.random() < 0.4) spillDrops(1);
-      if (S.spillAcc >= 15 && S.spillCool <= 0) { S.spillAcc -= 15; S.spillCool = 1.5; S.counts.spills++; note('Water slops over the rim!', 'bad'); shrink(COST.spill, 'Spilling the water'); }
+    // The water slops by the distance he covers: about half the bucket by the trough at a walk (so two trips), none if he sneaks, all of it at a run.
+    if (S.holding === 'bucket' && S.speedN > SPILL_ABOVE && S.water > 0) {
+      const loss = before.distanceTo(S.pos) * 0.6 * (S.speedN - SPILL_ABOVE) / (WALK - SPILL_ABOVE); S.water = Math.max(0, S.water - loss); S.spillAcc += loss; if (Math.random() < 0.4) spillDrops(1);
+      if (S.spillAcc >= 15 && S.spillCool <= 0) { S.spillAcc -= 15; S.spillCool = 1.5; S.counts.spills++; note('Water slops over the rim!', 'bad'); shrink(COST.spill, 'Spilling the water'); makePatch(S.pos.x - Math.sin(S.heading) * 4, S.pos.z - Math.cos(S.heading) * 4, false, 0.55); S.chores.sweep = false; }
     }
     // Sweeping: Space with the broom (patches and footprints alike).
     S.sweeping = !!(keys.sweep && S.holding === 'broom');

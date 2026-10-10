@@ -109,7 +109,7 @@
       var set = function (id, done) { $(id).classList.toggle('done', !!done); };
       set('cSweep', S.chores.sweep); set('cDish', S.chores.dish); set('cWater', S.chores.water); set('cTrust', S.chores.trust);
       $('cSweepV').textContent = x.patches + '/' + x.patchTotal;
-      $('cWaterV').textContent = S.counts.spills ? 'spilled ×' + S.counts.spills : '';
+      $('cWaterV').textContent = Math.round(S.troughLevel || 0) + '%' + (S.counts.spills ? ' · spilled ×' + S.counts.spills : '');
       $('cTrustV').textContent = Math.round(S.hen.trust) + '%'; $('trustBar').style.width = S.hen.trust + '%';
       $('prints').textContent = x.prints ? 'Muddy footprints: ' + x.prints : '';
       $('carry').textContent = S.holding === 'bucket' ? 'Carrying: water (' + Math.round(S.water) + '%)' : S.holding ? 'Carrying: ' + S.holding : 'Hands empty';
