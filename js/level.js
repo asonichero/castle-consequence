@@ -147,11 +147,11 @@ function create(els, ui) {
 
   // Dirt to sweep (world coordinates) and the footprints left in it.
   const patches = [];
-  function makePatch(x, z, grainy, rad) {
+  function makePatch(x, z, grainy, rad, tag) {
     const g = new THREE.Group(); g.position.set(x, 0.12, z);
     const d = new THREE.Mesh(new THREE.CircleGeometry(5.2 * K * (rad || 1), 12), mat(0x4a3722)); d.rotation.x = -Math.PI / 2; g.add(d);
     if (grainy) for (let i = 0; i < 6; i++) box(2.2, 0.4, 0.7, (i - 2.5) * 2.4, 0.5, ((i * 7) % 5 - 2) * 1.7, 0xc9a54a, g).rotation.y = i;
-    scene.add(g); const p = { g, x, z, amount: 1 }; patches.push(p); return p;
+    scene.add(g); const p = { g, x, z, amount: 1, tag: tag || null }; patches.push(p); return p;
   }
   PATCHES.forEach(([x, z]) => makePatch(x, z, true));
   const prints = [];                                                                         // { g, x, z, amount, jack }
@@ -182,7 +182,7 @@ function create(els, ui) {
   // ── State ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   const S = {
     phase: 'play', t: 0, size: SIZE_START, shownSize: SIZE_START, log: [], floats: [],
-    sitting: false, sneak: false, runOn: false, running: false, pos: new V3(-40 * K, 0, 6 * K), heading: 0, speedN: 0, creeping: false, phaseWalk: 0, stride: 0, dirt: 0, foot: 1,
+    stick: { x: 0, y: 0 }, sitting: false, sneak: false, runOn: false, running: false, pos: new V3(-40 * K, 0, 6 * K), heading: 0, speedN: 0, creeping: false, phaseWalk: 0, stride: 0, dirt: 0, foot: 1,
     holding: null, water: 0, spillAcc: 0, spillCool: 0, sweeping: false, clapCool: 0,
     items: { broom: { where: 'home', x: 0, z: 0 }, bucket: { where: 'home', x: 0, z: 0 } },
     chores: { sweep: false, dish: false, water: false, trust: false }, dishFilled: false, troughFilled: false, troughLevel: 0,
@@ -212,13 +212,14 @@ function create(els, ui) {
   });
   root.addEventListener('keyup', e => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
   // The mouse looks around Jack: drag.
-  let dragging = null;
-  renderer.domElement.addEventListener('pointerdown', e => { dragging = { x: e.clientX, y: e.clientY }; renderer.domElement.setPointerCapture && renderer.domElement.setPointerCapture(e.pointerId); });
+  // Touch and mouse both look around with a drag (each finger on its own: one on the joystick walks, any other drags the view).
+  const drags = new Map(); renderer.domElement.style.touchAction = 'none';
+  renderer.domElement.addEventListener('pointerdown', e => { drags.set(e.pointerId, { x: e.clientX, y: e.clientY }); renderer.domElement.setPointerCapture && renderer.domElement.setPointerCapture(e.pointerId); });
   renderer.domElement.addEventListener('pointermove', e => {
-    if (!dragging) return;
-    S.cam.yaw -= (e.clientX - dragging.x) * 0.006; S.cam.pitch = clamp(S.cam.pitch + (e.clientY - dragging.y) * 0.005, 0.06, 1.4); dragging.x = e.clientX; dragging.y = e.clientY;
+    const d = drags.get(e.pointerId); if (!d) return;
+    S.cam.yaw -= (e.clientX - d.x) * 0.006; S.cam.pitch = clamp(S.cam.pitch + (e.clientY - d.y) * 0.005, 0.06, 1.4); d.x = e.clientX; d.y = e.clientY;
   });
-  const endDrag = () => { dragging = null; };
+  const endDrag = e => { drags.delete(e.pointerId); };
   renderer.domElement.addEventListener('pointerup', endDrag); renderer.domElement.addEventListener('pointercancel', endDrag);
 
   // ── Doing things ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -248,7 +249,7 @@ function create(els, ui) {
   // A new patch of dirt where something was dumped, in front of him: it has to be swept up again.
   function dirty(grainy, why) {
     const f = new V3(Math.sin(S.heading), 0, Math.cos(S.heading)).multiplyScalar(9);
-    makePatch(clamp(S.pos.x + f.x, HALL.x0 + 8, HALL.x1 - 8), clamp(S.pos.z + f.z, HALL.z0 + 8, HALL.z1 - 8), grainy); S.chores.sweep = false; note(why, 'bad');
+    makePatch(clamp(S.pos.x + f.x, HALL.x0 + 8, HALL.x1 - 8), clamp(S.pos.z + f.z, HALL.z0 + 8, HALL.z1 - 8), grainy, 1, grainy ? 'grain' : 'water'); S.chores.sweep = false; note(why, 'bad');
   }
   function dumpWater(why) {
     spillDrops(Math.ceil(S.water / 8)); S.water = 0; S.counts.spills++; shrink(COST.spill, why); dirty(false, 'The water makes a muddy patch.');
@@ -375,7 +376,8 @@ function create(els, ui) {
     const scale = S.shownSize * FULL;
     // Movement, relative to where the camera looks. Hold Shift to creep.
     const f = new V3(-Math.sin(S.cam.yaw), 0, -Math.cos(S.cam.yaw)), r = new V3(Math.cos(S.cam.yaw), 0, -Math.sin(S.cam.yaw));
-    const dir = new V3().addScaledVector(f, (keys.up ? 1 : 0) - (keys.down ? 1 : 0)).addScaledVector(r, (keys.right ? 1 : 0) - (keys.left ? 1 : 0)); S.creeping = S.sneak && !S.sitting; S.running = !!(keys.run || S.runOn) && !S.sitting;
+    const dir = new V3().addScaledVector(f, (keys.up ? 1 : 0) - (keys.down ? 1 : 0)).addScaledVector(r, (keys.right ? 1 : 0) - (keys.left ? 1 : 0));
+    if (Math.hypot(S.stick.x, S.stick.y) > 0.25) dir.addScaledVector(f, -S.stick.y).addScaledVector(r, S.stick.x);   // (the on-screen joystick) S.creeping = S.sneak && !S.sitting; S.running = !!(keys.run || S.runOn) && !S.sitting;
     if (S.sitting && dir.lengthSq() > 0) standUp();
     // The keys set the direction he wants to go (relative to the camera); he turns naturally into it and travels along his heading, so W then S is a
     // turn through 180 degrees, and W with D walks the diagonal.
@@ -402,7 +404,7 @@ function create(els, ui) {
     // The water slops by the distance he covers: nothing at a walk or a sneak, about half the bucket by the trough at a run (so two trips).
     if (S.holding === 'bucket' && S.speedN > SPILL_ABOVE && S.water > 0) {
       const loss = before.distanceTo(S.pos) * 0.6 * (S.speedN - SPILL_ABOVE) / (RUN - SPILL_ABOVE); S.water = Math.max(0, S.water - loss); S.spillAcc += loss; if (Math.random() < 0.4) spillDrops(1);
-      if (S.spillAcc >= 15 && S.spillCool <= 0) { S.spillAcc -= 15; S.spillCool = 1.5; S.counts.spills++; note('Water slops over the rim!', 'bad'); shrink(COST.spill, 'Spilling the water'); makePatch(S.pos.x - Math.sin(S.heading) * 4, S.pos.z - Math.cos(S.heading) * 4, false, 0.55); S.chores.sweep = false; }
+      if (S.spillAcc >= 15 && S.spillCool <= 0) { S.spillAcc -= 15; S.spillCool = 1.5; S.counts.spills++; note('Water slops over the rim!', 'bad'); shrink(COST.spill, 'Spilling the water'); makePatch(S.pos.x - Math.sin(S.heading) * 4, S.pos.z - Math.cos(S.heading) * 4, false, 0.55, 'water'); S.chores.sweep = false; }
     }
     // Sweeping: Space with the broom (patches and footprints alike).
     S.sweeping = !!(keys.sweep && S.holding === 'broom');
@@ -492,12 +494,20 @@ function create(els, ui) {
     }
     updateHen(dt); poseJack(dt); B.step(gerda, dt);
   }
+  // What is left at the end that he can be held to account for: spilled water only counts where it was left as dirt, and the hen's final temperament is
+  // recorded rather than each time he startled her.
+  function finalState() {
+    const left = tag => patches.filter(p => p.tag === tag && p.amount > 0.05).length, t = S.hen.trust;
+    return { water: left('water'), grain: left('grain'), hen: S.chores.trust || t >= 75 ? 'calm' : t < 25 ? 'frightened' : t < 60 ? 'wary' : 'calm' };
+  }
   const reasons = () => {
     const c = S.counts, r = [];
-    if (c.spills) r.push(c.spills > 1 ? 'spilled the water more than once' : 'spilled the water');
-    if (c.startles) r.push('frightened my hen');
-    if (c.claps) r.push('clapped at her to shoo her');
-    if (c.tracked >= 6) r.push('tracked mud across my floor');
+    const f = finalState();
+    if (f.water) r.push(f.water > 1 ? 'left spilled water on the floor' : 'left spilled water on the floor');
+    if (f.grain) r.push('left grain scattered about');
+    if (f.hen === 'frightened') r.push('left the hen frightened'); else if (f.hen === 'wary') r.push('left the hen wary');
+    if (c.claps) r.push('clapped to shoo the hen');
+    if (c.tracked >= 6) r.push('tracked mud across the floor');
     if (c.litter) r.push('left things lying about');
     if (c.unfinished) r.push('left ' + (c.unfinished > 1 ? 'chores' : 'a chore') + ' undone');
     if (c.dawdle) r.push('dawdled');
@@ -538,12 +548,12 @@ function create(els, ui) {
 
   function finishPraise() {
     gerda.walk.ruffle = false; S.phase = 'done';
-    ui.finish({ red: false, praise: true, plan: { name: 'None' }, info: null, size: S.size, log: S.shrunk, counts: S.counts, lie: false, hits: 0 });
+    ui.finish({ red: false, praise: true, plan: { name: 'None' }, size: S.size, hits: 0, reasons: [], lie: false });
   }
 
   // ── Severity ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   // How Jack really did, plus whether he lied: demerits, then a tier (0 token … 3 severe); a lie lifts it a tier.
-  function demerits() { const c = S.counts; return c.unfinished * 2 + c.spills * 1.5 + c.startles * 0.5 + c.claps * 1 + c.dawdle * 1 + c.litter * 0.5 + (c.tracked >= 6 ? 1 : 0); }
+  function demerits() { const c = S.counts, f = finalState(); return c.unfinished * 2 + f.water * 1.5 + f.grain * 0.5 + (f.hen === 'frightened' ? 1 : f.hen === 'wary' ? 0.5 : 0) + c.claps * 1 + c.dawdle * 1 + c.litter * 0.5 + (c.tracked >= 6 ? 1 : 0); }
   function buildPlan() {
     const d = demerits(); let tier = d < 0.01 ? 0 : d < 1.5 ? 1 : d < 4 ? 2 : 3; if (S.lie) tier = Math.min(3, tier + 1);   // (a spotless job is praised, not corrected; anything at all earns at least a light one)
     const TIERS = [
@@ -570,9 +580,11 @@ function create(els, ui) {
   }
   // The correction happens in the middle of the room, exactly as Jack left it: the room, the dirt and footprints, any broom or bucket left lying
   // about, and the hen settled in her nest, all move into the lap scene (whose own floor is hidden).
+  let world = null, after = null;
   function carryIntoLap() {
+    props.chair.visible = false;                                                            // (Gerda is sitting on it)
     const sc = lap.scene; lap.floor.visible = false; sc.background = new THREE.Color(0x1b2230); sc.fog = new THREE.Fog(0x1b2230, 240, 560);
-    const world = new THREE.Group(); world.position.y = lap.floor.position.y; sc.add(world);   // the room's floor is the lowered floor, under the chair's legs
+    world = new THREE.Group(); world.position.y = lap.floor.position.y; sc.add(world);   // the room's floor is the lowered floor, under the chair's legs
     world.add(room); patches.forEach(p => world.add(p.g)); prints.forEach(p => world.add(p.g)); drops.forEach(d => world.add(d.m));
     const n = SPOT.nest; hen.position.set(n.x, 1 * K, n.z); hen.rotation.y = Math.atan2(-n.x, -n.z); world.add(hen);
     henP.head.rotation.x = 0.1; henP.wingL.rotation.z = 0.05; henP.wingR.rotation.z = -0.05; henP.body.position.y = 5.5; henP.tail.rotation.x = 0.1;
@@ -600,6 +612,7 @@ function create(els, ui) {
   }
   function updateDiscipline(dt) {
     lap.update(dt); ui.meter && ui.meter(lap.info());
+    if (after) { B.step(after.j, dt); B.step(after.g, dt); after.t += dt; if (after.t > 1) { after.t = 0; after.paint(); } }
     if (stepAt >= steps.length) return;
     if (stepWait > 0) { stepWait -= dt; return; }
     const s = steps[stepAt];
@@ -614,9 +627,26 @@ function create(els, ui) {
     if (s.end) { finishDiscipline(false); stepAt = steps.length; return; }
     stepAt++; stepWait = (s.wait || 0) / 1000;
   }
+  // The summary shown at the bottom: the smacks and everything he was disciplined for.
+  function summary(red, hits) { return { red, praise: false, plan: planNow, size: S.size, hits, reasons: reasons(), lie: S.lie, claps: S.counts.claps }; }
   function finishDiscipline(red) {
-    lap.end && lap.end(); const info = lap.info();
-    ui.finish({ red, plan: planNow, info, size: S.size, log: S.shrunk, counts: S.counts, lie: S.lie, hits: lap.st.hits });
+    lap.end && lap.end(); const sm = summary(red, lap.st.hits);
+    if (red) { ui.finish(sm); return; }
+    ui.fade && ui.fade(true); setTimeout(() => { buildAftermath(); ui.finish(sm); ui.fade && ui.fade(false); }, 1000);
+  }
+  // Afterwards: Jack stands facing the wall with his bottoms and drawers down, Gerda standing behind him, the chair still in the centre of the room.
+  function buildAftermath() {
+    lap.gerda.root.visible = false; lap.jack.root.parent.visible = false;
+    const sz = S.size * FULL, j = B.makeJack(), g = B.makeGerda('Work'), bz = -(R_ * K) + 7;
+    const paint = () => { B.paintJackInto(j.skin, { outfit: 'Day', trousers: 'down', drawers: 'down', marks: lap.st.marks, expr: 2, hitched: true }); j.tex.needsUpdate = true; };
+    paint(); j.legL.ring.visible = j.legR.ring.visible = true; B.setPose(j, 'stand'); B.setPose(g, 'stand');
+    j.after = r => { r.armL.rotation.x = r.armR.rotation.x = -2.3; r.neck.rotation.x = 0.25; };   // hands up on the wall, head bowed
+    const jh = new THREE.Group(), gh = new THREE.Group(); jh.add(j.root); gh.add(g.root);
+    jh.position.set(0, 0, bz); jh.rotation.y = Math.PI; j.root.scale.setScalar(sz);
+    gh.position.set(-9, 0, bz + 13); gh.rotation.y = Math.PI;
+    world.add(jh); world.add(gh);
+    lap.camera.position.set(34, 62, 36); lap.controls.target.set(-2, 6, -54); lap.controls.update();
+    after = { j, g, paint, t: 0 };
   }
   function redWord() { if (S.phase !== 'discipline' || !lap) return; stepAt = steps.length; lap.red(); say('Gerda', 'Red. Stopping at once. Come here.'); finishDiscipline(true); }
 
@@ -645,8 +675,9 @@ function create(els, ui) {
     frame, S, shrink, redWord, keys, COST, SIZE_MIN, resize, jack, gerda, hen: S.hen, props, patches, prints,
     lapRef: () => lap, view: n => lap && lap.view(n),
     interact, clap, spaceAction, toggleSneak, toggleRun, setHeld, callGerda,
+    stick(x, y) { S.stick.x = x; S.stick.y = y; },
     act(name, down) { if (name === 'space') { if (down) { keys.sweep = true; spaceAction(); } else keys.sweep = false; } else if (name === 'interact') interact(); else if (name === 'sneak') toggleSneak(); else if (name === 'run') toggleRun(); else if (name === 'call') callGerda(); },
-    debug: { finishAll() { for (const c of CHORES) S.chores[c] = true; S.hen.trust = 100; patches.forEach(p => p.amount = 0); props.grain.visible = props.water.visible = true; }, answer, askHowItWent, beginReturn, buildPlan, startDiscipline },
+    debug: { aftermath() { startDiscipline(buildPlan()); steps = []; lap.st.marks = { L: 0.6, R: 0.5 }; buildAftermath(); }, finishAll() { for (const c of CHORES) S.chores[c] = true; S.hen.trust = 100; patches.forEach(p => p.amount = 0); props.grain.visible = props.water.visible = true; }, answer, askHowItWent, beginReturn, buildPlan, startDiscipline },
   };
 }
 

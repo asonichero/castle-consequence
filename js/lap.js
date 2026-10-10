@@ -96,7 +96,7 @@ function create(view, opts) {
     hits: 0, ended: false, red: false, peak: 0, swing: null, runLeft: 0, gap: 0, sound: true, last: null,
   };
   const J = { kick: 0, kickSide: 'R', t: 0 };     // Jack's reaction to the last smack, and a clock for his wriggling
-  let dirty = true, repaintAt = 0;
+  let dirty = true, repaintAt = 0, fadeAcc = 0;
   const events = [];
   const say = (type, data) => events.forEach(f => f(type, data));
 
@@ -375,6 +375,8 @@ function create(view, opts) {
     pain.update(dt, !!(st.swing && st.swing.phase === 'contact'));
     if (st.ended && !st.swing && st.runLeft) st.runLeft = 0;
     if (exprFor() !== st.expr) dirty = true;
+    // The colour fades with time (the deep red slowly, a faint blush a little more slowly per bit): about a minute and a half to a quarter of its depth.
+    if (!st.swing) { let faded = false; for (const c of ['L', 'R']) if (st.marks[c] > 0) { st.marks[c] = Math.max(0, st.marks[c] - (st.marks[c] * 0.012 + 0.0008) * dt); faded = true; } if (faded) { fadeAcc += dt; if (fadeAcc > 0.8) { fadeAcc = 0; dirty = true; } } }
     repaintAt -= dt; if (dirty && repaintAt <= 0) { repaint(); repaintAt = 0.12; }
     // Jack's size (the premise: he shrinks on arrival): his frame is scaled about his hip joint, which is re-placed so his torso's centre is still
     // over the centre of her thighs and his belly still rests on them (their tops are at y = 8, 8.75 under the skirt; his body is 4 deep).
