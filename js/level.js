@@ -634,41 +634,43 @@ function create(els, ui) {
   }
   const say = (who, text) => ui.say(who, text);
   const sayStep = (who, text, ms) => ({ say: [who, text], wait: ms || 2600 });
+  // The script: runs of smacks and the actions between them. The talk never pauses anything: lines are tied to the smack count and spoken while the hand keeps
+  // falling (Gerda's, and Jack's own cries). Only a change of clothing or implement stops the run, and its line is spoken as it happens.
+  let talk = [], talkAt = 0;
   function scriptFor(p) {
-    const r = p.reasons, st = [];
+    const st = []; talk = []; talkAt = 0; let total = 0, gi = 0, ji = 0, who = 0;
     st.push({ do: () => lap.view('overview'), wait: 900 });
-    // A run of smacks is broken into short bursts with a line between them (Gerda's, or Jack's own cries), so there is always something being said.
     const G = ['Hold still.', 'Hands where they are.', 'Every one of these was avoidable.', 'You know exactly why.', 'Stay over my knee.', 'I am not nearly done.', 'This is what comes of it.', 'Count them for me. No? Then just feel them.'];
     const Jl = ['Ow!', 'Ahh — sorry!', 'Please!', 'Ow, ow, ow!', 'I will do better, I promise!', 'It stings!', 'I am sorry, Gerda!', 'Ah — ah — please!'];
-    let gi = 0, ji = 0, who = 0;
-    const chunk = (n, line, jackLine) => {
+    const at = (k, w, t) => talk.push({ at: k, who: w, text: t });
+    // One unbroken run of n smacks; `ends` are lines at its close.
+    const run = (n, ends) => {
       if (!n) return;
-      const pieces = Math.ceil(n / 4);
-      for (let i = 0; i < pieces; i++) {
-        st.push({ run: Math.min(4, n - 4 * i) });
-        if (i < pieces - 1) { who ^= 1; st.push(who ? sayStep('Gerda', G[gi++ % G.length], 1500) : sayStep('Jack', Jl[ji++ % Jl.length], 1300)); }
-      }
-      if (line) st.push(sayStep('Gerda', line, 2200)); if (jackLine) st.push(sayStep('Jack', jackLine, 1800));
+      for (let k = 3; k < n; k += 4) { who ^= 1; who ? at(total + k, 'Gerda', G[gi++ % G.length]) : at(total + k, 'Jack', Jl[ji++ % Jl.length]); }
+      (ends || []).forEach(e => at(total + n, e[0], e[1]));
+      st.push({ run: n }); total += n;
     };
-    if (p.tier === 0) { chunk(p.hand, 'There. Off you go.'); }
-    else if (p.tier === 1) { chunk(Math.ceil(p.hand / 2), 'Hold still.', 'Ow — I am sorry!'); chunk(Math.floor(p.hand / 2), 'That will do.'); }
+    const act = (fn, who2, text) => st.push({ do: fn, say: text ? [who2, text] : null, wait: 1100 });
+    if (p.tier === 0) run(p.hand, [['Gerda', 'There. Off you go.']]);
+    else if (p.tier === 1) run(p.hand, [['Gerda', 'That will do.']]);
     else if (p.tier === 2) {
-      chunk(Math.ceil(p.hand / 3), 'You will remember this next time.', 'I will, I will!');
-      st.push({ do: () => lap.layers({ trousers: 'down' }), wait: 600 }, sayStep('Gerda', 'Shorts down. You know why.', 1800));
-      chunk(Math.ceil(p.hand / 3), 'Quiet.', 'Ow! Please!'); chunk(p.hand - 2 * Math.ceil(p.hand / 3), 'Nearly done.');
+      run(Math.ceil(p.hand / 3));
+      act(() => lap.layers({ trousers: 'down' }), 'Gerda', 'Shorts down. You know why.');
+      run(p.hand - Math.ceil(p.hand / 3), [['Gerda', 'Nearly done.']]);
     } else {
-      st.push({ do: () => lap.layers({ trousers: 'down' }), wait: 500 });
-      chunk(Math.ceil(p.hand / 2), 'This is what honesty costs.', 'I am sorry, I am sorry!');
-      st.push({ do: () => lap.layers({ trousers: 'down', drawers: 'down' }), wait: 600 }, sayStep('Gerda', 'And these come down too.', 1800));   // (the drawers earned: halfway through the hand)
-      chunk(p.hand - Math.ceil(p.hand / 2), 'Nearly there.');
-      st.push({ idle: true }, { do: () => { lap.implement('paddle'); }, wait: 400 }, sayStep('Gerda', 'The paddle for the rest.', 2200));
-      chunk(Math.ceil(p.paddle / 2), 'Stay where you are.', 'Please — no more!'); chunk(p.paddle - Math.ceil(p.paddle / 2), 'And that is the last of it.');
+      act(() => lap.layers({ trousers: 'down' }), 'Gerda', 'Shorts down. This is what honesty costs.');
+      run(Math.ceil(p.hand / 2));
+      act(() => lap.layers({ trousers: 'down', drawers: 'down' }), 'Gerda', 'And these come down too.');   // (the drawers earned: halfway through the hand)
+      run(p.hand - Math.ceil(p.hand / 2));
+      st.push({ idle: true }); act(() => lap.implement('paddle'), 'Gerda', 'The paddle for the rest.');
+      run(p.paddle, [['Jack', 'Please — no more!'], ['Gerda', 'And that is the last of it.']]);
     }
     st.push({ end: true });
     return st;
   }
   function updateDiscipline(dt) {
     lap.update(dt); cullWalls(lap.camera); ui.meter && ui.meter(lap.info());
+    while (talkAt < talk.length && lap.st.hits >= talk[talkAt].at) { say(talk[talkAt].who, talk[talkAt].text); talkAt++; }
     if (after) { B.step(after.j, dt); B.step(after.g, dt); after.t += dt; if (after.t > 1) { after.t = 0; after.paint(); } }
     if (stepAt >= steps.length) return;
     if (stepWait > 0) { stepWait -= dt; return; }
