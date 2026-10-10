@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Beanstalk — The Golden Hen</title>
 <style>
   html, body { margin: 0; height: 100%; overflow: hidden; background: #131820; font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; color: #ece8df; }
@@ -48,14 +48,15 @@
     #hud h2 { font-size: 11px; }
     #feed { left: auto; right: 12px; top: 52px; bottom: auto; width: 200px; font-size: 11px; }
     #actions { right: 8px; bottom: 8px; }
-    #actions button { padding: 12px 12px; font-size: 14px; margin: 3px; }
+    #actions { padding: 5px 6px; }
+    #actions button { padding: 6px 8px; font-size: 12px; margin: 2px; }
     #hint { bottom: 170px; font-size: 13px; max-width: 80vw; text-align: center; }
     #dlg, #speech { bottom: 8px; font-size: 13px; }
     #final { font-size: 12px; }
     #title { top: 8%; font-size: 12px; }
   }
   @media (pointer: coarse) and (max-height: 520px) {
-    #actions button { padding: 7px 9px; font-size: 12px; margin: 2px; }
+    #actions button { padding: 5px 7px; font-size: 11px; margin: 2px; }
     #hud { width: 165px; } #hud .chore { font-size: 10px; }
     #stick { width: 110px; height: 110px; bottom: 14px; left: 14px; }
     #hint { bottom: 130px; }
@@ -91,9 +92,9 @@
   <span class="warn">Moving fast near the hen scares her; moving fast with water slops it. Holding the hen costs her trust like a clap every second. Clapping, spilling, startling, lying and undone chores all shrink you.</span>
 </div>
 <div id="actions" class="panel">
-  <button data-act="run" id="bRun">Run (Shift)</button><button data-act="sneak" id="bSneak">Sneak (C)</button><br>
-  <button data-act="interact">Pick up / drop (E)</button><button data-act="space" id="bSpace">Clap / use (Space)</button><br>
-  <button data-act="call">Call Gerda (G)</button>
+  <button data-act="run" id="bRun">Run</button><button data-act="sneak" id="bSneak">Sneak</button><br>
+  <button data-act="interact">Pick up / drop</button><button data-act="space" id="bSpace">Clap / use</button><br>
+  <button data-act="call">Call Gerda</button>
 </div>
 <div id="feed" class="panel"></div>
 <div id="hint"></div>
@@ -149,7 +150,7 @@
       $('help').style.display = S.phase === 'play' ? '' : 'none'; $('stick').style.visibility = S.phase === 'play' ? 'visible' : 'hidden'; $('helpBtn').style.visibility = S.phase === 'play' ? 'visible' : 'hidden'; $('hud').style.display = S.phase === 'play' ? 'block' : 'none';
     },
     dialog: function (d) {
-      $('dlg').style.display = 'block'; $('dlgWho').textContent = d.who; $('dlgText').textContent = d.text; var c = $('dlgChoices'); c.innerHTML = '';
+      $('speech').style.display = 'none'; $('dlg').style.display = 'block'; $('dlgWho').textContent = d.who; $('dlgText').textContent = d.text; var c = $('dlgChoices'); c.innerHTML = '';
       d.choices.forEach(function (ch) { var b = document.createElement('button'); b.textContent = ch.label; b.onclick = function () { $('dlg').style.display = 'none'; ch.fn(); }; c.appendChild(b); });
     },
     discipline: function (on, plan) { $('disc').style.display = on ? 'block' : 'none'; $('hud').style.display = 'none'; $('help').style.display = 'none'; $('actions').style.display = 'none'; $('feed').style.display = 'none'; $('hint').style.display = 'none'; $('dlg').style.display = 'none'; if (on) $('discSize').textContent = 'Jack is ' + Math.round(L.S.size * 100) + '% · ' + plan.name + ' correction'; },
@@ -170,15 +171,16 @@
     var st = $('stick'), kb = $('knob'), id = null, R = 65;
     function move(e) { var r = st.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2), m = Math.hypot(dx, dy) || 1, k = Math.min(1, m / R);
       var x = dx / m * k, y = dy / m * k; kb.style.transform = 'translate(' + x * R * 0.7 + 'px,' + y * R * 0.7 + 'px)'; L.stick(x, y); if (!started) { started = true; $('title').style.display = 'none'; } }
-    st.addEventListener('pointerdown', function (e) { id = e.pointerId; st.setPointerCapture(e.pointerId); move(e); e.preventDefault(); });
+    st.addEventListener('pointerdown', function (e) { if (id !== null) return; id = e.pointerId; st.setPointerCapture(e.pointerId); move(e); e.preventDefault(); });
     st.addEventListener('pointermove', function (e) { if (e.pointerId === id) move(e); });
     ['pointerup', 'pointercancel'].forEach(function (ev) { st.addEventListener(ev, function (e) { if (e.pointerId !== id) return; id = null; kb.style.transform = ''; L.stick(0, 0); }); });
+    ['gesturestart', 'gesturechange'].forEach(function (g) { document.addEventListener(g, function (e) { e.preventDefault(); }); });
     $('helpBtn').addEventListener('click', function () { $('help').classList.toggle('open'); });
   })();
   document.querySelectorAll('#actions button').forEach(function (b) {
     var a = b.dataset.act; b.addEventListener('mousedown', function (e) { e.preventDefault(); });
     if (a === 'space') { b.addEventListener('pointerdown', function () { L.act('space', true); }); ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { b.addEventListener(ev, function () { L.act('space', false); }); }); }
-    else b.addEventListener('click', function () { started = true; $('title').style.display = 'none'; L.act(a); });
+    else b.addEventListener('pointerdown', function (e) { e.preventDefault(); started = true; $('title').style.display = 'none'; L.act(a); });
   });
   $('redBtn').onclick = function () { L.redWord(); };
   addEventListener('keydown', function (e) { if (!started && /^(w|a|s|d|W|A|S|D|Arrow.*)$/.test(e.key)) { started = true; $('title').style.display = 'none'; } });

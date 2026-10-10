@@ -33,7 +33,7 @@ const R_ = 62;                                  // the room is square: 124 desig
 const HALL = { x0: -R_ * K, x1: R_ * K, z0: -R_ * K, z1: R_ * K };
 const ALARM_RADIUS = 28;                        // the hen only minds his pace within this distance
 const D = { rack: [-44, -56], sack: [-50, 46], dish: [20, 20], trough: [36, 20], well: [48, -34], nest: [34, 36], chair: [0, -56.7] };   // (design coordinates; the world's are K times these)
-const SPOT = {}; for (const k in D) SPOT[k] = new V3(D[k][0] * K, 0, D[k][1] * K); SPOT.bucket = new V3((D.rack[0] + 9) * K, 0, (D.rack[1] + 5) * K); SPOT.door = new V3(-(R_ + 2) * K, 0, 0);
+const SPOT = {}; for (const k in D) SPOT[k] = new V3(D[k][0] * K, 0, D[k][1] * K); SPOT.bucket = new V3((D.rack[0] + 4.5) * K, 0, (D.rack[1] - 2) * K);   // on a flagstone beneath the shelf, beside the broom SPOT.door = new V3(-(R_ + 2) * K, 0, 0);
 const PEN = { x0: 6 * K, x1: 56 * K, z0: 4 * K, z1: 54 * K };
 const PATCHES = [[-30, -20], [-10, 10], [5, -25], [-45, 10], [20, -8], [-20, 28]].map(p => [p[0] * K, p[1] * K]);
 const CHORES = ['sweep', 'dish', 'water', 'trust'];
@@ -139,7 +139,8 @@ function create(els, ui) {
   // The chair against the north wall, facing south: the very chair in the correction scene (built in world units, so scaled back down inside the room group).
   props.chair = B.makeChair(); props.chair.scale.setScalar(1 / K); props.chair.position.set(D.chair[0], B.CHAIR.legH / K, D.chair[1]); room.add(props.chair);
   const makeBucket = () => { const b = new THREE.Group(); box(4.4, 4, 4.4, 0, 2, 0, 0x7a5a38, b); const w = box(3.6, 0.6, 3.6, 0, 3.8, 0, 0x6ab8f6, b); b.userData.water = w; box(0.5, 3, 0.5, 0, 6, 0, 0x4a3a2a, b); return b; };
-  const bucket = makeBucket(); bucket.position.set(SPOT.bucket.x / K, 0, SPOT.bucket.z / K); room.add(bucket);          // stands on the floor beside the broom
+  box(8, 0.5, 8, SPOT.bucket.x / K, 0.25, SPOT.bucket.z / K, 0x8a8a90, room); box(8.2, 0.2, 8.2, SPOT.bucket.x / K, 0.1, SPOT.bucket.z / K, 0x6e6e74, room);   // the flagstone
+  const bucket = makeBucket(); bucket.position.set(SPOT.bucket.x / K, 0.5, SPOT.bucket.z / K); room.add(bucket);          // stands on it, beneath the shelf beside the broom
   bucket.userData.water.visible = false;                                                               // (empty until he fills it)
   box(7.4, 0.8, 7.4, 0, 6.2, 0, 0x6ab8f6, props.well);                                              // the basin is always full
   // Where the broom and the bucket belong (as a pose within their parents), so they can be put back.
@@ -377,7 +378,8 @@ function create(els, ui) {
     // Movement, relative to where the camera looks. Hold Shift to creep.
     const f = new V3(-Math.sin(S.cam.yaw), 0, -Math.cos(S.cam.yaw)), r = new V3(Math.cos(S.cam.yaw), 0, -Math.sin(S.cam.yaw));
     const dir = new V3().addScaledVector(f, (keys.up ? 1 : 0) - (keys.down ? 1 : 0)).addScaledVector(r, (keys.right ? 1 : 0) - (keys.left ? 1 : 0));
-    if (Math.hypot(S.stick.x, S.stick.y) > 0.25) dir.addScaledVector(f, -S.stick.y).addScaledVector(r, S.stick.x);   // (the on-screen joystick) S.creeping = S.sneak && !S.sitting; S.running = !!(keys.run || S.runOn) && !S.sitting;
+    if (Math.hypot(S.stick.x, S.stick.y) > 0.25) dir.addScaledVector(f, -S.stick.y).addScaledVector(r, S.stick.x);
+    S.creeping = S.sneak && !S.sitting; S.running = !!(keys.run || S.runOn) && !S.sitting;   // (the stick above is the on-screen joystick) && !S.sitting;
     if (S.sitting && dir.lengthSq() > 0) standUp();
     // The keys set the direction he wants to go (relative to the camera); he turns naturally into it and travels along his heading, so W then S is a
     // turn through 180 degrees, and W with D walks the diagonal.
@@ -430,7 +432,7 @@ function create(els, ui) {
     else if (dh < 14) S.hint = 'E: pick up the hen';
     else if (floorItem) S.hint = `E: pick up the ${floorItem}`;
     else if (near(SPOT.chair, 18)) S.hint = 'E: sit on the chair';
-    else if (near(SPOT.rack)) S.hint = S.items.broom.where === 'home' ? 'E: take the broom' : '';
+    else if (near(SPOT.rack) && SPOT.rack.distanceTo(S.pos) <= SPOT.bucket.distanceTo(S.pos)) S.hint = S.items.broom.where === 'home' ? 'E: take the broom' : '';
     else if (near(SPOT.sack)) S.hint = 'E: scoop grain';
     else if (near(SPOT.bucket, 13)) S.hint = S.items.bucket.where === 'home' ? 'E: take the bucket' : '';
     // End of the job: when everything is done (and tidy), or the clock runs out.
@@ -481,6 +483,9 @@ function create(els, ui) {
     S.t += dt;
     // Gerda walks in to meet Jack; Jack turns to face her.
     const target = new V3(S.pos.x - 22, 0, S.pos.z); target.x = Math.max(target.x, -(R_ - 4) * K);
+    if (gerdaG.visible && S.phase !== 'praise') {                                          // Jack turns to look at her as she comes in, and the camera settles behind him
+      const to = Math.atan2(gerdaG.position.x - S.pos.x, gerdaG.position.z - S.pos.z); S.heading = turn(S.heading, to, Math.min(1, dt * 6)); S.cam.yaw = turn(S.cam.yaw, S.heading + Math.PI, Math.min(1, dt * 2.5)); S.cam.pitch += (0.5 - S.cam.pitch) * Math.min(1, dt * 2.5);
+    }
     if (gerdaAt === 'walking') {
       const d = target.clone().sub(gerdaG.position); d.y = 0;
       if (d.length() > 2) { gerdaG.position.addScaledVector(d.normalize(), Math.min(d.length(), 22 * dt)); gerda.root.rotation.y = turn(gerda.root.rotation.y, Math.atan2(d.x, d.z), 0.3); gerda.walk.sw = Math.sin(S.t * 8) * 0.5; gerda.walk.arm = Math.sin(S.t * 8) * 0.4; }
@@ -525,30 +530,24 @@ function create(els, ui) {
   function answer(kind) {
     S.told = kind; const real = perfect();
     if (kind === 'perfect' && !real) { S.lie = true; shrink(COST.lie, 'Lying to Gerda'); }
-    let text;
-    if (kind === 'truth') text = real ? '“Everything done, and she lets me stroke her,” you say. Gerda nods slowly. “Good. I like it when it is true.”'
-      : `“I ${list(reasons())},” you admit. Gerda’s mouth twitches. “Thank you for telling me straight. That counts.”`;
-    else text = real ? '“It all went perfectly,” you say, and for once it is simply true. Gerda smiles, a little disappointed to find nothing to scold.'
-      : `“It all went perfectly,” you say. Gerda looks at the dish, the floor, the hen, and then at you. “Does it? You ${list(reasons())}. And now you have lied to me about it as well.”`;
-    const plan = buildPlan();
+    const plan = buildPlan(), rs = reasons();
+    // The first box is only Jack's own answer; Gerda summarises and sentences once, in the lecture that follows.
+    const said = kind === 'truth' ? (real ? '“Everything done, and she lets me stroke her.”' : `“I ${list(rs)}.”`) : '“It all went perfectly.”';
+    const lines = [];
     if (plan.tier === 0 && !S.lie) {                                                    // everything done and nothing wrong: no correction at all
-      S.phase = 'praise'; gerdaAt = 'praise';
-      ui.dialog({ who: 'Gerda', text: text + ' She steps close and ruffles his hair. “Good boy.”', choices: [{ label: 'Smile', fn: finishPraise }] });
-      return;
+      lines.push({ who: 'Gerda', text: kind === 'truth' ? '“Good. I like it when it is true.” She steps close and ruffles his hair. “Good boy.”' : '“It is true, too. Well done.” She steps close and ruffles his hair. “Good boy.”', praise: true });
+    } else {
+      lines.push({ who: 'Gerda', text: kind === 'truth' ? `“Thank you for telling me straight. You ${list(rs)}.”` : `“Does it? You ${list(rs)}. And now you have lied to me about it as well — that is the part that earns the extra.”` });
+      lines.push({ who: 'Gerda', text: plan.verdict + (plan.tier === 0 ? ' “Across my lap, for luck.”' : ' “Over my knee. Now.”') });
     }
-    // The lecture happens here, before the correction loads (so she never tells him to get over her knee when he already is), then a fade to black.
-    const lines = [text + ' ' + plan.verdict];
-    lines.push(plan.reasons.length ? `“You ${list(plan.reasons)}.”` : '“You did everything I asked.”');
-    if (plan.lie) lines.push('“And you told me it was perfect. That is the part that earns the extra.”');
-    lines.push(plan.tier === 0 ? '“Across my lap, for luck.”' : '“Over my knee. Now.”');
     const go = () => { ui.fade && ui.fade(true); setTimeout(() => { startDiscipline(plan); ui.fade && ui.fade(false); }, 1000); };
-    const next = i => ui.dialog({ who: 'Gerda', text: lines[i], choices: [i < lines.length - 1 ? { label: 'Listen…', fn: () => next(i + 1) } : { label: 'Go with her…', fn: go }] });
-    next(0);
-  }
-
-  function finishPraise() {
-    gerda.walk.ruffle = false; S.phase = 'done';
-    ui.finish({ red: false, praise: true, plan: { name: 'None' }, size: S.size, hits: 0, reasons: [], lie: false });
+    const next = i => {
+      if (i < 0) { ui.dialog({ who: 'Jack', text: said, choices: [{ label: 'Continue…', fn: () => next(0) }] }); return; }
+      const l = lines[i], last = i === lines.length - 1;
+      if (l.praise) { S.phase = 'praise'; gerdaAt = 'praise'; ui.dialog({ who: l.who, text: l.text, choices: [{ label: 'Smile', fn: finishPraise }] }); return; }
+      ui.dialog({ who: l.who, text: l.text, choices: [last ? { label: 'Go with her…', fn: go } : { label: 'Listen…', fn: () => next(i + 1) }] });
+    };
+    next(-1);
   }
 
   // ── Severity ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -603,8 +602,10 @@ function create(els, ui) {
       chunk(Math.ceil(p.hand / 3), 'Quiet.', 'Ow! Please!'); chunk(p.hand - 2 * Math.ceil(p.hand / 3), 'Nearly done.');
     } else {
       st.push({ do: () => lap.layers({ trousers: 'down' }), wait: 500 });
-      chunk(Math.ceil(p.hand / 2), 'This is what honesty costs.', 'I am sorry, I am sorry!'); chunk(p.hand - Math.ceil(p.hand / 2), 'Nearly there.');
-      st.push({ idle: true }, { do: () => { lap.implement('paddle'); lap.layers({ trousers: 'down', drawers: 'down' }); }, wait: 400 }, sayStep('Gerda', 'The paddle for the rest.', 2200));
+      chunk(Math.ceil(p.hand / 2), 'This is what honesty costs.', 'I am sorry, I am sorry!');
+      st.push({ do: () => lap.layers({ trousers: 'down', drawers: 'down' }), wait: 600 }, sayStep('Gerda', 'And these come down too.', 1800));   // (the drawers earned: halfway through the hand)
+      chunk(p.hand - Math.ceil(p.hand / 2), 'Nearly there.');
+      st.push({ idle: true }, { do: () => { lap.implement('paddle'); }, wait: 400 }, sayStep('Gerda', 'The paddle for the rest.', 2200));
       chunk(Math.ceil(p.paddle / 2), 'Stay where you are.', 'Please — no more!'); chunk(p.paddle - Math.ceil(p.paddle / 2), 'And that is the last of it.');
     }
     st.push({ end: true });
@@ -632,20 +633,26 @@ function create(els, ui) {
   function finishDiscipline(red) {
     lap.end && lap.end(); const sm = summary(red, lap.st.hits);
     if (red) { ui.finish(sm); return; }
-    ui.fade && ui.fade(true); setTimeout(() => { buildAftermath(); ui.finish(sm); ui.fade && ui.fade(false); }, 1000);
+    ui.dialog({ who: 'Gerda', text: '“That is the end of it. Up you get — shorts and all — and nose to the wall. Go on.”', choices: [{ label: 'Continue', fn: () => {
+      ui.fade && ui.fade(true); setTimeout(() => { buildAftermath(); ui.finish(sm); ui.fade && ui.fade(false); }, 1000); } }] });
   }
   // Afterwards: Jack stands facing the wall with his bottoms and drawers down, Gerda standing behind him, the chair still in the centre of the room.
   function buildAftermath() {
     lap.gerda.root.visible = false; lap.jack.root.parent.visible = false;
     const sz = S.size * FULL, j = B.makeJack(), g = B.makeGerda('Work'), bz = -(R_ * K) + 7;
-    const paint = () => { B.paintJackInto(j.skin, { outfit: 'Day', trousers: 'down', drawers: 'down', marks: lap.st.marks, expr: 2, hitched: true }); j.tex.needsUpdate = true; };
+    let paint = () => { B.paintJackInto(j.skin, { outfit: 'Day', trousers: 'down', drawers: 'down', marks: lap.st.marks, expr: 2, hitched: true }); j.tex.needsUpdate = true; };
+    // The glutes block over the gathered tunic's hem (as in the lap): bare, and carrying the colour.
+    const gl = B.makeGlutes(); gl.mesh.scale.set(0.98, 1, 0.4); gl.mesh.position.set(0, -1.4, -2.2); j.hips.add(gl.mesh);
+    const paintG = () => { B.paintGlutesInto(gl.skin, { trousers: 'down', drawers: 'down', marks: lap.st.marks, outfit: 'Day' }); gl.tex.needsUpdate = true; };
+    paintG(); const paintAll = paint; paint = () => { paintAll(); paintG(); };
     paint(); j.legL.ring.visible = j.legR.ring.visible = true; B.setPose(j, 'stand'); B.setPose(g, 'stand');
-    j.after = r => { r.armL.rotation.x = r.armR.rotation.x = -2.3; r.neck.rotation.x = 0.25; };   // hands up on the wall, head bowed
+    j.after = r => { r.neck.rotation.x = 0.25; };                                              // arms at his sides, head bowed
     const jh = new THREE.Group(), gh = new THREE.Group(); jh.add(j.root); gh.add(g.root);
     jh.position.set(0, 0, bz); jh.rotation.y = Math.PI; j.root.scale.setScalar(sz);
-    gh.position.set(-9, 0, bz + 13); gh.rotation.y = Math.PI;
+    gh.position.set(-14, 0, -30);                                        // (she stands nearer the chair than to him) gh.rotation.y = Math.PI;                                              // (facing him)
     world.add(jh); world.add(gh);
-    lap.camera.position.set(34, 62, 36); lap.controls.target.set(-2, 6, -54); lap.controls.update();
+    // The camera is locked on his glutes, from behind and a little above.
+    lap.controls.enabled = false; const fy = world.position.y; lap.camera.position.set(9, fy + 14, bz + 24); lap.controls.target.set(0, fy + 7.2, bz);   // (the room sits on the lowered floor) lap.camera.lookAt(lap.controls.target);
     after = { j, g, paint, t: 0 };
   }
   function redWord() { if (S.phase !== 'discipline' || !lap) return; stepAt = steps.length; lap.red(); say('Gerda', 'Red. Stopping at once. Come here.'); finishDiscipline(true); }
