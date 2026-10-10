@@ -14,7 +14,7 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const srgb = hex => new THREE.Color(hex).convertSRGBToLinear();
 
 // Where everything is. P is Jack's hip joint; PITCH tips him head-down so his upper body leans toward the floor.
-const P = new V3(-0.5, 10, 7), PITCH = -0.32;
+const P = new V3(-0.5, 10, 7), PITCH = -0.05;
 const LEAN = -0.3;             // Gerda sits back in the chair; her straight arm only reaches Jack's rear from there
 const REST = 0.88;             // how near the hand hovers to the rear between smacks (0 = raised, 1 = landed)
 const TIMES = { lift: 0.45, hold: 0.15, strike: 0.09, contact: 0.32, back: 0.3 };
@@ -60,6 +60,8 @@ function create(view, opts) {
   frame.quaternion.copy(qz).multiply(qy).multiply(qx);
   B.setPose(gerda, 'sit'); Object.assign(gerda.state, B.POSES.sit);
   Object.assign(jack.state, { hipY: 0, lift: 0 }); Object.assign(jack.target, { hipY: 0, lift: 0 });
+  // The glutes block fills the gap at his hips where the legs fold forward from the torso; it takes the look of the trousers, drawers or bare skin.
+  const glutes = B.makeGlutes(); glutes.mesh.position.set(0, -1.6, -0.3); jack.hips.add(glutes.mesh);
   // Where the hand lands: points on the back of Jack's hips (his left cheek is the nearer, world −z side), and the middle of his back.
   const mk = (x, y, z) => { const o = new THREE.Object3D(); o.position.set(x, y, z); jack.torso.add(o); return o; };
   const rear = { L: mk(2, 1.2, -2), R: mk(-2, 1.2, -2), C: mk(0, 1.2, -2) }, upperBack = mk(0, 7, -2);
@@ -179,11 +181,11 @@ function create(view, opts) {
     const k = J.kick, d = clamp(pain.distress(), 0, 1.5), w = Math.sin(J.t * 9) * 0.05 * Math.min(1, d) + Math.sin(J.t * 5.3) * 0.03 * Math.min(1, d);
     for (const key of ['legL', 'legR']) {
       const l = j[key], mine = (key === 'legL') === (J.kickSide === 'L') ? 1 : 0.45;
-      l.thigh.rotation.x = -1.15 + k * (0.9 * mine) + w * (key === 'legL' ? 1 : -1);
+      l.thigh.rotation.x = -1.2 + k * (0.9 * mine) + w * (key === 'legL' ? 1 : -1);
       l.thigh.rotation.z = l.sign * (0.12 + 0.2 * k * mine);
       l.knee.rotation.x = 0;
     }
-    j.neck.rotation.x = -0.25 - 0.5 * k + 0.1 * Math.min(1, d) * Math.sin(J.t * 4);   // face toward the floor, lifting as he yelps
+    j.neck.rotation.x = -0.1 - 0.5 * k + 0.1 * Math.min(1, d) * Math.sin(J.t * 4);   // face toward the floor, lifting as he yelps
     j.neck.rotation.y = -0.75 + 0.15 * Math.sin(J.t * 3) * Math.min(1, d);              // turned toward the room
     for (const key of ['armL', 'armR']) {
       const a = j[key], sg = a.userData.sign;
@@ -197,7 +199,10 @@ function create(view, opts) {
   function repaint() {
     st.expr = exprFor();
     B.paintJackInto(jack.skin, { trousers: st.trousers, drawers: st.drawers, marks: st.marks, expr: st.expr });
-    jack.tex.needsUpdate = true; dirty = false;
+    jack.tex.needsUpdate = true;
+    B.paintGlutesInto(glutes.skin, { trousers: st.trousers, drawers: st.drawers, marks: st.marks }); glutes.tex.needsUpdate = true;
+    jack.legL.ring.visible = jack.legR.ring.visible = st.trousers === 'down';
+    dirty = false;
   }
   function update(dt) {
     J.t += dt; J.kick *= Math.exp(-dt * 4.5);

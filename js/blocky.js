@@ -34,9 +34,9 @@ const SIDES = ['right', 'front', 'left', 'back'];
 const FACES = ['right', 'front', 'left', 'back', 'top', 'bottom'];
 
 class Skin {
-  constructor(armWidth, armDepth = 4) {
-    this.A = atlas(armWidth, armDepth);
-    this.canvas = document.createElement('canvas'); this.canvas.width = this.canvas.height = 64;
+  constructor(armWidth, armDepth = 4, custom) {
+    this.A = custom ? custom.A : atlas(armWidth, armDepth);
+    this.canvas = document.createElement('canvas'); this.canvas.width = custom ? custom.W : 64; this.canvas.height = custom ? custom.H : 64;
     this.ctx = this.canvas.getContext('2d');
   }
   // Fill a rectangle of a face (x, y relative to the face's top-left; w, h default to the rest of the face).
@@ -55,11 +55,11 @@ class Skin {
   }
   // A little deterministic grain on every painted pixel (alpha untouched), so flat colours read as cloth, leather and skin.
   grain(seed, amount, skip) {
-    const img = this.ctx.getImageData(0, 0, 64, 64), d = img.data;
+    const W = this.canvas.width, H = this.canvas.height, img = this.ctx.getImageData(0, 0, W, H), d = img.data;
     let s = seed >>> 0;
     const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
-    for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
-      const i = (y * 64 + x) * 4;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4;
       if (d[i + 3] === 0 || (skip && skip.some(r => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h))) continue;
       const k = (rnd() - 0.5) * 2 * amount;
       d[i] = Math.max(0, Math.min(255, d[i] + k)); d[i + 1] = Math.max(0, Math.min(255, d[i + 1] + k)); d[i + 2] = Math.max(0, Math.min(255, d[i + 2] + k));
@@ -126,15 +126,10 @@ function paintJackInto(k, st) {
   k.fill('body', 'right', C.linen, 0, 0, undefined, 9); k.fill('body', 'left', C.linen, 0, 0, undefined, 9);
   k.fill('body', 'right', C.vest, 0, 3, undefined, 6); k.fill('body', 'left', C.vest, 0, 3, undefined, 6);
   k.fill('body', 'top', C.linen);
-  // The rows below the waist, and the legs: trousers, drawers or bare skin, by what is up and what is down. Bare rows are remembered
-  // (with the cheek they belong to) so the marks can be laid on them afterwards.
+  // The shirt-tail stays on the torso whatever is up or down. The seat (the glutes block in the lap pose) and the upper thighs take the colour of
+  // the trousers, drawers or bare skin; bare rows on the legs are remembered (with their cheek) so the marks can be laid on afterwards.
   const bare = [];
-  const lowerTorso = down ? (drawersDown ? 'skin' : 'drawers') : 'trousers';
   const colourOf = w => w === 'skin' ? C.seat : w === 'drawers' ? C.drawers : C.trousers;
-  for (const f of SIDES) k.fill('body', f, colourOf(lowerTorso), 0, 9, undefined, 3);
-  k.fill('body', 'bottom', colourOf(lowerTorso));
-  if (lowerTorso === 'skin') { bare.push(['body', 'back', 0, 9, 4, 3, 'L'], ['body', 'back', 4, 9, 4, 3, 'R']); }
-  if (lowerTorso === 'drawers') { k.fill('body', 'back', C.drawersSh, 3, 9, 2, 3); k.fill('body', 'front', C.drawersSh, 3, 9, 1, 1); }
   // Outer layer: the belt, buckle and a pouch on the hip while the trousers are up; the vest's collar standing off the shoulders always.
   if (!down) {
     for (const f of SIDES) k.fill('jacket', f, C.belt, 0, 8, undefined, 2);
@@ -153,9 +148,9 @@ function paintJackInto(k, st) {
   }
   k.px('rArm', 'front', 2, 10, C.skinSh); k.px('lArm', 'front', 1, 11, C.skinSh);
 
-  // Legs. Standing straight, the trousers run down to the boots; pulled down, the thigh shows (drawers or bare) and the trousers
-  // bunch at the knee (rows 3-5); with the drawers down too, they bunch above the trousers on row 2.
-  const legRow = r => !down ? 'trousers' : r < 2 ? (drawersDown ? 'skin' : 'drawers') : r === 2 ? (drawersDown ? 'drawers' : 'skin') : 'trousers';
+  // Legs. Standing straight, the trousers run down to the boots. Pulled down they bunch at the knee (rows 4-5, with a band over the joint, see
+  // buildCharacter), and the thigh above shows drawers; with the drawers down too, the thigh is bare to row 1 and they bunch on rows 2-3.
+  const legRow = r => !down ? 'trousers' : r >= 4 ? 'trousers' : !drawersDown ? 'drawers' : r < 2 ? 'skin' : 'drawers';
   for (const [leg, cheek] of [['rLeg', 'R'], ['lLeg', 'L']]) {
     k.all(leg, C.trousers);
     k.band(leg, C.trousersDk, 6, 1); k.fill(leg, 'bottom', C.sole); k.fill(leg, 'top', C.trousersDk);
@@ -163,27 +158,54 @@ function paintJackInto(k, st) {
     k.fill(leg, 'front', C.patch, 1, 2, 2, 2); k.px(leg, 'front', 1, 2, C.stitch); k.px(leg, 'front', 2, 3, C.stitch);
     k.px(leg, 'front', 1, 9, C.lace); k.px(leg, 'front', 2, 10, C.lace); k.px(leg, 'front', 2, 9, C.bootHi); k.px(leg, 'front', 1, 10, C.bootHi);
     if (down) {
-      for (let r = 0; r < 3; r++) {
+      for (let r = 0; r < 4; r++) {
         const w = legRow(r);
         for (const f of SIDES) k.fill(leg, f, colourOf(w), 0, r, undefined, 1);
         if (w === 'skin') bare.push([leg, 'back', 0, r, 4, 1, cheek]);
       }
       for (const f of SIDES) k.fill(leg, f, C.trousersDk, 0, 5, undefined, 1);
       k.fill(leg, 'top', C.seat);
+      if (drawersDown) for (const f of SIDES) k.fill(leg, f, C.drawersSh, 0, 3, undefined, 1);
     }
   }
   k.grain(1021, 5, [{ x: 8, y: 8, w: 8, h: 8 }]);
   // Marks: the bare rear colours up, patchy at first. Each bare pixel gets a share of its cheek's mark, jittered by position.
-  for (const [part, face, x, y, w, h, cheek] of bare) {
-    const m = st.marks && st.marks[cheek] || 0; if (m <= 0.01) continue;
-    const r = faceRect(k.A[part], face);
-    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
-      const hsh = (((x + i) * 73856093) ^ ((y + j) * 19349663) ^ (cheek === 'L' ? 83492791 : 0)) >>> 0, jit = 0.6 + 0.8 * ((hsh % 1000) / 1000);
-      k.ctx.fillStyle = `rgba(186,48,44,${Math.min(0.85, 0.7 * m * jit)})`;
-      k.ctx.fillRect(r.x + x + i, r.y + y + j, 1, 1);
-    }
-  }
+  for (const [part, face, x, y, w, h, cheek] of bare) markRect(k, part, face, x, y, w, h, cheek, st.marks);
   return k;
+}
+// Lay a cheek's mark over a rectangle of bare skin: patchy at first, evening out as it deepens.
+function markRect(k, part, face, x, y, w, h, cheek, marks) {
+  const m = marks && marks[cheek] || 0; if (m <= 0.01) return;
+  const r = faceRect(k.A[part], face);
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const hsh = (((x + i) * 73856093) ^ ((y + j) * 19349663) ^ (cheek === 'L' ? 83492791 : 0)) >>> 0, jit = 0.6 + 0.8 * ((hsh % 1000) / 1000);
+    k.ctx.fillStyle = `rgba(186,48,44,${Math.min(0.85, 0.7 * m * jit)})`;
+    k.ctx.fillRect(r.x + x + i, r.y + y + j, 1, 1);
+  }
+}
+// The glutes: a block that fills the gap at the hips when the legs fold forward in the lap pose. Its own small skin (24x8, the layout of an
+// 8x4x4 box), painted to match what Jack has on there: trousers, drawers or bare skin (with the marks).
+const GLUTES = { u: 0, v: 0, w: 8, h: 4, d: 4 };
+function paintGlutesInto(g, st) {
+  st = Object.assign({ trousers: 'up', drawers: 'up', marks: { L: 0, R: 0 } }, st);
+  const what = st.trousers === 'up' ? 'trousers' : st.drawers === 'up' ? 'drawers' : 'skin';
+  const base = { trousers: '#6d5233', drawers: '#e6dcc2', skin: '#ebc4a0' }[what], seam = { trousers: '#59422a', drawers: '#cbbf9f', skin: '#c99874' }[what];
+  g.ctx.clearRect(0, 0, 24, 8);
+  g.all('glutes', base);
+  g.fill('glutes', 'back', seam, 3, 0, 2, 4); g.fill('glutes', 'bottom', seam, 3, 0, 2, 4);
+  if (what === 'trousers') { g.fill('glutes', 'back', '#8b7048', 0, 1, 2, 2); g.px('glutes', 'back', 0, 1, '#4a3820'); }
+  g.grain(5031, 5);
+  if (what === 'skin') {
+    markRect(g, 'glutes', 'back', 0, 0, 4, 4, 'L', st.marks); markRect(g, 'glutes', 'back', 4, 0, 4, 4, 'R', st.marks);
+    markRect(g, 'glutes', 'bottom', 0, 0, 4, 4, 'L', st.marks); markRect(g, 'glutes', 'bottom', 4, 0, 4, 4, 'R', st.marks);
+  }
+  return g;
+}
+function makeGlutes() {
+  const g = new Skin(3, 3, { W: 24, H: 8, A: { glutes: GLUTES } }), tex = g.texture();
+  const mesh = new THREE.Mesh(boxGeo(GLUTES, 0.15, 0, 4, 24, 8), new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.5 }));
+  paintGlutesInto(g, {}); tex.needsUpdate = true;
+  return { mesh, skin: g, tex };
 }
 function paintJack(st) { return paintJackInto(new Skin(3, 3), st); }
 const sideOuter = s => s + 'O';
@@ -271,16 +293,16 @@ function paintGerda() {
 // Geometry: a box whose faces read from the skin atlas. A leg is two of these (rows y0..y1 of the same leg), so the skin runs on
 // unbroken across the knee. Faces that fall inside the joint are given one flat texel of the leg's own colour.
 // ---------------------------------------------------------------------------------------------------------------------------
-function boxGeo(part, pad, y0, y1) {
+function boxGeo(part, pad, y0, y1, W = 64, H = 64) {
   const w = part.w, d = part.d;
   const g = new THREE.BoxGeometry(w + 2 * pad, (y1 - y0) + 2 * pad, d + 2 * pad);
   const uv = g.attributes.uv;
   const rect = (face, x0, ya, x1, yb) => {
     const i = face * 4;
-    uv.setXY(i, x0 / 64, 1 - ya / 64); uv.setXY(i + 1, x1 / 64, 1 - ya / 64);
-    uv.setXY(i + 2, x0 / 64, 1 - yb / 64); uv.setXY(i + 3, x1 / 64, 1 - yb / 64);
+    uv.setXY(i, x0 / W, 1 - ya / H); uv.setXY(i + 1, x1 / W, 1 - ya / H);
+    uv.setXY(i + 2, x0 / W, 1 - yb / H); uv.setXY(i + 3, x1 / W, 1 - yb / H);
   };
-  const texel = (face, sx, sy) => { for (let k = 0; k < 4; k++) uv.setXY(face * 4 + k, (sx + 0.5) / 64, 1 - (sy + 0.5) / 64); };
+  const texel = (face, sx, sy) => { for (let k = 0; k < 4; k++) uv.setXY(face * 4 + k, (sx + 0.5) / W, 1 - (sy + 0.5) / H); };
   const side = (face, f) => { const r = faceRect(part, f); rect(face, r.x, r.y + y0, r.x + r.w, r.y + y1); };
   side(0, 'left'); side(1, 'right'); side(4, 'front'); side(5, 'back');
   const fr = faceRect(part, 'front'), tp = faceRect(part, 'top'), bt = faceRect(part, 'bottom');
@@ -342,7 +364,11 @@ function buildCharacter(skin, opts) {
     const tm = mesh(p, o, opts.skirt ? 0.7 : 0.5, 0, 6); tm.position.y = -3; thigh.add(tm);
     const knee = new THREE.Group(); knee.position.y = -6; thigh.add(knee);
     const sm = mesh(p, o, 0.5, 6, 12); sm.position.y = -3; knee.add(sm);
-    hips.add(thigh); rig[key] = { thigh, knee, sign };
+    // The gathered trousers, once they are pulled down to the knee: a band that wraps the joint (one flat texel of the trouser colour).
+    const ring = new THREE.Mesh(new THREE.BoxGeometry(5.8, 3.4, 5.8), mat), fr = faceRect(A[p], 'front'), uv = ring.geometry.attributes.uv;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, (fr.x + 1.5) / 64, 1 - (fr.y + 6.5) / 64);
+    ring.position.y = 0.4; ring.visible = false; knee.add(ring);
+    hips.add(thigh); rig[key] = { thigh, knee, sign, ring };
   }
   rig.apply = apply; rig.tex = tex;
   apply.call(rig);
@@ -375,5 +401,5 @@ function step(rig, dt) {
 const makeJack = () => buildCharacter(paintJack(), { armWidth: 3 });
 const makeGerda = () => buildCharacter(paintGerda(), { armWidth: 3, bun: true, skirt: true });
 
-root.Blocky = { makeJack, makeGerda, setPose, step, POSES, Skin, paintJackInto, faceRect };
+root.Blocky = { makeJack, makeGerda, setPose, step, POSES, Skin, paintJackInto, paintGlutesInto, makeGlutes, boxGeo, faceRect };
 })(typeof window !== 'undefined' ? window : globalThis);
