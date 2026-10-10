@@ -540,21 +540,26 @@ function create(els, ui) {
   }
   // What is left at the end that he can be held to account for: spilled water only counts where it was left as dirt, and the hen's final temperament is
   // recorded rather than each time he startled her.
+  // Gerda judges only the state the room is left in, not how it got there: no claps, startles, spills (unless left as dirt) or dawdling count, only what she finds.
   function finalState() {
     const left = tag => patches.filter(p => p.tag === tag && p.amount > 0.05).length, t = S.hen.trust;
-    return { water: left('water'), grain: left('grain'), hen: S.chores.trust || t >= 75 ? 'calm' : t < 25 ? 'frightened' : t < 60 ? 'wary' : 'calm' };
+    return {
+      dirt: patches.filter(p => !p.tag && p.amount > 0.05).length, prints: prints.filter(p => p.amount > 0.05).length,
+      water: left('water'), grain: left('grain'), litter: ['broom', 'bucket'].filter(n => S.items[n].where !== 'home').length,
+      dish: !S.chores.dish, trough: S.troughLevel < 99.5, stroked: S.chores.trust,
+      hen: S.chores.trust || t >= 75 ? 'calm' : t < 25 ? 'frightened' : t < 60 ? 'wary' : 'calm',
+    };
   }
   const reasons = () => {
-    const c = S.counts, r = [];
-    const f = finalState();
-    if (f.water) r.push(f.water > 1 ? 'left spilled water on the floor' : 'left spilled water on the floor');
+    const f = finalState(), r = [];
+    if (f.dirt) r.push('left dirt on the floor');
+    if (f.prints) r.push('left muddy footprints about');
+    if (f.water) r.push('left spilled water on the floor');
     if (f.grain) r.push('left grain scattered about');
-    if (f.hen === 'frightened') r.push('left the hen frightened'); else if (f.hen === 'wary') r.push('left the hen wary');
-    if (c.claps) r.push('clapped to shoo the hen');
-    if (c.tracked >= 6) r.push('tracked mud across the floor');
-    if (c.litter) r.push('left things lying about');
-    if (c.unfinished) r.push('left ' + (c.unfinished > 1 ? 'chores' : 'a chore') + ' undone');
-    if (c.dawdle) r.push('dawdled');
+    if (f.dish) r.push('left her dish empty');
+    if (f.trough) r.push(S.troughLevel > 0 ? 'left her trough only part full' : 'left her trough empty');
+    if (f.litter) r.push('left the ' + ['broom', 'bucket'].filter(n => S.items[n].where !== 'home').join(' and the ') + ' lying about');
+    if (f.hen === 'frightened') r.push('left the hen frightened'); else if (f.hen === 'wary') r.push('left the hen wary'); else if (!f.stroked) r.push('never won the hen over');
     return r;
   };
   const perfect = () => !reasons().length;
@@ -591,7 +596,7 @@ function create(els, ui) {
 
   // ── Severity ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   // How Jack really did, plus whether he lied: demerits, then a tier (0 token … 3 severe); a lie lifts it a tier.
-  function demerits() { const c = S.counts, f = finalState(); return c.unfinished * 2 + f.water * 1.5 + f.grain * 0.5 + (f.hen === 'frightened' ? 1 : f.hen === 'wary' ? 0.5 : 0) + c.claps * 1 + c.dawdle * 1 + c.litter * 0.5 + (c.tracked >= 6 ? 1 : 0); }
+  function demerits() { const f = finalState(); return (f.dirt ? 2 : 0) + (f.prints ? 0.5 + 0.25 * Math.min(f.prints, 6) : 0) + f.water * 1 + f.grain * 0.5 + (f.dish ? 2 : 0) + (f.trough ? 2 : 0) + f.litter * 0.5 + (f.hen === 'frightened' ? 2.5 : f.hen === 'wary' ? 1.5 : f.stroked ? 0 : 1); }
   function buildPlan() {
     const d = demerits(); let tier = d < 0.01 ? 0 : d < 1.5 ? 1 : d < 4 ? 2 : 3; if (S.lie) tier = Math.min(3, tier + 1);   // (a spotless job is praised, not corrected; anything at all earns at least a light one)
     const TIERS = [
@@ -741,7 +746,7 @@ function create(els, ui) {
     interact, clap, spaceAction, toggleSneak, toggleRun, setHeld, callGerda,
     stick(x, y) { S.stick.x = x; S.stick.y = y; },
     act(name, down) { if (name === 'space') { if (down) { keys.sweep = true; spaceAction(); } else keys.sweep = false; } else if (name === 'interact') interact(); else if (name === 'sneak') toggleSneak(); else if (name === 'run') toggleRun(); else if (name === 'call') callGerda(); },
-    debug: { aftermath() { startDiscipline(buildPlan()); steps = []; lap.st.marks = { L: 0.6, R: 0.5 }; buildAftermath(); }, finishAll() { for (const c of CHORES) S.chores[c] = true; S.hen.trust = 100; patches.forEach(p => p.amount = 0); props.grain.visible = props.water.visible = true; }, answer, askHowItWent, beginReturn, buildPlan, startDiscipline },
+    debug: { aftermath() { startDiscipline(buildPlan()); steps = []; lap.st.marks = { L: 0.6, R: 0.5 }; buildAftermath(); }, finishAll() { for (const c of CHORES) S.chores[c] = true; S.troughLevel = 100; S.dishFilled = true; S.hen.trust = 100; patches.forEach(p => p.amount = 0); props.grain.visible = props.water.visible = true; }, answer, askHowItWent, beginReturn, buildPlan, startDiscipline },
   };
 }
 
