@@ -364,9 +364,9 @@ function create(view, opts) {
   // ── Frame loop ──────────────────────────────────────────────────────────────────────────────────────────────────────────
   function repaint() {
     st.expr = exprFor();
-    B.paintJackInto(jack.skin, { trousers: st.trousers, drawers: st.drawers, marks: st.marks, expr: st.expr });
+    B.paintJackInto(jack.skin, { trousers: st.trousers, drawers: st.drawers, marks: st.marks, expr: st.expr, outfit: st.outfit.jack, hitched: true });
     jack.tex.needsUpdate = true;
-    B.paintGlutesInto(glutes.skin, { trousers: st.trousers, drawers: st.drawers, marks: st.marks }); glutes.tex.needsUpdate = true;
+    B.paintGlutesInto(glutes.skin, { trousers: st.trousers, drawers: st.drawers, marks: st.marks, outfit: st.outfit.jack }); glutes.tex.needsUpdate = true;
     jack.legL.ring.visible = jack.legR.ring.visible = st.trousers === 'down';
     dirty = false;
   }
@@ -591,6 +591,7 @@ function create(view, opts) {
     // Wardrobe: Jack has 'Outdoor'; Gerda 'Work' or 'Fine'.
     outfit(who, name) {
       if (who === 'gerda' && B.OUTFITS.gerda.indexOf(name) >= 0) { st.outfit.gerda = name; B.paintGerdaInto(gerda.skin, name); gerda.tex.needsUpdate = true; }
+      if (who === 'jack' && B.OUTFITS.jack.indexOf(name) >= 0) { st.outfit.jack = name; dirty = true; }
     },
     outfits: B.OUTFITS,
     clearMarks() { st.marks = { L: 0, R: 0 }; dirty = true; },

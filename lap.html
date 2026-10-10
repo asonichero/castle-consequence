@@ -98,7 +98,7 @@
   function btn(box, label, fn, key) { var b = document.createElement('button'); b.textContent = label; b.dataset.k = key; b.onclick = fn; $(box).appendChild(b); return b; }
   // wardrobe
   L.outfits.gerda.forEach(function (n) { btn('wardG', n, function () { L.outfit('gerda', n); markW(); }, n); });
-  L.outfits.jack.forEach(function (n) { btn('wardJ', n, function () { markW(); }, n); });
+  L.outfits.jack.forEach(function (n) { btn('wardJ', n, function () { L.outfit('jack', n); markW(); }, n); });
   function markW() {
     document.querySelectorAll('#wardG button').forEach(function (b) { b.classList.toggle('on', b.dataset.k === st.outfit.gerda); });
     document.querySelectorAll('#wardJ button').forEach(function (b) { b.classList.toggle('on', b.dataset.k === st.outfit.jack); });

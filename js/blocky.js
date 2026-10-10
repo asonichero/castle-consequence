@@ -84,8 +84,12 @@ const JACK_FACES = [
   ['SddSSddS', 'SddSSddS', 'SsSnnSsS', 'SMTTTTMS', 'SuuSSuuS'],   // 2 eyes screwed shut, teeth gritted
   ['SddSSddS', 'SddSSddS', 'SSSnnSSS', 'SMmmmmMS', 'SuMmmMuS'],   // 3 crying out
 ];
+// Jack's outfits: 'Outdoor' (linen shirt, green jerkin, patched trousers, boots), 'Fine' (the same, dressed up: a deep green jerkin with gold trim, clean
+// breeches with a gold seam, polished boots with brass buckles), 'Day' (a soft green tunic with wooden buttons, hem brushing the tops of his thighs, over
+// plain snug shorts, barefoot) and 'Soft' (a cornflower tunic with a small pocket sewn on, over cornflower shorts short enough to show his knees,
+// barefoot). st.hitched: the tunic is lifted clear of his seat (the lap scene), so its hem is not painted over his thighs.
 function paintJackInto(k, st) {
-  st = Object.assign({ trousers: 'up', drawers: 'up', marks: { L: 0, R: 0 }, expr: 0 }, st);
+  st = Object.assign({ trousers: 'up', drawers: 'up', marks: { L: 0, R: 0 }, expr: 0, outfit: 'Outdoor', hitched: false }, st);
   k.ctx.clearRect(0, 0, 64, 64);
   const C = { skin: '#e2b58f', skinSh: '#c99874', skinHi: '#eec7a2', seat: '#ebc4a0',
     hair: '#7a4a22', hairHi: '#9a6532', hairDk: '#5c3517', brow: '#5c3517', white: '#f2f0ea', iris: '#3f7f4a', lid: '#b98a68', lip: '#b4685a', teeth: '#f6f2ea', stub: '#c19170', mouth: '#6a2a2a',
@@ -94,6 +98,14 @@ function paintJackInto(k, st) {
     drawers: '#e6dcc2', drawersSh: '#cbbf9f' };
   const pal = { H: C.hair, h: C.hairHi, d: C.brow, S: C.skin, s: C.skinSh, b: C.brow, W: C.white, E: C.iris, l: C.lid, M: C.lip, T: C.teeth, u: C.stub, n: C.skinSh, k: C.skinHi, m: C.mouth };
   const down = st.trousers === 'down', drawersDown = st.drawers === 'down';
+  const outfit = ['Day', 'Soft', 'Fine'].indexOf(st.outfit) >= 0 ? st.outfit : 'Outdoor', tunic = outfit === 'Day' || outfit === 'Soft', fine = outfit === 'Fine';
+  if (fine) Object.assign(C, { linen: '#f3ecd8', linenSh: '#d8cfb6', vest: '#2f6140', vestDk: '#214a30', belt: '#2f1f14', buckle: '#e8c75a', trousers: '#4c3827', trousersDk: '#3b2a1d', stitch: '#d9b24a', boot: '#2a1a10', bootHi: '#4a3020', sole: '#160d07', lace: '#d9b24a' });
+  const T = outfit === 'Day' ? { base: '#86ad72', dk: '#6c9459', hi: '#9cc388', wood: '#8a6038', woodHi: '#b0834f', shorts: '#b8a173', shortsDk: '#9b855d', sE: 4 }
+    : outfit === 'Soft' ? { base: '#93acd9', dk: '#7c97c9', hi: '#adc2e8', wood: '#6f86b4', woodHi: '#c4d4f0', shorts: '#7f9ccc', shortsDk: '#6a88b8', sE: 3 } : null;
+  if (tunic) { C.trousers = T.shorts; C.trousersDk = T.shortsDk; }
+  const bare = [];
+  const colourOf = w => w === 'skin' ? C.seat : w === 'drawers' ? C.drawers : C.trousers;
+  const legRow = r => !down ? 'trousers' : r >= 4 ? 'trousers' : !drawersDown ? 'drawers' : r < 2 ? 'skin' : 'drawers';
 
   // Head: skin all over, then hair; the face from the current expression.
   k.all('head', C.skin);
@@ -114,59 +126,105 @@ function paintJackInto(k, st) {
   k.grid('hat', 'front', ['HHhHHHHH', 'H.H..hH.', '.......H'], { H: C.hair, h: C.hairHi });
   k.px('hat', 'front', 7, 1, C.hairDk);
 
+  if (!tunic) {
   // Torso: linen shirt, laced at the throat, the green vest over it.
-  k.all('body', C.linen);
-  k.grid('body', 'front', [
-    'vSLLLLSv', 'vvLlLlvv', 'vvvLLvvv', 'vvvvvvvv', 'vvvvvvvv', 'vvvvvvvv', 'vvvvvvvv', 'vvvvvvvv', 'vvvvvvvv', '........', '........', '........' ],
-    { v: C.vest, L: C.linen, l: C.linenSh, S: C.skin });
-  k.fill('body', 'front', C.linen, 3, 3, 2, 6); k.fill('body', 'front', C.linenSh, 3, 3, 1, 6);
-  k.fill('body', 'front', C.vestDk, 2, 3, 1, 6); k.fill('body', 'front', C.vestDk, 5, 3, 1, 6);
-  for (let y = 4; y < 9; y += 2) { k.px('body', 'front', 3, y, C.stitch); k.px('body', 'front', 4, y, C.stitch); }
-  k.fill('body', 'back', C.vest, 0, 0, undefined, 9); k.fill('body', 'back', C.vestDk, 3, 0, 2, 9);
-  k.fill('body', 'right', C.linen, 0, 0, undefined, 9); k.fill('body', 'left', C.linen, 0, 0, undefined, 9);
-  k.fill('body', 'right', C.vest, 0, 3, undefined, 6); k.fill('body', 'left', C.vest, 0, 3, undefined, 6);
-  k.fill('body', 'top', C.vest);
-  // The shirt-tail stays on the torso whatever is up or down. The seat (the glutes block in the lap pose) and the upper thighs take the colour of
-  // the trousers, drawers or bare skin; bare rows on the legs are remembered (with their cheek) so the marks can be laid on afterwards.
-  const bare = [];
-  const colourOf = w => w === 'skin' ? C.seat : w === 'drawers' ? C.drawers : C.trousers;
-  // Outer layer: the belt, buckle and a pouch on the hip while the trousers are up; the vest's collar standing off the shoulders always.
-  if (!down) {
-    for (const f of SIDES) k.fill('jacket', f, C.belt, 0, 8, undefined, 2);
-    k.fill('jacket', 'front', C.buckle, 3, 8, 2, 2); k.px('jacket', 'front', 3, 8, '#f0d878'); k.px('jacket', 'front', 4, 9, '#a8872c');
-    k.fill('jacket', 'left', C.pouch, 1, 9, 2, 2); k.fill('jacket', 'left', C.belt, 1, 9, 2, 1);
-  }
-  k.fill('jacket', 'front', C.vest, 0, 0, 2, 1); k.fill('jacket', 'front', C.vest, 6, 0, 2, 1); k.fill('jacket', 'back', C.vest, 0, 0, undefined, 1);
+    k.all('body', C.linen);
+    k.grid('body', 'front', [
+      'vSLLLLSv', 'vvLlLlvv', 'vvvLLvvv', 'vvvvvvvv', 'vvvvvvvv', 'vvvvvvvv', 'vvvvvvvv', 'vvvvvvvv', 'vvvvvvvv', '........', '........', '........' ],
+      { v: C.vest, L: C.linen, l: C.linenSh, S: C.skin });
+    k.fill('body', 'front', C.linen, 3, 3, 2, 6); k.fill('body', 'front', C.linenSh, 3, 3, 1, 6);
+    k.fill('body', 'front', C.vestDk, 2, 3, 1, 6); k.fill('body', 'front', C.vestDk, 5, 3, 1, 6);
+    if (fine) { k.fill('body', 'front', C.stitch, 2, 3, 1, 6); k.fill('body', 'front', C.stitch, 5, 3, 1, 6); }   // gold edging down the jerkin's front
+    if (fine) for (let y = 4; y < 9; y += 2) { k.px('body', 'front', 3, y, '#cdbd8e'); k.px('body', 'front', 4, y, '#cdbd8e'); }   // (the shirt's lacing stays cream)
+    for (let y = 4; y < 9; y += 2) { k.px('body', 'front', 3, y, C.stitch); k.px('body', 'front', 4, y, C.stitch); }
+    k.fill('body', 'back', C.vest, 0, 0, undefined, 9); k.fill('body', 'back', C.vestDk, 3, 0, 2, 9);
+    k.fill('body', 'right', C.linen, 0, 0, undefined, 9); k.fill('body', 'left', C.linen, 0, 0, undefined, 9);
+    k.fill('body', 'right', C.vest, 0, 3, undefined, 6); k.fill('body', 'left', C.vest, 0, 3, undefined, 6);
+    k.fill('body', 'top', C.vest);
+    // The shirt-tail stays on the torso whatever is up or down. The seat (the glutes block in the lap pose) and the upper thighs take the colour of
+    // the trousers, drawers or bare skin; bare rows on the legs are remembered (with their cheek) so the marks can be laid on afterwards.
+    // Outer layer: the belt, buckle and a pouch on the hip while the trousers are up; the vest's collar standing off the shoulders always.
+    if (!down) {
+      for (const f of SIDES) k.fill('jacket', f, C.belt, 0, 8, undefined, 2);
+      k.fill('jacket', 'front', C.buckle, 3, 8, 2, 2); k.px('jacket', 'front', 3, 8, '#f0d878'); k.px('jacket', 'front', 4, 9, '#a8872c');
+      k.fill('jacket', 'left', C.pouch, 1, 9, 2, 2); k.fill('jacket', 'left', C.belt, 1, 9, 2, 1);
+    }
+    k.fill('jacket', 'front', C.vest, 0, 0, 2, 1); k.fill('jacket', 'front', C.vest, 6, 0, 2, 1); k.fill('jacket', 'back', C.vest, 0, 0, undefined, 1);
 
-  // Arms: short linen sleeves rolled over the elbow, a leather wrist-wrap, bare forearm and hand.
-  for (const side of ['rArm', 'lArm']) {
-    k.all(side, C.skin);
-    k.band(side, C.linen, 0, 5); k.band(side, C.linenSh, 5, 1); k.fill(side, 'top', C.linen); k.fill(side, 'bottom', C.skinSh);
-    k.band(side, C.vest, 0, 3); k.fill(side, 'top', C.vest);      // the shoulders are the jerkin's green
-    k.band(side, C.belt, 8, 2); k.band(side, C.skinHi, 6, 1);
-    for (const f of SIDES) { k.px(side, f, 0, 7, C.skinSh); k.px(side, f, 0, 11, C.skinSh); }
-    k.band(sideOuter(side), C.vest, 0, 3);
-  }
-  k.px('rArm', 'front', 2, 10, C.skinSh); k.px('lArm', 'front', 1, 11, C.skinSh);
+    // Arms: short linen sleeves rolled over the elbow, a leather wrist-wrap, bare forearm and hand.
+    for (const side of ['rArm', 'lArm']) {
+      k.all(side, C.skin);
+      k.band(side, C.linen, 0, 5); k.band(side, C.linenSh, 5, 1); k.fill(side, 'top', C.linen); k.fill(side, 'bottom', C.skinSh);
+      k.band(side, C.vest, 0, 3); k.fill(side, 'top', C.vest);      // the shoulders are the jerkin's green
+      k.band(side, C.belt, 8, 2); k.band(side, C.skinHi, 6, 1);
+      for (const f of SIDES) { k.px(side, f, 0, 7, C.skinSh); k.px(side, f, 0, 11, C.skinSh); }
+      k.band(sideOuter(side), C.vest, 0, 3);
+    }
+    k.px('rArm', 'front', 2, 10, C.skinSh); k.px('lArm', 'front', 1, 11, C.skinSh);
 
-  // Legs. Standing straight, the trousers run down to the boots. Pulled down they bunch at the knee (rows 4-5, with a band over the joint, see
-  // buildCharacter), and the thigh above shows drawers; with the drawers down too, the thigh is bare to row 1 and they bunch on rows 2-3.
-  const legRow = r => !down ? 'trousers' : r >= 4 ? 'trousers' : !drawersDown ? 'drawers' : r < 2 ? 'skin' : 'drawers';
-  for (const [leg, cheek] of [['rLeg', 'R'], ['lLeg', 'L']]) {
-    k.all(leg, C.trousers);
-    k.band(leg, C.trousersDk, 6, 1); k.fill(leg, 'bottom', C.sole); k.fill(leg, 'top', C.trousersDk);
-    k.band(leg, C.boot, 8, 4); k.band(leg, C.bootHi, 8, 1); k.band(leg, C.sole, 11, 1);
-    k.fill(leg, 'front', C.patch, 1, 2, 2, 2); k.px(leg, 'front', 1, 2, C.stitch); k.px(leg, 'front', 2, 3, C.stitch);
-    k.px(leg, 'front', 1, 9, C.lace); k.px(leg, 'front', 2, 10, C.lace); k.px(leg, 'front', 2, 9, C.bootHi); k.px(leg, 'front', 1, 10, C.bootHi);
-    if (down) {
-      for (let r = 0; r < 4; r++) {
-        const w = legRow(r);
-        for (const f of SIDES) k.fill(leg, f, colourOf(w), 0, r, undefined, 1);
-        if (w === 'skin') bare.push([leg, 'back', 0, r, 4, 1, cheek]);
+    // Legs. Standing straight, the trousers run down to the boots. Pulled down they bunch at the knee (rows 4-5, with a band over the joint, see
+    // buildCharacter), and the thigh above shows drawers; with the drawers down too, the thigh is bare to row 1 and they bunch on rows 2-3.
+    for (const [leg, cheek] of [['rLeg', 'R'], ['lLeg', 'L']]) {
+      k.all(leg, C.trousers);
+      k.band(leg, C.trousersDk, 6, 1); k.fill(leg, 'bottom', C.sole); k.fill(leg, 'top', C.trousersDk);
+      k.band(leg, C.boot, 8, 4); k.band(leg, C.bootHi, 8, 1); k.band(leg, C.sole, 11, 1);
+      if (fine) { k.fill(leg, 'right', C.stitch, 1, 0, 1, 6); k.fill(leg, 'left', C.stitch, 2, 0, 1, 6); }   // a gold seam down the outside of each leg
+      else { k.fill(leg, 'front', C.patch, 1, 2, 2, 2); k.px(leg, 'front', 1, 2, C.stitch); k.px(leg, 'front', 2, 3, C.stitch); }
+      k.px(leg, 'front', 1, 9, C.lace); k.px(leg, 'front', 2, 10, C.lace); k.px(leg, 'front', 2, 9, C.bootHi); k.px(leg, 'front', 1, 10, C.bootHi);
+      if (down) {
+        for (let r = 0; r < 4; r++) {
+          const w = legRow(r);
+          for (const f of SIDES) k.fill(leg, f, colourOf(w), 0, r, undefined, 1);
+          if (w === 'skin') bare.push([leg, 'back', 0, r, 4, 1, cheek]);
+        }
+        for (const f of SIDES) k.fill(leg, f, C.trousersDk, 0, 5, undefined, 1);
+        k.fill(leg, 'top', C.seat);
+        if (drawersDown) for (const f of SIDES) k.fill(leg, f, C.drawersSh, 0, 3, undefined, 1);
       }
-      for (const f of SIDES) k.fill(leg, f, C.trousersDk, 0, 5, undefined, 1);
-      k.fill(leg, 'top', C.seat);
-      if (drawersDown) for (const f of SIDES) k.fill(leg, f, C.drawersSh, 0, 3, undefined, 1);
+    }
+  } else {
+    // ── The tunic outfits: Day and Soft ──
+    // Torso: the tunic all the way down (hitched or not), a round neckline, then: wooden buttons down a placket (Day), or a small sewn-on pocket (Soft).
+    k.all('body', T.base);
+    k.grid('body', 'front', ['ttSSSStt', 'bbtSStbb'], { t: T.hi, S: C.skin, b: T.base });
+    k.fill('body', 'back', T.base); k.fill('body', 'back', T.hi, 0, 0, undefined, 1); k.fill('body', 'right', T.base); k.fill('body', 'left', T.base);
+    k.fill('body', 'top', T.base); k.fill('body', 'bottom', T.dk);
+    for (const f of SIDES) k.fill('body', f, T.dk, 0, 11, undefined, 1);            // the hem's shadow
+    if (outfit === 'Day') {
+      k.fill('body', 'front', T.dk, 3, 2, 2, 8);
+      for (const y of [3, 5, 7, 9]) { k.px('body', 'front', 3, y, T.wood); k.px('body', 'front', 4, y, T.woodHi); }   // wooden buttons
+    } else {
+      k.fill('body', 'front', T.hi, 1, 5, 3, 1); k.fill('body', 'front', T.hi, 1, 7, 3, 1); k.fill('body', 'front', T.hi, 1, 6, 1, 1); k.fill('body', 'front', T.hi, 3, 6, 1, 1);
+      k.px('body', 'front', 2, 6, T.dk);                                              // the small pocket, sewn on in a lighter thread
+    }
+    // Sleeves: short, to above the elbow; forearms and hands bare.
+    for (const side of ['rArm', 'lArm']) {
+      k.all(side, C.skin);
+      k.band(side, T.base, 0, 5); k.band(side, T.dk, 4, 1); k.fill(side, 'top', T.base); k.fill(side, 'bottom', C.skinSh);
+      k.band(side, C.skinHi, 6, 1);
+      for (const f of SIDES) { k.px(side, f, 0, 7, C.skinSh); k.px(side, f, 0, 11, C.skinSh); }
+    }
+    // Legs: bare; the shorts on the thigh (Day to row 4, Soft shorter, to row 3, so the knees show), the tunic's hem brushing the tops of the thighs
+    // (an overlay on rows 0-1) unless it is hitched up, and bare feet.
+    for (const [leg, cheek] of [['rLeg', 'R'], ['lLeg', 'L']]) {
+      k.all(leg, C.skin);
+      k.band(leg, C.skinHi, 1, 1); k.band(leg, C.line || '#d6a888', 6, 1); k.band(leg, C.skinSh, 10, 1);
+      k.fill(leg, 'top', C.trousersDk); k.fill(leg, 'bottom', C.skinSh);
+      k.fill(leg, 'front', C.skinSh, 0, 11, undefined, 1); k.px(leg, 'front', 0, 11, C.skin); k.px(leg, 'front', 3, 11, C.skin); k.px(leg, 'front', 1, 11, C.skinHi); k.px(leg, 'front', 2, 11, C.skinHi);   // toes
+      if (!down) {
+        for (const f of SIDES) { k.fill(leg, f, C.trousers, 0, 0, undefined, T.sE + 1); k.fill(leg, f, C.trousersDk, 0, T.sE, undefined, 1); }
+      } else {
+        for (let r = 0; r < 4; r++) {
+          const w = legRow(r);
+          for (const f of SIDES) k.fill(leg, f, colourOf(w), 0, r, undefined, 1);
+          if (w === 'skin') bare.push([leg, 'back', 0, r, 4, 1, cheek]);
+        }
+        for (const f of SIDES) { k.fill(leg, f, C.trousers, 0, 4, undefined, 1); k.fill(leg, f, C.trousersDk, 0, 5, undefined, 1); }
+        k.px(leg, 'front', 1, 6, C.trousersDk);          // (the band over the knee takes its colour from here)
+        k.fill(leg, 'top', C.seat);
+        if (drawersDown) for (const f of SIDES) k.fill(leg, f, C.drawersSh, 0, 3, undefined, 1);
+      }
+      if (!st.hitched) { const o = sideOuter(leg); for (const f of SIDES) { k.fill(o, f, T.base, 0, 0, undefined, 2); k.fill(o, f, T.dk, 0, 1, undefined, 1); } }
     }
   }
   k.grain(1021, 5, [{ x: 8, y: 8, w: 8, h: 8 }]);
@@ -190,11 +248,12 @@ const GLUTES = { u: 0, v: 0, w: 8, h: 4, d: 4 };
 function paintGlutesInto(g, st) {
   st = Object.assign({ trousers: 'up', drawers: 'up', marks: { L: 0, R: 0 } }, st);
   const what = st.trousers === 'up' ? 'trousers' : st.drawers === 'up' ? 'drawers' : 'skin';
-  const base = { trousers: '#6d5233', drawers: '#e6dcc2', skin: '#ebc4a0' }[what], seam = { trousers: '#59422a', drawers: '#cbbf9f', skin: '#c99874' }[what];
+  const tr = { Outdoor: ['#6d5233', '#59422a'], Fine: ['#4c3827', '#3b2a1d'], Day: ['#b8a173', '#9b855d'], Soft: ['#7f9ccc', '#6a88b8'] }[st.outfit] || ['#6d5233', '#59422a'];   // the garment over his seat
+  const base = { trousers: tr[0], drawers: '#e6dcc2', skin: '#ebc4a0' }[what], seam = { trousers: tr[1], drawers: '#cbbf9f', skin: '#c99874' }[what];
   g.ctx.clearRect(0, 0, 24, 8);
   g.all('glutes', base);
   g.fill('glutes', 'back', seam, 3, 0, 2, 4); g.fill('glutes', 'bottom', seam, 3, 0, 2, 4);
-  if (what === 'trousers') { g.fill('glutes', 'back', '#8b7048', 0, 1, 2, 2); g.px('glutes', 'back', 0, 1, '#4a3820'); }
+  if (what === 'trousers' && (!st.outfit || st.outfit === 'Outdoor')) { g.fill('glutes', 'back', '#8b7048', 0, 1, 2, 2); g.px('glutes', 'back', 0, 1, '#4a3820'); }   // the patch
   g.grain(5031, 5);
   if (what === 'skin') {
     // Every side of the block takes the colour: the back, front, bottom and top by cheek (left half, right half), the ends each their own cheek.
@@ -457,7 +516,7 @@ function step(rig, dt) {
 }
 
 const makeJack = () => buildCharacter(paintJack(), { armWidth: 3 });
-const OUTFITS = { jack: ['Outdoor'], gerda: ['Work', 'Fine'] };
+const OUTFITS = { jack: ['Outdoor', 'Day', 'Soft', 'Fine'], gerda: ['Work', 'Fine'] };
 const makeGerda = outfit => buildCharacter(paintGerdaInto(new Skin(3, 3), outfit), { armWidth: 3, bun: true, skirt: true, elbow: 'armR' });
 
 root.Blocky = { makeJack, makeGerda, setPose, step, POSES, Skin, OUTFITS, paintGerdaInto, paintJackInto, paintGlutesInto, makeGlutes, boxGeo, faceRect };
