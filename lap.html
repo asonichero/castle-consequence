@@ -59,6 +59,9 @@
   <h3>Jack's size</h3>
   <div class="stepper"><input id="size" type="range" min="50" max="100" value="100" style="flex:1"><span class="v" id="sizeV">100%</span></div>
   <div class="sub">He shrinks on arrival, then regains his size level by level. (50% is the lowest this position works at.)</div>
+  <h3>Wardrobe</h3>
+  <div class="sub">Gerda</div><div class="btns" id="wardG"></div>
+  <div class="sub" style="margin-top:6px">Jack</div><div class="btns" id="wardJ"></div>
   <h3>Camera</h3>
   <div class="btns" id="cams"></div>
   <h3>Scene</h3>
@@ -93,6 +96,13 @@
   var L = Lap.create(document.getElementById('view')), st = L.st, $ = function (id) { return document.getElementById(id); };
   var PACE = [0.5, 0.7, 1, 1.4, 2], STR = [0.5, 0.75, 1, 1.25, 1.5], idx = { pace: 2, strength: 2 };
   function btn(box, label, fn, key) { var b = document.createElement('button'); b.textContent = label; b.dataset.k = key; b.onclick = fn; $(box).appendChild(b); return b; }
+  // wardrobe
+  L.outfits.gerda.forEach(function (n) { btn('wardG', n, function () { L.outfit('gerda', n); markW(); }, n); });
+  L.outfits.jack.forEach(function (n) { btn('wardJ', n, function () { markW(); }, n); });
+  function markW() {
+    document.querySelectorAll('#wardG button').forEach(function (b) { b.classList.toggle('on', b.dataset.k === st.outfit.gerda); });
+    document.querySelectorAll('#wardJ button').forEach(function (b) { b.classList.toggle('on', b.dataset.k === st.outfit.jack); });
+  }
   // implements
   Object.keys(L.IMPL).forEach(function (k) { btn('impl', L.IMPL[k].name, function () { L.implement(k); mark(); }, k); });
   [['alt', 'Alternate'], ['L', 'Left'], ['R', 'Right']].forEach(function (p) { btn('side', p[1], function () { st.side = p[0]; mark(); }, p[0]); });
@@ -103,7 +113,7 @@
     $('trousers').textContent = 'Trousers: ' + st.trousers; $('drawers').textContent = 'Drawers: ' + st.drawers;
     $('drawers').disabled = st.trousers === 'up';
   }
-  mark();
+  mark(); markW();
   $('smack').onclick = function () { L.smack(); };
   $('run').onclick = function () { L.run(+$('runN').value); };
   $('stop').onclick = function () { L.stop(); };

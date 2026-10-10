@@ -216,8 +216,11 @@ const sideOuter = s => s + 'O';
 // Gerda, late thirties: broad-shouldered, practical, laughs easily and means what she says. A plum bodice laced over a blouse,
 // a cream apron and a full skirt, bare legs and feet; auburn hair going grey at the temple, pinned up in a bun.
 // ---------------------------------------------------------------------------------------------------------------------------
-function paintGerda() {
-  const k = new Skin(3, 3);
+// Gerda's skin, painted from scratch for an outfit: 'Work' (the plum bodice, apron and ankle-length skirt, bare feet) or 'Fine' (a lavender
+// embroidered gown to mid-calf, 3/4 sleeves, gold bracelets and anklets hung with small bells and moonstones, bare feet).
+function paintGerdaInto(k, outfit) {
+  outfit = outfit === 'Fine' ? 'Fine' : 'Work';
+  k.ctx.clearRect(0, 0, 64, 64);
   const C = { skin: '#ecc3a0', skinSh: '#d3a584', skinHi: '#f3d0b0', line: '#dcae8c',
     hair: '#8a3a1e', hairHi: '#a8502a', hairDk: '#64280f', grey: '#a39a90', brow: '#6a2e16', white: '#f2f0ea', iris: '#5f7f95', lid: '#c79876', lip: '#a8525a', lipDk: '#8a3038', teeth: '#f6f2ea',
     blouse: '#ece6d6', blouseSh: '#cfc7b4', plum: '#7a2a3a', plumDk: '#5c1e2c', plumHi: '#923a4c', lace: '#e6d7b0', belt: '#4a3220', apron: '#e9dfc8', apronSh: '#cdc2a8', pocket: '#d8ccb0',
@@ -250,44 +253,86 @@ function paintGerda() {
   k.grid('hat', 'front', ['HHHHHHHH', 'HHgHH.HH', 'H......H'], { H: C.hair, g: C.grey });
   k.px('hat', 'front', 1, 1, C.grey);
 
+  if (outfit === 'Fine') {
+    const F = { lav: '#a99bd6', lavDk: '#8678bd', lavHi: '#bcb0e4', cream: '#f1e8d2', creamDk: '#d9cdb0', gold: '#d9b24a', goldDk: '#a8832a', goldHi: '#f3dc7a', moon: '#dce6f6', moonHi: '#ffffff', moonSh: '#9fb3d6' };
+    // Torso: a lavender bodice, the neckline edged in cream embroidery, a cream embroidered sash at the waist, then the skirt.
+    k.all('body', F.lav);
+    k.grid('body', 'front', [
+      'cSSSSSSc', 'lcSSSScl', 'llcSScll', 'lllccllL', 'llcLLcll', 'lllccllL', 'llcLLcll', 'lllllllL', 'cdcdcdcd', 'lllllllL', 'lcllllcl', 'llllllll' ],
+      { l: F.lav, L: F.lavHi, c: F.cream, d: F.creamDk, S: C.skin });
+    k.fill('body', 'back', F.lav); k.fill('body', 'back', F.cream, 1, 0, 6, 1); k.grid('body', 'back', ['..c..c..', '.c.cc.c.'], { c: F.cream }, 0, 2);
+    k.grid('body', 'back', ['cdcdcdcd'], { c: F.cream, d: F.creamDk }, 0, 8);
+    for (const f of ['right', 'left']) { k.fill('body', f, F.lav); k.grid('body', f, ['cdcd'], { c: F.cream, d: F.creamDk }, 0, 8); }
+    k.fill('body', 'top', F.lav); k.fill('body', 'bottom', F.lavDk);
+    // Outer layer: the skirt flaring off the hip, a cream embroidered border at its hem.
+    for (const f of SIDES) { k.fill('jacket', f, F.lav, 0, 8, undefined, 4); k.fill('jacket', f, F.lavDk, 0, 10, undefined, 1); k.grid('jacket', f, ['c.c.c.c.'], { c: F.cream }, 0, 11); k.px('jacket', f, 2, 9, F.lavHi); }
+    k.grid('jacket', 'front', ['cdcdcdcd'], { c: F.cream, d: F.creamDk }, 0, 8);
+    // Arms (slim): 3/4 sleeves in lavender with embroidered cream cuffs, a gold bracelet at each wrist (a moonstone and small bells), a ring on the left.
+    for (const side of ['rArm', 'lArm']) {
+      k.all(side, C.skin);
+      k.band(side, F.lav, 0, 7); k.band(side, F.creamDk, 7, 1); k.band(side, F.cream, 8, 1); k.fill(side, 'top', F.lav); k.fill(side, 'bottom', C.skinSh);
+      k.band(side, C.skinHi, 9, 1); k.band(side, C.skinSh, 11, 1);
+      k.px(side, 'front', 0, 8, F.lavHi); k.px(side, 'front', 2, 8, F.lavHi);       // embroidery dots on the cuff
+      const o = sideOuter(side);
+      for (const f of SIDES) { k.fill(o, f, F.gold, 0, 9, undefined, 1); k.px(o, f, 0, 10, F.goldHi); k.px(o, f, 2, 10, F.goldDk); }
+      k.px(o, 'front', 1, 9, F.moon); k.px(o, 'back', 1, 9, F.moonSh);
+    }
+    k.px('lArm', 'front', 1, 11, F.gold);
+    // Legs: bare; the gown's overlay to mid-calf (row 8) with an embroidered hem, and a gold anklet with a moonstone and bells below it.
+    for (const leg of ['rLeg', 'lLeg']) {
+      k.all(leg, C.skin);
+      k.band(leg, C.skinHi, 1, 1); k.band(leg, C.line, 6, 1); k.fill(leg, 'top', F.lavDk); k.fill(leg, 'bottom', C.skinSh);
+      k.band(leg, C.skinSh, 9, 1);
+      k.fill(leg, 'front', C.skinSh, 0, 11, undefined, 1); k.px(leg, 'front', 0, 11, C.skin); k.px(leg, 'front', 3, 11, C.skin);
+      k.px(leg, 'front', 1, 11, C.skinHi); k.px(leg, 'front', 2, 11, C.skinHi);
+      const o = sideOuter(leg);
+      for (const f of SIDES) {
+        k.fill(o, f, F.lav, 0, 0, undefined, 9); k.fill(o, f, F.lavDk, 0, 7, undefined, 1); k.grid(o, f, ['c.c.c.c.'], { c: F.cream }, 0, 8); k.px(o, f, 1, 2, F.lavHi); k.px(o, f, 3, 4, F.lavHi);
+        k.fill(o, f, F.gold, 0, 10, undefined, 1); k.px(o, f, 2, 11, F.goldHi); k.px(o, f, 0, 11, F.goldDk);
+      }
+      k.px(o, 'front', 1, 10, F.moon); k.px(o, 'front', 1, 11, F.goldHi); k.px(o, 'front', 3, 11, F.goldDk); k.px(o, 'right', 1, 10, F.moonSh); k.px(o, 'left', 2, 10, F.moonSh);
+    }
+  } else {
   // Torso: blouse at the throat, plum bodice laced up the front, a belt, then the skirt's waist.
-  k.all('body', C.plum);
-  k.grid('body', 'front', [
-    'WWSSSSWW', 'WWWSSWWW', 'pppcPpPp', 'ppppccpp', 'pppcPcpp', 'ppppccpp', 'pppcPcpp', 'pppppppp', 'dddddddd', 'pppppppp', 'pppppppp', 'pppppppp' ],
-    { W: C.blouse, S: C.skin, p: C.plum, P: C.plumDk, c: C.lace, d: C.belt });
-  k.grid('body', 'front', ['..hh..hh', '........'], { h: C.plumHi }, 0, 2);
-  k.fill('body', 'back', C.plum); k.fill('body', 'back', C.blouse, 0, 0, undefined, 2); k.fill('body', 'back', C.plumDk, 3, 2, 2, 5); k.fill('body', 'back', C.belt, 0, 8, undefined, 1);
-  k.fill('body', 'right', C.plum); k.fill('body', 'left', C.plum); k.fill('body', 'right', C.blouse, 0, 0, undefined, 2); k.fill('body', 'left', C.blouse, 0, 0, undefined, 2);
-  k.fill('body', 'right', C.belt, 0, 8, undefined, 1); k.fill('body', 'left', C.belt, 0, 8, undefined, 1);
-  k.fill('body', 'top', C.blouse); k.fill('body', 'bottom', C.plumDk);
-  // Outer layer: the cream apron (with its pocket and strings) and the skirt flaring off the hip.
-  k.fill('jacket', 'front', C.apron, 1, 5, 6, 7); k.fill('jacket', 'front', C.apronSh, 1, 5, 6, 1);
-  k.fill('jacket', 'front', C.pocket, 2, 8, 4, 2); k.fill('jacket', 'front', C.apronSh, 2, 8, 4, 1); k.px('jacket', 'front', 2, 9, C.apronSh); k.px('jacket', 'front', 5, 9, C.apronSh);
-  k.fill('jacket', 'front', C.trim, 1, 11, 6, 1);
-  k.fill('jacket', 'front', C.apron, 3, 4, 2, 1); k.px('jacket', 'front', 3, 3, C.apron); k.px('jacket', 'front', 4, 3, C.apron);
-  for (const f of ['right', 'left', 'back']) { k.fill('jacket', f, C.plum, 0, 8, undefined, 4); k.fill('jacket', f, C.plumDk, 0, 11, undefined, 1); }
-  k.fill('jacket', 'back', C.apronSh, 2, 6, 4, 1); k.px('jacket', 'back', 1, 7, C.apron); k.px('jacket', 'back', 6, 7, C.apron); // apron strings tied behind
-  k.fill('jacket', 'front', C.plum, 0, 8, 1, 4); k.fill('jacket', 'front', C.plum, 7, 8, 1, 4);
+    k.all('body', C.plum);
+    k.grid('body', 'front', [
+      'WWSSSSWW', 'WWWSSWWW', 'pppcPpPp', 'ppppccpp', 'pppcPcpp', 'ppppccpp', 'pppcPcpp', 'pppppppp', 'dddddddd', 'pppppppp', 'pppppppp', 'pppppppp' ],
+      { W: C.blouse, S: C.skin, p: C.plum, P: C.plumDk, c: C.lace, d: C.belt });
+    k.grid('body', 'front', ['..hh..hh', '........'], { h: C.plumHi }, 0, 2);
+    k.fill('body', 'back', C.plum); k.fill('body', 'back', C.blouse, 0, 0, undefined, 2); k.fill('body', 'back', C.plumDk, 3, 2, 2, 5); k.fill('body', 'back', C.belt, 0, 8, undefined, 1);
+    k.fill('body', 'right', C.plum); k.fill('body', 'left', C.plum); k.fill('body', 'right', C.blouse, 0, 0, undefined, 2); k.fill('body', 'left', C.blouse, 0, 0, undefined, 2);
+    k.fill('body', 'right', C.belt, 0, 8, undefined, 1); k.fill('body', 'left', C.belt, 0, 8, undefined, 1);
+    k.fill('body', 'top', C.blouse); k.fill('body', 'bottom', C.plumDk);
+    // Outer layer: the cream apron (with its pocket and strings) and the skirt flaring off the hip.
+    k.fill('jacket', 'front', C.apron, 1, 5, 6, 7); k.fill('jacket', 'front', C.apronSh, 1, 5, 6, 1);
+    k.fill('jacket', 'front', C.pocket, 2, 8, 4, 2); k.fill('jacket', 'front', C.apronSh, 2, 8, 4, 1); k.px('jacket', 'front', 2, 9, C.apronSh); k.px('jacket', 'front', 5, 9, C.apronSh);
+    k.fill('jacket', 'front', C.trim, 1, 11, 6, 1);
+    k.fill('jacket', 'front', C.apron, 3, 4, 2, 1); k.px('jacket', 'front', 3, 3, C.apron); k.px('jacket', 'front', 4, 3, C.apron);
+    for (const f of ['right', 'left', 'back']) { k.fill('jacket', f, C.plum, 0, 8, undefined, 4); k.fill('jacket', f, C.plumDk, 0, 11, undefined, 1); }
+    k.fill('jacket', 'back', C.apronSh, 2, 6, 4, 1); k.px('jacket', 'back', 1, 7, C.apron); k.px('jacket', 'back', 6, 7, C.apron); // apron strings tied behind
+    k.fill('jacket', 'front', C.plum, 0, 8, 1, 4); k.fill('jacket', 'front', C.plum, 7, 8, 1, 4);
 
-  // Arms (slim): blouse sleeves rolled above the elbow, strong forearms, a wedding ring on the left hand.
-  for (const side of ['rArm', 'lArm']) {
-    k.all(side, C.skin);
-    k.band(side, C.blouse, 0, 5); k.band(side, C.blouseSh, 5, 1); k.fill(side, 'top', C.blouse); k.fill(side, 'bottom', C.skinSh);
-    k.band(side, C.skinHi, 6, 1); k.band(side, C.skinSh, 9, 1);
-  }
-  k.px('lArm', 'front', 1, 10, C.ring); k.px('lArm', 'left', 1, 10, C.ring);
+    // Arms (slim): blouse sleeves rolled above the elbow, strong forearms, a wedding ring on the left hand.
+    for (const side of ['rArm', 'lArm']) {
+      k.all(side, C.skin);
+      k.band(side, C.blouse, 0, 5); k.band(side, C.blouseSh, 5, 1); k.fill(side, 'top', C.blouse); k.fill(side, 'bottom', C.skinSh);
+      k.band(side, C.skinHi, 6, 1); k.band(side, C.skinSh, 9, 1);
+    }
+    k.px('lArm', 'front', 1, 10, C.ring); k.px('lArm', 'left', 1, 10, C.ring);
 
-  // Legs: bare, and bare feet; the skirt's overlay runs from the hip down to the ankle (row 10), a trim band at its hem.
-  for (const leg of ['rLeg', 'lLeg']) {
-    k.all(leg, C.skin);
-    k.band(leg, C.skinHi, 1, 1); k.band(leg, C.line, 6, 1);                          // thigh light, a faint line at the knee
-    k.fill(leg, 'top', C.plumDk); k.fill(leg, 'bottom', C.skinSh);
-    k.band(leg, C.skinSh, 10, 1);                                                    // ankle shadow
-    k.fill(leg, 'front', C.skinSh, 0, 11, undefined, 1); k.px(leg, 'front', 0, 11, C.skin); k.px(leg, 'front', 3, 11, C.skin);   // the toes
-    k.px(leg, 'front', 1, 11, C.skinHi); k.px(leg, 'front', 2, 11, C.skinHi);
-    const o = sideOuter(leg);
-    for (const f of SIDES) { k.fill(o, f, C.plum, 0, 0, undefined, 11); k.px(o, f, 1, 2, C.plumHi); k.px(o, f, 2, 7, C.plumHi); k.fill(o, f, C.plumDk, 0, 9, undefined, 1); k.fill(o, f, C.trim, 0, 10, undefined, 1); }
-    k.fill(o, 'front', C.plumDk, 1, 5, 1, 2);                                        // a fold
+    // Legs: bare, and bare feet; the skirt's overlay runs from the hip down to the ankle (row 10), a trim band at its hem.
+    for (const leg of ['rLeg', 'lLeg']) {
+      k.all(leg, C.skin);
+      k.band(leg, C.skinHi, 1, 1); k.band(leg, C.line, 6, 1);                          // thigh light, a faint line at the knee
+      k.fill(leg, 'top', C.plumDk); k.fill(leg, 'bottom', C.skinSh);
+      k.band(leg, C.skinSh, 10, 1);                                                    // ankle shadow
+      k.fill(leg, 'front', C.skinSh, 0, 11, undefined, 1); k.px(leg, 'front', 0, 11, C.skin); k.px(leg, 'front', 3, 11, C.skin);   // the toes
+      k.px(leg, 'front', 1, 11, C.skinHi); k.px(leg, 'front', 2, 11, C.skinHi);
+      const o = sideOuter(leg);
+      for (const f of SIDES) { k.fill(o, f, C.plum, 0, 0, undefined, 11); k.px(o, f, 1, 2, C.plumHi); k.px(o, f, 2, 7, C.plumHi); k.fill(o, f, C.plumDk, 0, 9, undefined, 1); k.fill(o, f, C.trim, 0, 10, undefined, 1); }
+      k.fill(o, 'front', C.plumDk, 1, 5, 1, 2);                                        // a fold
+    }
+
   }
   k.grain(2077, 5, [{ x: 8, y: 8, w: 8, h: 8 }]);
   return k;
@@ -412,7 +457,8 @@ function step(rig, dt) {
 }
 
 const makeJack = () => buildCharacter(paintJack(), { armWidth: 3 });
-const makeGerda = () => buildCharacter(paintGerda(), { armWidth: 3, bun: true, skirt: true, elbow: 'armR' });
+const OUTFITS = { jack: ['Outdoor'], gerda: ['Work', 'Fine'] };
+const makeGerda = outfit => buildCharacter(paintGerdaInto(new Skin(3, 3), outfit), { armWidth: 3, bun: true, skirt: true, elbow: 'armR' });
 
-root.Blocky = { makeJack, makeGerda, setPose, step, POSES, Skin, paintJackInto, paintGlutesInto, makeGlutes, boxGeo, faceRect };
+root.Blocky = { makeJack, makeGerda, setPose, step, POSES, Skin, OUTFITS, paintGerdaInto, paintJackInto, paintGlutesInto, makeGlutes, boxGeo, faceRect };
 })(typeof window !== 'undefined' ? window : globalThis);

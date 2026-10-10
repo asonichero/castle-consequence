@@ -93,7 +93,7 @@ function create(view, opts) {
   // ── The session ─────────────────────────────────────────────────────────────────────────────────────────────────────────
   const pain = S.createPain({ tolerance: 0.45, resilience: 0.5 });
   const st = {
-    lean: LEAN, size: 1, implement: 'hand', pace: 1, strength: 1, side: 'alt', nextSide: 'R',
+    outfit: { gerda: 'Work', jack: 'Outdoor' }, lean: LEAN, size: 1, implement: 'hand', pace: 1, strength: 1, side: 'alt', nextSide: 'R',
     trousers: 'up', drawers: 'up', marks: { L: 0, R: 0 }, expr: 0,
     hits: 0, ended: false, red: false, peak: 0, swing: null, runLeft: 0, gap: 0, sound: true, last: null,
   };
@@ -588,6 +588,11 @@ function create(view, opts) {
     red() { if (st.ended) return; st.ended = true; st.red = true; st.runLeft = 0; st.swing = null; say('end', { red: true, hits: st.hits, peak: st.peak }); },
     reset() { pain.reset(); Object.assign(st, { hits: 0, ended: false, red: false, peak: 0, swing: null, runLeft: 0, marks: { L: 0, R: 0 }, last: null }); J.kick = 0; dirty = true; say('reset', {}); },
     size(v) { if (!hs.on) st.size = clamp(v, SIZE_MIN, 1); },
+    // Wardrobe: Jack has 'Outdoor'; Gerda 'Work' or 'Fine'.
+    outfit(who, name) {
+      if (who === 'gerda' && B.OUTFITS.gerda.indexOf(name) >= 0) { st.outfit.gerda = name; B.paintGerdaInto(gerda.skin, name); gerda.tex.needsUpdate = true; }
+    },
+    outfits: B.OUTFITS,
     clearMarks() { st.marks = { L: 0, R: 0 }; dirty = true; },
     implement(name) { if (!IMPL[name] || st.swing) return; st.implement = name; },
     layers(o) { Object.assign(st, o); dirty = true; },

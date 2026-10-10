@@ -34,6 +34,9 @@
   <div class="btns" id="gerdaPose"></div>
   <h3>Both</h3>
   <div class="btns" id="bothPose"></div>
+  <h3>Wardrobe</h3>
+  <div class="sub">Gerda</div><div class="btns" id="wardG"></div>
+  <div class="sub" style="margin-top:6px">Jack: Outdoor</div>
   <h3>Jack's size</h3>
   <div class="row"><label><span>Scale</span><span id="sizeOut">100%</span></label><input id="size" type="range" min="10" max="100" value="100"></div>
   <div class="sub">The premise: Jack shrinks on arrival, then regains his size level by level.</div>
@@ -105,6 +108,11 @@
   });
   cast.forEach(function (c) { B.setPose(c.rig, 'stand'); }); mark();
 
+  B.OUTFITS.gerda.forEach(function (n, i) {
+    var bt = document.createElement('button'); bt.textContent = n; bt.className = i ? '' : 'on';
+    bt.onclick = function () { B.paintGerdaInto(cast[1].rig.skin, n); cast[1].rig.tex.needsUpdate = true; document.querySelectorAll('#wardG button').forEach(function (x) { x.classList.toggle('on', x === bt); }); };
+    document.getElementById('wardG').appendChild(bt);
+  });
   var size = document.getElementById('size'), out = document.getElementById('sizeOut');
   size.oninput = function () { var s = size.value / 100; cast[0].rig.root.scale.setScalar(s); out.textContent = size.value + '%'; };
   var spin = document.getElementById('spin');
