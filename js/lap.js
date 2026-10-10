@@ -79,7 +79,7 @@ function create(view, opts) {
   // ── The session ─────────────────────────────────────────────────────────────────────────────────────────────────────────
   const pain = S.createPain({ tolerance: 0.45, resilience: 0.5 });
   const st = {
-    lean: IMPL.hand.lean, implement: 'hand', pace: 1, strength: 1, side: 'alt', nextSide: 'R',
+    lean: IMPL.hand.lean, size: 1, implement: 'hand', pace: 1, strength: 1, side: 'alt', nextSide: 'R',
     trousers: 'up', drawers: 'up', marks: { L: 0, R: 0 }, expr: 0,
     hits: 0, ended: false, red: false, peak: 0, swing: null, runLeft: 0, gap: 0, sound: true, last: null,
   };
@@ -232,7 +232,10 @@ function create(view, opts) {
     if (st.ended && !st.swing && st.runLeft) st.runLeft = 0;
     if (exprFor() !== st.expr) dirty = true;
     repaintAt -= dt; if (dirty && repaintAt <= 0) { repaint(); repaintAt = 0.12; }
-    frame.position.set(P.x, P.y + 0.7 * J.kick, P.z);
+    // Jack's size (the premise: he shrinks on arrival): his frame is scaled about his hip joint, which is re-placed so his torso's centre is still
+    // over the centre of her thighs and his belly still rests on them (their tops are at y = 8, 8.75 under the skirt; his body is 4 deep).
+    const sz = st.size; frame.scale.setScalar(sz);
+    frame.position.set(-6 * sz, 8.75 + 2 * sz + 0.7 * J.kick * sz, P.z);
     B.step(jack, dt); scene.updateMatrixWorld(true);
     solveYaw(dt); B.step(gerda, dt);
     controls.update(); renderer.render(scene, camera);
@@ -260,6 +263,7 @@ function create(view, opts) {
     end() { if (st.ended) return; st.ended = true; st.runLeft = 0; say('end', { red: false, hits: st.hits, peak: st.peak }); },
     red() { if (st.ended) return; st.ended = true; st.red = true; st.runLeft = 0; st.swing = null; say('end', { red: true, hits: st.hits, peak: st.peak }); },
     reset() { pain.reset(); Object.assign(st, { hits: 0, ended: false, red: false, peak: 0, swing: null, runLeft: 0, marks: { L: 0, R: 0 }, last: null }); J.kick = 0; dirty = true; say('reset', {}); },
+    size(v) { st.size = clamp(v, 0.1, 1); },
     clearMarks() { st.marks = { L: 0, R: 0 }; dirty = true; },
     implement(name) { if (!IMPL[name] || st.swing) return; st.implement = name; },
     layers(o) { Object.assign(st, o); dirty = true; },

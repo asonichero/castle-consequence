@@ -52,6 +52,9 @@
   <h3>Clothes</h3>
   <div class="btns"><button id="trousers">Trousers: up</button><button id="drawers">Drawers: up</button></div>
   <div class="sub" style="margin-top:4px">Clothing over the rear cushions the sting, not the ache.</div>
+  <h3>Jack's size</h3>
+  <div class="stepper"><input id="size" type="range" min="10" max="100" value="100" style="flex:1"><span class="v" id="sizeV">100%</span></div>
+  <div class="sub">He shrinks on arrival, then regains his size level by level.</div>
   <h3>Camera</h3>
   <div class="btns" id="cams"></div>
   <h3>Scene</h3>
@@ -84,6 +87,7 @@
   $('stop').onclick = function () { L.stop(); };
   $('endBtn').onclick = function () { L.end(); };
   $('red').onclick = function () { L.red(); };
+  $('size').oninput = function () { L.size(this.value / 100); $('sizeV').textContent = this.value + '%'; };
   $('clear').onclick = function () { L.clearMarks(); };
   $('again').onclick = function () { L.reset(); $('end').hidden = true; };
   $('snd').onclick = function () { st.sound = !st.sound; $('snd').classList.toggle('on', st.sound); };

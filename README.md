@@ -185,5 +185,5 @@ game's own, ported:
 - Cameras: Overview, Behind, Over your shoulder (Gerda's view), Face; drag to orbit as well.
 
 Gerda's arm is one straight block, so the swing is solved geometrically: the arm is aimed from her shoulder at the cheek being struck (the paddle is rigid along it).
-Jack is full size here; the shrinking premise comes with the levels.
+Jack's size (10–100%) is a slider in the lap viewer: his body is scaled about his hip joint and re-seated on her lap, so the premise (he shrinks on arrival and regains his size level by level) can be previewed. The pain model does not yet change with his size.
 
