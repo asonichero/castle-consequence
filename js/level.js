@@ -597,8 +597,8 @@ function create(els, ui) {
     const TIERS = [
       { name: 'Token', hand: 14, paddle: 0, strength: 0.7, pace: 1.7, verdict: 'No complaints really — “a few for luck, then.”' },
       { name: 'Light', hand: 30, paddle: 0, strength: 0.85, pace: 1.8, verdict: '“A light correction, I think.”' },
-      { name: 'Firm', hand: 44, paddle: 0, strength: 1.0, pace: 1.9, verdict: '“A firm one. Come along.”' },
-      { name: 'Severe', hand: 34, paddle: 28, strength: 1.1, pace: 2.0, verdict: '“I think the paddle, this time.”' },
+      { name: 'Firm', hand: 44, paddle: 0, strength: 0.9, pace: 1.9, verdict: '“A firm one. Come along.”' },
+      { name: 'Severe', hand: 34, paddle: 6, strength: 1.0, pace: 2.0, verdict: '“I think the paddle, this time.”' },
     ];
     return Object.assign({ tier, demerits: d, reasons: reasons(), lie: S.lie }, TIERS[tier]);
   }
@@ -610,7 +610,7 @@ function create(els, ui) {
     lvlEl.style.display = 'none'; lapEl.style.display = 'block'; ui.discipline(true, plan);
     if (!lap) { lap = Lap.create(lapEl); lap.on((type) => { if (type === 'tooharsh') say('Gerda', 'That is quite enough.'); }); }
     carryIntoLap();
-    lap.reset(); lap.st.sound = true; lap.outfit('gerda', 'Work'); lap.outfit('jack', 'Day'); lap.size(S.size);
+    lap.reset(); lap.st.sound = true; lap.st.noRecovery = true; lap.outfit('gerda', 'Work'); lap.outfit('jack', 'Day'); lap.size(S.size);
     lap.layers({ trousers: 'up', drawers: 'up' }); lap.implement('hand'); lap.st.side = 'alt';
     // A smaller Jack feels the same hand more: strength grows as he shrinks.
     lap.st.strength = clamp(plan.strength * (1 + 0.8 * (1 - S.size)), 0.5, 1.5); lap.st.pace = plan.pace; lap.view('overview');
