@@ -60,13 +60,16 @@ function create(view, opts) {
   frame.quaternion.copy(qz).multiply(qy).multiply(qx);
   B.setPose(gerda, 'sit'); Object.assign(gerda.state, B.POSES.sit);
   Object.assign(jack.state, { hipY: 0, lift: 0 }); Object.assign(jack.target, { hipY: 0, lift: 0 });
-  // The glutes block sits over his lower torso and the tops of his thighs, tipped part-way between the angle of his back and that of his thighs
-  // (which fold forward at the hip) to bridge the two; it takes the look of the trousers, drawers or bare skin.
+  // The glutes block hangs from a hinge at its top edge, which lies in the plane of his back (just proud of it) at the bottom edge of the torso, and
+  // tips forward from there part-way toward the angle of his thighs (which fold forward at the hip), bridging his back and his thighs. It
+  // takes the look of the trousers, drawers or bare skin.
   const glutes = B.makeGlutes(), glutesTilt = new THREE.Group();
-  glutes.mesh.position.set(0, 0.8, -0.3); glutes.mesh.scale.set(1, 1.2, 1.05); glutesTilt.rotation.x = -0.45; glutesTilt.add(glutes.mesh); jack.hips.add(glutesTilt);
+  glutesTilt.position.set(0, 0.6, -2.05); glutesTilt.rotation.x = -0.45;
+  glutes.mesh.scale.set(1, 1.2, 1.05); glutes.mesh.position.set(0, -2.6, 2.25 - 0.0);   // back face in the hinge's plane, top face at the hinge
+  glutesTilt.add(glutes.mesh); jack.hips.add(glutesTilt);
   // Where the hand lands: points on the back of Jack's hips (his left cheek is the nearer, world −z side), and the middle of his back.
-  const mk = (x, y, z) => { const o = new THREE.Object3D(); o.position.set(x, y, z); jack.torso.add(o); return o; };
-  const rear = { L: mk(2, 0, -2.6), R: mk(-2, 0, -2.6), C: mk(0, 0, -2.6) }, upperBack = mk(0, 10, -2);
+  const mk = (x, y, z, parent) => { const o = new THREE.Object3D(); o.position.set(x, y, z); (parent || jack.torso).add(o); return o; };
+  const rear = { L: mk(2, -2.4, -0.05, glutesTilt), R: mk(-2, -2.4, -0.05, glutesTilt), C: mk(0, -2.4, -0.05, glutesTilt) }, upperBack = mk(0, 10, -2);
 
   // The paddle: a short handle out of the middle of the end of her right arm (as if in her fist) and a small blade, 6 long in all.
   const tool = new THREE.Group(); tool.position.y = -12; gerda.armR.add(tool);
