@@ -113,7 +113,7 @@
       $('cTrustV').textContent = Math.round(S.hen.trust) + '%'; $('trustBar').style.width = S.hen.trust + '%';
       $('prints').textContent = x.prints ? 'Muddy footprints: ' + x.prints : '';
       $('carry').textContent = S.holding === 'bucket' ? 'Carrying: water (' + Math.round(S.water) + '%)' : S.holding ? 'Carrying: ' + S.holding : 'Hands empty';
-      var fast = S.speedN > 13; $('pace').innerHTML = S.phase !== 'play' ? '' : S.speedN < 0.5 ? 'Still' : fast ? '<span class="warn">Too fast! (sneak with C)</span>' : S.creeping ? 'Sneaking' : 'Walking';
+      var fast = S.speedN > 13; $('pace').innerHTML = S.phase !== 'play' ? '' : S.speedN < 0.5 ? 'Still' : fast ? '<span class="warn">Too fast! (sneak with C or walk)</span>' : S.creeping ? 'Sneaking' : 'Walking';
       $('bSneak').classList.toggle('on', !!S.sneak); $('bRun').classList.toggle('on', !!S.runOn); $('actions').style.display = S.phase === 'play' ? 'block' : 'none';
       var h = $('hint'); h.style.display = S.hint && S.phase === 'play' ? 'block' : 'none'; h.textContent = S.hint;
       $('help').style.display = S.phase === 'play' ? 'block' : 'none'; $('hud').style.display = S.phase === 'play' ? 'block' : 'none';

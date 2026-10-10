@@ -28,7 +28,7 @@ const COST = {
 };
 const TIME_LIMIT = 240;                         // seconds before Gerda comes back whether he is ready or not
 const WALK = 26, CREEP = 7.5, RUN = 50;                  // speeds, in body-lengths-ish per second (times his scale)
-const HEN_ALARM = 13, SPILL_ABOVE = 13, CALM = 9.5;   // faster than this near the hen scares her / slops the water; slower than CALM she warms to him
+const HEN_ALARM = 13, SPILL_ABOVE = 27, CALM = 9.5;   // faster than this near the hen scares her / slops the water; slower than CALM she warms to him
 const R_ = 62;                                  // the room is square: 124 design units each way
 const HALL = { x0: -R_ * K, x1: R_ * K, z0: -R_ * K, z1: R_ * K };
 const ALARM_RADIUS = 28;                        // the hen only minds his pace within this distance
@@ -307,7 +307,7 @@ function create(els, ui) {
       if (near(SPOT.well, 21)) { if (S.water < 100) { S.water = 100; S.spillAcc = 0; note('You fill the bucket. Sneak (C) so it does not slop.'); } else note('The bucket is full.'); return; }
       if (near(SPOT.trough, 19)) {
         if (S.water < 1) { note('The bucket is empty: fill it at the basin.'); return; }
-        if (S.troughLevel >= 99.5) { note('The trough is already full.'); return; }
+        if (S.troughLevel >= 99.5) { S.water = 0; note('The trough is already full: the rest of the water is wasted.'); return; }
         const poured = Math.min(S.water, 100 - S.troughLevel); S.troughLevel += poured; S.water = 0; setTrough();
         if (S.troughLevel >= 99.5) { S.troughFilled = true; S.chores.water = true; note('The trough is full. ✔', 'good'); }
         else note(`You pour in ${Math.round(poured)}% of a trough. It is ${Math.round(S.troughLevel)}% full: back to the basin for more.`);
@@ -398,9 +398,9 @@ function create(els, ui) {
       addPrint(S.pos.x + side.x, S.pos.z + side.z, S.heading, scale * 1.1, false, true); S.chores.sweep = false;
     }
     // The water.
-    // The water slops by the distance he covers: about half the bucket by the trough at a walk (so two trips), none if he sneaks, all of it at a run.
+    // The water slops by the distance he covers: nothing at a walk or a sneak, about half the bucket by the trough at a run (so two trips).
     if (S.holding === 'bucket' && S.speedN > SPILL_ABOVE && S.water > 0) {
-      const loss = before.distanceTo(S.pos) * 0.6 * (S.speedN - SPILL_ABOVE) / (WALK - SPILL_ABOVE); S.water = Math.max(0, S.water - loss); S.spillAcc += loss; if (Math.random() < 0.4) spillDrops(1);
+      const loss = before.distanceTo(S.pos) * 0.6 * (S.speedN - SPILL_ABOVE) / (RUN - SPILL_ABOVE); S.water = Math.max(0, S.water - loss); S.spillAcc += loss; if (Math.random() < 0.4) spillDrops(1);
       if (S.spillAcc >= 15 && S.spillCool <= 0) { S.spillAcc -= 15; S.spillCool = 1.5; S.counts.spills++; note('Water slops over the rim!', 'bad'); shrink(COST.spill, 'Spilling the water'); makePatch(S.pos.x - Math.sin(S.heading) * 4, S.pos.z - Math.cos(S.heading) * 4, false, 0.55); S.chores.sweep = false; }
     }
     // Sweeping: Space with the broom (patches and footprints alike).
