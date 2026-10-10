@@ -32,7 +32,7 @@ const HEN_ALARM = 13, SPILL_ABOVE = 27, CALM = 9.5;   // faster than this near t
 const R_ = 62;                                  // the room is square: 124 design units each way
 const HALL = { x0: -R_ * K, x1: R_ * K, z0: -R_ * K, z1: R_ * K };
 const ALARM_RADIUS = 28;                        // the hen only minds his pace within this distance
-const D = { rack: [-44, -56], sack: [-50, 46], dish: [20, 20], trough: [36, 20], well: [48, -34], nest: [34, 36], chair: [0, -56.7] };   // (design coordinates; the world's are K times these)
+const D = { rack: [-44, -56], sack: [-50, 46], dish: [12, 57], trough: [27, 57], well: [48, -34], nest: [50, 54], chair: [0, -56.7] };   // (design coordinates; the world's are K times these)
 const SPOT = {}; for (const k in D) SPOT[k] = new V3(D[k][0] * K, 0, D[k][1] * K); SPOT.bucket = new V3((D.rack[0] + 4.5) * K, 0, (D.rack[1] - 2) * K);   // (on a flagstone beneath the shelf, beside the broom)
 SPOT.door = new V3(-(R_ + 2) * K, 0, 0);
 const PEN = { x0: 6 * K, x1: 56 * K, z0: 4 * K, z1: 54 * K };
@@ -119,6 +119,24 @@ function create(els, ui) {
   box(0.4, 30, 16, -W + 0.8, 15, 0, 0xf6e6b0, room);                                                 // the doorway's light
   box(20, 1, 14, D.nest[0], 0.5, D.nest[1], 0xc9a54a, room); box(20, 4, 1, D.nest[0], 2, D.nest[1] - 6.5, 0x7a5a38, room); box(1, 4, 14, D.nest[0] - 10.5, 2, D.nest[1], 0x7a5a38, room);   // the hen's nest
 
+  // A high window in the east wall, its shutter half-latched (one leaf ajar, the other held by a latch), nearly hidden behind a tower of stacked crates and
+  // shelves that someone has built up against the wall beneath it.
+  { const wx = R_ - 0.6, wz = -14, wy = 33;
+    box(1.4, 11, 11, wx, wy, wz, 0x4a3a2a, room);                                                       // the frame
+    const glass = new THREE.Mesh(new THREE.BoxGeometry(0.3, 8.4, 8.4), new THREE.MeshBasicMaterial({ color: srgb(0xcfe6f6) })); glass.position.set(wx - 0.6, wy, wz); room.add(glass);
+    box(0.5, 0.5, 8.4, wx - 0.9, wy, wz, 0x5a4430, room); box(0.5, 8.4, 0.5, wx - 0.9, wy, wz, 0x5a4430, room);   // the mullions
+    const leafA = new THREE.Group(); leafA.position.set(wx - 1.1, wy, wz - 4.4); room.add(leafA); box(0.7, 8.8, 4.4, 0, 0, 2.2, 0x6a4a30, leafA); leafA.rotation.y = 0.9;   // ajar
+    box(0.7, 8.8, 4.4, wx - 1.1, wy, wz + 2.2, 0x6a4a30, room); box(1, 1.2, 1.6, wx - 1.5, wy, wz + 0.4, 0xb8a050, room);       // the latched leaf, and its latch
+    const tow = new THREE.Group(); room.add(tow);
+    const crate = (x, y, z, w, h, d, c, ry) => { const b = box(w, h, d, x, y, z, c, tow); b.rotation.y = ry || 0; box(w + 0.2, 0.7, d + 0.2, x, y + h / 2 - 0.35, z, 0x5a4026, tow).rotation.y = ry || 0; return b; };
+    const col = [0x8a6a44, 0x7a5c3a, 0x96744a, 0x6e5232];
+    for (let i = 0; i < 6; i++) crate(R_ - 5.2 + (i % 2) * 0.3, 3 + i * 6, wz - 1.5 + (i % 3) * 0.8, 7, 6, 7.4 + (i % 2), col[i % 4], 0.05 * (i - 2));   // the tower of crates
+    crate(R_ - 5.5, 39, wz + 0.4, 6, 5, 6, col[2], 0.2);
+    for (const y of [8, 17, 26, 35]) box(5.6, 0.8, 11, R_ - 3.4, y, wz + 9.5, 0x6a4a30, tow);                // a tall shelf unit beside it, on the south side
+    for (const dz of [4.2, 14.8]) box(0.9, 38, 0.9, R_ - 3.4 - 2.2, 19, wz + dz, 0x5a3e26, tow);
+    for (const [y, dz, c] of [[10.4, 7, 0xb89a60], [19.4, 11, 0x9a8a70], [28.4, 8, 0xc9a54a], [37.4, 12, 0x7a6a50]]) box(2.6, 2.4, 2.6, R_ - 3.4, y, wz + dz, c, tow);   // things on the shelves
+    box(5.6, 0.8, 8, R_ - 3.4, 32, wz - 10, 0x6a4a30, tow); box(2.4, 3, 2.4, R_ - 3.4, 34, wz - 10, 0x8a8a90, tow);   // and a plank across the north side
+  }
   // Props (design units, so everything is Gerda-sized once the room is scaled).
   const props = {};
   props.rack = new THREE.Group(); props.rack.position.set(D.rack[0], 0, D.rack[1] - 6); room.add(props.rack);
@@ -407,6 +425,7 @@ function create(els, ui) {
     }
     const before = S.pos.clone(); S.pos.addScaledVector(vel, dt);
     { const c = SPOT.chair, dx = S.pos.x - c.x, dz = S.pos.z - c.z; if (!S.sitting && Math.abs(dx) < 10 && Math.abs(dz) < 9) { if (Math.abs(dx) / 10 > Math.abs(dz) / 9) S.pos.x = c.x + Math.sign(dx || 1) * 10; else S.pos.z = c.z + Math.sign(dz || 1) * 9; } }   // the chair is solid
+    { const x0 = (R_ - 8.5) * K, z0 = (-14 - 9) * K, z1 = (-14 + 16) * K; if (S.pos.x > x0 - 3 && S.pos.z > z0 - 3 && S.pos.z < z1 + 3) S.pos.x = Math.min(S.pos.x, x0 - 3); }   // the tower of crates and shelves is solid
     for (const [p, rad] of [[SPOT.well, 11 * K], [SPOT.sack, 7 * K], [SPOT.trough, 9 * K]]) { const dd = S.pos.clone().sub(p); dd.y = 0; if (dd.length() < rad) S.pos.copy(p).addScaledVector(dd.normalize(), rad); }
     S.pos.x = clamp(S.pos.x, HALL.x0 + 6, HALL.x1 - 6); S.pos.z = clamp(S.pos.z, HALL.z0 + 6, HALL.z1 - 6);
     S.speedN = vel.length() / scale;
