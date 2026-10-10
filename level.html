@@ -3,6 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#131820">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Golden Hen">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>Beanstalk — The Golden Hen</title>
 <style>
   html, body { margin: 0; height: 100%; overflow: hidden; background: #131820; font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; color: #ece8df; }
@@ -37,6 +45,7 @@
   #final h2 { font-size: 15px; color: #e6c46a; } #final li { margin: 2px 0; }
   #stick { position: fixed; left: 22px; bottom: 26px; width: 130px; height: 130px; border-radius: 50%; background: rgba(20,22,28,0.45); border: 2px solid rgba(230,196,106,0.55); touch-action: none; display: none; z-index: 20; }
   #knob { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: rgba(230,196,106,0.75); pointer-events: none; }
+  #installBtn { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); display: none; margin: 0; z-index: 30; background: #6b5a2a; border-color: #c9a84c; }
   #helpBtn { position: fixed; top: 12px; right: 12px; display: none; margin: 0; z-index: 30; }
   @media (pointer: coarse), (max-width: 760px) {
     html, body { touch-action: none; -webkit-user-select: none; user-select: none; }
@@ -100,6 +109,7 @@
 <div id="hint"></div>
 <div id="stick"><div id="knob"></div></div>
 <button id="helpBtn">?</button>
+<button id="installBtn">Install app</button>
 <div id="floats"></div>
 <div id="title" class="panel" style="display:none"><h1>The Golden Hen</h1>Gerda has gone out and left Jack in charge of her golden hen. Sweep, fill the dish, carry the water without spilling it, and win the hen's trust by approaching slowly. </div>
 <div id="dlg" class="panel"><div class="who" id="dlgWho"></div><div id="dlgText"></div><div id="dlgChoices"></div></div>
@@ -186,6 +196,12 @@
   addEventListener('keydown', function (e) { if (!started && /^(w|a|s|d|W|A|S|D|Arrow.*)$/.test(e.key)) { started = true; $('title').style.display = 'none'; } });
   var last = performance.now();
   (function loop(t) { var dt = Math.min(0.05, (t - last) / 1000); last = t; if (started || L.S.phase !== 'play') L.frame(dt); else L.frame(0.0001); requestAnimationFrame(loop); })(last);
+  // Installable web app: offline cache, and an Install button where the browser offers one.
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(function () {});
+  var deferred = null;
+  addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferred = e; $('installBtn').style.display = 'block'; });
+  $('installBtn').addEventListener('click', function () { if (!deferred) return; deferred.prompt(); deferred.userChoice.then(function () { deferred = null; $('installBtn').style.display = 'none'; }); });
+  addEventListener('appinstalled', function () { $('installBtn').style.display = 'none'; });
   window.__level = L;
 })();
 </script>

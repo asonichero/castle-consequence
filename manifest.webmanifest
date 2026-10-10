@@ -1,0 +1,17 @@
+{
+  "name": "Castle Consequence — The Golden Hen",
+  "short_name": "Golden Hen",
+  "description": "A blocky Jack and the Beanstalk game: look after Gerda's golden hen, and answer for how you left the room.",
+  "start_url": "level.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#131820",
+  "theme_color": "#131820",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
