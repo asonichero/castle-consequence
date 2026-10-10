@@ -14,7 +14,8 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const srgb = hex => new THREE.Color(hex).convertSRGBToLinear();
 
 // Where everything is. P is Jack's hip joint; PITCH tips him head-down so his upper body leans toward the floor.
-const P = new V3(-0.5, 10, 7), PITCH = -0.05;
+const LIFT = 4;                  // Jack's torso starts this far above his hip joint: the glutes block sits between (see makeGlutes)
+const P = new V3(-(LIFT + 6), 10, 3), PITCH = -0.05;   // hip joint: his torso's centre (LIFT + 6 up from it) is over the centre of her thighs (x 0, z 3)
 const LEAN = -0.3;             // Gerda sits back in the chair; her straight arm only reaches Jack's rear from there
 const REST = 0.88;             // how near the hand hovers to the rear between smacks (0 = raised, 1 = landed)
 const TIMES = { lift: 0.45, hold: 0.15, strike: 0.09, contact: 0.32, back: 0.3 };
@@ -22,8 +23,8 @@ const TIMES = { lift: 0.45, hold: 0.15, strike: 0.09, contact: 0.32, back: 0.3 }
 // the arm, its face toward Jack (she sits further back to reach with it). mark is the engine's weight toward the colour at the contact
 // site; dual lands on both cheeks at once. weight/sting live in the engine's PAIN.implement.
 const IMPL = {
-  hand:   { name: 'Hand',   mark: 1,     dual: false, lean: -0.3 },
-  paddle: { name: 'Paddle', mark: 8 / 3, dual: true,  lean: -0.58 },
+  hand:   { name: 'Hand',   mark: 1,     dual: false, lean: -0.35, reach: 11.9 },
+  paddle: { name: 'Paddle', mark: 8 / 3, dual: true,  lean: -0.5,  reach: 13.5 },
 };
 const BANDS = ['composed', 'flinching', 'struggling', 'close to the edge of resistance', 'past the edge of resistance: most receptive', 'too harsh'];
 
@@ -59,12 +60,12 @@ function create(view, opts) {
   const qz = new THREE.Quaternion().setFromAxisAngle(new V3(0, 0, 1), PITCH);
   frame.quaternion.copy(qz).multiply(qy).multiply(qx);
   B.setPose(gerda, 'sit'); Object.assign(gerda.state, B.POSES.sit);
-  Object.assign(jack.state, { hipY: 0, lift: 0 }); Object.assign(jack.target, { hipY: 0, lift: 0 });
+  Object.assign(jack.state, { hipY: 0, lift: LIFT }); Object.assign(jack.target, { hipY: 0, lift: LIFT });
   // The glutes block fills the gap at his hips where the legs fold forward from the torso; it takes the look of the trousers, drawers or bare skin.
-  const glutes = B.makeGlutes(); glutes.mesh.position.set(0, -1.6, -0.3); jack.hips.add(glutes.mesh);
+  const glutes = B.makeGlutes(); glutes.mesh.position.set(0, LIFT / 2 - 0.5, -0.3); glutes.mesh.scale.y = (LIFT + 1) / 4; jack.hips.add(glutes.mesh);
   // Where the hand lands: points on the back of Jack's hips (his left cheek is the nearer, world −z side), and the middle of his back.
   const mk = (x, y, z) => { const o = new THREE.Object3D(); o.position.set(x, y, z); jack.torso.add(o); return o; };
-  const rear = { L: mk(2, 1.2, -2), R: mk(-2, 1.2, -2), C: mk(0, 1.2, -2) }, upperBack = mk(0, 7, -2);
+  const rear = { L: mk(2, -2, -2.3), R: mk(-2, -2, -2.3), C: mk(0, -2, -2.3) }, upperBack = mk(0, 10, -2);
 
   // The paddle: a short handle out of the middle of the end of her right arm (as if in her fist) and a small blade, 6 long in all.
   const tool = new THREE.Group(); tool.position.y = -12; gerda.armR.add(tool);
@@ -149,7 +150,7 @@ function create(view, opts) {
   };
 
   gerda.after = function (g) {
-    g.torso.rotation.x = st.lean; g.neck.rotation.x = 0.55;
+    g.torso.rotation.order = 'YXZ'; g.torso.rotation.y = st.yaw || 0; g.torso.rotation.x = st.lean; g.neck.rotation.x = 0.55; g.neck.rotation.y = -(st.yaw || 0) * 0.9;
     g.root.updateMatrixWorld(true);
     // Left hand rests on Jack's back.
     const sL = world(g.armL), tL = world(upperBack);
@@ -179,19 +180,35 @@ function create(view, opts) {
     const k = J.kick, d = clamp(pain.distress(), 0, 1.5), w = Math.sin(J.t * 9) * 0.05 * Math.min(1, d) + Math.sin(J.t * 5.3) * 0.03 * Math.min(1, d);
     for (const key of ['legL', 'legR']) {
       const l = j[key], mine = (key === 'legL') === (J.kickSide === 'L') ? 1 : 0.45;
-      l.thigh.rotation.x = -1.2 + k * (0.9 * mine) + w * (key === 'legL' ? 1 : -1);
+      // Hanging off the edge of her lap: thighs down and out from the glutes block, knees bent back so the feet clear the floor.
+      l.thigh.rotation.x = -0.96 + k * (0.9 * mine) + w * (key === 'legL' ? 1 : -1);
       l.thigh.rotation.z = l.sign * (0.12 + 0.2 * k * mine);
-      l.knee.rotation.x = 0;
+      l.knee.rotation.x = 0.6 + 0.6 * k * mine + 0.5 * Math.max(0, w);
     }
     j.neck.rotation.x = -0.1 - 0.5 * k + 0.1 * Math.min(1, d) * Math.sin(J.t * 4);   // face toward the floor, lifting as he yelps
     j.neck.rotation.y = -0.75 + 0.15 * Math.sin(J.t * 3) * Math.min(1, d);              // turned toward the room
     for (const key of ['armL', 'armR']) {
       const a = j[key], sg = a.userData.sign;
-      a.rotation.x = -1.05 - 0.25 * k + Math.sin(J.t * 7 + (sg > 0 ? 0 : 1.7)) * 0.08 * Math.min(1, d);
-      a.rotation.z = -sg * (0.1 + 0.35 * k);
+      // Arms reach down past his head to the floor (his shoulders are only ten up, so they cannot hang straight).
+      a.rotation.x = -2.14 - 0.25 * k + Math.sin(J.t * 7 + (sg > 0 ? 0 : 1.7)) * 0.08 * Math.min(1, d);
+      a.rotation.z = sg * (0.12 + 0.1 * k);
     }
     j.torso.rotation.z = 0.06 * Math.min(1, d) * Math.sin(J.t * 6);
   };
+
+  // Her arm is one straight block, so to land on the cheek she turns her upper body (away from Jack, her right shoulder going back) until the
+  // shoulder is exactly the arm's reach from it; the paddle, with its blade, needs her further round.
+  const rEuler = new THREE.Euler(0, 0, 0, 'YXZ'), shoulderLocal = new V3(-4 - 1.5, 10, 0), torsoAt = new V3(0, 4, 0), tmpS = new V3();
+  function solveYaw(dt) {
+    const impl = IMPL[st.implement], sw = st.swing;
+    const side = sw ? sw.side : (impl.dual ? 'C' : st.side === 'alt' ? st.nextSide : st.side);
+    const T = world(rear[side]); if (impl.dual) T.y += 0.55;
+    const dist = yaw => { rEuler.set(st.lean, yaw, 0); return tmpS.copy(shoulderLocal).applyEuler(rEuler).add(torsoAt).distanceTo(T); };
+    let lo = -1.3, hi = 0.4;                         // distance falls as yaw rises
+    for (let i = 0; i < 14; i++) { const mid = (lo + hi) / 2; if (dist(mid) > impl.reach) lo = mid; else hi = mid; }
+    const target = (lo + hi) / 2;
+    st.yaw = st.yaw == null ? target : st.yaw + (target - st.yaw) * Math.min(1, dt * 8);
+  }
 
   // ── Frame loop ──────────────────────────────────────────────────────────────────────────────────────────────────────────
   function repaint() {
@@ -212,16 +229,17 @@ function create(view, opts) {
     if (exprFor() !== st.expr) dirty = true;
     repaintAt -= dt; if (dirty && repaintAt <= 0) { repaint(); repaintAt = 0.12; }
     frame.position.set(P.x, P.y + 0.7 * J.kick, P.z);
-    B.step(jack, dt); scene.updateMatrixWorld(true); B.step(gerda, dt);
+    B.step(jack, dt); scene.updateMatrixWorld(true);
+    solveYaw(dt); B.step(gerda, dt);
     controls.update(); renderer.render(scene, camera);
   }
 
   // ── Cameras ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
   const VIEWS = {
-    overview: { pos: [-40, 56, 50], at: [0, 10, 6] },        // three-quarter, from in front of Gerda's right
-    behind: { pos: [-34, 58, 10], at: [-1, 10, 7] },         // down on Jack's rear, from his feet
-    shoulder: { pos: [-18, 46, -22], at: [-1, 8, 9] },       // over Gerda's right shoulder: the giver's own view
-    face: { pos: [20, 5, 34], at: [11, 5, 6] },             // Jack's face, from the floor side
+    overview: { pos: [-44, 56, 50], at: [-3, 10, 4] },       // three-quarter, from in front of Gerda's right
+    behind: { pos: [-38, 58, 12], at: [-8, 10, 4] },         // down on Jack's rear, from his feet
+    shoulder: { pos: [-22, 46, -22], at: [-6, 8, 6] },       // over Gerda's right shoulder: the giver's own view
+    face: { pos: [22, 6, 30], at: [6, 5, 3] },               // Jack's face, from the floor side
   };
   function view_(name) { const v = VIEWS[name]; camera.position.set(...v.pos); controls.target.set(...v.at); }
   view_('overview');

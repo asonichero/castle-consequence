@@ -196,8 +196,9 @@ function paintGlutesInto(g, st) {
   if (what === 'trousers') { g.fill('glutes', 'back', '#8b7048', 0, 1, 2, 2); g.px('glutes', 'back', 0, 1, '#4a3820'); }
   g.grain(5031, 5);
   if (what === 'skin') {
-    markRect(g, 'glutes', 'back', 0, 0, 4, 4, 'L', st.marks); markRect(g, 'glutes', 'back', 4, 0, 4, 4, 'R', st.marks);
-    markRect(g, 'glutes', 'bottom', 0, 0, 4, 4, 'L', st.marks); markRect(g, 'glutes', 'bottom', 4, 0, 4, 4, 'R', st.marks);
+    // Every side of the block takes the colour: the back, front, bottom and top by cheek (left half, right half), the ends each their own cheek.
+    for (const f of ['back', 'front', 'bottom', 'top']) { markRect(g, 'glutes', f, 0, 0, 4, f === 'back' || f === 'front' ? 4 : 4, 'L', st.marks); markRect(g, 'glutes', f, 4, 0, 4, 4, 'R', st.marks); }
+    markRect(g, 'glutes', 'left', 0, 0, 4, 4, 'L', st.marks); markRect(g, 'glutes', 'right', 0, 0, 4, 4, 'R', st.marks);
   }
   return g;
 }
