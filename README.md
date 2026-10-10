@@ -198,7 +198,7 @@ Jack has **Outdoor** (linen shirt, green jerkin, patched trousers, boots), **Day
 
 ### Test level: the golden hen (`level.html`, `js/level.js`)
 
-Gerda has gone out and left Jack (Day clothes, starting at **75%** of his size) looking after her golden hen. He must **sweep the floor** (take the broom, hold Space over the dirt), **fill the hen's dish** (grain from the sack), **carry water to the trough without spilling it** (bucket from the well; hold Shift to creep, or it slops), and **win the hen's trust** by approaching slowly and keeping still near her (move fast near her and she backs away). WASD or the arrows walk, Shift creeps, E takes and uses, Q puts down, C claps.
+Gerda has gone out and left Jack (Day clothes, starting at **80%** of his size) looking after her golden hen. He must **sweep the floor** (take the broom, hold Space over the dirt), **fill the hen's dish** (grain from the sack), **carry water to the trough without spilling it** (bucket from the well; hold Shift to creep, or it slops), and **win the hen's trust** by approaching slowly and keeping still near her (move fast near her and she backs away). WASD or the arrows walk, Shift creeps, R runs, E takes, uses and sits, Q drops what he holds in place, C claps, G calls Gerda back early, and dragging the mouse looks around Jack (the camera keeps a fixed distance in Jack's own sizes, so the room seems to grow as he shrinks). The room is square, with packed-earth floor, built at Gerda's size; the hen is half size and starts at 50% trust, and only reacts to Jack's pace within about 28 units of her. Muddy footprints (Jack's or the hen's) can be swept like dirt. A chair stands against the north wall: Jack sits patiently at 95%, and kicks his feet more and more as he shrinks towards 50%. The correction happens in the middle of the room exactly as he left it, with the hen settled in her nest.
 
 His size never goes below **50%**. What makes him shrink (percentage points of his full size):
 
@@ -210,5 +210,6 @@ His size never goes below **50%**. What makes him shrink (percentage points of h
 | Startling the hen (moving too fast near her, at most once every 4 s) | 1% |
 | Each chore still undone when Gerda comes back | 2% |
 | Not finished when the 4-minute clock runs out | 2% |
+| The broom or bucket left lying about instead of put back (each) | 1% |
 
 When the chores are done (or time is up) Gerda (Work clothes) walks in and asks how it went: Jack can tell her exactly what happened, or say it all went perfectly (which is only a lie if it didn't, and then costs 5%). A scripted correction follows across her lap (`js/lap.js`), run with Jack at the size he ends at (a smaller Jack feels the same hand a little more). Its severity comes from how he really did (undone chores 2 each, spills 1.5, startles 0.5, claps 1, running late 1) and then whether he lied: Token, Light, Firm (shorts come down part-way), Severe (hand, then the paddle, bare for the last of it); a lie lifts it one tier. "Red" stops it on the spot.

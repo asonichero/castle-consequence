@@ -50,19 +50,22 @@
   <div class="chore" id="cWater"><span>Carry water to her trough</span><span id="cWaterV"></span></div>
   <div class="chore" id="cTrust"><span>Win her trust</span><span id="cTrustV">0%</span></div>
   <div class="bar"><i id="trustBar"></i></div>
+  <div id="prints" style="color:#b5b7c2"></div>
   <div id="carry" style="color:#b5b7c2"></div>
   <div id="pace" style="color:#b5b7c2"></div>
 </div>
 <div id="help" class="panel">
-  <b>WASD / arrows</b> walk &nbsp; <b>Shift</b> creep (slow)<br>
-  <b>E</b> take / use &nbsp; <b>Space</b> (hold) sweep<br>
-  <b>Q</b> put down &nbsp; <b>C</b> clap to shoo the hen<br>
+  <b>WASD / arrows</b> walk &nbsp; <b>Shift</b> creep &nbsp; <b>R</b> run<br>
+  <b>E</b> take / use / sit on the chair &nbsp; <b>Space</b> (hold) sweep<br>
+  <b>Q</b> drop in place &nbsp; <b>C</b> clap to shoo the hen<br>
+  <b>Drag mouse</b> look around &nbsp; <b>G</b> call Gerda back early<br>
+  Return the broom and bucket to their places, or leave them lying about at a small cost.<br>
   <span class="warn">Moving fast near the hen scares her; moving fast with water slops it. Clapping, spilling, startling, lying and undone chores all shrink you.</span>
 </div>
 <div id="feed" class="panel"></div>
 <div id="hint"></div>
 <div id="floats"></div>
-<div id="title" class="panel"><h1>The Golden Hen</h1>Gerda has gone out and left Jack in charge of her golden hen. Sweep, fill the dish, carry the water without spilling it, and win the hen's trust by approaching slowly. Press any movement key to begin.</div>
+<div id="title" class="panel"><h1>The Golden Hen</h1>Gerda has gone out and left Jack in charge of her golden hen. Sweep, fill the dish, carry the water without spilling it, and win the hen's trust by approaching slowly. Drag the mouse to look around. Press any movement key to begin.</div>
 <div id="dlg" class="panel"><div class="who" id="dlgWho"></div><div id="dlgText"></div><div id="dlgChoices"></div></div>
 
 <div id="disc">
@@ -101,8 +104,9 @@
       $('cSweepV').textContent = x.patches + '/' + x.patchTotal;
       $('cWaterV').textContent = S.counts.spills ? 'spilled ×' + S.counts.spills : '';
       $('cTrustV').textContent = Math.round(S.hen.trust) + '%'; $('trustBar').style.width = S.hen.trust + '%';
+      $('prints').textContent = x.prints ? 'Muddy footprints: ' + x.prints : '';
       $('carry').textContent = S.holding === 'bucket' ? 'Carrying: water (' + Math.round(S.water) + '%)' : S.holding ? 'Carrying: ' + S.holding : 'Hands empty';
-      var fast = S.speedN > 9; $('pace').innerHTML = S.phase !== 'play' ? '' : S.speedN < 0.5 ? 'Still' : fast ? '<span class="warn">Too fast! (hold Shift)</span>' : S.creeping ? 'Creeping' : 'Walking';
+      var fast = S.speedN > 13; $('pace').innerHTML = S.phase !== 'play' ? '' : S.speedN < 0.5 ? 'Still' : fast ? '<span class="warn">Too fast! (hold Shift)</span>' : S.creeping ? 'Creeping' : 'Walking';
       var h = $('hint'); h.style.display = S.hint && S.phase === 'play' ? 'block' : 'none'; h.textContent = S.hint;
       $('help').style.display = S.phase === 'play' ? 'block' : 'none'; $('hud').style.display = S.phase === 'play' ? 'block' : 'none';
     },

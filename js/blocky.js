@@ -258,7 +258,7 @@ function paintGlutesInto(g, st) {
   if (what === 'skin') {
     // Every side of the block takes the colour: the back, front, bottom and top by cheek (left half, right half), the ends each their own cheek.
     for (const f of ['back', 'front', 'bottom', 'top']) { markRect(g, 'glutes', f, 0, 0, 4, f === 'back' || f === 'front' ? 4 : 4, 'L', st.marks); markRect(g, 'glutes', f, 4, 0, 4, 4, 'R', st.marks); }
-    markRect(g, 'glutes', 'left', 0, 0, 4, 4, 'L', st.marks); markRect(g, 'glutes', 'right', 0, 0, 4, 4, 'R', st.marks);
+    markRect(g, 'glutes', 'left', 0, 0, 4, 2, 'L', st.marks); markRect(g, 'glutes', 'right', 0, 0, 4, 2, 'R', st.marks);
   }
   return g;
 }

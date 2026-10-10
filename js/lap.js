@@ -141,7 +141,7 @@ function create(view, opts) {
   function impact(sw) {
     const impl = IMPL[st.implement], tender = (st.marks.L + st.marks.R) / 2;
     const hit = pain.hit({ implement: st.implement, strength: st.strength, speed: st.pace, raised: sw.waited, tender, cushion: cushion() });
-    const gain = 0.075 * impl.mark * st.strength;
+    const gain = 0.0375 * impl.mark * st.strength;
     for (const c of sw.side === 'C' ? ['L', 'R'] : [sw.side]) st.marks[c] = 1 - (1 - st.marks[c]) * (1 - gain);
     st.hits++; st.peak = Math.max(st.peak, pain.distress()); st.last = hit;
     J.kick = Math.max(J.kick, hit.reaction); J.kickSide = sw.side === 'C' ? (Math.random() < 0.5 ? 'L' : 'R') : sw.side;
@@ -579,7 +579,7 @@ function create(view, opts) {
   };
   const api = {
     editor,
-    scene, camera, controls, renderer, gerda, jack, pain, st, IMPL, BANDS, J,
+    scene, floor, camera, controls, renderer, gerda, jack, pain, st, IMPL, BANDS, J,
     on: f => events.push(f),
     update, view: view_, smack,
     // A run: the first smack lifts from rest, each next one comes straight up from contact to raised, and the last one returns to rest.
