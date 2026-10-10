@@ -238,8 +238,9 @@ function markRect(k, part, face, x, y, w, h, cheek, marks) {
   const r = faceRect(k.A[part], face);
   for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
     const hsh = (((x + i) * 73856093) ^ ((y + j) * 19349663) ^ (cheek === 'L' ? 83492791 : 0)) >>> 0, jit = 0.6 + 0.8 * ((hsh % 1000) / 1000);
-    k.ctx.fillStyle = `rgba(186,48,44,${Math.min(0.85, 0.7 * m * jit)})`;
-    k.ctx.fillRect(r.x + x + i, r.y + y + j, 1, 1);
+    // Pale pink comes up quickly (it follows the square root of the mark), the deep red slowly (the square), so it takes longer to reach a dark red.
+    k.ctx.fillStyle = `rgba(226,112,104,${Math.min(0.5, 0.5 * Math.sqrt(m) * jit)})`; k.ctx.fillRect(r.x + x + i, r.y + y + j, 1, 1);
+    k.ctx.fillStyle = `rgba(150,26,30,${Math.min(0.75, 0.75 * m * m * jit)})`; k.ctx.fillRect(r.x + x + i, r.y + y + j, 1, 1);
   }
 }
 // The glutes: a block that fills the gap at the hips when the legs fold forward in the lap pose. Its own small skin (24x8, the layout of an
@@ -258,7 +259,7 @@ function paintGlutesInto(g, st) {
   if (what === 'skin') {
     // Every side of the block takes the colour: the back, front, bottom and top by cheek (left half, right half), the ends each their own cheek.
     for (const f of ['back', 'front', 'bottom', 'top']) { markRect(g, 'glutes', f, 0, 0, 4, f === 'back' || f === 'front' ? 4 : 4, 'L', st.marks); markRect(g, 'glutes', f, 4, 0, 4, 4, 'R', st.marks); }
-    markRect(g, 'glutes', 'left', 0, 0, 4, 2, 'L', st.marks); markRect(g, 'glutes', 'right', 0, 0, 4, 2, 'R', st.marks);
+    markRect(g, 'glutes', 'left', 3, 0, 1, 4, 'L', st.marks); markRect(g, 'glutes', 'right', 0, 0, 1, 4, 'R', st.marks);   // only the edge that meets the back face
   }
   return g;
 }

@@ -78,9 +78,10 @@ function makeHen() {
 
 // A simple walking rig: legs and arms swing from rig.walk = { sw, arm, carry, clap }.
 function rigWalk(rig) {
-  rig.walk = { sw: 0, arm: 0, carry: 0, clap: 0, sit: false, kick: 0, t: 0 };
+  rig.walk = { sw: 0, arm: 0, carry: 0, clap: 0, ruffle: false, sit: false, kick: 0, t: 0 };
   rig.after = r => {
     const w = r.walk;
+    if (w.ruffle) { r.armR.rotation.x = -1.75; r.armR.rotation.z = 0.15 + 0.2 * Math.sin(w.t * 16); return; }   // a hand on his head, ruffling
     if (w.sit) {                                   // seated: legs hang from the seat; a restless Jack swings his shins
       r.legL.knee.rotation.x = r.state.shinX + w.kick * 0.7 * Math.sin(w.t * 7); r.legR.knee.rotation.x = r.state.shinX + w.kick * 0.7 * Math.sin(w.t * 7 + Math.PI);
       r.legL.thigh.rotation.x = r.state.thighX + w.kick * 0.08 * Math.sin(w.t * 7); r.legR.thigh.rotation.x = r.state.thighX - w.kick * 0.08 * Math.sin(w.t * 7);
@@ -483,6 +484,12 @@ function create(els, ui) {
       if (d.length() > 2) { gerdaG.position.addScaledVector(d.normalize(), Math.min(d.length(), 22 * dt)); gerda.root.rotation.y = turn(gerda.root.rotation.y, Math.atan2(d.x, d.z), 0.3); gerda.walk.sw = Math.sin(S.t * 8) * 0.5; gerda.walk.arm = Math.sin(S.t * 8) * 0.4; }
       else { gerdaAt = 'here'; gerda.walk.sw = 0; gerda.walk.arm = 0; S.heading = Math.atan2(gerdaG.position.x - S.pos.x, gerdaG.position.z - S.pos.z); gerda.root.rotation.y = Math.atan2(S.pos.x - gerdaG.position.x, S.pos.z - gerdaG.position.z); askHowItWent(); }
     }
+    if (gerdaAt === 'praise') {                                                          // she steps up beside him and ruffles his hair
+      const t2 = new V3(S.pos.x - 9, 0, S.pos.z), d = t2.clone().sub(gerdaG.position); d.y = 0;
+      if (d.length() > 1) { gerdaG.position.addScaledVector(d.normalize(), Math.min(d.length(), 18 * dt)); gerda.walk.sw = Math.sin(S.t * 8) * 0.4; }
+      else { gerda.walk.sw = 0; gerda.walk.ruffle = true; }
+      gerda.walk.t += dt; gerda.root.rotation.y = turn(gerda.root.rotation.y, Math.atan2(S.pos.x - gerdaG.position.x, S.pos.z - gerdaG.position.z), 0.3);
+    }
     updateHen(dt); poseJack(dt); B.step(gerda, dt);
   }
   const reasons = () => {
@@ -514,19 +521,36 @@ function create(els, ui) {
     else text = real ? '“It all went perfectly,” you say, and for once it is simply true. Gerda smiles, a little disappointed to find nothing to scold.'
       : `“It all went perfectly,” you say. Gerda looks at the dish, the floor, the hen, and then at you. “Does it? You ${list(reasons())}. And now you have lied to me about it as well.”`;
     const plan = buildPlan();
-    ui.dialog({ who: 'Gerda', text: text + ' ' + plan.verdict, choices: [{ label: 'Go with her…', fn: () => startDiscipline(plan) }] });
+    if (plan.tier === 0 && !S.lie) {                                                    // everything done and nothing wrong: no correction at all
+      S.phase = 'praise'; gerdaAt = 'praise';
+      ui.dialog({ who: 'Gerda', text: text + ' She steps close and ruffles his hair. “Good boy.”', choices: [{ label: 'Smile', fn: finishPraise }] });
+      return;
+    }
+    // The lecture happens here, before the correction loads (so she never tells him to get over her knee when he already is), then a fade to black.
+    const lines = [text + ' ' + plan.verdict];
+    lines.push(plan.reasons.length ? `“You ${list(plan.reasons)}.”` : '“You did everything I asked.”');
+    if (plan.lie) lines.push('“And you told me it was perfect. That is the part that earns the extra.”');
+    lines.push(plan.tier === 0 ? '“Across my lap, for luck.”' : '“Over my knee. Now.”');
+    const go = () => { ui.fade && ui.fade(true); setTimeout(() => { startDiscipline(plan); ui.fade && ui.fade(false); }, 1000); };
+    const next = i => ui.dialog({ who: 'Gerda', text: lines[i], choices: [i < lines.length - 1 ? { label: 'Listen…', fn: () => next(i + 1) } : { label: 'Go with her…', fn: go }] });
+    next(0);
+  }
+
+  function finishPraise() {
+    gerda.walk.ruffle = false; S.phase = 'done';
+    ui.finish({ red: false, praise: true, plan: { name: 'None' }, info: null, size: S.size, log: S.shrunk, counts: S.counts, lie: false, hits: 0 });
   }
 
   // ── Severity ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   // How Jack really did, plus whether he lied: demerits, then a tier (0 token … 3 severe); a lie lifts it a tier.
   function demerits() { const c = S.counts; return c.unfinished * 2 + c.spills * 1.5 + c.startles * 0.5 + c.claps * 1 + c.dawdle * 1 + c.litter * 0.5 + (c.tracked >= 6 ? 1 : 0); }
   function buildPlan() {
-    const d = demerits(); let tier = d < 0.5 ? 0 : d < 4 ? 1 : d < 8 ? 2 : 3; if (S.lie) tier = Math.min(3, tier + 1);
+    const d = demerits(); let tier = d < 0.01 ? 0 : d < 1.5 ? 1 : d < 4 ? 2 : 3; if (S.lie) tier = Math.min(3, tier + 1);   // (a spotless job is praised, not corrected; anything at all earns at least a light one)
     const TIERS = [
       { name: 'Token', hand: 6, paddle: 0, strength: 0.7, pace: 1.0, verdict: 'No complaints really — “a few for luck, then.”' },
-      { name: 'Light', hand: 14, paddle: 0, strength: 0.85, pace: 1.1, verdict: '“A light correction, I think.”' },
-      { name: 'Firm', hand: 26, paddle: 0, strength: 1.0, pace: 1.2, verdict: '“A firm one. Come along.”' },
-      { name: 'Severe', hand: 16, paddle: 16, strength: 1.1, pace: 1.3, verdict: '“I think the paddle, this time.”' },
+      { name: 'Light', hand: 16, paddle: 0, strength: 0.85, pace: 1.1, verdict: '“A light correction, I think.”' },
+      { name: 'Firm', hand: 30, paddle: 0, strength: 1.0, pace: 1.2, verdict: '“A firm one. Come along.”' },
+      { name: 'Severe', hand: 20, paddle: 20, strength: 1.1, pace: 1.3, verdict: '“I think the paddle, this time.”' },
     ];
     return Object.assign({ tier, demerits: d, reasons: reasons(), lie: S.lie }, TIERS[tier]);
   }
@@ -557,11 +581,7 @@ function create(els, ui) {
   const sayStep = (who, text, ms) => ({ say: [who, text], wait: ms || 2600 });
   function scriptFor(p) {
     const r = p.reasons, st = [];
-    const why = r.length ? `You ${list(r)}.` : 'You did everything I asked.';
-    st.push(sayStep('Gerda', p.tier === 0 ? `${why} I have no real complaint.` : why, 3200));
-    if (p.lie) st.push(sayStep('Gerda', 'And you told me it was perfect. That is the part that earns the extra.', 3400));
-    st.push(sayStep('Gerda', p.tier === 0 ? 'Still. Across my lap, for luck.' : 'Over my knee. Now.', 2400));
-    st.push({ do: () => lap.view('overview'), wait: 500 });
+    st.push({ do: () => lap.view('overview'), wait: 900 });
     const chunk = (n, line, jackLine) => { if (!n) return; st.push({ run: n }); if (line) st.push(sayStep('Gerda', line, 2200)); if (jackLine) st.push(sayStep('Jack', jackLine, 1800)); };
     if (p.tier === 0) { chunk(p.hand, 'There. Off you go.'); }
     else if (p.tier === 1) { chunk(Math.ceil(p.hand / 2), 'Hold still.', 'Ow — I am sorry!'); chunk(Math.floor(p.hand / 2), 'That will do.'); }
@@ -604,7 +624,7 @@ function create(els, ui) {
   function frame(dt) {
     if (S.phase === 'discipline') { updateDiscipline(dt); return; }
     if (S.phase === 'play') { updatePlay(dt); poseJack(dt); }
-    else if (S.phase === 'return' || S.phase === 'ask') updateReturn(dt);
+    else if (S.phase === 'return' || S.phase === 'ask' || S.phase === 'praise' || S.phase === 'done') updateReturn(dt);
     floatTexts(dt);
     // Camera: locked at a fixed distance *in Jack's own sizes* (so as he shrinks the room seems to grow), looking where the mouse points. During the
     // talk it takes in Gerda as well.

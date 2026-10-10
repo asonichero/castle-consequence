@@ -32,6 +32,7 @@
   #speech { left: 50%; bottom: 28px; transform: translateX(-50%); width: min(620px, 92vw); font-size: 15px; min-height: 46px; }
   #speech .who { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #c9a84c; margin-bottom: 4px; }
   #discTools { top: 12px; left: 12px; }
+  #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 0.9s ease; z-index: 50; }
   #final { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(560px, 92vw); display: none; font-size: 14px; }
   #final h2 { font-size: 15px; color: #e6c46a; } #final li { margin: 2px 0; }
   #title { left: 50%; top: 18%; transform: translateX(-50%); text-align: center; width: min(560px, 92vw); font-size: 14px; }
@@ -80,6 +81,7 @@
     <button data-v="overview">Overview</button><button data-v="behind">Behind</button><button data-v="shoulder">Over her shoulder</button><button data-v="face">Face</button><br><button class="red" id="redBtn">Red</button></div>
   <div id="speech" class="panel"><div class="who" id="spWho"></div><div id="spText"></div></div>
 </div>
+<div id="fade"></div>
 <div id="final" class="panel"></div>
 
 <script src="vendor/three.min.js"></script>
@@ -94,6 +96,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var started = false, floatEls = [];
   var ui = {
+    fade: function (on) { $('fade').style.opacity = on ? 1 : 0; },
     log: function (log) { $('feed').innerHTML = log.map(function (l) { return '<div class="' + l.cls + '">' + l.text + '</div>'; }).join(''); },
     floats: function (floats, camera, pos, scale) {
       while (floatEls.length < floats.length) { var d = document.createElement('div'); $('floats').appendChild(d); floatEls.push(d); }
@@ -126,6 +129,11 @@
     say: function (who, text) { $('spWho').textContent = who; $('spText').textContent = text; },
     meter: function (i) { $('discBar').style.width = Math.min(100, i.distress / 1.5 * 100) + '%'; $('discBand').textContent = 'Distress ' + i.distress.toFixed(2) + ' — ' + i.band; },
     finish: function (r) {
+      if (r.praise) {
+        var pl = r.log.map(function (x) { return '<li>' + x.why + ': −' + Math.round(x.amount * 100) + '%</li>'; }).join('') || '<li>No shrinking at all.</li>';
+        $('final').style.display = 'block'; $('final').innerHTML = '<h2>The golden hen: done</h2><p>Everything done, nothing wrong, and not a word of a lie. Gerda ruffles his hair and calls him a good boy. No correction at all. Jack ends at <b>' + Math.round(r.size * 100) + '%</b>.</p><div>What cost him size:</div><ul>' + pl + '</ul><button onclick="location.reload()">Play again</button>';
+        $('dlg').style.display = 'none'; return;
+      }
       var lines = r.log.map(function (s) { return '<li>' + s.why + ': −' + Math.round(s.amount * 100) + '%</li>'; }).join('') || '<li>No shrinking at all.</li>';
       $('final').style.display = 'block'; $('disc').style.display = 'block';
       $('final').innerHTML = '<h2>' + (r.red ? 'Red — stopped at once' : 'The golden hen: done') + '</h2>' +
