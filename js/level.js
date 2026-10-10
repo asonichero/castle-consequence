@@ -109,6 +109,8 @@ function create(els, ui) {
   const room = new THREE.Group(); room.scale.setScalar(K); scene.add(room);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(2 * R_, 2 * R_), new THREE.MeshLambertMaterial({ map: earthTexture([14, 14]) })); floor.rotation.x = -Math.PI / 2; room.add(floor);   // packed earth
   const wallMat = new THREE.MeshLambertMaterial({ map: plankTexture('#6e5a46', '#55442f', [8, 3]) });
+  const attached = [];                                                                               // things fixed to a wall go with it
+  const mark = (side, from) => { const g = new THREE.Group(); room.children.slice(from).forEach(k => g.add(k)); room.add(g); attached.push({ g, side }); };
   const walls = [];                                                                                  // (each tagged with its side, so a wall the camera has gone through can be left out)
   const wall = (w, h, d, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat); m.position.set(x, y, z); room.add(m); walls.push({ m, side: Math.abs(x) > Math.abs(z) ? (x < 0 ? 'w' : 'e') : (z < 0 ? 'n' : 's') }); return m; };
   const WH = 42, W = R_ + 1;                                                                        // wall height (design units): over a head taller than Gerda
@@ -117,13 +119,15 @@ function create(els, ui) {
   wall(2 * W, WH, 2, 0, WH / 2, W);                                                                   // south wall
   wall(2, WH, 2 * half, -W, WH / 2, -9 - half); wall(2, WH, 2 * half, -W, WH / 2, 9 + half); wall(2, WH - 30, 18, -W, 30 + (WH - 30) / 2, 0);   // west wall, with the door
   wall(2, WH, 2 * W, W, WH / 2, 0);                                                                   // east wall
+  const nDoor = room.children.length;
   box(2.6, 30, 2.6, -W, 15, -9, 0x4a3a2a, room); box(2.6, 30, 2.6, -W, 15, 9, 0x4a3a2a, room);
   box(0.4, 30, 16, -W + 0.8, 15, 0, 0xf6e6b0, room);                                                 // the doorway's light
+  mark('w', nDoor);
   box(20, 1, 14, D.nest[0], 0.5, D.nest[1], 0xc9a54a, room); box(20, 4, 1, D.nest[0], 2, D.nest[1] - 6.5, 0x7a5a38, room); box(1, 4, 14, D.nest[0] - 10.5, 2, D.nest[1], 0x7a5a38, room);   // the hen's nest
 
   // A high window in the east wall, its shutter half-latched (one leaf ajar, the other held by a latch), nearly hidden behind a tower of stacked crates and
   // shelves that someone has built up against the wall beneath it.
-  { const wx = R_ - 0.6, wz = -14, wy = 33;
+  { const nWin = room.children.length; const wx = R_ - 0.6, wz = -14, wy = 33;
     box(1.4, 11, 11, wx, wy, wz, 0x4a3a2a, room);                                                       // the frame
     const glass = new THREE.Mesh(new THREE.BoxGeometry(0.3, 8.4, 8.4), new THREE.MeshBasicMaterial({ color: srgb(0xcfe6f6) })); glass.position.set(wx - 0.6, wy, wz); room.add(glass);
     box(0.5, 0.5, 8.4, wx - 0.9, wy, wz, 0x5a4430, room); box(0.5, 8.4, 0.5, wx - 0.9, wy, wz, 0x5a4430, room);   // the mullions
@@ -138,10 +142,11 @@ function create(els, ui) {
     for (const dz of [4.2, 14.8]) box(0.9, 38, 0.9, R_ - 3.4 - 2.2, 19, wz + dz, 0x5a3e26, tow);
     for (const [y, dz, c] of [[10.4, 7, 0xb89a60], [19.4, 11, 0x9a8a70], [28.4, 8, 0xc9a54a], [37.4, 12, 0x7a6a50]]) box(2.6, 2.4, 2.6, R_ - 3.4, y, wz + dz, c, tow);   // things on the shelves
     box(5.6, 0.8, 8, R_ - 3.4, 32, wz - 10, 0x6a4a30, tow); box(2.4, 3, 2.4, R_ - 3.4, 34, wz - 10, 0x8a8a90, tow);   // and a plank across the north side
+    mark('e', nWin);
   }
   // Props (design units, so everything is Gerda-sized once the room is scaled).
   const props = {};
-  props.rack = new THREE.Group(); props.rack.position.set(D.rack[0], 0, D.rack[1] - 6); room.add(props.rack);
+  props.rack = new THREE.Group(); props.rack.position.set(D.rack[0], 0, D.rack[1] - 6); room.add(props.rack); attached.push({ g: props.rack, side: 'n' });
   box(14, 2, 1, 0, 24, -0.5, 0x5a4430, props.rack); box(1, 3, 2, -4, 22, 0.4, 0x5a4430, props.rack); box(1, 3, 2, 4, 22, 0.4, 0x5a4430, props.rack);
   props.broom = new THREE.Group(); box(0.9, 18, 0.9, 0, 9, 0, 0x8a6a40, props.broom); box(3.4, 5, 2.2, 0, 2.5, 0, 0xc9b06a, props.broom); box(3, 1, 2, 0, 5.4, 0, 0x6a5030, props.broom);
   props.rack.add(props.broom); props.broom.position.set(0, 4, 1.6); props.broom.rotation.x = -0.12;            // hung on the rack
@@ -240,6 +245,7 @@ function create(els, ui) {
   renderer.domElement.addEventListener('pointermove', e => {
     const d = drags.get(e.pointerId); if (!d) return;
     if (!LOCK_CAM) { S.camOverride = true; S.cam.yaw -= (e.clientX - d.x) * 0.006; }
+    else if (S.phase === 'play' && !S.sitting) S.heading -= (e.clientX - d.x) * 0.006;                       // dragging sideways turns him (and so the camera): an alternative to A/D
      S.cam.pitch = clamp(S.cam.pitch + (e.clientY - d.y) * 0.005, 0.06, 1.4); d.x = e.clientX; d.y = e.clientY;
   });
   const endDrag = e => { drags.delete(e.pointerId); };
@@ -727,7 +733,9 @@ function create(els, ui) {
   // A wall the camera has passed through is not drawn, so the scene stays visible from outside.
   function cullWalls(cam) {
     const lim = R_ * K, p = cam.position;
-    for (const w of walls) w.m.visible = !(w.side === 'n' ? p.z < -lim : w.side === 's' ? p.z > lim : w.side === 'w' ? p.x < -lim : p.x > lim);
+    const past = side => side === 'n' ? p.z < -lim : side === 's' ? p.z > lim : side === 'w' ? p.x < -lim : p.x > lim;
+    for (const w of walls) w.m.visible = !past(w.side);
+    for (const a of attached) a.g.visible = !past(a.side);
   }
 
   // ── The opening: Jack stands facing Gerda in the doorway, who tells him (and the player) what she expects, then goes out ──────────────────────────────
