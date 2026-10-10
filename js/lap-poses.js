@@ -7,7 +7,23 @@
 (function (root) {
 'use strict';
 root.LapPoses = {
-  gerda: { rest: {}, raised: {}, contact: {} },
-  jack: { base: {}, react: {} },
+  gerda: {
+    rest: {
+      torso: { r: [41, 0, 0], p: [0, 0, -2] },
+      armL: { r: [-11, 0, 0] },
+    },
+    raised: {
+      torso: { r: [41, 0, 0], p: [0, 0, -2] },
+      armL: { r: [-11, 0, 0] },
+    },
+    contact: {
+      torso: { r: [41, 0, 0], p: [0, 0, -2] },
+      armL: { r: [-11, 0, 0] },
+    },
+  },
+  jack: {
+    base: {},
+    react: {},
+  },
 };
 })(typeof window !== 'undefined' ? window : globalThis);
