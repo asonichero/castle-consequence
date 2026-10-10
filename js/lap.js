@@ -14,8 +14,7 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const srgb = hex => new THREE.Color(hex).convertSRGBToLinear();
 
 // Where everything is. P is Jack's hip joint; PITCH tips him head-down so his upper body leans toward the floor.
-const LIFT = 4;                  // Jack's torso starts this far above his hip joint: the glutes block sits between (see makeGlutes)
-const P = new V3(-(LIFT + 6), 10, 3), PITCH = -0.05;   // hip joint: his torso's centre (LIFT + 6 up from it) is over the centre of her thighs (x 0, z 3)
+const P = new V3(-6, 10, 3), PITCH = -0.05;   // hip joint: his torso's centre (6 up from it) is over the centre of her thighs (x 0, z 3)
 const LEAN = -0.3;             // Gerda sits back in the chair; her straight arm only reaches Jack's rear from there
 const REST = 0.88;             // how near the hand hovers to the rear between smacks (0 = raised, 1 = landed)
 const TIMES = { lift: 0.45, hold: 0.15, strike: 0.09, contact: 0.32, back: 0.3 };
@@ -60,12 +59,14 @@ function create(view, opts) {
   const qz = new THREE.Quaternion().setFromAxisAngle(new V3(0, 0, 1), PITCH);
   frame.quaternion.copy(qz).multiply(qy).multiply(qx);
   B.setPose(gerda, 'sit'); Object.assign(gerda.state, B.POSES.sit);
-  Object.assign(jack.state, { hipY: 0, lift: LIFT }); Object.assign(jack.target, { hipY: 0, lift: LIFT });
-  // The glutes block fills the gap at his hips where the legs fold forward from the torso; it takes the look of the trousers, drawers or bare skin.
-  const glutes = B.makeGlutes(); glutes.mesh.position.set(0, LIFT / 2 - 0.5, -0.3); glutes.mesh.scale.y = (LIFT + 1) / 4; jack.hips.add(glutes.mesh);
+  Object.assign(jack.state, { hipY: 0, lift: 0 }); Object.assign(jack.target, { hipY: 0, lift: 0 });
+  // The glutes block sits over his lower torso and the tops of his thighs, tipped part-way between the angle of his back and that of his thighs
+  // (which fold forward at the hip) to bridge the two; it takes the look of the trousers, drawers or bare skin.
+  const glutes = B.makeGlutes(), glutesTilt = new THREE.Group();
+  glutes.mesh.position.set(0, 0.8, -0.3); glutes.mesh.scale.set(1, 1.2, 1.05); glutesTilt.rotation.x = -0.45; glutesTilt.add(glutes.mesh); jack.hips.add(glutesTilt);
   // Where the hand lands: points on the back of Jack's hips (his left cheek is the nearer, world −z side), and the middle of his back.
   const mk = (x, y, z) => { const o = new THREE.Object3D(); o.position.set(x, y, z); jack.torso.add(o); return o; };
-  const rear = { L: mk(2, -2, -2.3), R: mk(-2, -2, -2.3), C: mk(0, -2, -2.3) }, upperBack = mk(0, 10, -2);
+  const rear = { L: mk(2, 0, -2.6), R: mk(-2, 0, -2.6), C: mk(0, 0, -2.6) }, upperBack = mk(0, 10, -2);
 
   // The paddle: a short handle out of the middle of the end of her right arm (as if in her fist) and a small blade, 6 long in all.
   const tool = new THREE.Group(); tool.position.y = -12; gerda.armR.add(tool);
