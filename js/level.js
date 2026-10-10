@@ -594,10 +594,10 @@ function create(els, ui) {
   function buildPlan() {
     const d = demerits(); let tier = d < 0.01 ? 0 : d < 1.5 ? 1 : d < 4 ? 2 : 3; if (S.lie) tier = Math.min(3, tier + 1);   // (a spotless job is praised, not corrected; anything at all earns at least a light one)
     const TIERS = [
-      { name: 'Token', hand: 6, paddle: 0, strength: 0.7, pace: 1.0, verdict: 'No complaints really — “a few for luck, then.”' },
-      { name: 'Light', hand: 16, paddle: 0, strength: 0.85, pace: 1.1, verdict: '“A light correction, I think.”' },
-      { name: 'Firm', hand: 30, paddle: 0, strength: 1.0, pace: 1.2, verdict: '“A firm one. Come along.”' },
-      { name: 'Severe', hand: 20, paddle: 20, strength: 1.1, pace: 1.3, verdict: '“I think the paddle, this time.”' },
+      { name: 'Token', hand: 14, paddle: 0, strength: 0.7, pace: 1.7, verdict: 'No complaints really — “a few for luck, then.”' },
+      { name: 'Light', hand: 30, paddle: 0, strength: 0.85, pace: 1.8, verdict: '“A light correction, I think.”' },
+      { name: 'Firm', hand: 44, paddle: 0, strength: 1.0, pace: 1.9, verdict: '“A firm one. Come along.”' },
+      { name: 'Severe', hand: 34, paddle: 28, strength: 1.1, pace: 2.0, verdict: '“I think the paddle, this time.”' },
     ];
     return Object.assign({ tier, demerits: d, reasons: reasons(), lie: S.lie }, TIERS[tier]);
   }
