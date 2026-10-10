@@ -362,14 +362,15 @@ function paintGerdaInto(k, outfit) {
     k.fill('body', 'right', C.plum); k.fill('body', 'left', C.plum); k.fill('body', 'right', C.blouse, 0, 0, undefined, 2); k.fill('body', 'left', C.blouse, 0, 0, undefined, 2);
     k.fill('body', 'right', C.belt, 0, 8, undefined, 1); k.fill('body', 'left', C.belt, 0, 8, undefined, 1);
     k.fill('body', 'top', C.blouse); k.fill('body', 'bottom', C.plumDk);
-    // Outer layer: the cream apron (with its pocket and strings) and the skirt flaring off the hip.
-    k.fill('jacket', 'front', C.apron, 1, 5, 6, 7); k.fill('jacket', 'front', C.apronSh, 1, 5, 6, 1);
-    k.fill('jacket', 'front', C.pocket, 2, 8, 4, 2); k.fill('jacket', 'front', C.apronSh, 2, 8, 4, 1); k.px('jacket', 'front', 2, 9, C.apronSh); k.px('jacket', 'front', 5, 9, C.apronSh);
-    k.fill('jacket', 'front', C.trim, 1, 11, 6, 1);
-    k.fill('jacket', 'front', C.apron, 3, 4, 2, 1); k.px('jacket', 'front', 3, 3, C.apron); k.px('jacket', 'front', 4, 3, C.apron);
+    // Outer layer: the skirt flaring off the hip, and a cream apron with no bib: a band tied round the waist (rows 7-8, all the way round, knotted
+    // at the back with two tails hanging), and its skirt hanging from the waist down the front (the rest of it is on the legs' overlays).
     for (const f of ['right', 'left', 'back']) { k.fill('jacket', f, C.plum, 0, 8, undefined, 4); k.fill('jacket', f, C.plumDk, 0, 11, undefined, 1); }
-    k.fill('jacket', 'back', C.apronSh, 2, 6, 4, 1); k.px('jacket', 'back', 1, 7, C.apron); k.px('jacket', 'back', 6, 7, C.apron); // apron strings tied behind
     k.fill('jacket', 'front', C.plum, 0, 8, 1, 4); k.fill('jacket', 'front', C.plum, 7, 8, 1, 4);
+    k.fill('jacket', 'front', C.apron, 1, 9, 6, 3); k.fill('jacket', 'front', C.apronSh, 1, 9, 6, 1);                 // the apron's skirt, from the waist
+    k.fill('jacket', 'front', C.pocket, 2, 10, 4, 2); k.fill('jacket', 'front', C.apronSh, 2, 10, 4, 1); k.px('jacket', 'front', 2, 11, C.apronSh); k.px('jacket', 'front', 5, 11, C.apronSh);   // its pocket
+    for (const f of ['front', 'right', 'left', 'back']) { k.fill('jacket', f, C.apron, 0, 7, undefined, 2); k.fill('jacket', f, C.apronSh, 0, 8, undefined, 1); }    // the waist tie
+    k.fill('jacket', 'back', C.apronSh, 3, 7, 2, 3); k.px('jacket', 'back', 3, 7, C.apron);                              // the knot
+    k.fill('jacket', 'back', C.apron, 2, 9, 1, 3); k.fill('jacket', 'back', C.apron, 5, 9, 1, 3); k.px('jacket', 'back', 2, 11, C.apronSh); k.px('jacket', 'back', 5, 11, C.apronSh);   // the tails
 
     // Arms (slim): blouse sleeves rolled above the elbow, strong forearms, a wedding ring on the left hand.
     for (const side of ['rArm', 'lArm']) {
@@ -389,7 +390,9 @@ function paintGerdaInto(k, outfit) {
       k.px(leg, 'front', 1, 11, C.skinHi); k.px(leg, 'front', 2, 11, C.skinHi);
       const o = sideOuter(leg);
       for (const f of SIDES) { k.fill(o, f, C.plum, 0, 0, undefined, 11); k.px(o, f, 1, 2, C.plumHi); k.px(o, f, 2, 7, C.plumHi); k.fill(o, f, C.plumDk, 0, 9, undefined, 1); k.fill(o, f, C.trim, 0, 10, undefined, 1); }
-      k.fill(o, 'front', C.plumDk, 1, 5, 1, 2);                                        // a fold
+      // the apron's skirt carries on down the front of the thighs to the knee (the middle six pixels across the two legs), a gold hem
+      const ax = leg === 'rLeg' ? 1 : 0, aw = 3;
+      k.fill(o, 'front', C.apron, ax, 0, aw, 6); k.fill(o, 'front', C.apronSh, ax, 0, aw, 1); k.fill(o, 'front', C.trim, ax, 6, aw, 1);
     }
 
   }
@@ -447,17 +450,17 @@ function buildCharacter(skin, opts) {
   rig.torso = new THREE.Group(); hips.add(rig.torso);
   const torsoMesh = mesh('body', 'jacket', 0.5); torsoMesh.position.y = 6; rig.torso.add(torsoMesh);
   if (opts.bust) {
-    // The bust: two blocks standing out from the front of the torso block (about two units, from rows 3 to 7), textured from the torso's own front, so
+    // The bust: two blocks standing out from the front of the torso block (about two units, from rows 1 to 5), textured from the torso's own front, so
     // whatever she wears (bodice, apron, gown) carries over them. Their other faces are one flat texel of the same cloth.
     const fr = faceRect(A.body, 'front');
     for (const [half, sign] of [[4, 1], [0, -1]]) {
       const g = new THREE.BoxGeometry(3.6, 3.4, 2.2), uv = g.attributes.uv;
       for (let f = 0; f < 6; f++) for (let v = 0; v < 4; v++) {
         const i = f * 4 + v;
-        if (f === 4) { const u0 = fr.x + half, u1 = u0 + 4, v0 = fr.y + 3, v1 = fr.y + 7; uv.setXY(i, (v & 1 ? u1 : u0) / 64, 1 - (v < 2 ? v0 : v1) / 64); }
-        else uv.setXY(i, (fr.x + half + 2.5) / 64, 1 - (fr.y + 5.5) / 64);
+        if (f === 4) { const u0 = fr.x + half, u1 = u0 + 4, v0 = fr.y + 1, v1 = fr.y + 5; uv.setXY(i, (v & 1 ? u1 : u0) / 64, 1 - (v < 2 ? v0 : v1) / 64); }
+        else uv.setXY(i, (fr.x + half + 2.5) / 64, 1 - (fr.y + 3.5) / 64);
       }
-      const m = new THREE.Mesh(g, mat); m.position.set(sign * 1.9, 7.2, 2.8); rig.torso.add(m);
+      const m = new THREE.Mesh(g, mat); m.position.set(sign * 1.9, 9.2, 2.8); rig.torso.add(m);
     }
   }
   rig.neck = new THREE.Group(); rig.neck.position.y = 12; rig.torso.add(rig.neck);
