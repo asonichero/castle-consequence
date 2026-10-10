@@ -201,8 +201,11 @@ function create(view, opts) {
     }
     return any ? { q: new THREE.Quaternion().setFromEuler(new THREE.Euler(rr[0] * DEG, rr[1] * DEG, rr[2] * DEG, 'YXZ')), p: pp } : null;
   }
+  // (The paddle's own bones, its mount on the forearm and the wrist that carries it, are edited for the paddle and left alone for the hand.)
+  const PADDLE_ONLY = new Set(['paddle', 'wristR']);
   function applyEdits(who, names, weights) {
     for (const n of names) {
+      if (who === 'gerda' && PADDLE_ONLY.has(n) && !IMPL[st.implement].paddle) continue;
       const e = editFor(who, n, weights); if (!e) continue;
       const bone = BONES[who][n];
       bone.userData.proc = bone.quaternion.clone();
@@ -242,10 +245,10 @@ function create(view, opts) {
 
   gerda.after = function (g) {
     const gw = gerdaWeights(), sw = st.swing, impl = IMPL[st.implement], tau = sw ? sw.tau : REST;
-    // Where she lands. The hand: the end of her arm on the middle of his rear. The paddle: the middle of its blade on the middle of one cheek (the
-    // blade's middle plane stands a little off his skin).
+    // Where she lands, on the cheek being struck (they alternate, or the one chosen). The hand: the end of her forearm on its middle. The paddle: the
+    // middle of its blade on it (the blade's middle plane stands a little off his skin).
     const padSide = sw ? sw.side : (st.side === 'alt' ? st.nextSide : st.side);
-    const T = world(rear[impl.paddle ? padSide : 'C']); if (impl.paddle) T.y += 0.4;
+    const T = world(rear[padSide]); if (impl.paddle) T.y += 0.4;
     // Her torso never twists or leans for a strike (a pose edit of it stays put); the arm and, for the paddle, the blade's angle do the aiming.
     st.yaw = 0;
     g.torso.rotation.order = 'YXZ'; g.torso.rotation.set(LEAN, st.yaw, 0); g.neck.rotation.x = 0.55 + 0.4 * LEAN; g.neck.rotation.y = -st.yaw * 0.9;

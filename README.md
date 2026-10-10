@@ -178,13 +178,13 @@ game's own, ported:
   hold on the skin (which keeps stinging).
 - The engine's **pain model** (`Starlight.createPain`, from `starlight-engine.js`) turns each smack into Jack's **distress**; its bands (composed, flinching, struggling, close to
   the edge, past it, too harsh) drive his kicks and wriggling and his face (four expressions, repainted into his skin). At 1.5 it is too harsh and nothing more is struck.
-- **Implements**: the hand (landed with the end of Gerda's arm block, on the middle of his rear) and a small rounded paddle held out from the face of her arm block that looks toward his head in the top view, face down, landing on one cheek at a time (it alternates with the hand's colour); each with the engine's weight and sting. 
+- **Implements**: the hand (landed with the end of Gerda's forearm, on the middle of one cheek at a time) and a small rounded paddle held out from the face of her arm block that looks toward his head in the top view, face down, landing on one cheek at a time (it alternates with the hand's colour); each with the engine's weight and sting. 
 - **Clothes**: trousers up or down, and drawers up or down (with the trousers down). Cloth over the rear cushions the sting only, as in the engine.
 - **Marks**: the bare rear colours up with the smacks, cheek by cheek, and tender skin hurts more.
 - **Red**: the safe word stops everything at once.
 - Cameras: Overview, Behind, Over your shoulder (Gerda's view), Face; drag to orbit as well.
 
-Gerda's swinging (right) arm has an elbow (an upper arm and a forearm, cut like the legs at the knee) and a wrist twist, and the swing is solved geometrically: her torso never twists or leans for a strike (so a pose edit of it stays put). The hand's end lands exactly on the middle of his rear; the paddle's mount on the forearm is placed so its blade's middle lies on the cheek being struck, the elbow bending more for the nearer cheek and for a smaller Jack, the blade lying toward his head and rolled about its length to the angle of his glutes at contact. Which cheek takes the colour still alternates.
+Gerda's swinging (right) arm has an elbow (an upper arm and a forearm, cut like the legs at the knee) and a wrist twist, and the swing is solved geometrically: her torso never twists or leans for a strike (so a pose edit of it stays put). The hand's end lands exactly on the middle of the cheek being struck; the paddle's mount on the forearm is placed so its blade's middle lies on the cheek being struck, the elbow bending more for the nearer cheek and for a smaller Jack, the blade lying toward his head and rolled about its length to the angle of his glutes at contact. Which cheek takes the colour still alternates.
 Jack's size (10–100%) is a slider in the lap viewer: his body is scaled about his hip joint and re-seated on her lap, so the premise (he shrinks on arrival and regains his size level by level) can be previewed. The contact sites are on his body, so they move and shrink with him, and the aim is refitted each frame (the blade's height counts most in the fit) so the paddle always lies on his skin. The pain model does not yet change with his size.
 
 
