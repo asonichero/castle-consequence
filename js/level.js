@@ -15,6 +15,7 @@ const turn = (from, to, t) => { let d = ((to - from + Math.PI) % (2 * Math.PI) +
 
 // ── The rules ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 const SIZE_START = 0.8, SIZE_MIN = 0.5, FULL = 0.95;
+const LOCK_CAM = true;                          // the camera stays behind Jack's head; the player only tilts it up and down, and A/D turn him (W/S walk him forwards/back)
 const K = 1.5;                                  // the room's scale: it is a Gerda-sized room
 // What makes Jack shrink (fractions of his full size, so 0.05 is five percentage points):
 const COST = {
@@ -202,8 +203,8 @@ function create(els, ui) {
 
   // ── State ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   const S = {
-    phase: 'play', t: 0, size: SIZE_START, shownSize: SIZE_START, log: [], floats: [],
-    stick: { x: 0, y: 0 }, sitting: false, sneak: false, runOn: false, running: false, pos: new V3(-40 * K, 0, 6 * K), heading: 0, speedN: 0, creeping: false, phaseWalk: 0, stride: 0, dirt: 0, foot: 1,
+    phase: 'intro', t: 0, size: SIZE_START, shownSize: SIZE_START, log: [], floats: [],
+    stick: { x: 0, y: 0 }, sitting: false, sneak: false, runOn: false, running: false, pos: new V3(-R_ * K + 30, 0, 0), heading: -Math.PI / 2, speedN: 0, creeping: false, phaseWalk: 0, stride: 0, dirt: 0, foot: 1,
     holding: null, water: 0, spillAcc: 0, spillCool: 0, sweeping: false, clapCool: 0,
     items: { broom: { where: 'home', x: 0, z: 0 }, bucket: { where: 'home', x: 0, z: 0 } },
     chores: { sweep: false, dish: false, water: false, trust: false }, dishFilled: false, troughFilled: false, troughLevel: 0,
@@ -238,7 +239,8 @@ function create(els, ui) {
   renderer.domElement.addEventListener('pointerdown', e => { drags.set(e.pointerId, { x: e.clientX, y: e.clientY }); renderer.domElement.setPointerCapture && renderer.domElement.setPointerCapture(e.pointerId); });
   renderer.domElement.addEventListener('pointermove', e => {
     const d = drags.get(e.pointerId); if (!d) return;
-    S.camOverride = true; S.cam.yaw -= (e.clientX - d.x) * 0.006; S.cam.pitch = clamp(S.cam.pitch + (e.clientY - d.y) * 0.005, 0.06, 1.4); d.x = e.clientX; d.y = e.clientY;
+    if (!LOCK_CAM) { S.camOverride = true; S.cam.yaw -= (e.clientX - d.x) * 0.006; }
+     S.cam.pitch = clamp(S.cam.pitch + (e.clientY - d.y) * 0.005, 0.06, 1.4); d.x = e.clientX; d.y = e.clientY;
   });
   const endDrag = e => { drags.delete(e.pointerId); };
   renderer.domElement.addEventListener('pointerup', endDrag); renderer.domElement.addEventListener('pointercancel', endDrag);
@@ -421,7 +423,14 @@ function create(els, ui) {
     // The keys set the direction he wants to go (relative to the camera); he turns naturally into it and travels along his heading, so W then S is a
     // turn through 180 degrees, and W with D walks the diagonal.
     let vel = new V3();
-    if (!S.sitting && dir.lengthSq() > 0) {
+    if (LOCK_CAM) {                                                                       // steering: A/D (or the stick's left/right) turn him, W/S (or up/down) walk him
+      const turnIn = ((keys.left ? 1 : 0) - (keys.right ? 1 : 0)) + (Math.abs(S.stick.x) > 0.2 ? -S.stick.x : 0), fwd = ((keys.up ? 1 : 0) - (keys.down ? 1 : 0)) + (Math.abs(S.stick.y) > 0.2 ? -S.stick.y : 0);
+      if (S.sitting && (turnIn || fwd)) standUp();
+      if (!S.sitting) {
+        S.heading += clamp(turnIn, -1, 1) * 2.4 * dt;
+        if (fwd) vel.set(Math.sin(S.heading), 0, Math.cos(S.heading)).multiplyScalar(clamp(fwd, -1, 1) * (fwd < 0 ? 0.6 : 1) * (S.running ? RUN : S.creeping ? CREEP : WALK) * scale);
+      }
+    } else if (!S.sitting && dir.lengthSq() > 0) {
       dir.normalize(); S.heading = turn(S.heading, Math.atan2(dir.x, dir.z), Math.min(1, dt * 9));
       const off = Math.abs(turn(S.heading, Math.atan2(dir.x, dir.z), 1) - S.heading), ease = clamp(1 - off / Math.PI * 0.8, 0.2, 1);   // slower while still turning round
       vel.set(Math.sin(S.heading), 0, Math.cos(S.heading)).multiplyScalar((S.running ? RUN : S.creeping ? CREEP : WALK) * scale * ease);
@@ -523,7 +532,7 @@ function create(els, ui) {
     // Gerda walks in to meet Jack; Jack turns to face her.
     const target = new V3(S.pos.x - 22, 0, S.pos.z); target.x = Math.max(target.x, -(R_ - 4) * K);
     if (gerdaG.visible && S.phase !== 'praise') {                                          // Jack turns to look at her as she comes in, and the camera settles behind him
-      const to = Math.atan2(gerdaG.position.x - S.pos.x, gerdaG.position.z - S.pos.z); S.heading = turn(S.heading, to, Math.min(1, dt * 6)); if (!S.camOverride) { S.cam.yaw = turn(S.cam.yaw, S.heading + Math.PI, Math.min(1, dt * 0.7)); S.cam.pitch += (0.4 - S.cam.pitch) * Math.min(1, dt * 0.7); }   // (slowly, until the player takes the camera)
+      const to = Math.atan2(gerdaG.position.x - S.pos.x, gerdaG.position.z - S.pos.z); S.heading = turn(S.heading, to, Math.min(1, dt * 6)); if (!LOCK_CAM && !S.camOverride) { S.cam.yaw = turn(S.cam.yaw, S.heading + Math.PI, Math.min(1, dt * 0.7)); S.cam.pitch += (0.4 - S.cam.pitch) * Math.min(1, dt * 0.7); }   // (slowly, until the player takes the camera)
     }
     if (gerdaAt === 'walking') {
       const d = target.clone().sub(gerdaG.position); d.y = 0;
@@ -721,14 +730,41 @@ function create(els, ui) {
     for (const w of walls) w.m.visible = !(w.side === 'n' ? p.z < -lim : w.side === 's' ? p.z > lim : w.side === 'w' ? p.x < -lim : p.x > lim);
   }
 
+  // ── The opening: Jack stands facing Gerda in the doorway, who tells him (and the player) what she expects, then goes out ──────────────────────────────
+  let leaving = false;
+  function startIntro() {
+    jack.root.rotation.y = S.heading; gerdaG.visible = true; gerdaG.position.set(-R_ * K + 3, 0, 0); gerda.root.rotation.y = Math.PI / 2; S.cam.pitch = 0.3;
+    const lines = [
+      '“Jack. I have to go out for a while, and you are in charge of my golden hen. Stand up straight and listen properly.”',
+      '“Sweep the floor — every bit of dirt, and any footprints you leave on it. Fill her dish with grain from the sack. And bring her water from the basin to her trough: walk, or sneak, and it will arrive full. Run with that bucket and it will slop, and you will be fetching it twice.”',
+      '“Win her trust. Move slowly when you are near her, never clap at her, and never pick her up. If she is unsettled, coax her into her nest and settle her there with a few soft words.”',
+      '“When you are done, the broom hangs on its hook and the bucket stands on its flagstone under the shelf. I shall judge the room exactly as I find it — not how it got that way — and I shall ask you how it went. I expect the truth.”',
+      '“Do well and you will keep your size. Make a mess of it, and you will find yourself smaller — and over my knee. Off you go.”',
+    ];
+    const next = i => ui.dialog({ who: 'Gerda', text: lines[i], choices: [{ label: i < lines.length - 1 ? 'Continue…' : 'Yes, Gerda.', fn: () => i < lines.length - 1 ? next(i + 1) : (S.phase = 'play', leaving = true) }] });
+    next(0);
+  }
+  function updateIntro(dt) {
+    S.t += dt; poseJack(dt); updateHen(dt); stepLeave(dt);
+  }
+  function stepLeave(dt) {
+    B.step(gerda, dt);
+    if (leaving) {
+      gerda.root.rotation.y = turn(gerda.root.rotation.y, -Math.PI / 2, Math.min(1, dt * 6)); gerdaG.position.x -= 20 * dt; gerda.walk.sw = Math.sin(S.t * 8) * 0.5; gerda.walk.arm = Math.sin(S.t * 8) * 0.4;
+      if (gerdaG.position.x < -R_ * K - 16) { gerdaG.visible = false; leaving = false; gerda.walk.sw = gerda.walk.arm = 0; }
+    }
+  }
+
   // ── Loop ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   function frame(dt) {
     if (S.phase === 'discipline') { updateDiscipline(dt); return; }
-    if (S.phase === 'play') { updatePlay(dt); poseJack(dt); }
+    if (S.phase === 'play') { updatePlay(dt); poseJack(dt); stepLeave(dt); }
+    else if (S.phase === 'intro') updateIntro(dt);
     else if (S.phase === 'return' || S.phase === 'ask' || S.phase === 'praise' || S.phase === 'done') updateReturn(dt);
     floatTexts(dt);
     // Camera: locked at a fixed distance *in Jack's own sizes* (so as he shrinks the room seems to grow), looking where the mouse points. During the
     // talk it takes in Gerda as well.
+    if (LOCK_CAM) S.cam.yaw = turn(S.cam.yaw, S.heading + Math.PI, Math.min(1, dt * 10));          // locked behind his head
     const sc = S.shownSize * FULL, talk = S.phase !== 'play' && gerdaG.visible;
     const at = talk ? S.pos.clone().add(gerdaG.position).multiplyScalar(0.5) : S.pos.clone();
     const dist = 105 * sc + (talk ? S.pos.distanceTo(gerdaG.position) * 1.1 : 0), lookH = (S.sitting ? CHAIR_SEAT * 0.8 + 12 * sc : 17 * sc) + (talk ? 8 : 0);
@@ -740,7 +776,7 @@ function create(els, ui) {
     ui.hud && ui.hud(S, { SIZE_MIN, TIME_LIMIT, patches: patches.filter(p => p.amount <= 0).length, patchTotal: patches.length, prints: prints.filter(p => p.amount > 0.05).length });
   }
   function resize() { const w = lvlEl.clientWidth || root.innerWidth, h = lvlEl.clientHeight || root.innerHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); }
-  root.addEventListener('resize', resize); resize(); camera.position.set(S.pos.x, 40, S.pos.z + 60);
+  root.addEventListener('resize', resize); resize(); camera.position.set(S.pos.x + 60, 40, S.pos.z); startIntro();
 
   return {
     frame, S, shrink, redWord, keys, COST, SIZE_MIN, resize, jack, gerda, hen: S.hen, props, patches, prints,
