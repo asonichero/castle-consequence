@@ -497,8 +497,9 @@ function create(els, ui) {
   // about, and the hen settled in her nest, all move into the lap scene (whose own floor is hidden).
   function carryIntoLap() {
     const sc = lap.scene; lap.floor.visible = false; sc.background = new THREE.Color(0x1b2230); sc.fog = new THREE.Fog(0x1b2230, 240, 560);
-    sc.add(room); patches.forEach(p => sc.add(p.g)); prints.forEach(p => sc.add(p.g)); drops.forEach(d => sc.add(d.m));
-    const n = SPOT.nest; hen.position.set(n.x, 1 * K, n.z); hen.rotation.y = Math.atan2(-n.x, -n.z); sc.add(hen);
+    const world = new THREE.Group(); world.position.y = lap.floor.position.y; sc.add(world);   // the room's floor is the lowered floor, under the chair's legs
+    world.add(room); patches.forEach(p => world.add(p.g)); prints.forEach(p => world.add(p.g)); drops.forEach(d => world.add(d.m));
+    const n = SPOT.nest; hen.position.set(n.x, 1 * K, n.z); hen.rotation.y = Math.atan2(-n.x, -n.z); world.add(hen);
     henP.head.rotation.x = 0.1; henP.wingL.rotation.z = 0.05; henP.wingR.rotation.z = -0.05; henP.body.position.y = 5.5; henP.tail.rotation.x = 0.1;
   }
   const say = (who, text) => ui.say(who, text);

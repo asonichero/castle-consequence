@@ -51,6 +51,10 @@ function create(view, opts) {
   // sitting pose) and rises only as far as the top of her torso (y 16).
   const seat = new THREE.Mesh(new THREE.BoxGeometry(14, 4, 11.8), wood); seat.position.set(0, 2, -0.2); scene.add(seat);
   const back = new THREE.Mesh(new THREE.BoxGeometry(14, 12, 1.5), wood); back.position.set(0, 10, -5.35); scene.add(back);
+  // Legs under the seat, and a floor lowered to meet them; Gerda's shins are lengthened by the same amount so her feet still reach it.
+  const LEGH = 6;
+  for (const [x, z] of [[-5.6, -5.4], [5.6, -5.4], [-5.6, 5.4], [5.6, 5.4]]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(1.8, LEGH, 1.8), wood); leg.position.set(x, -LEGH / 2, z); scene.add(leg); }
+  floor.position.y = -LEGH;
   for (const x of [-6, 6]) { const post = new THREE.Mesh(new THREE.BoxGeometry(1.5, 16, 1.5), wood); post.position.set(x, 8, -6.4); scene.add(post); }
 
   // ── The cast ────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -61,6 +65,7 @@ function create(view, opts) {
   const qx = new THREE.Quaternion().setFromAxisAngle(new V3(1, 0, 0), Math.PI / 2), qy = new THREE.Quaternion().setFromAxisAngle(new V3(0, 1, 0), Math.PI / 2);
   const qz = new THREE.Quaternion().setFromAxisAngle(new V3(0, 0, 1), PITCH);
   frame.quaternion.copy(qz).multiply(qy).multiply(qx);
+  for (const l of [gerda.legL, gerda.legR]) { const sh = l.knee.children[0]; sh.scale.y = (6 + LEGH) / 6; sh.position.y = -3 * sh.scale.y; }
   B.setPose(gerda, 'sit'); Object.assign(gerda.state, B.POSES.sit);
   Object.assign(jack.state, { hipY: 0, lift: 0 }); Object.assign(jack.target, { hipY: 0, lift: 0 });
   // The glutes block hangs from a hinge at its top edge, which lies in the plane of his back (just proud of it) at the bottom edge of the torso, and
