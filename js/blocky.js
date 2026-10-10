@@ -545,5 +545,16 @@ const makeJack = () => buildCharacter(paintJack(), { armWidth: 3 });
 const OUTFITS = { jack: ['Outdoor', 'Day', 'Soft', 'Fine'], gerda: ['Work', 'Fine'] };
 const makeGerda = outfit => buildCharacter(paintGerdaInto(new Skin(3, 3), outfit), { armWidth: 3, bun: true, skirt: true, elbow: 'armR', bust: true });
 
-root.Blocky = { makeJack, makeGerda, setPose, step, POSES, Skin, OUTFITS, paintGerdaInto, paintJackInto, paintGlutesInto, makeGlutes, boxGeo, faceRect };
+// The chair, shared by the lap scene and the level: a plank seat (top at y = 4, where Gerda's thighs rest), a straight back and legs that run down to
+// y = -CHAIR.legH, so the floor stands there. It faces +z.
+const CHAIR = { legH: 6, seatTop: 4, front: 5.7, back: -6.1, halfW: 7 };
+function makeChair() {
+  const g = new THREE.Group(), wood = new THREE.MeshLambertMaterial({ color: new THREE.Color(0x6a4a2e).convertSRGBToLinear() });
+  const add = (w, h, d, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wood); m.position.set(x, y, z); g.add(m); };
+  add(14, 4, 11.8, 0, 2, -0.2); add(14, 12, 1.5, 0, 10, -5.35);
+  for (const [x, z] of [[-5.6, -5.4], [5.6, -5.4], [-5.6, 5.4], [5.6, 5.4]]) add(1.8, CHAIR.legH, 1.8, x, -CHAIR.legH / 2, z);
+  for (const x of [-6, 6]) add(1.5, 16, 1.5, x, 8, -6.4);
+  return g;
+}
+root.Blocky = { CHAIR, makeChair, makeJack, makeGerda, setPose, step, POSES, Skin, OUTFITS, paintGerdaInto, paintJackInto, paintGlutesInto, makeGlutes, boxGeo, faceRect };
 })(typeof window !== 'undefined' ? window : globalThis);

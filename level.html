@@ -12,6 +12,8 @@
   #hud { top: 12px; left: 12px; width: 250px; }
   #help { top: 12px; right: 12px; width: 230px; font-size: 12px; color: #b5b7c2; }
   #help b { color: #e6c46a; }
+  #actions { right: 12px; bottom: 12px; text-align: right; }
+  #actions button.on { background: #6b5a2a; border-color: #c9a84c; }
   #feed { left: 12px; bottom: 12px; width: 330px; font-size: 12px; }
   #feed div { padding: 1px 0; color: #c9ccd6; } #feed div.bad { color: #f09a8a; } #feed div.good { color: #9fd9a2; }
   #hint { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: rgba(20,22,28,0.9); border: 1px solid #c9a84c; color: #f0d98a; padding: 6px 14px; border-radius: 6px; font-size: 14px; display: none; }
@@ -55,12 +57,17 @@
   <div id="pace" style="color:#b5b7c2"></div>
 </div>
 <div id="help" class="panel">
-  <b>WASD / arrows</b> walk &nbsp; <b>Shift</b> creep &nbsp; <b>R</b> run<br>
-  <b>E</b> take / use / sit on the chair &nbsp; <b>Space</b> (hold) sweep<br>
-  <b>Q</b> drop in place &nbsp; <b>C</b> clap to shoo the hen<br>
+  <b>WASD / arrows</b> walk &nbsp; <b>Shift</b> (hold) run &nbsp; <b>C</b> toggle sneaking<br>
+  <b>E</b> pick up / drop anything (even the hen), or sit on the chair<br>
+  <b>Space</b> clap if your hands are free; use what you hold (hold it to sweep)<br>
   <b>Drag mouse</b> look around &nbsp; <b>G</b> call Gerda back early<br>
-  Return the broom and bucket to their places, or leave them lying about at a small cost.<br>
-  <span class="warn">Moving fast near the hen scares her; moving fast with water slops it. Clapping, spilling, startling, lying and undone chores all shrink you.</span>
+  Return the broom and bucket to their places, or leave them lying about at a small cost. Water used anywhere but the trough makes mud.<br>
+  <span class="warn">Moving fast near the hen scares her; moving fast with water slops it. Holding the hen costs her trust like a clap every second. Clapping, spilling, startling, lying and undone chores all shrink you.</span>
+</div>
+<div id="actions" class="panel">
+  <button data-act="run" id="bRun">Run (Shift)</button><button data-act="sneak" id="bSneak">Sneak (C)</button><br>
+  <button data-act="interact">Pick up / drop (E)</button><button data-act="space" id="bSpace">Clap / use (Space)</button><br>
+  <button data-act="call">Call Gerda (G)</button>
 </div>
 <div id="feed" class="panel"></div>
 <div id="hint"></div>
@@ -106,7 +113,8 @@
       $('cTrustV').textContent = Math.round(S.hen.trust) + '%'; $('trustBar').style.width = S.hen.trust + '%';
       $('prints').textContent = x.prints ? 'Muddy footprints: ' + x.prints : '';
       $('carry').textContent = S.holding === 'bucket' ? 'Carrying: water (' + Math.round(S.water) + '%)' : S.holding ? 'Carrying: ' + S.holding : 'Hands empty';
-      var fast = S.speedN > 13; $('pace').innerHTML = S.phase !== 'play' ? '' : S.speedN < 0.5 ? 'Still' : fast ? '<span class="warn">Too fast! (hold Shift)</span>' : S.creeping ? 'Creeping' : 'Walking';
+      var fast = S.speedN > 13; $('pace').innerHTML = S.phase !== 'play' ? '' : S.speedN < 0.5 ? 'Still' : fast ? '<span class="warn">Too fast! (sneak with C)</span>' : S.creeping ? 'Sneaking' : 'Walking';
+      $('bSneak').classList.toggle('on', !!S.sneak); $('bRun').classList.toggle('on', !!S.runOn); $('actions').style.display = S.phase === 'play' ? 'block' : 'none';
       var h = $('hint'); h.style.display = S.hint && S.phase === 'play' ? 'block' : 'none'; h.textContent = S.hint;
       $('help').style.display = S.phase === 'play' ? 'block' : 'none'; $('hud').style.display = S.phase === 'play' ? 'block' : 'none';
     },
@@ -114,7 +122,7 @@
       $('dlg').style.display = 'block'; $('dlgWho').textContent = d.who; $('dlgText').textContent = d.text; var c = $('dlgChoices'); c.innerHTML = '';
       d.choices.forEach(function (ch) { var b = document.createElement('button'); b.textContent = ch.label; b.onclick = function () { $('dlg').style.display = 'none'; ch.fn(); }; c.appendChild(b); });
     },
-    discipline: function (on, plan) { $('disc').style.display = on ? 'block' : 'none'; $('hud').style.display = 'none'; $('help').style.display = 'none'; $('feed').style.display = 'none'; $('hint').style.display = 'none'; $('dlg').style.display = 'none'; if (on) $('discSize').textContent = 'Jack is ' + Math.round(L.S.size * 100) + '% · ' + plan.name + ' correction'; },
+    discipline: function (on, plan) { $('disc').style.display = on ? 'block' : 'none'; $('hud').style.display = 'none'; $('help').style.display = 'none'; $('actions').style.display = 'none'; $('feed').style.display = 'none'; $('hint').style.display = 'none'; $('dlg').style.display = 'none'; if (on) $('discSize').textContent = 'Jack is ' + Math.round(L.S.size * 100) + '% · ' + plan.name + ' correction'; },
     say: function (who, text) { $('spWho').textContent = who; $('spText').textContent = text; },
     meter: function (i) { $('discBar').style.width = Math.min(100, i.distress / 1.5 * 100) + '%'; $('discBand').textContent = 'Distress ' + i.distress.toFixed(2) + ' — ' + i.band; },
     finish: function (r) {
@@ -128,6 +136,11 @@
   };
   var L = Level.create({ level: $('lvl'), lap: $('lap') }, ui);
   document.querySelectorAll('#discTools [data-v]').forEach(function (b) { b.onclick = function () { L.view(b.dataset.v); }; });
+  document.querySelectorAll('#actions button').forEach(function (b) {
+    var a = b.dataset.act; b.addEventListener('mousedown', function (e) { e.preventDefault(); });
+    if (a === 'space') { b.addEventListener('pointerdown', function () { L.act('space', true); }); ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { b.addEventListener(ev, function () { L.act('space', false); }); }); }
+    else b.addEventListener('click', function () { started = true; $('title').style.display = 'none'; L.act(a); });
+  });
   $('redBtn').onclick = function () { L.redWord(); };
   addEventListener('keydown', function (e) { if (!started && /^(w|a|s|d|W|A|S|D|Arrow.*)$/.test(e.key)) { started = true; $('title').style.display = 'none'; } });
   var last = performance.now();

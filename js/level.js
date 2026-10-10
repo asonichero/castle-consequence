@@ -32,7 +32,7 @@ const HEN_ALARM = 13, SPILL_ABOVE = 13, CALM = 9.5;   // faster than this near t
 const R_ = 62;                                  // the room is square: 124 design units each way
 const HALL = { x0: -R_ * K, x1: R_ * K, z0: -R_ * K, z1: R_ * K };
 const ALARM_RADIUS = 28;                        // the hen only minds his pace within this distance
-const D = { rack: [-44, -56], sack: [-50, 46], dish: [20, 20], trough: [36, 20], well: [48, -34], nest: [34, 36], chair: [0, -52] };   // (design coordinates; the world's are K times these)
+const D = { rack: [-44, -56], sack: [-50, 46], dish: [20, 20], trough: [36, 20], well: [48, -34], nest: [34, 36], chair: [0, -56.7] };   // (design coordinates; the world's are K times these)
 const SPOT = {}; for (const k in D) SPOT[k] = new V3(D[k][0] * K, 0, D[k][1] * K); SPOT.door = new V3(-(R_ + 2) * K, 0, 0);
 const PEN = { x0: 6 * K, x1: 56 * K, z0: 4 * K, z1: 54 * K };
 const PATCHES = [[-30, -20], [-10, 10], [5, -25], [-45, 10], [20, -8], [-20, 28]].map(p => [p[0] * K, p[1] * K]);
@@ -135,24 +135,22 @@ function create(els, ui) {
   for (const [x, z] of [[-4, -4], [4, -4], [-4, 4], [4, 4]]) box(3, 7, 3, x, 3.5, z, 0x8a8a90, props.well);
   box(8, 3, 3, 0, 8, -4, 0x8a8a90, props.well); box(8, 3, 3, 0, 8, 4, 0x8a8a90, props.well); box(3, 3, 8, -4, 8, 0, 0x8a8a90, props.well); box(3, 3, 8, 4, 8, 0, 0x8a8a90, props.well);
   box(1.4, 16, 1.4, -5, 8, 0, 0x5a4430, props.well); box(1.4, 16, 1.4, 5, 8, 0, 0x5a4430, props.well); box(12, 1.4, 1.4, 0, 16, 0, 0x5a4430, props.well);
-  // The chair against the north wall, facing south: Jack can sit on it.
-  props.chair = new THREE.Group(); props.chair.position.set(D.chair[0], 0, D.chair[1]); room.add(props.chair);
-  const CH = 11;                                                                                      // seat height (design units)
-  box(12, 1.6, 12, 0, CH - 0.8, 0, 0x7a5636, props.chair); box(12, 13, 1.4, 0, CH + 6.5, -5.3, 0x6a4a2e, props.chair);
-  for (const [x, z] of [[-5, -5], [5, -5], [-5, 5], [5, 5]]) box(1.4, CH - 1.6, 1.4, x, (CH - 1.6) / 2, z, 0x5a3e26, props.chair);
-  box(1.4, 7, 1.4, -5.3, CH + 5, -5.3, 0x5a3e26, props.chair); box(1.4, 7, 1.4, 5.3, CH + 5, -5.3, 0x5a3e26, props.chair);
+  // The chair against the north wall, facing south: the very chair in the correction scene (built in world units, so scaled back down inside the room group).
+  props.chair = B.makeChair(); props.chair.scale.setScalar(1 / K); props.chair.position.set(D.chair[0], B.CHAIR.legH / K, D.chair[1]); room.add(props.chair);
   const makeBucket = () => { const b = new THREE.Group(); box(4.4, 4, 4.4, 0, 2, 0, 0x7a5a38, b); const w = box(3.6, 0.6, 3.6, 0, 3.8, 0, 0x6ab8f6, b); b.userData.water = w; box(0.5, 3, 0.5, 0, 6, 0, 0x4a3a2a, b); return b; };
   const bucket = makeBucket(); bucket.position.set(0, 9.2, 0); props.well.add(bucket);          // sits on the well's rim
   // Where the broom and the bucket belong (as a pose within their parents), so they can be put back.
   const home = { broom: { parent: props.rack, pos: props.broom.position.clone(), rotX: -0.12 }, bucket: { parent: props.well, pos: bucket.position.clone(), rotX: 0 } };
 
   // Dirt to sweep (world coordinates) and the footprints left in it.
-  const patches = PATCHES.map(([x, z]) => {
+  const patches = [];
+  function makePatch(x, z, grainy) {
     const g = new THREE.Group(); g.position.set(x, 0.12, z);
     const d = new THREE.Mesh(new THREE.CircleGeometry(5.2 * K, 12), mat(0x4a3722)); d.rotation.x = -Math.PI / 2; g.add(d);
-    for (let i = 0; i < 6; i++) box(2.2, 0.4, 0.7, (i - 2.5) * 2.4, 0.5, ((i * 7) % 5 - 2) * 1.7, 0xc9a54a, g).rotation.y = i;
-    scene.add(g); return { g, x, z, amount: 1 };
-  });
+    if (grainy) for (let i = 0; i < 6; i++) box(2.2, 0.4, 0.7, (i - 2.5) * 2.4, 0.5, ((i * 7) % 5 - 2) * 1.7, 0xc9a54a, g).rotation.y = i;
+    scene.add(g); const p = { g, x, z, amount: 1 }; patches.push(p); return p;
+  }
+  PATCHES.forEach(([x, z]) => makePatch(x, z, true));
   const prints = [];                                                                         // { g, x, z, amount, jack }
   const MAX_PRINTS = 90;
   function addPrint(x, z, heading, size, bird, jackMade) {
@@ -171,7 +169,8 @@ function create(els, ui) {
   // What Jack carries hangs from his right hand, in a carrier that cancels his own scale so the broom and bucket stay the room's size.
   const carrier = new THREE.Group(); carrier.position.y = -10; jack.armR.add(carrier);
   const carryBroom = new THREE.Group(); carryBroom.visible = false; carrier.add(carryBroom);
-  const heldBroom = props.broom.clone(); heldBroom.position.set(0, -9, 3); heldBroom.rotation.set(-0.7, 0, 0); carryBroom.add(heldBroom);
+  const heldBroom = props.broom.clone(); heldBroom.rotation.set(0.62, 0, 0); heldBroom.position.set(0, -9 * Math.cos(0.62), -9 * Math.sin(0.62));
+  carryBroom.add(heldBroom);   // (the handle runs through his fist, bristles leaning forward to the floor)
   const carryGrain = new THREE.Group(); carryGrain.visible = false; carrier.add(carryGrain); box(4, 3, 4, 0, -1, 3, 0xf0c64a, carryGrain); box(4.6, 1, 4.6, 0, -2.8, 3, 0x7a5a38, carryGrain);
   const carryBucket = makeBucket(); carryBucket.visible = false; carryBucket.position.set(0, -4, 3.5); carrier.add(carryBucket);
   // Spilled drops.
@@ -180,7 +179,7 @@ function create(els, ui) {
   // ── State ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   const S = {
     phase: 'play', t: 0, size: SIZE_START, shownSize: SIZE_START, log: [], floats: [],
-    sitting: false, pos: new V3(-40 * K, 0, 6 * K), heading: 0, speedN: 0, creeping: false, phaseWalk: 0, stride: 0, dirt: 0, foot: 1,
+    sitting: false, sneak: false, runOn: false, running: false, pos: new V3(-40 * K, 0, 6 * K), heading: 0, speedN: 0, creeping: false, phaseWalk: 0, stride: 0, dirt: 0, foot: 1,
     holding: null, water: 0, spillAcc: 0, spillCool: 0, sweeping: false, clapCool: 0,
     items: { broom: { where: 'home', x: 0, z: 0 }, bucket: { where: 'home', x: 0, z: 0 } },
     chores: { sweep: false, dish: false, water: false, trust: false }, dishFilled: false, troughFilled: false,
@@ -198,15 +197,15 @@ function create(els, ui) {
   }
 
   // ── Input ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  const KEYMAP = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right', Shift: 'creep', ' ': 'sweep', r: 'run', R: 'run' };
+  const KEYMAP = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right', Shift: 'run', ' ': 'sweep' };
   root.addEventListener('keydown', e => {
     if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
     const k = KEYMAP[e.key]; if (k) { keys[k] = true; if (e.key === ' ' || e.key.startsWith('Arrow')) e.preventDefault(); }
     if (S.phase !== 'play') return;
-    if (e.key === 'e' || e.key === 'E') interact();
-    if (e.key === 'c' || e.key === 'C') clap();
-    if (e.key === 'q' || e.key === 'Q') putDown();
-    if (e.key === 'g' || e.key === 'G') callGerda();
+    if ((e.key === 'e' || e.key === 'E') && !e.repeat) interact();
+    if (e.key === ' ' && !e.repeat) spaceAction();
+    if ((e.key === 'c' || e.key === 'C') && !e.repeat) toggleSneak();
+    if ((e.key === 'g' || e.key === 'G') && !e.repeat) callGerda();
   });
   root.addEventListener('keyup', e => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
   // The mouse looks around Jack: drag.
@@ -236,52 +235,80 @@ function create(els, ui) {
     }
     obj.visible = true;
   }
-  const CHAIR_SEAT = 11 * K, SEAT_Z = SPOT.chair.z - 1.5 * K;
+  const CHAIR_SEAT = B.CHAIR.legH + B.CHAIR.seatTop;
   function sitDown() {
-    if (S.holding) { note('Put what you are carrying down first (Q).'); return; }
-    S.sitting = true; S.pos.set(SPOT.chair.x, 0, SEAT_Z); S.heading = 0; S.speedN = 0; note('You sit on the chair.');
+    S.sitting = true; S.pos.set(SPOT.chair.x, 0, SPOT.chair.z); S.heading = 0; S.speedN = 0; note('You sit on the chair.');
   }
-  function standUp() { S.sitting = false; S.pos.set(SPOT.chair.x, 0, SPOT.chair.z + 11 * K); }
+  function standUp() { S.sitting = false; S.pos.set(SPOT.chair.x, 0, SPOT.chair.z + B.CHAIR.front + 8); }
+  function toggleSneak() { S.sneak = !S.sneak; if (S.sneak) S.runOn = false; note(S.sneak ? 'You start sneaking.' : 'You stop sneaking.'); }
+  function toggleRun() { S.runOn = !S.runOn; if (S.runOn) S.sneak = false; }
+  // A new patch of dirt where something was dumped, in front of him: it has to be swept up again.
+  function dirty(grainy, why) {
+    const f = new V3(Math.sin(S.heading), 0, Math.cos(S.heading)).multiplyScalar(9);
+    makePatch(clamp(S.pos.x + f.x, HALL.x0 + 8, HALL.x1 - 8), clamp(S.pos.z + f.z, HALL.z0 + 8, HALL.z1 - 8), grainy); S.chores.sweep = false; note(why, 'bad');
+  }
+  function dumpWater(why) {
+    spillDrops(Math.ceil(S.water / 8)); S.water = 0; S.counts.spills++; shrink(COST.spill, why); dirty(false, 'The water makes a muddy patch.');
+  }
+  function releaseHen() {
+    const h = S.hen; h.pos.copy(S.pos).addScaledVector(new V3(Math.sin(S.heading), 0, Math.cos(S.heading)), 8); h.pos.y = 0; h.mode = 'wander'; h.timer = 1.5; h.settled = false; h.target.copy(h.pos);
+    if (h.trust < 100) S.chores.trust = false;
+    S.holding = null; note('You put the hen down.');
+  }
+  // E: pick up whatever is nearest (the hen too), or put down what he holds (back in its place if he is next to it, otherwise where he stands); on the chair, stand.
   function interact() {
     if (S.phase !== 'play') return;
     if (S.sitting) { standUp(); return; }
-    if (near(SPOT.chair, 13 * K)) { sitDown(); return; }
-    // Things lying on the floor can be picked up again.
-    for (const n of ['broom', 'bucket']) if (S.items[n].where === 'floor' && near(itemPos(n), 12) && !S.holding) {
-      setHeld(n); S.water = 0; note(n === 'broom' ? 'You pick the broom up.' : 'You pick the bucket up (it is empty: fill it at the well).'); return;
-    }
-    if (near(SPOT.rack)) { if (!S.holding && S.items.broom.where === 'home') { setHeld('broom'); note('You take the broom. Hold Space to sweep.'); } else if (S.holding === 'broom') { setHeld(null); placeItem('broom', 'home'); note('You hang the broom back up.', 'good'); } else note(S.holding ? 'Your hands are full.' : 'The broom is not here.'); return; }
-    if (near(SPOT.sack)) { if (!S.holding) { setHeld('grain'); note('You scoop up some grain.'); } else if (S.holding === 'grain') { setHeld(null); note('You tip the grain back.'); } else note('Your hands are full.'); return; }
-    if (near(SPOT.dish, 14)) {
-      if (S.holding !== 'grain') { note(S.dishFilled ? 'The dish is full.' : 'You need grain for the dish.'); return; }
-      if (S.hen.pos.distanceTo(SPOT.dish) < 10) { note('The hen is standing in the dish. (Clap to shoo her, if you must.)'); return; }
-      S.dishFilled = true; S.chores.dish = true; props.grain.visible = true; setHeld(null); note('You fill her dish with grain. ✔', 'good'); return;
-    }
-    if (near(SPOT.well, 14)) {
-      if (!S.holding && S.items.bucket.where === 'home') { setHeld('bucket'); S.water = 100; S.spillAcc = 0; note('You fill the bucket. Creep (hold Shift) so it does not slop.'); }
-      else if (S.holding === 'bucket') { setHeld(null); S.water = 0; placeItem('bucket', 'home'); note('You set the bucket back on the well.', 'good'); }
-      else note(S.holding ? 'Your hands are full.' : 'The bucket is not here.'); return;
-    }
-    if (near(SPOT.trough, 14)) {
-      if (S.holding !== 'bucket') { note(S.troughFilled ? 'The trough is full.' : 'You need the water bucket.'); return; }
-      if (S.water < 50) { note('Too little left in the bucket: go and fill it again.'); return; }
-      S.troughFilled = true; S.chores.water = true; props.water.visible = true;
-      note(S.counts.spills ? 'You pour the water in. ✔ (you did spill some on the way)' : 'You pour the water in without a drop lost. ✔', 'good'); S.water = 0; return;   // (the empty bucket stays in his hand)
-    }
-    if (S.hen.pos.distanceTo(S.pos) < 14) {
-      if (S.hen.trust >= 100 && !S.chores.trust) { S.chores.trust = true; S.hen.settled = true; note('The golden hen lets you stroke her. She trusts you. ✔', 'good'); }
-      else if (!S.chores.trust) note('She is not ready to be touched. Approach slowly and wait.');
+    if (S.holding) {
+      const what = S.holding;
+      if (what === 'hen') { releaseHen(); return; }
+      if (what === 'broom') { setHeld(null); if (near(SPOT.rack)) { placeItem('broom', 'home'); note('You hang the broom back up.', 'good'); } else { placeItem('broom', 'floor'); note('You drop the broom here.'); } return; }
+      if (what === 'bucket') {
+        if (near(SPOT.well, 21)) { setHeld(null); S.water = 0; placeItem('bucket', 'home'); note('You set the bucket back on the well.', 'good'); return; }
+        if (S.water > 0) dumpWater('Dropping the water');
+        setHeld(null); placeItem('bucket', 'floor'); note('You drop the bucket here.'); return;
+      }
+      if (what === 'grain') { setHeld(null); if (near(SPOT.sack)) note('You tip the grain back.'); else { dirty(true, 'The grain scatters across the floor.'); } return; }
       return;
     }
-    note('Nothing to do here.');
+    const c = [];
+    const dh = S.hen.pos.distanceTo(S.pos); if (dh < 14) c.push(['hen', dh]);
+    for (const n of ['broom', 'bucket']) { const d = itemPos(n).distanceTo(S.pos); if (d < (n === 'bucket' && S.items.bucket.where === 'home' ? 21 : 13)) c.push([n, d]); }
+    const ds = SPOT.sack.distanceTo(S.pos); if (ds < 13) c.push(['grain', ds]);
+    const dc = SPOT.chair.distanceTo(S.pos); if (dc < 18) c.push(['chair', dc]);
+    if (!c.length) { note('Nothing to pick up here.'); return; }
+    c.sort((a, b) => a[1] - b[1]); const w = c[0][0];
+    if (w === 'chair') { sitDown(); return; }
+    if (w === 'hen') { setHeld('hen'); note('You pick the hen up. She does not like it.', 'bad'); return; }
+    setHeld(w); S.water = 0;
+    note(w === 'broom' ? 'You take the broom. Hold Space to sweep.' : w === 'bucket' ? 'You take the bucket. Space at the well fills it.' : 'You scoop up some grain. Space at the dish pours it.');
   }
-  // Q: drop what he holds, where he stands. A dropped bucket spills; the grain is lost.
-  function putDown() {
-    if (!S.holding) return;
-    const what = S.holding;
-    if (what === 'bucket' && S.water > 0) { note('You drop the bucket and the water goes everywhere!', 'bad'); spillDrops(Math.ceil(S.water / 8)); S.counts.spills++; shrink(COST.spill, 'Dropping the water'); }
-    setHeld(null); S.water = 0;
-    if (what === 'broom' || what === 'bucket') { placeItem(what, 'floor'); note(`You drop the ${what} here.`); } else note('You let the grain fall.');
+  // Space: clap if his hands are free, or use what he holds (the broom sweeps while it is held down).
+  function spaceAction() {
+    if (S.phase !== 'play' || S.sitting) return;
+    const w = S.holding;
+    if (!w) {
+      if (S.hen.pos.distanceTo(S.pos) < 14 && S.hen.trust >= 100 && !S.chores.trust) { S.chores.trust = true; S.hen.settled = true; note('The golden hen lets you stroke her. She trusts you. ✔', 'good'); return; }
+      clap(); return;
+    }
+    if (w === 'broom') return;
+    if (w === 'hen') { note('She wriggles in your arms.'); return; }
+    if (w === 'grain') {
+      if (near(SPOT.dish, 14)) {
+        if (S.hen.pos.distanceTo(SPOT.dish) < 10) { note('The hen is standing in the dish. (Put her somewhere else, or clap.)'); return; }
+        S.dishFilled = true; S.chores.dish = true; props.grain.visible = true; setHeld(null); note('You fill her dish with grain. ✔', 'good');
+      } else { setHeld(null); dirty(true, 'You scatter the grain on the floor.'); }
+      return;
+    }
+    if (w === 'bucket') {
+      if (near(SPOT.well, 21)) { if (S.water < 100) { S.water = 100; S.spillAcc = 0; note('You fill the bucket. Sneak (C) so it does not slop.'); } else note('The bucket is full.'); return; }
+      if (near(SPOT.trough, 19)) {
+        if (S.water < 50) { note('Too little left in the bucket: go and fill it again.'); return; }
+        S.troughFilled = true; S.chores.water = true; props.water.visible = true;
+        note(S.counts.spills ? 'You pour the water in. ✔ (you did spill some on the way)' : 'You pour the water in without a drop lost. ✔', 'good'); S.water = 0; return;
+      }
+      if (S.water > 0) dumpWater('Pouring the water out'); else note('The bucket is empty: fill it at the well (Space).');
+    }
   }
   function clap() {
     if (S.clapCool > 0) return;
@@ -303,6 +330,11 @@ function create(els, ui) {
   }
   function updateHen(dt) {
     const h = S.hen, d = h.pos.distanceTo(S.pos), before = h.pos.clone(); h.startleCool = Math.max(0, h.startleCool - dt);
+    if (S.holding === 'hen') {                                                           // held in his arms: her trust drains as fast as a clap costs it, every second
+      const sc = S.shownSize * FULL; h.mode = 'held'; h.settled = false; h.trust = Math.max(0, h.trust - 25 * dt); if (h.trust < 100) S.chores.trust = false;
+      h.pos.copy(S.pos).addScaledVector(new V3(Math.sin(S.heading), 0, Math.cos(S.heading)), 7 * sc); hen.position.set(h.pos.x, 11 * sc, h.pos.z); hen.rotation.y = S.heading + Math.PI;
+      h.bob += dt * 14; henP.wingL.rotation.z = 0.6 + 0.5 * Math.sin(h.bob); henP.wingR.rotation.z = -henP.wingL.rotation.z; henP.head.rotation.x = -0.2; henP.tail.rotation.x = -0.4; return;
+    }
     if (d < ALARM_RADIUS && S.speedN > HEN_ALARM && h.mode !== 'flee') {                            // too fast, too close: she backs away
       fleeFrom(S.pos); h.trust = Math.max(0, h.trust - 14);
       if (h.startleCool <= 0) { h.startleCool = 4; S.counts.startles++; note('You moved too fast: the hen backs away.', 'bad'); shrink(COST.startle, 'Startling the hen'); }
@@ -336,7 +368,7 @@ function create(els, ui) {
     const scale = S.shownSize * FULL;
     // Movement, relative to where the camera looks. Hold Shift to creep.
     const f = new V3(-Math.sin(S.cam.yaw), 0, -Math.cos(S.cam.yaw)), r = new V3(Math.cos(S.cam.yaw), 0, -Math.sin(S.cam.yaw));
-    const dir = new V3().addScaledVector(f, (keys.up ? 1 : 0) - (keys.down ? 1 : 0)).addScaledVector(r, (keys.right ? 1 : 0) - (keys.left ? 1 : 0)); S.creeping = !!keys.creep && !S.sitting;
+    const dir = new V3().addScaledVector(f, (keys.up ? 1 : 0) - (keys.down ? 1 : 0)).addScaledVector(r, (keys.right ? 1 : 0) - (keys.left ? 1 : 0)); S.creeping = S.sneak && !S.sitting; S.running = !!(keys.run || S.runOn) && !S.sitting;
     if (S.sitting && dir.lengthSq() > 0) standUp();
     // The keys set the direction he wants to go (relative to the camera); he turns naturally into it and travels along his heading, so W then S is a
     // turn through 180 degrees, and W with D walks the diagonal.
@@ -344,10 +376,10 @@ function create(els, ui) {
     if (!S.sitting && dir.lengthSq() > 0) {
       dir.normalize(); S.heading = turn(S.heading, Math.atan2(dir.x, dir.z), Math.min(1, dt * 9));
       const off = Math.abs(turn(S.heading, Math.atan2(dir.x, dir.z), 1) - S.heading), ease = clamp(1 - off / Math.PI * 0.8, 0.2, 1);   // slower while still turning round
-      vel.set(Math.sin(S.heading), 0, Math.cos(S.heading)).multiplyScalar((S.creeping ? CREEP : keys.run ? RUN : WALK) * scale * ease);
+      vel.set(Math.sin(S.heading), 0, Math.cos(S.heading)).multiplyScalar((S.running ? RUN : S.creeping ? CREEP : WALK) * scale * ease);
     }
     const before = S.pos.clone(); S.pos.addScaledVector(vel, dt);
-    { const c = SPOT.chair, dx = S.pos.x - c.x, dz = S.pos.z - c.z; if (!S.sitting && Math.abs(dx) < 9 * K && Math.abs(dz) < 8 * K) { if (Math.abs(dx) / (9 * K) > Math.abs(dz) / (8 * K)) S.pos.x = c.x + Math.sign(dx || 1) * 9 * K; else S.pos.z = c.z + Math.sign(dz || 1) * 8 * K; } }   // the chair is solid
+    { const c = SPOT.chair, dx = S.pos.x - c.x, dz = S.pos.z - c.z; if (!S.sitting && Math.abs(dx) < 10 && Math.abs(dz) < 9) { if (Math.abs(dx) / 10 > Math.abs(dz) / 9) S.pos.x = c.x + Math.sign(dx || 1) * 10; else S.pos.z = c.z + Math.sign(dz || 1) * 9; } }   // the chair is solid
     for (const [p, rad] of [[SPOT.well, 11 * K], [SPOT.sack, 7 * K], [SPOT.trough, 9 * K]]) { const dd = S.pos.clone().sub(p); dd.y = 0; if (dd.length() < rad) S.pos.copy(p).addScaledVector(dd.normalize(), rad); }
     S.pos.x = clamp(S.pos.x, HALL.x0 + 6, HALL.x1 - 6); S.pos.z = clamp(S.pos.z, HALL.z0 + 6, HALL.z1 - 6);
     S.speedN = vel.length() / scale;
@@ -378,15 +410,19 @@ function create(els, ui) {
     // Hints.
     S.hint = '';
     const floorItem = ['broom', 'bucket'].find(n => S.items[n].where === 'floor' && near(itemPos(n), 12));
+    const dh = S.hen.pos.distanceTo(S.pos);
     if (S.sitting) S.hint = 'E or move: stand up';
-    else if (floorItem && !S.holding) S.hint = `E: pick up the ${floorItem}`;
-    else if (near(SPOT.chair, 13 * K) && !S.holding) S.hint = 'E: sit on the chair';
-    else if (near(SPOT.rack)) S.hint = S.holding === 'broom' ? 'E: hang up the broom' : S.holding ? '' : S.items.broom.where === 'home' ? 'E: take the broom' : '';
-    else if (near(SPOT.sack)) S.hint = S.holding === 'grain' ? 'E: put the grain back' : S.holding ? '' : 'E: scoop grain';
-    else if (near(SPOT.dish, 14)) S.hint = S.holding === 'grain' ? 'E: fill the dish' : '';
-    else if (near(SPOT.well, 14)) S.hint = S.holding === 'bucket' ? 'E: put the bucket back' : S.holding ? '' : S.items.bucket.where === 'home' ? 'E: fill the bucket' : '';
-    else if (near(SPOT.trough, 14)) S.hint = S.holding === 'bucket' ? 'E: pour the water in' : '';
-    else if (S.hen.pos.distanceTo(S.pos) < 14 && S.hen.trust >= 100 && !S.chores.trust) S.hint = 'E: stroke the hen';
+    else if (S.holding === 'hen') S.hint = 'E: put the hen down';
+    else if (S.holding === 'broom') S.hint = near(SPOT.rack) ? 'E: hang up the broom · Space (hold): sweep' : 'Space (hold): sweep · E: drop it';
+    else if (S.holding === 'grain') S.hint = near(SPOT.dish, 14) ? 'Space: fill the dish' : near(SPOT.sack) ? 'E: put the grain back' : 'Take it to her dish (Space pours it out)';
+    else if (S.holding === 'bucket') S.hint = near(SPOT.trough, 19) ? 'Space: pour the water in' : near(SPOT.well, 21) ? (S.water < 100 ? 'Space: fill the bucket · E: set it down' : 'E: set the bucket down') : 'Sneak (C) to carry it; Space pours it out';
+    else if (dh < 14 && S.hen.trust >= 100 && !S.chores.trust) S.hint = 'Space: stroke the hen';
+    else if (dh < 14) S.hint = 'E: pick up the hen';
+    else if (floorItem) S.hint = `E: pick up the ${floorItem}`;
+    else if (near(SPOT.chair, 18)) S.hint = 'E: sit on the chair';
+    else if (near(SPOT.rack)) S.hint = S.items.broom.where === 'home' ? 'E: take the broom' : '';
+    else if (near(SPOT.sack)) S.hint = 'E: scoop grain';
+    else if (near(SPOT.well, 21)) S.hint = S.items.bucket.where === 'home' ? 'E: take the bucket' : '';
     // End of the job: when everything is done (and tidy), or the clock runs out.
     const done = CHORES.every(c => S.chores[c]);
     if (done && !S.doneAt) { S.doneAt = S.t; note('All done. Gerda will be back any moment… (or call her with G)'); }
@@ -396,7 +432,7 @@ function create(els, ui) {
   // ── Characters on screen ───────────────────────────────────────────────────────────────────────────────────────────────────────────
   function poseJack(dt) {
     S.shownSize += (S.size - S.shownSize) * Math.min(1, dt * 5); const sc = S.shownSize * FULL;
-    jackG.position.copy(S.pos); if (S.sitting) { jackG.position.y = CHAIR_SEAT - 4 * sc; jackG.position.z = SPOT.chair.z + 6 * K - 1.5 - 6 * sc; }   // (knees at the seat's front edge, shins hanging free)
+    jackG.position.copy(S.pos); if (S.sitting) { jackG.position.y = CHAIR_SEAT - 4 * sc; jackG.position.z = SPOT.chair.z + B.CHAIR.front - 1.5 - 6 * sc; }   // (knees at the seat's front edge, shins hanging free)
     jack.root.scale.setScalar(sc); jack.root.rotation.y = turn(jack.root.rotation.y, S.heading, Math.min(1, dt * 12));
     carrier.scale.setScalar(K / sc);                                                       // (the broom and bucket stay the room's size)
     const patient = clamp((S.size - 0.5) / 0.45, 0, 1);                                      // 95%+ is fully patient, 50% kicks his feet playfully
@@ -404,7 +440,7 @@ function create(els, ui) {
     jack.walk.kick = S.sitting ? (1 - patient) * 0.9 : 0; jack.walk.t += dt * (1.6 - 0.6 * patient);
     const moving = S.speedN > 0.5; S.phaseWalk += dt * (S.speedN * 0.42);
     jack.walk.sw = moving ? Math.sin(S.phaseWalk) * 0.65 : 0; jack.walk.arm = moving ? Math.sin(S.phaseWalk) * 0.55 : 0;
-    jack.walk.carry = lerp(jack.walk.carry, S.holding === 'bucket' || S.holding === 'grain' ? 1 : S.holding === 'broom' ? 0.8 : 0, Math.min(1, dt * 8));
+    jack.walk.carry = lerp(jack.walk.carry, S.holding === 'bucket' || S.holding === 'grain' || S.holding === 'hen' ? 1 : S.holding === 'broom' ? 0.8 : 0, Math.min(1, dt * 8));
     if (S.sweeping) { jack.walk.arm = 0; carryBroom.rotation.z = Math.sin(S.t * 14) * 0.35; } else carryBroom.rotation.z = 0;
     if (jack.walk.clap > 0) { jack.walk.clap += dt; if (jack.walk.clap > 0.45) jack.walk.clap = 0; }
     if (S.holding === 'bucket') { const w = carryBucket.userData.water; w.scale.y = Math.max(0.01, S.water / 100); w.visible = S.water > 2; }
@@ -422,6 +458,7 @@ function create(els, ui) {
     if (S.phase !== 'play') return;
     if (S.sitting) standUp();
     S.phase = 'return'; S.sweeping = false; S.speedN = 0;
+    if (S.holding === 'hen') releaseHen();
     if (S.holding === 'broom' || S.holding === 'bucket') { const w = S.holding; setHeld(null); S.water = 0; placeItem(w, 'floor'); } else setHeld(null);   // whatever he holds is set down where he stands
     for (const c of CHORES) if (!S.chores[c]) S.counts.unfinished++;
     if (S.counts.unfinished) shrink(COST.unfinished * S.counts.unfinished, `${S.counts.unfinished} chore${S.counts.unfinished > 1 ? 's' : ''} left undone`);
@@ -580,7 +617,8 @@ function create(els, ui) {
   return {
     frame, S, shrink, redWord, keys, COST, SIZE_MIN, resize, jack, gerda, hen: S.hen, props, patches, prints,
     lapRef: () => lap, view: n => lap && lap.view(n),
-    interact, clap, putDown, setHeld, callGerda,
+    interact, clap, spaceAction, toggleSneak, toggleRun, setHeld, callGerda,
+    act(name, down) { if (name === 'space') { if (down) { keys.sweep = true; spaceAction(); } else keys.sweep = false; } else if (name === 'interact') interact(); else if (name === 'sneak') toggleSneak(); else if (name === 'run') toggleRun(); else if (name === 'call') callGerda(); },
     debug: { finishAll() { for (const c of CHORES) S.chores[c] = true; S.hen.trust = 100; patches.forEach(p => p.amount = 0); props.grain.visible = props.water.visible = true; }, answer, askHowItWent, beginReturn, buildPlan, startDiscipline },
   };
 }
