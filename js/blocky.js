@@ -166,7 +166,7 @@ function paintJackInto(k, st) {
     // buildCharacter), and the thigh above shows drawers; with the drawers down too, the thigh is bare to row 1 and they bunch on rows 2-3.
     for (const [leg, cheek] of [['rLeg', 'R'], ['lLeg', 'L']]) {
       k.all(leg, C.trousers);
-      k.band(leg, C.trousersDk, 6, 1); k.fill(leg, 'bottom', C.sole); k.fill(leg, 'top', C.trousersDk);
+      k.band(leg, C.trousersDk, 6, 1); k.fill(leg, 'bottom', C.sole); k.fill(leg, 'top', C.trousers);
       k.band(leg, C.boot, 8, 4); k.band(leg, C.bootHi, 8, 1); k.band(leg, C.sole, 11, 1);
       if (fine) { k.fill(leg, 'right', C.stitch, 1, 0, 1, 6); k.fill(leg, 'left', C.stitch, 2, 0, 1, 6); }   // a gold seam down the outside of each leg
       else { k.fill(leg, 'front', C.patch, 1, 2, 2, 2); k.px(leg, 'front', 1, 2, C.stitch); k.px(leg, 'front', 2, 3, C.stitch); }
@@ -178,7 +178,7 @@ function paintJackInto(k, st) {
           if (w === 'skin') bare.push([leg, 'back', 0, r, 4, 1, cheek]);
         }
         for (const f of SIDES) k.fill(leg, f, C.trousersDk, 0, 5, undefined, 1);
-        k.fill(leg, 'top', C.seat);
+        k.fill(leg, 'top', colourOf(legRow(0)));          // (the top of the thigh matches the clothes on the same row)
         if (drawersDown) for (const f of SIDES) k.fill(leg, f, C.drawersSh, 0, 3, undefined, 1);
       }
     }
@@ -209,7 +209,7 @@ function paintJackInto(k, st) {
     for (const [leg, cheek] of [['rLeg', 'R'], ['lLeg', 'L']]) {
       k.all(leg, C.skin);
       k.band(leg, C.skinHi, 1, 1); k.band(leg, C.line || '#d6a888', 6, 1); k.band(leg, C.skinSh, 10, 1);
-      k.fill(leg, 'top', C.trousersDk); k.fill(leg, 'bottom', C.skinSh);
+      k.fill(leg, 'top', C.trousers); k.fill(leg, 'bottom', C.skinSh);
       k.fill(leg, 'front', C.skinSh, 0, 11, undefined, 1); k.px(leg, 'front', 0, 11, C.skin); k.px(leg, 'front', 3, 11, C.skin); k.px(leg, 'front', 1, 11, C.skinHi); k.px(leg, 'front', 2, 11, C.skinHi);   // toes
       if (!down) {
         for (const f of SIDES) { k.fill(leg, f, C.trousers, 0, 0, undefined, T.sE + 1); k.fill(leg, f, C.trousersDk, 0, T.sE, undefined, 1); }
@@ -221,10 +221,10 @@ function paintJackInto(k, st) {
         }
         for (const f of SIDES) { k.fill(leg, f, C.trousers, 0, 4, undefined, 1); k.fill(leg, f, C.trousersDk, 0, 5, undefined, 1); }
         k.px(leg, 'front', 1, 6, C.trousersDk);          // (the band over the knee takes its colour from here)
-        k.fill(leg, 'top', C.seat);
+        k.fill(leg, 'top', colourOf(legRow(0)));
         if (drawersDown) for (const f of SIDES) k.fill(leg, f, C.drawersSh, 0, 3, undefined, 1);
       }
-      if (!st.hitched) { const o = sideOuter(leg); for (const f of SIDES) { k.fill(o, f, T.base, 0, 0, undefined, 2); k.fill(o, f, T.dk, 0, 1, undefined, 1); } }
+      if (!st.hitched) { const o = sideOuter(leg); for (const f of SIDES) { k.fill(o, f, T.base, 0, 0, undefined, 2); k.fill(o, f, T.dk, 0, 1, undefined, 1); } k.fill(o, 'top', T.base); }
     }
   }
   k.grain(1021, 5, [{ x: 8, y: 8, w: 8, h: 8 }]);

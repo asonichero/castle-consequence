@@ -186,7 +186,7 @@ function create(els, ui) {
     chores: { sweep: false, dish: false, water: false, trust: false }, dishFilled: false, troughFilled: false,
     counts: { claps: 0, spills: 0, startles: 0, unfinished: 0, dawdle: 0, litter: 0, tracked: 0 }, lie: false, told: null,
     hen: { pos: new V3(30 * K, 0, 24 * K), target: new V3(30 * K, 0, 24 * K), mode: 'wander', timer: 2, trust: 50, startleCool: 0, heading: 0, bob: 0, settled: false, dirt: 0, stride: 0 },
-    cam: { yaw: 0, pitch: 0.42 }, shrunk: [], hint: '', msg: '',
+    cam: { yaw: 0, pitch: 0.7 }, shrunk: [], hint: '', msg: '',
   };
   const keys = {};
   const note = (text, cls) => { S.log.unshift({ text, cls: cls || '', t: S.t }); if (S.log.length > 6) S.log.pop(); ui.log && ui.log(S.log); };
@@ -338,13 +338,19 @@ function create(els, ui) {
     const f = new V3(-Math.sin(S.cam.yaw), 0, -Math.cos(S.cam.yaw)), r = new V3(Math.cos(S.cam.yaw), 0, -Math.sin(S.cam.yaw));
     const dir = new V3().addScaledVector(f, (keys.up ? 1 : 0) - (keys.down ? 1 : 0)).addScaledVector(r, (keys.right ? 1 : 0) - (keys.left ? 1 : 0)); S.creeping = !!keys.creep && !S.sitting;
     if (S.sitting && dir.lengthSq() > 0) standUp();
-    const vel = !S.sitting && dir.lengthSq() > 0 ? dir.normalize().multiplyScalar((S.creeping ? CREEP : keys.run ? RUN : WALK) * scale) : new V3();
+    // The keys set the direction he wants to go (relative to the camera); he turns naturally into it and travels along his heading, so W then S is a
+    // turn through 180 degrees, and W with D walks the diagonal.
+    let vel = new V3();
+    if (!S.sitting && dir.lengthSq() > 0) {
+      dir.normalize(); S.heading = turn(S.heading, Math.atan2(dir.x, dir.z), Math.min(1, dt * 9));
+      const off = Math.abs(turn(S.heading, Math.atan2(dir.x, dir.z), 1) - S.heading), ease = clamp(1 - off / Math.PI * 0.8, 0.2, 1);   // slower while still turning round
+      vel.set(Math.sin(S.heading), 0, Math.cos(S.heading)).multiplyScalar((S.creeping ? CREEP : keys.run ? RUN : WALK) * scale * ease);
+    }
     const before = S.pos.clone(); S.pos.addScaledVector(vel, dt);
     { const c = SPOT.chair, dx = S.pos.x - c.x, dz = S.pos.z - c.z; if (!S.sitting && Math.abs(dx) < 9 * K && Math.abs(dz) < 8 * K) { if (Math.abs(dx) / (9 * K) > Math.abs(dz) / (8 * K)) S.pos.x = c.x + Math.sign(dx || 1) * 9 * K; else S.pos.z = c.z + Math.sign(dz || 1) * 8 * K; } }   // the chair is solid
     for (const [p, rad] of [[SPOT.well, 11 * K], [SPOT.sack, 7 * K], [SPOT.trough, 9 * K]]) { const dd = S.pos.clone().sub(p); dd.y = 0; if (dd.length() < rad) S.pos.copy(p).addScaledVector(dd.normalize(), rad); }
     S.pos.x = clamp(S.pos.x, HALL.x0 + 6, HALL.x1 - 6); S.pos.z = clamp(S.pos.z, HALL.z0 + 6, HALL.z1 - 6);
     S.speedN = vel.length() / scale;
-    if (vel.lengthSq() > 0.01) S.heading = Math.atan2(vel.x, vel.z);
     // Dirt on his feet: footprints across the clean floor.
     for (const p of patches) if (p.amount > 0.2 && Math.hypot(p.x - S.pos.x, p.z - S.pos.z) < 5.2 * K) S.dirt = 7;
     S.stride += before.distanceTo(S.pos);
@@ -559,7 +565,7 @@ function create(els, ui) {
     // talk it takes in Gerda as well.
     const sc = S.shownSize * FULL, talk = S.phase !== 'play' && gerdaG.visible;
     const at = talk ? S.pos.clone().add(gerdaG.position).multiplyScalar(0.5) : S.pos.clone();
-    const dist = 78 * sc + (talk ? S.pos.distanceTo(gerdaG.position) * 1.1 : 0), lookH = (S.sitting ? CHAIR_SEAT * 0.8 + 12 * sc : 17 * sc) + (talk ? 8 : 0);
+    const dist = 96 * sc + (talk ? S.pos.distanceTo(gerdaG.position) * 1.1 : 0), lookH = (S.sitting ? CHAIR_SEAT * 0.8 + 12 * sc : 17 * sc) + (talk ? 8 : 0);
     const cp = Math.cos(S.cam.pitch), sp = Math.sin(S.cam.pitch);
     const want = new V3(at.x + Math.sin(S.cam.yaw) * cp * dist, lookH + sp * dist, at.z + Math.cos(S.cam.yaw) * cp * dist);
     want.x = clamp(want.x, HALL.x0 + 2, HALL.x1 - 2); want.z = clamp(want.z, HALL.z0 + 2, HALL.z1 - 2); want.y = clamp(want.y, 2, 150);
