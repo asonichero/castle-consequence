@@ -18,12 +18,12 @@ const P = new V3(-0.5, 10, 7), PITCH = -0.05;
 const LEAN = -0.3;             // Gerda sits back in the chair; her straight arm only reaches Jack's rear from there
 const REST = 0.88;             // how near the hand hovers to the rear between smacks (0 = raised, 1 = landed)
 const TIMES = { lift: 0.45, hold: 0.15, strike: 0.09, contact: 0.32, back: 0.3 };
-// Implements: len is how far the tool reaches past the wrist; mark is the engine's weight toward the colour at the contact site; dual
-// lands on both cheeks at once. weight/sting live in the engine's PAIN.implement.
+// Implements: the hand lands with the end of Gerda's arm block; the paddle is a small blade gripped in her fist, running on from the end of
+// the arm, its face toward Jack (she sits further back to reach with it). mark is the engine's weight toward the colour at the contact
+// site; dual lands on both cheeks at once. weight/sting live in the engine's PAIN.implement.
 const IMPL = {
-  hand:      { name: 'Hand',      len: 3,    mark: 1,     dual: false },
-  hairbrush: { name: 'Hairbrush', len: 8,    mark: 5 / 3, dual: false },
-  paddle:    { name: 'Paddle',    len: 10.5, mark: 8 / 3, dual: true },
+  hand:   { name: 'Hand',   mark: 1,     dual: false, lean: -0.3 },
+  paddle: { name: 'Paddle', mark: 8 / 3, dual: true,  lean: -0.58 },
 };
 const BANDS = ['composed', 'flinching', 'struggling', 'close to the edge of resistance', 'past the edge of resistance: most receptive', 'too harsh'];
 
@@ -47,8 +47,8 @@ function create(view, opts) {
   // The chair: a plank seat (top at y = 4, where Gerda's thighs rest) and a straight back.
   const wood = new THREE.MeshLambertMaterial({ color: srgb(0x6a4a2e) });
   const seat = new THREE.Mesh(new THREE.BoxGeometry(14, 4, 12), wood); seat.position.set(0, 2, -0.5); scene.add(seat);
-  const back = new THREE.Mesh(new THREE.BoxGeometry(14, 14, 1.5), wood); back.position.set(0, 11, -7.5); scene.add(back);
-  for (const [x, z] of [[-6, -6], [6, -6]]) { const post = new THREE.Mesh(new THREE.BoxGeometry(1.5, 18, 1.5), wood); post.position.set(x, 9, z - 1.5); scene.add(post); }
+  const back = new THREE.Mesh(new THREE.BoxGeometry(14, 14, 1.5), wood); back.position.set(0, 11, -9.5); scene.add(back);
+  for (const [x, z] of [[-6, -6], [6, -6]]) { const post = new THREE.Mesh(new THREE.BoxGeometry(1.5, 18, 1.5), wood); post.position.set(x, 9, z - 3.5); scene.add(post); }
 
   // ── The cast ────────────────────────────────────────────────────────────────────────────────────────────────────────────
   const gerda = B.makeGerda(), jack = B.makeJack();
@@ -66,21 +66,15 @@ function create(view, opts) {
   const mk = (x, y, z) => { const o = new THREE.Object3D(); o.position.set(x, y, z); jack.torso.add(o); return o; };
   const rear = { L: mk(2, 1.2, -2), R: mk(-2, 1.2, -2), C: mk(0, 1.2, -2) }, upperBack = mk(0, 7, -2);
 
-  // The implement, hinged at Gerda's right wrist.
+  // The paddle: a short handle out of the middle of the end of her right arm (as if in her fist) and a small blade, 6 long in all.
   const tool = new THREE.Group(); tool.position.y = -12; gerda.armR.add(tool);
   const box = (w, h, d, y, color) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color: srgb(color) })); m.position.y = y; return m; };
-  const toolMeshes = {
-    hand: new THREE.Group(), hairbrush: new THREE.Group(), paddle: new THREE.Group(),
-  };
-  toolMeshes.hand.add(box(3, 3, 1.6, -1.5, 0xecc3a0));
-  toolMeshes.hairbrush.add(box(1.4, 4.5, 1.4, -2.25, 0x8a5a2e), box(4, 3.5, 1.2, -6.25, 0x8a5a2e), box(3.2, 2.8, 0.5, -6.25, 0xd8c8a0));
-  toolMeshes.paddle.add(box(1.4, 4, 1.4, -2, 0x7a4e26), box(5, 6.5, 1.2, -7.25, 0x9a6a38));
-  for (const k in toolMeshes) { tool.add(toolMeshes[k]); toolMeshes[k].visible = k === 'hand'; }
+  const paddle = new THREE.Group(); paddle.add(box(1.4, 1.5, 1.4, -0.75, 0x7a4e26), box(4, 4.5, 1.1, -3.75, 0x9a6a38)); paddle.visible = false; tool.add(paddle);
 
   // ── The session ─────────────────────────────────────────────────────────────────────────────────────────────────────────
   const pain = S.createPain({ tolerance: 0.45, resilience: 0.5 });
   const st = {
-    implement: 'hand', pace: 1, strength: 1, side: 'alt', nextSide: 'R',
+    lean: IMPL.hand.lean, implement: 'hand', pace: 1, strength: 1, side: 'alt', nextSide: 'R',
     trousers: 'up', drawers: 'up', marks: { L: 0, R: 0 }, expr: 0,
     hits: 0, ended: false, red: false, peak: 0, swing: null, runLeft: 0, gap: 0, sound: true, last: null,
   };
@@ -153,29 +147,33 @@ function create(view, opts) {
     tmpA.copy(dirWorld).normalize().applyQuaternion(tmpQ);
     obj.quaternion.setFromUnitVectors(DOWN, tmpA);
   };
-  const ARM = 12;
 
   gerda.after = function (g) {
-    g.torso.rotation.x = LEAN; g.neck.rotation.x = 0.55;
+    g.torso.rotation.x = st.lean; g.neck.rotation.x = 0.55;
     g.root.updateMatrixWorld(true);
     // Left hand rests on Jack's back.
     const sL = world(g.armL), tL = world(upperBack);
     aim(g.armL, tmpB.copy(tL).sub(sL));
-    // Right arm: a straight arm from the shoulder, the implement hinged at the wrist, landing on the chosen cheek.
-    const sw = st.swing, side = sw ? sw.side : (IMPL[st.implement].dual ? 'C' : st.side === 'alt' ? st.nextSide : st.side);
-    const impl = IMPL[st.implement], tau = sw ? sw.tau : REST;
+    // Right arm: a straight block from the shoulder. The hand lands with the end of it; the paddle's blade lies on from there, face down on him.
+    const sw = st.swing, impl = IMPL[st.implement];
+    const side = sw ? sw.side : (impl.dual ? 'C' : st.side === 'alt' ? st.nextSide : st.side);
+    const tau = sw ? sw.tau : REST;
     const sh = world(g.armR), T = world(rear[side]);
-    const a = T.clone().sub(sh), d = Math.max(0.01, a.length()); a.divideScalar(d);
-    const x = clamp((d * d + ARM * ARM - impl.len * impl.len) / (2 * d), -ARM, ARM), h = Math.sqrt(Math.max(0, ARM * ARM - x * x));
-    const up = UP.clone().addScaledVector(a, -UP.dot(a)).normalize();
-    const hc = sh.clone().addScaledVector(a, x).addScaledVector(up, h);
-    const armC = hc.clone().sub(sh).normalize(), toolC = T.clone().sub(hc).normalize();
-    const armR = a.clone().multiplyScalar(0.35).addScaledVector(UP, 0.9).normalize(), toolR = UP.clone().multiplyScalar(0.55).addScaledVector(a, -0.6).normalize();
-    const armD = armR.clone().lerp(armC, tau).normalize(), toolD = toolR.clone().lerp(toolC, tau).normalize();
-    aim(g.armR, armD);
-    g.armR.updateMatrixWorld(true);
-    g.armR.getWorldQuaternion(tmpQ2).invert();
-    tool.quaternion.setFromUnitVectors(DOWN, toolD.clone().applyQuaternion(tmpQ2));
+    if (impl.dual) T.y += 0.55;                  // the blade's middle plane stands half its thickness off his skin
+    const d = T.clone().sub(sh), u = d.clone().normalize();
+    const raised = u.clone().multiplyScalar(0.35).addScaledVector(UP, 0.9).normalize();
+    const dir = raised.lerp(u, tau).normalize();
+    aim(g.armR, dir);
+    paddle.visible = impl.dual;
+    if (impl.dual) {
+      // Roll the blade about the arm's axis so its face looks toward Jack: forward as it is raised, down onto him as it lands.
+      const want = new V3(0, -tau, 0).addScaledVector(u, 1 - tau); want.addScaledVector(dir, -want.dot(dir));
+      if (want.lengthSq() < 1e-4) want.copy(UP).negate().addScaledVector(dir, dir.y);
+      want.normalize();
+      g.armR.updateMatrixWorld(true);
+      const zw = new V3(0, 0, 1).applyQuaternion(g.armR.getWorldQuaternion(tmpQ2));
+      tool.quaternion.setFromAxisAngle(new V3(0, 1, 0), Math.atan2(zw.clone().cross(want).dot(dir.clone().negate()), zw.dot(want)));
+    }
   };
   jack.after = function (j) {
     const k = J.kick, d = clamp(pain.distress(), 0, 1.5), w = Math.sin(J.t * 9) * 0.05 * Math.min(1, d) + Math.sin(J.t * 5.3) * 0.03 * Math.min(1, d);
@@ -206,6 +204,7 @@ function create(view, opts) {
   }
   function update(dt) {
     J.t += dt; J.kick *= Math.exp(-dt * 4.5);
+    st.lean += (IMPL[st.implement].lean - st.lean) * Math.min(1, dt * 3);   // she sits back further to reach with the paddle
     if (st.swing) advance(dt);
     else if (st.runLeft > 0 && canStrike()) { st.gap -= dt; if (st.gap <= 0) { smack(); st.runLeft--; } }
     pain.update(dt, !!(st.swing && st.swing.phase === 'contact'));
@@ -240,7 +239,7 @@ function create(view, opts) {
     red() { if (st.ended) return; st.ended = true; st.red = true; st.runLeft = 0; st.swing = null; say('end', { red: true, hits: st.hits, peak: st.peak }); },
     reset() { pain.reset(); Object.assign(st, { hits: 0, ended: false, red: false, peak: 0, swing: null, runLeft: 0, marks: { L: 0, R: 0 }, last: null }); J.kick = 0; dirty = true; say('reset', {}); },
     clearMarks() { st.marks = { L: 0, R: 0 }; dirty = true; },
-    implement(name) { if (!IMPL[name] || st.swing) return; st.implement = name; for (const k in toolMeshes) toolMeshes[k].visible = k === name; },
+    implement(name) { if (!IMPL[name] || st.swing) return; st.implement = name; },
     layers(o) { Object.assign(st, o); dirty = true; },
     canStrike, bandIndex, bandName: () => BANDS[bandIndex()],
     info: () => ({ distress: pain.distress(), band: BANDS[bandIndex()], hits: st.hits, peak: st.peak, ended: st.ended, red: st.red, tooHarsh: pain.tooHarsh, busy: !!st.swing, running: st.runLeft > 0, marks: st.marks, receptivity: pain.receptivity() }),

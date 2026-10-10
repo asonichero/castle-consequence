@@ -178,12 +178,12 @@ game's own, ported:
   hold on the skin (which keeps stinging).
 - The engine's **pain model** (`Starlight.createPain`, from `starlight-engine.js`) turns each smack into Jack's **distress**; its bands (composed, flinching, struggling, close to
   the edge, past it, too harsh) drive his kicks and wriggling and his face (four expressions, repainted into his skin). At 1.5 it is too harsh and nothing more is struck.
-- **Implements**: hand, hairbrush, paddle (the paddle lands on both cheeks at once), each with the engine's weight and sting.
+- **Implements**: the hand (landed with the end of Gerda's arm block) and a small paddle gripped in her fist, face toward Jack, landing on both cheeks at once; each with the engine's weight and sting. (She sits back further for the paddle.)
 - **Clothes**: trousers up or down, and drawers up or down (with the trousers down). Cloth over the rear cushions the sting only, as in the engine.
 - **Marks**: the bare rear colours up with the smacks, cheek by cheek, and tender skin hurts more.
 - **Red**: the safe word stops everything at once.
 - Cameras: Overview, Behind, Over your shoulder (Gerda's view), Face; drag to orbit as well.
 
-Gerda's arm is one straight block, so the swing is solved geometrically: a two-segment reach (arm, then the implement hinged at the wrist) from her shoulder to the cheek being struck.
+Gerda's arm is one straight block, so the swing is solved geometrically: the arm is aimed from her shoulder at the cheek being struck (the paddle is rigid along it).
 Jack is full size here; the shrinking premise comes with the levels.
 
