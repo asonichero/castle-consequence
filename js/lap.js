@@ -17,15 +17,15 @@ const srgb = hex => new THREE.Color(hex).convertSRGBToLinear();
 const P = new V3(-6, 10, 5), PITCH = -0.05;   // hip joint: his torso's centre (6 up from it) is over the centre of her thighs (x 0, z 3)
 const REST = 0.88;             // how near the hand hovers to the rear between smacks (0 = raised, 1 = landed)
 const TIMES = { lift: 0.45, hold: 0.15, strike: 0.09, contact: 0.32, back: 0.3 };
-// Implements: the hand lands with the end of Gerda's arm block; the paddle is a small blade gripped in her fist, running on from the end of
-// the arm, its face toward Jack (she sits further back to reach with it). mark is the engine's weight toward the colour at the contact
-// site; dual lands on both cheeks at once. weight/sting live in the engine's PAIN.implement.
+// Implements: the hand lands with the end of Gerda's arm block, on the middle of his rear. The paddle is a small rounded blade held out from the
+// right-hand face of her arm block (the side facing her right) with its face down, so it lies across one cheek at a time.
+// mark is the engine's weight toward the colour at the contact site; weight/sting live in the engine's PAIN.implement.
 const IMPL = {
-  hand:   { name: 'Hand',   mark: 1,     dual: false, reach: 12 },
-  paddle: { name: 'Paddle', mark: 8 / 3, dual: true,  reach: 13 },
+  hand:   { name: 'Hand',   mark: 1,     paddle: false },
+  paddle: { name: 'Paddle', mark: 8 / 3, paddle: true },
 };
 const LEAN = -0.75;              // how far back she sits (fixed: she twists, not leans, to reach)
-const TWIST = [-1.0, 0.3];       // the range of her twist (her right shoulder going back is negative)
+const TWIST = [-1.0, 0.5];       // the range of her twist (her right shoulder going back is negative)
 const BANDS = ['composed', 'flinching', 'struggling', 'close to the edge of resistance', 'past the edge of resistance: most receptive', 'too harsh'];
 
 function create(view, opts) {
@@ -70,12 +70,24 @@ function create(view, opts) {
   glutesTilt.add(glutes.mesh); jack.hips.add(glutesTilt);
   // Where the hand lands: points on the back of Jack's hips (his left cheek is the nearer, world −z side), and the middle of his back.
   const mk = (x, y, z, parent) => { const o = new THREE.Object3D(); o.position.set(x, y, z); (parent || jack.torso).add(o); return o; };
-  const rear = { C: mk(0, -2.4, -0.05, glutesTilt) }, upperBack = mk(0, 10, -2);
+  const rear = { L: mk(2, -2.4, -0.05, glutesTilt), R: mk(-2, -2.4, -0.05, glutesTilt), C: mk(0, -2.4, -0.05, glutesTilt) }, upperBack = mk(0, 10, -2);
 
-  // The paddle: a short handle out of the middle of the end of her right arm (as if in her fist) and a small blade, 6 long in all (the blade begins 1 past the arm).
-  const tool = new THREE.Group(); tool.position.y = -10; gerda.armR.add(tool);
-  const box = (w, h, d, y, color) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color: srgb(color) })); m.position.y = y; return m; };
-  const paddle = new THREE.Group(); paddle.add(box(1.4, 1, 1.4, -0.5, 0x7a4e26), box(4, 5, 1.1, -3.5, 0x9a6a38)); paddle.visible = false; tool.add(paddle);
+  // The paddle: a short round handle out of the middle of the right-hand face of her arm block (the side facing her right, -x in the arm's own
+  // frame, near its end) and a small blade with rounded corners, lying along that direction with its face down at the contact, its width along
+  // the arm, across one cheek. Tool-local, the paddle runs along -y; the tool group is turned a quarter so that it runs along the arm's -x.
+  const HANDLE = 1.2, BLADE_L = 4.5, BLADE_W = 4;
+  const PAD_ARM = 9.2, PAD_SIDE = 1.5 + HANDLE + BLADE_L / 2;   // how far along the arm the paddle springs, and how far its blade's middle stands out to the side
+  const tool = new THREE.Group(); tool.position.set(-1.5, -PAD_ARM, 0); tool.rotation.z = -Math.PI / 2; gerda.armR.add(tool);
+  const woodMat = c => new THREE.MeshLambertMaterial({ color: srgb(c) });
+  const paddle = new THREE.Group(); paddle.visible = false; tool.add(paddle);
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.65, HANDLE + 0.2, 12), woodMat(0x7a4e26)); handle.position.y = -(HANDLE + 0.2) / 2; paddle.add(handle);
+  {
+    const w = BLADE_W, l = BLADE_L, rad = 1.2, x0 = -w / 2, x1 = w / 2, y1 = -HANDLE, y0 = y1 - l, sh = new THREE.Shape();
+    sh.moveTo(x0 + rad, y0); sh.lineTo(x1 - rad, y0); sh.quadraticCurveTo(x1, y0, x1, y0 + rad); sh.lineTo(x1, y1 - rad); sh.quadraticCurveTo(x1, y1, x1 - rad, y1);
+    sh.lineTo(x0 + rad, y1); sh.quadraticCurveTo(x0, y1, x0, y1 - rad); sh.lineTo(x0, y0 + rad); sh.quadraticCurveTo(x0, y0, x0 + rad, y0);
+    const g = new THREE.ExtrudeGeometry(sh, { depth: 0.8, bevelEnabled: true, bevelThickness: 0.15, bevelSize: 0.15, bevelSegments: 2, curveSegments: 8 });
+    g.translate(0, 0, -0.4); paddle.add(new THREE.Mesh(g, woodMat(0x9a6a38)));
+  }
 
   // ── The session ─────────────────────────────────────────────────────────────────────────────────────────────────────────
   const pain = S.createPain({ tolerance: 0.45, resilience: 0.5 });
@@ -116,7 +128,6 @@ function create(view, opts) {
   function smack() {
     if (!canStrike() || st.swing) return false;
     let side = st.side === 'alt' ? st.nextSide : st.side;
-    if (IMPL[st.implement].dual) side = 'C';
     st.swing = { phase: 'lift', t: 0, side, waited: 0, tau: REST };
     if (st.side === 'alt') st.nextSide = st.nextSide === 'R' ? 'L' : 'R';
     return true;
@@ -208,8 +219,11 @@ function create(view, opts) {
 
   gerda.after = function (g) {
     const gw = gerdaWeights(), sw = st.swing, impl = IMPL[st.implement], tau = sw ? sw.tau : REST;
-    // Where she lands: the middle of his rear (the paddle's middle plane stands half its thickness off his skin).
-    const T = world(rear.C); if (impl.dual) T.y += 0.55;
+    // Where she lands. The hand: the middle of his rear. The paddle: the middle of one cheek (its blade's middle stands out to the side of the arm, and
+    // half its thickness off his skin), so the arm itself comes down PAD_SIDE to the inside of it (toward his head), and only PAD_ARM of the arm is in play.
+    const padSide = sw ? sw.side : (st.side === 'alt' ? st.nextSide : st.side);
+    const T = world(rear[impl.paddle ? padSide : 'C']); if (impl.paddle) { T.y += 0.4; T.x += PAD_SIDE; }
+    const ARMEFF = impl.paddle ? PAD_ARM : ARM;
     // Her arm is one straight block, so she twists her upper body (right shoulder back, no leaning) until the arm's end reaches the plane of his
     // rear as close as it can come to the middle of it. The shoulder is evaluated with her edits included.
     const tq = new THREE.Quaternion(), tv = new V3(), sv = new V3(), tEdit = editFor('gerda', 'torso', gw), tBase = basePos.get(g.torso);
@@ -217,10 +231,10 @@ function create(view, opts) {
       tq.setFromEuler(eul.set(LEAN, yaw, 0, 'YXZ')); if (tEdit) tq.multiply(tEdit.q);
       tv.copy(tBase); if (tEdit) tv.x += tEdit.p[0], tv.y += tEdit.p[1], tv.z += tEdit.p[2];
       sv.copy(g.hips.position).add(tv).add(shoulderLocal.clone().applyQuaternion(tq));
-      const dy = sv.y - T.y, rho = Math.sqrt(Math.max(0, ARM * ARM - dy * dy));
+      const dy = sv.y - T.y, rho = Math.sqrt(Math.max(0, ARMEFF * ARMEFF - dy * dy));
       return rho - Math.hypot(T.x - sv.x, T.z - sv.z);          // > 0: the arm would overshoot the middle; < 0: fall short of it
     };
-    const range = impl.dual ? TWIST : [0, 0];                   // only the paddle needs her to twist; the hand lands with her facing forward
+    const range = impl.paddle ? TWIST : [0, 0];                   // only the paddle needs her to twist; the hand lands with her facing forward
     let lo = range[0], hi = range[1];                           // the gap falls as she twists back (the shoulder moves away)
     for (let i = 0; i < 14; i++) { const mid = (lo + hi) / 2; if (reachGap(mid) > 0) hi = mid; else lo = mid; }
     const yawT = clamp((lo + hi) / 2, range[0], range[1]);
@@ -232,23 +246,26 @@ function create(view, opts) {
     const sL = world(g.armL), tL = world(upperBack);
     aim(g.armL, tmpB.copy(tL).sub(sL)); applyEdits('gerda', ['armL'], gw);
     // Right arm: a straight block from the shoulder, the paddle rigid on the end of it. Its end comes down on the plane of his rear.
-    const sh = world(g.armR), dy = sh.y - T.y, rho = Math.sqrt(Math.max(0, ARM * ARM - dy * dy));
+    const sh = world(g.armR), dy = sh.y - T.y, rho = Math.sqrt(Math.max(0, ARMEFF * ARMEFF - dy * dy));
     const hz = new V3(T.x - sh.x, 0, T.z - sh.z).normalize(), E = new V3(sh.x + hz.x * rho, T.y, sh.z + hz.z * rho);
     const d = E.clone().sub(sh), u = d.clone().normalize();
     const raised = u.clone().multiplyScalar(0.35).addScaledVector(UP, 0.9).normalize();
     const dir = raised.lerp(u, tau).normalize();
-    aim(g.armR, dir); applyEdits('gerda', ['armR'], gw);
-    paddle.visible = impl.dual;
-    if (impl.dual) {
-      // Roll the blade about the arm's axis so its face looks toward Jack: forward as it is raised, down onto him as it lands.
-      const want = new V3(0, -tau, 0).addScaledVector(u, 1 - tau); want.addScaledVector(dir, -want.dot(dir));
-      if (want.lengthSq() < 1e-4) want.copy(UP).negate().addScaledVector(dir, dir.y);
-      want.normalize();
+    aim(g.armR, dir);
+    paddle.visible = impl.paddle;
+    if (impl.paddle) {
+      // Roll the arm about its own axis so the blade lies out to the right (world -x) with its face down: its -x face toward the world's -x.
       g.armR.updateMatrixWorld(true);
-      const zw = new V3(0, 0, 1).applyQuaternion(g.armR.getWorldQuaternion(tmpQ2));
-      tool.quaternion.setFromAxisAngle(new V3(0, 1, 0), Math.atan2(zw.clone().cross(want).dot(dir.clone().negate()), zw.dot(want)));
-      applyEdits('gerda', ['paddle'], gw);
+      const xw = new V3(-1, 0, 0).applyQuaternion(g.armR.getWorldQuaternion(tmpQ2)), want = new V3(-1, 0, 0).addScaledVector(dir, dir.x);
+      if (want.lengthSq() > 1e-4) {
+        want.normalize();
+        const ang = Math.atan2(xw.clone().cross(want).dot(dir), xw.dot(want));
+        g.armR.parent.getWorldQuaternion(tmpQ).invert();
+        g.armR.quaternion.premultiply(tmpQ2.setFromAxisAngle(dir.clone().applyQuaternion(tmpQ), ang));
+      }
     }
+    applyEdits('gerda', ['armR'], gw);
+    if (impl.paddle) applyEdits('gerda', ['paddle'], gw);
   };
   jack.after = function (j) {
     const k = J.kick, d = clamp(pain.distress(), 0, 1.5), w = Math.sin(J.t * 9) * 0.05 * Math.min(1, d) + Math.sin(J.t * 5.3) * 0.03 * Math.min(1, d);

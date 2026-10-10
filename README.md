@@ -178,7 +178,7 @@ game's own, ported:
   hold on the skin (which keeps stinging).
 - The engine's **pain model** (`Starlight.createPain`, from `starlight-engine.js`) turns each smack into Jack's **distress**; its bands (composed, flinching, struggling, close to
   the edge, past it, too harsh) drive his kicks and wriggling and his face (four expressions, repainted into his skin). At 1.5 it is too harsh and nothing more is struck.
-- **Implements**: the hand (landed with the end of Gerda's arm block) and a small paddle gripped in her fist, face toward Jack, landing on both cheeks at once; each with the engine's weight and sting. 
+- **Implements**: the hand (landed with the end of Gerda's arm block, on the middle of his rear) and a small rounded paddle held out from the right-hand face of her arm block, face down, landing on one cheek at a time (it alternates with the hand's colour); each with the engine's weight and sting. 
 - **Clothes**: trousers up or down, and drawers up or down (with the trousers down). Cloth over the rear cushions the sting only, as in the engine.
 - **Marks**: the bare rear colours up with the smacks, cheek by cheek, and tender skin hurts more.
 - **Red**: the safe word stops everything at once.
