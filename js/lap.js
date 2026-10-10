@@ -176,8 +176,15 @@ function create(view, opts) {
   // ── Pose edits (js/lap-poses.js): offsets on top of the procedural pose, per beat, applied bone by bone ───────────────────────────────────
   const ARM = 10, shoulderLocal = new V3(-5.5, 10, 0), DEG = Math.PI / 180, eul = new THREE.Euler(0, 0, 0, 'YXZ'), qd = new THREE.Quaternion();
   const edits = JSON.parse(JSON.stringify(root.LapPoses || {}));
-  const BEATS = { gerda: ['rest', 'raised', 'contact', 'contactL', 'contactR'], jack: ['base', 'react'] };
-  for (const w in BEATS) { edits[w] = edits[w] || {}; for (const b of BEATS[w]) edits[w][b] = edits[w][b] || {}; }
+  // Editable poses: Hand { rest, raised, contactL, contactR }, Paddle { rest, raised, contactL, contactR } for Gerda (the contact pose is
+  // per cheek, and per implement), and Jack { base, react }.
+  const GERDA_BEATS = ['rest', 'raised', 'contactL', 'contactR'];
+  const BEATS = { hand: GERDA_BEATS, paddle: GERDA_BEATS, jack: ['base', 'react'] };
+  edits.gerda = edits.gerda || {}; edits.jack = edits.jack || {};
+  for (const w of ['hand', 'paddle']) { edits.gerda[w] = edits.gerda[w] || {}; for (const b of GERDA_BEATS) edits.gerda[w][b] = edits.gerda[w][b] || {}; }
+  for (const b of BEATS.jack) edits.jack[b] = edits.jack[b] || {};
+  // The set of edits in force for a figure's bones: Gerda's depend on the implement in hand.
+  const setOf = who => who === 'gerda' ? edits.gerda[st.implement] : edits.jack;
   const BONES = {
     gerda: { torso: gerda.torso, neck: gerda.neck, armL: gerda.armL, armR: gerda.armR, elbowR: gerda.elbow, wristR: gerda.wrist, thighL: gerda.legL.thigh, thighR: gerda.legR.thigh, kneeL: gerda.legL.knee, kneeR: gerda.legR.knee, paddle: tool },
     jack: { frame, torso: jack.torso, neck: jack.neck, glutes: glutesTilt, armL: jack.armL, armR: jack.armR, thighL: jack.legL.thigh, thighR: jack.legR.thigh, kneeL: jack.legL.knee, kneeR: jack.legR.knee },
@@ -196,16 +203,13 @@ function create(view, opts) {
   function editFor(who, n, weights) {
     let any = false; const rr = [0, 0, 0], pp = [0, 0, 0];
     for (const beat in weights) {
-      const e = edits[who][beat] && edits[who][beat][n], wt = weights[beat]; if (!e || !wt) continue;
+      const set = setOf(who), e = set[beat] && set[beat][n], wt = weights[beat]; if (!e || !wt) continue;
       any = true; for (let i = 0; i < 3; i++) { rr[i] += wt * (e.r ? e.r[i] : 0); pp[i] += wt * (e.p ? e.p[i] : 0); }
     }
     return any ? { q: new THREE.Quaternion().setFromEuler(new THREE.Euler(rr[0] * DEG, rr[1] * DEG, rr[2] * DEG, 'YXZ')), p: pp } : null;
   }
-  // (The paddle's own bones, its mount on the forearm and the wrist that carries it, are edited for the paddle and left alone for the hand.)
-  const PADDLE_ONLY = new Set(['paddle', 'wristR']);
   function applyEdits(who, names, weights) {
     for (const n of names) {
-      if (who === 'gerda' && PADDLE_ONLY.has(n) && !IMPL[st.implement].paddle) continue;
       const e = editFor(who, n, weights); if (!e) continue;
       const bone = BONES[who][n];
       bone.userData.proc = bone.quaternion.clone();
@@ -214,10 +218,10 @@ function create(view, opts) {
     }
   }
   // How much of each beat's offsets applies now.
-  // 'contact' is the landed pose for either cheek; 'contactL' and 'contactR' are laid on top of it when the left or right cheek is the one struck.
+  // The landed pose belongs to the cheek being struck: contactL or contactR.
   function gerdaWeights() {
     const w = gerdaBeatWeights(), sw = st.swing;
-    if (sw && w.contact) w[sw.side === 'L' ? 'contactL' : 'contactR'] = w.contact;
+    if (w.contact) { w[sw && sw.side === 'L' ? 'contactL' : 'contactR'] = w.contact; delete w.contact; }
     return w;
   }
   function gerdaBeatWeights() {
@@ -379,35 +383,37 @@ function create(view, opts) {
   // ── Public ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
   // The pose editor's interface (the page builds the controls): preview only, nothing is stored; report() prints the file to paste back.
   const round = v => Math.round(v * 10) / 10;
+  // who: 'hand', 'paddle' (Gerda with that implement) or 'jack'.
+  const figure = who => who === 'jack' ? 'jack' : 'gerda', setFor = who => who === 'jack' ? edits.jack : edits.gerda[who];
   const editor = {
-    beats: BEATS, bones: who => Object.keys(BONES[who]),
-    get(who, beat, bone) { const e = edits[who][beat][bone] || {}; return { r: (e.r || [0, 0, 0]).slice(), p: (e.p || [0, 0, 0]).slice() }; },
+    beats: BEATS, bones: who => Object.keys(BONES[figure(who)]).filter(n => who !== 'hand' || n !== 'paddle'),
+    get(who, beat, bone) { const e = setFor(who)[beat][bone] || {}; return { r: (e.r || [0, 0, 0]).slice(), p: (e.p || [0, 0, 0]).slice() }; },
     set(who, beat, bone, r, p) {
-      if (r.every(v => !v) && p.every(v => !v)) delete edits[who][beat][bone]; else edits[who][beat][bone] = { r: r.slice(), p: p.slice() };
+      if (r.every(v => !v) && p.every(v => !v)) delete setFor(who)[beat][bone]; else setFor(who)[beat][bone] = { r: r.slice(), p: p.slice() };
     },
-    resetBone(who, beat, bone) { delete edits[who][beat][bone]; },
-    resetBeat(who, beat) { edits[who][beat] = {}; },
-    clear() { for (const w in BEATS) for (const b of BEATS[w]) edits[w][b] = {}; },
-    // Hold the scene at a beat so it can be posed: Gerda's rest, raised or contact; Jack's base or fully reacting.
+    resetBone(who, beat, bone) { delete setFor(who)[beat][bone]; },
+    resetBeat(who, beat) { setFor(who)[beat] = {}; },
+    clear() { for (const w in BEATS) for (const b of BEATS[w]) setFor(w)[b] = {}; },
+    // Hold the scene at a beat so it can be posed: Gerda's rest, raised, or landed on the left or right cheek (with the hand or the paddle in
+    // hand); Jack's base or fully reacting.
     hold(who, beat) {
-      st.runLeft = 0;
-      if (who === 'gerda') { st.holdKick = null; st.swing = beat === 'rest' ? null : { phase: 'freeze', t: 0, side: beat === 'contactL' ? 'L' : 'R', waited: 0, tau: beat === 'raised' ? 0 : 1 }; }
-      else { st.swing = null; st.holdKick = beat === 'react' ? 1 : 0; }
+      st.runLeft = 0; st.swing = null;
+      if (who !== 'jack') {
+        st.implement = who; st.holdKick = null;
+        if (beat !== 'rest') st.swing = { phase: 'freeze', t: 0, side: beat === 'contactL' ? 'L' : 'R', waited: 0, tau: beat === 'raised' ? 0 : 1 };
+      } else st.holdKick = beat === 'react' ? 1 : 0;
     },
     release() { st.swing = null; st.holdKick = null; },
     report() {
-      const lines = [];
-      for (const w in BEATS) {
-        const beats = BEATS[w].map(b => {
-          const bones = Object.keys(edits[w][b]).map(n => { const e = edits[w][b][n], parts = [];
-            if (e.r && e.r.some(v => v)) parts.push(`r: [${e.r.map(round).join(', ')}]`);
-            if (e.p && e.p.some(v => v)) parts.push(`p: [${e.p.map(round).join(', ')}]`);
-            return `${n}: { ${parts.join(', ')} }`; });
-          return `    ${b}: {${bones.length ? '\n      ' + bones.join(',\n      ') + ',\n    ' : ''}}`;
-        });
-        lines.push(`  ${w}: {\n${beats.join(',\n')},\n  },`);
-      }
-      return `root.LapPoses = {\n${lines.join('\n')}\n};`;
+      const dump = (set, beats, pad) => beats.map(b => {
+        const bones = Object.keys(set[b]).map(n => { const e = set[b][n], parts = [];
+          if (e.r && e.r.some(v => v)) parts.push(`r: [${e.r.map(round).join(', ')}]`);
+          if (e.p && e.p.some(v => v)) parts.push(`p: [${e.p.map(round).join(', ')}]`);
+          return `${n}: { ${parts.join(', ')} }`; });
+        return `${pad}${b}: {${bones.length ? '\n' + pad + '  ' + bones.join(',\n' + pad + '  ') + ',\n' + pad : ''}}`;
+      }).join(',\n');
+      const gerdaOut = ['hand', 'paddle'].map(w => `    ${w}: {\n${dump(edits.gerda[w], GERDA_BEATS, '      ')},\n    }`).join(',\n');
+      return `root.LapPoses = {\n  gerda: {\n${gerdaOut},\n  },\n  jack: {\n${dump(edits.jack, BEATS.jack, '    ')},\n  },\n};`;
     },
   };
   const api = {
