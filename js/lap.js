@@ -175,16 +175,24 @@ function create(view, opts) {
 
   // ── Pose edits (js/lap-poses.js): offsets on top of the procedural pose, per beat, applied bone by bone ───────────────────────────────────
   const ARM = 10, shoulderLocal = new V3(-5.5, 10, 0), DEG = Math.PI / 180, eul = new THREE.Euler(0, 0, 0, 'YXZ'), qd = new THREE.Quaternion();
-  const edits = JSON.parse(JSON.stringify(root.LapPoses || {}));
+  // Two sets of poses, made at different sizes of Jack, 100% and 50%, which the poses blend between as he scales (so the contact sites always work).
+  // The file is { 100: {gerda, jack}, 50: {gerda, jack} } (a file with no sizes is taken for both).
+  const LP = root.LapPoses || {};
+  const EDITS = { 100: JSON.parse(JSON.stringify(LP[100] || (LP.gerda ? LP : {}))), 50: JSON.parse(JSON.stringify(LP[50] || (LP.gerda ? LP : {}))) };
+  const SIZE_MIN = 0.5;                       // below this the poses do not reach (the lower limit of the position)
   // Editable poses: Hand { rest, raised, contactL, contactR }, Paddle { rest, raised, contactL, contactR } for Gerda (the contact pose is
   // per cheek, and per implement), and Jack { base, react }.
   const GERDA_BEATS = ['rest', 'raised', 'contactL', 'contactR'];
   const BEATS = { hand: GERDA_BEATS, paddle: GERDA_BEATS, jack: ['base', 'react'] };
-  edits.gerda = edits.gerda || {}; edits.jack = edits.jack || {};
-  for (const w of ['hand', 'paddle']) { edits.gerda[w] = edits.gerda[w] || {}; for (const b of GERDA_BEATS) edits.gerda[w][b] = edits.gerda[w][b] || {}; }
-  for (const b of BEATS.jack) edits.jack[b] = edits.jack[b] || {};
+  for (const k of [100, 50]) {
+    const e = EDITS[k]; e.gerda = e.gerda || {}; e.jack = e.jack || {};
+    for (const w of ['hand', 'paddle']) { e.gerda[w] = e.gerda[w] || {}; for (const b of GERDA_BEATS) e.gerda[w][b] = e.gerda[w][b] || {}; }
+    for (const b of BEATS.jack) e.jack[b] = e.jack[b] || {};
+  }
+  let editKey = 100;                          // the set the editor is working on (Jack is held at that size while it is open)
+  const sizeT = () => clamp((st.size - SIZE_MIN) / (1 - SIZE_MIN), 0, 1);    // 0 at 50%, 1 at 100%
   // The set of edits in force for a figure's bones: Gerda's depend on the implement in hand.
-  const setOf = who => who === 'gerda' ? edits.gerda[st.implement] : edits.jack;
+  const setOf = (who, key) => who === 'gerda' ? EDITS[key].gerda[st.implement] : EDITS[key].jack;
   const BONES = {
     gerda: { torso: gerda.torso, neck: gerda.neck, armL: gerda.armL, armR: gerda.armR, elbowR: gerda.elbow, wristR: gerda.wrist, thighL: gerda.legL.thigh, thighR: gerda.legR.thigh, kneeL: gerda.legL.knee, kneeR: gerda.legR.knee, paddle: tool },
     jack: { frame, torso: jack.torso, neck: jack.neck, glutes: glutesTilt, armL: jack.armL, armR: jack.armR, thighL: jack.legL.thigh, thighR: jack.legR.thigh, kneeL: jack.legL.knee, kneeR: jack.legR.knee },
@@ -202,9 +210,13 @@ function create(view, opts) {
   // The offsets one bone takes at the given beat weights: a rotation (quaternion) and a position shift, or null if it has none.
   function editFor(who, n, weights) {
     let any = false; const rr = [0, 0, 0], pp = [0, 0, 0];
-    for (const beat in weights) {
-      const set = setOf(who), e = set[beat] && set[beat][n], wt = weights[beat]; if (!e || !wt) continue;
-      any = true; for (let i = 0; i < 3; i++) { rr[i] += wt * (e.r ? e.r[i] : 0); pp[i] += wt * (e.p ? e.p[i] : 0); }
+    const t = sizeT();
+    for (const [key, wk] of [[50, 1 - t], [100, t]]) {            // blend the two sets by Jack's size
+      if (!wk) continue; const set = setOf(who, key);
+      for (const beat in weights) {
+        const e = set[beat] && set[beat][n], wt = weights[beat] * wk; if (!e || !wt) continue;
+        any = true; for (let i = 0; i < 3; i++) { rr[i] += wt * (e.r ? e.r[i] : 0); pp[i] += wt * (e.p ? e.p[i] : 0); }
+      }
     }
     return any ? { q: new THREE.Quaternion().setFromEuler(new THREE.Euler(rr[0] * DEG, rr[1] * DEG, rr[2] * DEG, 'YXZ')), p: pp } : null;
   }
@@ -511,7 +523,7 @@ function create(view, opts) {
 
   // who: 'hand', 'paddle' (Gerda with that implement) or 'jack'.
   const cur = { who: 'paddle', beat: 'contactL' };      // what the editor is holding the scene at
-  const figure = who => who === 'jack' ? 'jack' : 'gerda', setFor = who => who === 'jack' ? edits.jack : edits.gerda[who];
+  const figure = who => who === 'jack' ? 'jack' : 'gerda', setFor = who => who === 'jack' ? EDITS[editKey].jack : EDITS[editKey].gerda[who];
   const editor = {
     beats: BEATS, bones: who => Object.keys(BONES[figure(who)]).filter(n => who !== 'hand' || n !== 'paddle'),
     get(who, beat, bone) { const e = setFor(who)[beat][bone] || {}; return { r: (e.r || [0, 0, 0]).slice(), p: (e.p || [0, 0, 0]).slice() }; },
@@ -521,6 +533,7 @@ function create(view, opts) {
     resetBone(who, beat, bone) { delete setFor(who)[beat][bone]; },
     resetBeat(who, beat) { setFor(who)[beat] = {}; },
     clear() { for (const w in BEATS) for (const b of BEATS[w]) setFor(w)[b] = {}; },
+    sizeMin: SIZE_MIN,
     // Hold the scene at a beat so it can be posed: Gerda's rest, raised, or landed on the left or right cheek (with the hand or the paddle in
     // hand); Jack's base or fully reacting.
     hold(who, beat) {
@@ -533,11 +546,13 @@ function create(view, opts) {
     },
     release() { st.swing = null; st.holdKick = null; },
     // Handles in the view: on or off, for Hand/Paddle (Gerda's) or Jack's; which bone is selected; callbacks for a pick and for a change by dragging.
-    handles(on, who) { hs.on = !!on; hs.who = who === 'jack' ? 'jack' : 'gerda'; handleGroup.visible = hs.on; if (!hs.on) { endDrag(); for (const w in HANDLE_DEFS) for (const h of HANDLE_DEFS[w]) h.mesh.visible = false; } },
+    handles(on, who) { hs.on = !!on; if (hs.on) st.size = editKey / 100; hs.who = who === 'jack' ? 'jack' : 'gerda'; handleGroup.visible = hs.on; if (!hs.on) { endDrag(); for (const w in HANDLE_DEFS) for (const h of HANDLE_DEFS[w]) h.mesh.visible = false; } },
     select(bone) { hs.bone = bone; },
     onPick(f) { hs.onPick = f; }, onChange(f) { hs.onChange = f; },
     info: (who, bone) => BONE_INFO[bone] || '',
     handleLabels: who => HANDLE_DEFS[who === 'jack' ? 'jack' : 'gerda'].map(h => ({ bone: h.bone, kind: h.kind, label: h.label })),
+    // Which of the two sets is being edited (100 or 50); Jack is held at that size while the editor is open.
+    sizeKey(k) { if (k === undefined) return editKey; editKey = k === 50 ? 50 : 100; if (hs.on) st.size = editKey / 100; return editKey; },
     report() {
       const dump = (set, beats, pad) => beats.map(b => {
         const bones = Object.keys(set[b]).map(n => { const e = set[b][n], parts = [];
@@ -546,8 +561,11 @@ function create(view, opts) {
           return `${n}: { ${parts.join(', ')} }`; });
         return `${pad}${b}: {${bones.length ? '\n' + pad + '  ' + bones.join(',\n' + pad + '  ') + ',\n' + pad : ''}}`;
       }).join(',\n');
-      const gerdaOut = ['hand', 'paddle'].map(w => `    ${w}: {\n${dump(edits.gerda[w], GERDA_BEATS, '      ')},\n    }`).join(',\n');
-      return `root.LapPoses = {\n  gerda: {\n${gerdaOut},\n  },\n  jack: {\n${dump(edits.jack, BEATS.jack, '    ')},\n  },\n};`;
+      const one = k => {
+        const e = EDITS[k], gerdaOut = ['hand', 'paddle'].map(w => `      ${w}: {\n${dump(e.gerda[w], GERDA_BEATS, '        ')},\n      }`).join(',\n');
+        return `  ${k}: {\n    gerda: {\n${gerdaOut},\n    },\n    jack: {\n${dump(e.jack, BEATS.jack, '      ')},\n    },\n  },`;
+      };
+      return `root.LapPoses = {\n${one(100)}\n${one(50)}\n};`;
     },
   };
   const api = {
@@ -561,7 +579,7 @@ function create(view, opts) {
     end() { if (st.ended) return; st.ended = true; st.runLeft = 0; say('end', { red: false, hits: st.hits, peak: st.peak }); },
     red() { if (st.ended) return; st.ended = true; st.red = true; st.runLeft = 0; st.swing = null; say('end', { red: true, hits: st.hits, peak: st.peak }); },
     reset() { pain.reset(); Object.assign(st, { hits: 0, ended: false, red: false, peak: 0, swing: null, runLeft: 0, marks: { L: 0, R: 0 }, last: null }); J.kick = 0; dirty = true; say('reset', {}); },
-    size(v) { st.size = clamp(v, 0.1, 1); },
+    size(v) { if (!hs.on) st.size = clamp(v, SIZE_MIN, 1); },
     clearMarks() { st.marks = { L: 0, R: 0 }; dirty = true; },
     implement(name) { if (!IMPL[name] || st.swing) return; st.implement = name; },
     layers(o) { Object.assign(st, o); dirty = true; },

@@ -57,8 +57,8 @@
   <div class="btns"><button id="trousers">Trousers: up</button><button id="drawers">Drawers: up</button></div>
   <div class="sub" style="margin-top:4px">Clothing over the rear cushions the sting, not the ache.</div>
   <h3>Jack's size</h3>
-  <div class="stepper"><input id="size" type="range" min="10" max="100" value="100" style="flex:1"><span class="v" id="sizeV">100%</span></div>
-  <div class="sub">He shrinks on arrival, then regains his size level by level.</div>
+  <div class="stepper"><input id="size" type="range" min="50" max="100" value="100" style="flex:1"><span class="v" id="sizeV">100%</span></div>
+  <div class="sub">He shrinks on arrival, then regains his size level by level. (50% is the lowest this position works at.)</div>
   <h3>Camera</h3>
   <div class="btns" id="cams"></div>
   <h3>Scene</h3>
@@ -68,6 +68,7 @@
   <div class="btns"><button id="peToggle">Edit poses</button></div>
   <div id="pe">
     <div class="sub" style="margin:6px 0">Offsets are laid on top of the pose and shown live. Nothing is saved: press Report when you are happy and paste it into the chat.</div>
+    <h4>Jack's size (two sets of poses: they blend between)</h4><div class="btns" id="peSize"></div>
     <h4>Who</h4><div class="btns" id="peWho"></div>
     <h4>Beat (the scene is held there)</h4><div class="btns" id="peBeat"></div>
     <h4>Bone</h4><div class="btns" id="peBone"></div>
@@ -169,6 +170,8 @@
       ['r', 'p'].forEach(function (k) { sl[k].forEach(function (s, i) { s.inp.value = v[k][i]; s.out.textContent = (+v[k][i]).toFixed(k === 'r' ? 0 : 1); }); });
     }
     function refresh() {
+      var sb = $('peSize'); sb.innerHTML = '';
+      [100, 50].forEach(function (k) { var b = document.createElement('button'); b.textContent = k + '%'; b.className = E.sizeKey() === k ? 'on' : ''; b.onclick = function () { E.sizeKey(k); $('size').value = k; $('sizeV').textContent = k + '%'; refresh(); }; sb.appendChild(b); });
       chips('peWho', ['hand', 'paddle', 'jack'], 'who', function () { S.beat = E.beats[S.who][S.who === 'jack' ? 1 : 2]; S.bone = E.bones(S.who)[0]; hold(); refresh(); });
       chips('peBeat', E.beats[S.who], 'beat', function () { hold(); refresh(); });
       if (E.bones(S.who).indexOf(S.bone) < 0) S.bone = E.bones(S.who)[0];
@@ -178,7 +181,8 @@
     }
     function hold() { E.hold(S.who, S.beat); }
     sliders('peR', 'r', -180, 180, 1); sliders('peP', 'p', -10, 10, 0.1);
-    $('peToggle').onclick = function () { var on = !$('pe').classList.contains('on'); $('pe').classList.toggle('on', on); $('peToggle').classList.toggle('on', on); if (on) { hold(); refresh(); } else { E.release(); E.handles(false); } };
+    $('peToggle').onclick = function () { var on = !$('pe').classList.contains('on'); $('pe').classList.toggle('on', on); $('peToggle').classList.toggle('on', on); $('size').disabled = on;
+      if (on) { E.handles(true, S.who); $('size').value = E.sizeKey(); $('sizeV').textContent = E.sizeKey() + '%'; hold(); refresh(); } else { E.release(); E.handles(false); } };
     $('peResetBone').onclick = function () { E.resetBone(S.who, S.beat, S.bone); pull(); };
     $('peResetBeat').onclick = function () { E.resetBeat(S.who, S.beat); pull(); };
     $('peRelease').onclick = function () { E.release(); };
