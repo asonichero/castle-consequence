@@ -277,15 +277,17 @@ function paintGerda() {
   }
   k.px('lArm', 'front', 1, 10, C.ring); k.px('lArm', 'left', 1, 10, C.ring);
 
-  // Legs: the skirt's overlay covers the thigh to the knee; wool stockings beneath, laced boots.
+  // Legs: bare, and bare feet; the skirt's overlay runs from the hip down to the ankle (row 10), a trim band at its hem.
   for (const leg of ['rLeg', 'lLeg']) {
-    k.all(leg, C.stocking);
-    k.band(leg, C.stockingSh, 6, 1); k.fill(leg, 'top', C.plumDk); k.fill(leg, 'bottom', C.sole);
-    k.band(leg, C.boot, 8, 4); k.band(leg, C.bootHi, 8, 1); k.band(leg, C.sole, 11, 1);
-    k.px(leg, 'front', 1, 9, C.lace); k.px(leg, 'front', 2, 10, C.lace); k.px(leg, 'front', 2, 9, C.bootHi); k.px(leg, 'front', 1, 10, C.bootHi);
+    k.all(leg, C.skin);
+    k.band(leg, C.skinHi, 1, 1); k.band(leg, C.line, 6, 1);                          // thigh light, a faint line at the knee
+    k.fill(leg, 'top', C.plumDk); k.fill(leg, 'bottom', C.skinSh);
+    k.band(leg, C.skinSh, 10, 1);                                                    // ankle shadow
+    k.fill(leg, 'front', C.skinSh, 0, 11, undefined, 1); k.px(leg, 'front', 0, 11, C.skin); k.px(leg, 'front', 3, 11, C.skin);   // the toes
+    k.px(leg, 'front', 1, 11, C.skinHi); k.px(leg, 'front', 2, 11, C.skinHi);
     const o = sideOuter(leg);
-    for (const f of SIDES) { k.fill(o, f, C.plum, 0, 0, undefined, 6); k.fill(o, f, C.plumDk, 0, 5, undefined, 1); k.px(o, f, 1, 2, C.plumHi); }
-    k.fill(o, 'front', C.trim, 0, 4, undefined, 1);
+    for (const f of SIDES) { k.fill(o, f, C.plum, 0, 0, undefined, 11); k.px(o, f, 1, 2, C.plumHi); k.px(o, f, 2, 7, C.plumHi); k.fill(o, f, C.plumDk, 0, 9, undefined, 1); k.fill(o, f, C.trim, 0, 10, undefined, 1); }
+    k.fill(o, 'front', C.plumDk, 1, 5, 1, 2);                                        // a fold
   }
   k.grain(2077, 5, [{ x: 8, y: 8, w: 8, h: 8 }]);
   return k;
