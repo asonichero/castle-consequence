@@ -33,7 +33,8 @@ const R_ = 62;                                  // the room is square: 124 desig
 const HALL = { x0: -R_ * K, x1: R_ * K, z0: -R_ * K, z1: R_ * K };
 const ALARM_RADIUS = 28;                        // the hen only minds his pace within this distance
 const D = { rack: [-44, -56], sack: [-50, 46], dish: [20, 20], trough: [36, 20], well: [48, -34], nest: [34, 36], chair: [0, -56.7] };   // (design coordinates; the world's are K times these)
-const SPOT = {}; for (const k in D) SPOT[k] = new V3(D[k][0] * K, 0, D[k][1] * K); SPOT.bucket = new V3((D.rack[0] + 4.5) * K, 0, (D.rack[1] - 2) * K);   // on a flagstone beneath the shelf, beside the broom SPOT.door = new V3(-(R_ + 2) * K, 0, 0);
+const SPOT = {}; for (const k in D) SPOT[k] = new V3(D[k][0] * K, 0, D[k][1] * K); SPOT.bucket = new V3((D.rack[0] + 4.5) * K, 0, (D.rack[1] - 2) * K);   // (on a flagstone beneath the shelf, beside the broom)
+SPOT.door = new V3(-(R_ + 2) * K, 0, 0);
 const PEN = { x0: 6 * K, x1: 56 * K, z0: 4 * K, z1: 54 * K };
 const PATCHES = [[-30, -20], [-10, 10], [5, -25], [-45, 10], [20, -8], [-20, 28]].map(p => [p[0] * K, p[1] * K]);
 const CHORES = ['sweep', 'dish', 'water', 'trust'];
@@ -218,7 +219,7 @@ function create(els, ui) {
   renderer.domElement.addEventListener('pointerdown', e => { drags.set(e.pointerId, { x: e.clientX, y: e.clientY }); renderer.domElement.setPointerCapture && renderer.domElement.setPointerCapture(e.pointerId); });
   renderer.domElement.addEventListener('pointermove', e => {
     const d = drags.get(e.pointerId); if (!d) return;
-    S.cam.yaw -= (e.clientX - d.x) * 0.006; S.cam.pitch = clamp(S.cam.pitch + (e.clientY - d.y) * 0.005, 0.06, 1.4); d.x = e.clientX; d.y = e.clientY;
+    S.camOverride = true; S.cam.yaw -= (e.clientX - d.x) * 0.006; S.cam.pitch = clamp(S.cam.pitch + (e.clientY - d.y) * 0.005, 0.06, 1.4); d.x = e.clientX; d.y = e.clientY;
   });
   const endDrag = e => { drags.delete(e.pointerId); };
   renderer.domElement.addEventListener('pointerup', endDrag); renderer.domElement.addEventListener('pointercancel', endDrag);
@@ -469,7 +470,7 @@ function create(els, ui) {
   function beginReturn(clockRanOut, called) {
     if (S.phase !== 'play') return;
     if (S.sitting) standUp();
-    S.phase = 'return'; S.sweeping = false; S.speedN = 0;
+    S.phase = 'return'; S.camOverride = false; S.sweeping = false; S.speedN = 0;
     if (S.holding === 'hen') releaseHen();
     if (S.holding === 'broom' || S.holding === 'bucket') { const w = S.holding; setHeld(null); S.water = 0; placeItem(w, 'floor'); } else setHeld(null);   // whatever he holds is set down where he stands
     for (const c of CHORES) if (!S.chores[c]) S.counts.unfinished++;
@@ -484,7 +485,7 @@ function create(els, ui) {
     // Gerda walks in to meet Jack; Jack turns to face her.
     const target = new V3(S.pos.x - 22, 0, S.pos.z); target.x = Math.max(target.x, -(R_ - 4) * K);
     if (gerdaG.visible && S.phase !== 'praise') {                                          // Jack turns to look at her as she comes in, and the camera settles behind him
-      const to = Math.atan2(gerdaG.position.x - S.pos.x, gerdaG.position.z - S.pos.z); S.heading = turn(S.heading, to, Math.min(1, dt * 6)); S.cam.yaw = turn(S.cam.yaw, S.heading + Math.PI, Math.min(1, dt * 2.5)); S.cam.pitch += (0.5 - S.cam.pitch) * Math.min(1, dt * 2.5);
+      const to = Math.atan2(gerdaG.position.x - S.pos.x, gerdaG.position.z - S.pos.z); S.heading = turn(S.heading, to, Math.min(1, dt * 6)); if (!S.camOverride) { S.cam.yaw = turn(S.cam.yaw, S.heading + Math.PI, Math.min(1, dt * 0.7)); S.cam.pitch += (0.4 - S.cam.pitch) * Math.min(1, dt * 0.7); }   // (slowly, until the player takes the camera)
     }
     if (gerdaAt === 'walking') {
       const d = target.clone().sub(gerdaG.position); d.y = 0;
