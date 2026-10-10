@@ -154,12 +154,61 @@ function create(view, opts) {
     obj.quaternion.setFromUnitVectors(DOWN, tmpA);
   };
 
+  // ── Pose edits (js/lap-poses.js): offsets on top of the procedural pose, per beat, applied bone by bone ───────────────────────────────────
+  const DEG = Math.PI / 180, eul = new THREE.Euler(0, 0, 0, 'YXZ'), qd = new THREE.Quaternion();
+  const edits = JSON.parse(JSON.stringify(root.LapPoses || {}));
+  const BEATS = { gerda: ['rest', 'raised', 'contact'], jack: ['base', 'react'] };
+  for (const w in BEATS) { edits[w] = edits[w] || {}; for (const b of BEATS[w]) edits[w][b] = edits[w][b] || {}; }
+  const BONES = {
+    gerda: { torso: gerda.torso, neck: gerda.neck, armL: gerda.armL, armR: gerda.armR, thighL: gerda.legL.thigh, thighR: gerda.legR.thigh, kneeL: gerda.legL.knee, kneeR: gerda.legR.knee, paddle: tool },
+    jack: { frame, torso: jack.torso, neck: jack.neck, glutes: glutesTilt, armL: jack.armL, armR: jack.armR, thighL: jack.legL.thigh, thighR: jack.legR.thigh, kneeL: jack.legL.knee, kneeR: jack.legR.knee },
+  };
+  const frameBase = frame.quaternion.clone(), glutesBase = glutesTilt.quaternion.clone(), basePos = new Map();
+  for (const w in BONES) for (const n in BONES[w]) basePos.set(BONES[w][n], BONES[w][n].position.clone());
+  // Put every bone back to its procedural pose (undoing last frame's offsets) before the new frame's pose is built.
+  function restoreBones() {
+    for (const w in BONES) for (const n in BONES[w]) {
+      const b = BONES[w][n];
+      if (b.userData.proc) { b.quaternion.copy(b.userData.proc); b.userData.proc = null; b.position.copy(basePos.get(b)); }
+    }
+    frame.quaternion.copy(frameBase); glutesTilt.quaternion.copy(glutesBase);
+  }
+  function applyEdits(who, names, weights) {
+    for (const n of names) {
+      const bone = BONES[who][n]; let any = false; const rr = [0, 0, 0], pp = [0, 0, 0];
+      for (const beat in weights) {
+        const e = edits[who][beat] && edits[who][beat][n], wt = weights[beat]; if (!e || !wt) continue;
+        any = true; for (let i = 0; i < 3; i++) { rr[i] += wt * (e.r ? e.r[i] : 0); pp[i] += wt * (e.p ? e.p[i] : 0); }
+      }
+      if (!any) continue;
+      bone.userData.proc = bone.quaternion.clone();
+      bone.quaternion.multiply(qd.setFromEuler(eul.set(rr[0] * DEG, rr[1] * DEG, rr[2] * DEG)));
+      bone.position.x += pp[0]; bone.position.y += pp[1]; bone.position.z += pp[2];
+    }
+  }
+  // How much of each beat's offsets applies now.
+  function gerdaWeights() {
+    const sw = st.swing; if (!sw) return { rest: 1 };
+    const t = sw.tau;
+    switch (sw.phase) {
+      case 'lift': { const a = clamp((REST - t) / REST, 0, 1); return { rest: 1 - a, raised: a }; }
+      case 'hold': return { raised: 1 };
+      case 'strike': case 'freeze': return { raised: 1 - t, contact: t };
+      case 'contact': return { contact: 1 };
+      case 'back': { const b = clamp((1 - t) / (1 - REST), 0, 1); return { contact: 1 - b, rest: b }; }
+    }
+    return { rest: 1 };
+  }
+  const jackWeights = () => ({ base: 1, react: clamp(J.kick, 0, 1) });
+
   gerda.after = function (g) {
     g.torso.rotation.x = st.lean; g.neck.rotation.x = 0.55 + 0.4 * (st.lean || 0);
+    const gw = gerdaWeights();
+    applyEdits('gerda', ['torso', 'neck', 'thighL', 'thighR', 'kneeL', 'kneeR'], gw);
     g.root.updateMatrixWorld(true);
     // Left hand rests on Jack's back.
     const sL = world(g.armL), tL = world(upperBack);
-    aim(g.armL, tmpB.copy(tL).sub(sL));
+    aim(g.armL, tmpB.copy(tL).sub(sL)); applyEdits('gerda', ['armL'], gw);
     // Right arm: a straight block from the shoulder. The hand lands with the end of it; the paddle's blade lies on from there, face down on him.
     const sw = st.swing, impl = IMPL[st.implement];
     const tau = sw ? sw.tau : REST;
@@ -168,7 +217,7 @@ function create(view, opts) {
     const d = T.clone().sub(sh), u = d.clone().normalize();
     const raised = u.clone().multiplyScalar(0.35).addScaledVector(UP, 0.9).normalize();
     const dir = raised.lerp(u, tau).normalize();
-    aim(g.armR, dir);
+    aim(g.armR, dir); applyEdits('gerda', ['armR'], gw);
     paddle.visible = impl.dual;
     if (impl.dual) {
       // Roll the blade about the arm's axis so its face looks toward Jack: forward as it is raised, down onto him as it lands.
@@ -178,6 +227,7 @@ function create(view, opts) {
       g.armR.updateMatrixWorld(true);
       const zw = new V3(0, 0, 1).applyQuaternion(g.armR.getWorldQuaternion(tmpQ2));
       tool.quaternion.setFromAxisAngle(new V3(0, 1, 0), Math.atan2(zw.clone().cross(want).dot(dir.clone().negate()), zw.dot(want)));
+      applyEdits('gerda', ['paddle'], gw);
     }
   };
   jack.after = function (j) {
@@ -198,6 +248,7 @@ function create(view, opts) {
       a.rotation.z = sg * (0.12 + 0.1 * k);
     }
     j.torso.rotation.z = 0.06 * Math.min(1, d) * Math.sin(J.t * 6);
+    applyEdits('jack', ['torso', 'neck', 'glutes', 'armL', 'armR', 'thighL', 'thighR', 'kneeL', 'kneeR'], jackWeights());
   };
 
   // Her arm is one straight block, so to land on him she sits back until her shoulder is exactly the arm's reach from the spot (no twisting: the
@@ -222,7 +273,8 @@ function create(view, opts) {
     dirty = false;
   }
   function update(dt) {
-    J.t += dt; J.kick *= Math.exp(-dt * 4.5);
+    restoreBones();
+    J.t += dt; J.kick *= Math.exp(-dt * 4.5); if (st.holdKick != null) J.kick = st.holdKick;
     if (st.swing) advance(dt);
     else if (st.runLeft > 0 && canStrike()) { st.gap -= dt; if (st.gap <= 0) { smack(); st.runLeft--; } }
     pain.update(dt, !!(st.swing && st.swing.phase === 'contact'));
@@ -233,6 +285,7 @@ function create(view, opts) {
     // over the centre of her thighs and his belly still rests on them (their tops are at y = 8, 8.75 under the skirt; his body is 4 deep).
     const sz = st.size; frame.scale.setScalar(sz);
     frame.position.set(-6 * sz, 8.75 + 2 * sz + 0.7 * J.kick * sz, P.z);
+    applyEdits('jack', ['frame'], jackWeights());
     B.step(jack, dt); scene.updateMatrixWorld(true);
     solveLean(dt); B.step(gerda, dt);
     controls.update(); renderer.render(scene, camera);
@@ -251,7 +304,41 @@ function create(view, opts) {
   root.addEventListener('resize', resize); resize();
 
   // ── Public ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  // The pose editor's interface (the page builds the controls): preview only, nothing is stored; report() prints the file to paste back.
+  const round = v => Math.round(v * 10) / 10;
+  const editor = {
+    beats: BEATS, bones: who => Object.keys(BONES[who]),
+    get(who, beat, bone) { const e = edits[who][beat][bone] || {}; return { r: (e.r || [0, 0, 0]).slice(), p: (e.p || [0, 0, 0]).slice() }; },
+    set(who, beat, bone, r, p) {
+      if (r.every(v => !v) && p.every(v => !v)) delete edits[who][beat][bone]; else edits[who][beat][bone] = { r: r.slice(), p: p.slice() };
+    },
+    resetBone(who, beat, bone) { delete edits[who][beat][bone]; },
+    resetBeat(who, beat) { edits[who][beat] = {}; },
+    clear() { for (const w in BEATS) for (const b of BEATS[w]) edits[w][b] = {}; },
+    // Hold the scene at a beat so it can be posed: Gerda's rest, raised or contact; Jack's base or fully reacting.
+    hold(who, beat) {
+      st.runLeft = 0;
+      if (who === 'gerda') { st.holdKick = null; st.swing = beat === 'rest' ? null : { phase: 'freeze', t: 0, side: 'C', waited: 0, tau: beat === 'raised' ? 0 : 1 }; }
+      else { st.swing = null; st.holdKick = beat === 'react' ? 1 : 0; }
+    },
+    release() { st.swing = null; st.holdKick = null; },
+    report() {
+      const lines = [];
+      for (const w in BEATS) {
+        const beats = BEATS[w].map(b => {
+          const bones = Object.keys(edits[w][b]).map(n => { const e = edits[w][b][n], parts = [];
+            if (e.r && e.r.some(v => v)) parts.push(`r: [${e.r.map(round).join(', ')}]`);
+            if (e.p && e.p.some(v => v)) parts.push(`p: [${e.p.map(round).join(', ')}]`);
+            return `${n}: { ${parts.join(', ')} }`; });
+          return `    ${b}: {${bones.length ? '\n      ' + bones.join(',\n      ') + ',\n    ' : ''}}`;
+        });
+        lines.push(`  ${w}: {\n${beats.join(',\n')},\n  },`);
+      }
+      return `root.LapPoses = {\n${lines.join('\n')}\n};`;
+    },
+  };
   const api = {
+    editor,
     scene, camera, controls, renderer, gerda, jack, pain, st, IMPL, BANDS, J,
     on: f => events.push(f),
     update, view: view_, smack,

@@ -26,6 +26,10 @@
   #meter b { position: absolute; top: 0; bottom: 0; left: 66.7%; width: 2px; background: #fff; opacity: .7; }
   #band { margin-top: 5px; font-size: 13px; } #line { margin-top: 4px; min-height: 2.6em; font-size: 12px; color: #b9b9c4; line-height: 1.4; }
   #end { margin-top: 8px; padding: 8px 10px; border: 1px solid #454555; border-radius: 4px; background: #1c1c24; font-size: 12px; line-height: 1.5; }
+  #pe { display: none; } #pe.on { display: block; }
+  #pe .row { margin: 4px 0; } #pe .row label { display: flex; justify-content: space-between; font-size: 12px; color: #c9c9d1; } #pe .row label span:last-child { color: #c9a84c; font-variant-numeric: tabular-nums; }
+  #pe input[type=range] { width: 100%; margin: 0; } #pe textarea { width: 100%; height: 150px; box-sizing: border-box; background: #1c1c24; color: #c9c9d1; border: 1px solid #454555; border-radius: 4px; font: 11px/1.4 ui-monospace, Menlo, monospace; }
+  #pe h4 { margin: 10px 0 4px; font-size: 11px; color: #8a8a96; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
   @media (max-width: 760px) { #view { right: 0; bottom: 300px; } #panel { top: auto; width: 100%; height: 300px; border-left: 0; border-top: 1px solid #2c2c36; } }
 </style>
 </head>
@@ -60,11 +64,26 @@
   <h3>Scene</h3>
   <div class="btns"><button id="clear">Clear marks</button><button id="snd" class="on">Sound</button><button id="again">Start again</button></div>
   <div id="end" hidden></div>
+  <h3>Pose editor</h3>
+  <div class="btns"><button id="peToggle">Edit poses</button></div>
+  <div id="pe">
+    <div class="sub" style="margin:6px 0">Offsets are laid on top of the pose and shown live. Nothing is saved: press Report when you are happy and paste it into the chat.</div>
+    <h4>Who</h4><div class="btns" id="peWho"></div>
+    <h4>Beat (the scene is held there)</h4><div class="btns" id="peBeat"></div>
+    <h4>Bone</h4><div class="btns" id="peBone"></div>
+    <h4>Rotation (degrees)</h4><div id="peR"></div>
+    <h4>Position (units)</h4><div id="peP"></div>
+    <div class="btns" style="margin-top:8px"><button id="peResetBone">Reset bone</button><button id="peResetBeat">Reset beat</button><button id="peRelease">Release the scene</button></div>
+    <h4>Report</h4>
+    <div class="btns"><button id="peReport">Report</button><button id="peCopy">Copy</button></div>
+    <textarea id="peOut" readonly placeholder="Press Report"></textarea>
+  </div>
 </aside>
 <script src="vendor/three.min.js"></script>
 <script src="vendor/OrbitControls.js"></script>
 <script src="starlight-engine.js"></script>
 <script src="js/blocky.js"></script>
+<script src="js/lap-poses.js"></script>
 <script src="js/lap.js"></script>
 <script>
 (function () {
@@ -122,6 +141,45 @@
     $('endBtn').disabled = i.ended; $('red').disabled = i.ended;
     requestAnimationFrame(loop);
   })(last);
+
+  // ── Pose editor ──
+  (function () {
+    var E = L.editor, S = { who: 'gerda', beat: 'contact', bone: 'armR' }, sl = { r: [], p: [] };
+    function chips(box, items, key, on) {
+      var el = $(box); el.innerHTML = '';
+      items.forEach(function (it) { var b = document.createElement('button'); b.textContent = it; b.className = S[key] === it ? 'on' : ''; b.onclick = function () { S[key] = it; on(); }; el.appendChild(b); });
+    }
+    function sliders(box, kind, lo, hi, step) {
+      var el = $(box); el.innerHTML = ''; sl[kind] = [];
+      ['X', 'Y', 'Z'].forEach(function (ax, i) {
+        var row = document.createElement('div'); row.className = 'row';
+        row.innerHTML = '<label><span>' + ax + '</span><span>0</span></label><input type="range" min="' + lo + '" max="' + hi + '" step="' + step + '" value="0">';
+        var inp = row.querySelector('input'), out = row.querySelector('label span:last-child');
+        inp.oninput = function () { out.textContent = (+inp.value).toFixed(kind === 'r' ? 0 : 1); push(); };
+        sl[kind].push({ inp: inp, out: out }); el.appendChild(row);
+      });
+    }
+    function push() { E.set(S.who, S.beat, S.bone, sl.r.map(function (s) { return +s.inp.value; }), sl.p.map(function (s) { return +s.inp.value; })); }
+    function pull() {
+      var v = E.get(S.who, S.beat, S.bone);
+      ['r', 'p'].forEach(function (k) { sl[k].forEach(function (s, i) { s.inp.value = v[k][i]; s.out.textContent = (+v[k][i]).toFixed(k === 'r' ? 0 : 1); }); });
+    }
+    function refresh() {
+      chips('peWho', ['gerda', 'jack'], 'who', function () { S.beat = E.beats[S.who][S.who === 'gerda' ? 2 : 1]; S.bone = E.bones(S.who)[0]; hold(); refresh(); });
+      chips('peBeat', E.beats[S.who], 'beat', function () { hold(); refresh(); });
+      if (E.bones(S.who).indexOf(S.bone) < 0) S.bone = E.bones(S.who)[0];
+      chips('peBone', E.bones(S.who), 'bone', function () { refresh(); });
+      pull();
+    }
+    function hold() { E.hold(S.who, S.beat); }
+    sliders('peR', 'r', -180, 180, 1); sliders('peP', 'p', -10, 10, 0.1);
+    $('peToggle').onclick = function () { var on = !$('pe').classList.contains('on'); $('pe').classList.toggle('on', on); $('peToggle').classList.toggle('on', on); if (on) { hold(); refresh(); } else E.release(); };
+    $('peResetBone').onclick = function () { E.resetBone(S.who, S.beat, S.bone); pull(); };
+    $('peResetBeat').onclick = function () { E.resetBeat(S.who, S.beat); pull(); };
+    $('peRelease').onclick = function () { E.release(); };
+    $('peReport').onclick = function () { $('peOut').value = E.report(); };
+    $('peCopy').onclick = function () { $('peOut').value = E.report(); $('peOut').select(); try { document.execCommand('copy'); } catch (e) { /* select-and-copy by hand */ } };
+  })();
   window.__lap = L;
 })();
 </script>

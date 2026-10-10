@@ -187,3 +187,7 @@ game's own, ported:
 Gerda's arm is one straight block, so the swing is solved geometrically: she sits back until her shoulder is exactly the arm's reach from the middle of his rear, and the arm comes down over both cheeks (the paddle is rigid along it). Which cheek takes the colour still alternates.
 Jack's size (10–100%) is a slider in the lap viewer: his body is scaled about his hip joint and re-seated on her lap, so the premise (he shrinks on arrival and regains his size level by level) can be previewed. The pain model does not yet change with his size.
 
+
+#### Pose editor (lap viewer)
+
+`lap.html` ▸ **Edit poses** holds the scene at a beat and lets you lay offsets on any bone, live: Gerda's rest, raised and contact beats, and Jack's base pose and his full reaction (added in proportion to how hard a smack lands). Rotation is in degrees, position in units; Jack's `frame` moves his whole body on her lap and `glutes` is the block. Offsets sit on top of the procedural pose (so her reach still adapts). **Nothing is stored in the browser**: press **Report**, then paste it into `js/lap-poses.js` (or into the chat).
