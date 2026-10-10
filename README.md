@@ -166,5 +166,24 @@ tests/skirt-physics.js + skirt.html  the cloth: weight, frame-rate independence,
 ## Blocky models (Beanstalk prototype)
 
 `blocky.html` (script: `js/blocky.js`) is a separate prototype for a new, Minecraft-style direction: Jack (21) and Gerda, the Giantess
-(late 30s), as box-built characters with hand-painted 64×64 skins (base + outer layer, downloadable as ordinary Minecraft skins). Legs are
+(late 30s), as box-built characters with hand-painted 64×64 skins (base + outer layer; arms are 3×3 pixels, a little thinner than Minecraft's). Legs are
 split at the knee, so the bend only shows when seated. Open it from the same static server, `http://localhost:8765/blocky.html`.
+
+### Across the lap (`lap.html`, `js/lap.js`)
+
+The one discipline scene kept for this direction: Gerda gives, Jack receives, across her lap on a plain chair. The mechanics are the
+game's own, ported:
+
+- **Smack / Run / Stop / End**, with **Pace** and **Strength** steps (Space smacks); a smack is a lift, a hold with the arm raised (that wait builds dread), the strike and a short
+  hold on the skin (which keeps stinging).
+- The engine's **pain model** (`Starlight.createPain`, from `starlight-engine.js`) turns each smack into Jack's **distress**; its bands (composed, flinching, struggling, close to
+  the edge, past it, too harsh) drive his kicks and wriggling and his face (four expressions, repainted into his skin). At 1.5 it is too harsh and nothing more is struck.
+- **Implements**: hand, hairbrush, paddle (the paddle lands on both cheeks at once), each with the engine's weight and sting.
+- **Clothes**: trousers up or down, and drawers up or down (with the trousers down). Cloth over the rear cushions the sting only, as in the engine.
+- **Marks**: the bare rear colours up with the smacks, cheek by cheek, and tender skin hurts more.
+- **Red**: the safe word stops everything at once.
+- Cameras: Overview, Behind, Over your shoulder (Gerda's view), Face; drag to orbit as well.
+
+Gerda's arm is one straight block, so the swing is solved geometrically: a two-segment reach (arm, then the implement hinged at the wrist) from her shoulder to the cheek being struck.
+Jack is full size here; the shrinking premise comes with the levels.
+

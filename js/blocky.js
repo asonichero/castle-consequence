@@ -1,8 +1,8 @@
 // Beanstalk — blocky models. Jack (21) and the Giantess, Gerda (late 30s), as Minecraft-style characters: a head, a torso, two arms
-// and two legs, each a plain box textured from a 64x64 skin in the standard Minecraft layout (base layer plus outer layer), so the
-// skins download as ordinary Minecraft skin PNGs. The one departure from the stock rig: each leg is cut at the knee into thigh and
+// and two legs, each a plain box textured from a 64x64 skin laid out like a Minecraft skin (base layer plus outer layer), except that the
+// arms are 3x3 pixels, a little thinner than Minecraft's. The other departure from the stock rig: each leg is cut at the knee into thigh and
 // shin boxes. They read as one straight leg when standing and only show a bend when the character sits.
-// The skins are painted here, pixel by pixel, rather than loaded; nothing else in the project uses this file yet.
+// The skins are painted here, pixel by pixel, rather than loaded; blocky.html shows the pair, and js/lap.js poses them across the lap.
 (function (root) {
 'use strict';
 const THREE = root.THREE;
@@ -10,12 +10,12 @@ const THREE = root.THREE;
 // ---------------------------------------------------------------------------------------------------------------------------
 // Skin atlas (Minecraft 64x64 layout). Each part is a box of w x h x d pixels whose six faces are laid out from (u, v).
 // ---------------------------------------------------------------------------------------------------------------------------
-const atlas = aw => {
+const atlas = (aw, ad) => {
   const P = (u, v, w, h, d) => ({ u, v, w, h, d });
   return {
     head: P(0, 0, 8, 8, 8), hat: P(32, 0, 8, 8, 8),
     body: P(16, 16, 8, 12, 4), jacket: P(16, 32, 8, 12, 4),
-    rArm: P(40, 16, aw, 12, 4), rArmO: P(40, 32, aw, 12, 4), lArm: P(32, 48, aw, 12, 4), lArmO: P(48, 48, aw, 12, 4),
+    rArm: P(40, 16, aw, 12, ad), rArmO: P(40, 32, aw, 12, ad), lArm: P(32, 48, aw, 12, ad), lArmO: P(48, 48, aw, 12, ad),
     rLeg: P(0, 16, 4, 12, 4), rLegO: P(0, 32, 4, 12, 4), lLeg: P(16, 48, 4, 12, 4), lLegO: P(0, 48, 4, 12, 4),
   };
 };
@@ -34,8 +34,8 @@ const SIDES = ['right', 'front', 'left', 'back'];
 const FACES = ['right', 'front', 'left', 'back', 'top', 'bottom'];
 
 class Skin {
-  constructor(armWidth) {
-    this.A = atlas(armWidth);
+  constructor(armWidth, armDepth = 4) {
+    this.A = atlas(armWidth, armDepth);
     this.canvas = document.createElement('canvas'); this.canvas.width = this.canvas.height = 64;
     this.ctx = this.canvas.getContext('2d');
   }
@@ -76,33 +76,33 @@ class Skin {
 // ---------------------------------------------------------------------------------------------------------------------------
 // Jack, 21: lean, quick, a grin kept ready. Linen shirt under a green vest, patched brown trousers, boots.
 // ---------------------------------------------------------------------------------------------------------------------------
-function paintJack() {
-  const k = new Skin(4);
-  const C = { skin: '#e2b58f', skinSh: '#c99874', skinHi: '#eec7a2',
-    hair: '#7a4a22', hairHi: '#9a6532', hairDk: '#5c3517', brow: '#5c3517', white: '#f2f0ea', iris: '#3f7f4a', lid: '#b98a68', lip: '#b4685a', teeth: '#f6f2ea', stub: '#c19170',
+// Jack's whole skin, painted from scratch for a state: st = { trousers: 'up'|'down', drawers: 'up'|'down', marks: { L, R } (0–1), expr: 0–3 }.
+// (Cheap: 64x64 pixels. The lap scene repaints it as the clothes change, the marks come up and the face reacts.)
+const JACK_FACES = [
+  ['SbbSSbbS', 'SWESSEWS', 'SSSnnSSS', 'SsMTTMsS', 'SuuSSuuS'],   // 0 the grin kept ready
+  ['SbbSSbbS', 'SlESSElS', 'SSSnnSSS', 'SsMMMMsS', 'SuuSSuuS'],   // 1 wincing
+  ['SddSSddS', 'SddSSddS', 'SsSnnSsS', 'SMTTTTMS', 'SuuSSuuS'],   // 2 eyes screwed shut, teeth gritted
+  ['SddSSddS', 'SddSSddS', 'SSSnnSSS', 'SMmmmmMS', 'SuMmmMuS'],   // 3 crying out
+];
+function paintJackInto(k, st) {
+  st = Object.assign({ trousers: 'up', drawers: 'up', marks: { L: 0, R: 0 }, expr: 0 }, st);
+  k.ctx.clearRect(0, 0, 64, 64);
+  const C = { skin: '#e2b58f', skinSh: '#c99874', skinHi: '#eec7a2', seat: '#ebc4a0',
+    hair: '#7a4a22', hairHi: '#9a6532', hairDk: '#5c3517', brow: '#5c3517', white: '#f2f0ea', iris: '#3f7f4a', lid: '#b98a68', lip: '#b4685a', teeth: '#f6f2ea', stub: '#c19170', mouth: '#6a2a2a',
     linen: '#e8dfc4', linenSh: '#cfc4a6', vest: '#4b7a3a', vestDk: '#375c2a', belt: '#4a3220', buckle: '#d6b24a', pouch: '#6b4a2a',
-    trousers: '#6d5233', trousersDk: '#59422a', patch: '#8b7048', stitch: '#4a3820', boot: '#3a2616', bootHi: '#5a3d24', sole: '#22160c', lace: '#b8a070' };
-  const pal = { H: C.hair, h: C.hairHi, d: C.hairDk, S: C.skin, s: C.skinSh, b: C.brow, W: C.white, E: C.iris, l: C.lid, M: C.lip, T: C.teeth, u: C.stub, n: C.skinSh, k: C.skinHi };
+    trousers: '#6d5233', trousersDk: '#59422a', patch: '#8b7048', stitch: '#4a3820', boot: '#3a2616', bootHi: '#5a3d24', sole: '#22160c', lace: '#b8a070',
+    drawers: '#e6dcc2', drawersSh: '#cbbf9f' };
+  const pal = { H: C.hair, h: C.hairHi, d: C.brow, S: C.skin, s: C.skinSh, b: C.brow, W: C.white, E: C.iris, l: C.lid, M: C.lip, T: C.teeth, u: C.stub, n: C.skinSh, k: C.skinHi, m: C.mouth };
+  const down = st.trousers === 'down', drawersDown = st.drawers === 'down';
 
-  // Head: skin all over, then hair.
+  // Head: skin all over, then hair; the face from the current expression.
   k.all('head', C.skin);
-  k.grid('head', 'front', [
-    'HHHHHHHH',
-    'HhHHdHhH',
-    'HSSkHSSH',
-    'SbbSSbbS',
-    'SWESSEWS',
-    'SSSnnSSS',
-    'SsMTTMsS',
-    'SuuSSuuS' ], pal);
-  k.px('head', 'front', 1, 4, C.white);
+  const F = JACK_FACES[Math.max(0, Math.min(3, st.expr | 0))];
+  k.grid('head', 'front', ['HHHHHHHH', 'HhHHdHhH', 'HSSkHSSH', ...F], pal);
+  if ((st.expr | 0) === 0) k.px('head', 'front', 1, 4, C.white);
   k.fill('head', 'top', C.hair);
   k.fill('head', 'back', C.hair); k.fill('head', 'back', C.hairDk, 0, 6, undefined, 2);
-  // Sides: hair above the ear and behind it, the ear itself, a sideburn.
-  for (const f of ['right', 'left']) {
-    k.fill('head', f, C.skin);
-    k.fill('head', f, C.hair, 0, 0, undefined, 3);
-  }
+  for (const f of ['right', 'left']) { k.fill('head', f, C.skin); k.fill('head', f, C.hair, 0, 0, undefined, 3); }
   k.fill('head', 'right', C.hair, 0, 3, 3, 3); k.fill('head', 'left', C.hair, 5, 3, 3, 3);
   k.fill('head', 'right', C.skinSh, 4, 4, 1, 2); k.fill('head', 'left', C.skinSh, 3, 4, 1, 2);
   k.fill('head', 'right', C.hair, 7, 3, 1, 2); k.fill('head', 'left', C.hair, 0, 3, 1, 2);
@@ -114,22 +114,33 @@ function paintJack() {
   k.grid('hat', 'front', ['HHhHHHHH', 'H.H..hH.', '.......H'], { H: C.hair, h: C.hairHi });
   k.px('hat', 'front', 7, 1, C.hairDk);
 
-  // Torso: linen shirt, laced at the throat, the green vest over it; a belt with a brass buckle.
+  // Torso: linen shirt, laced at the throat, the green vest over it.
   k.all('body', C.linen);
   k.grid('body', 'front', [
     'vSLLLLSv', 'vvLlLlvv', 'vvvLLvvv', 'vvvvvvvv', 'vvvvvvvv', 'vvvvvvvv', 'vvvvvvvv', 'vvvvvvvv', 'vvvvvvvv', '........', '........', '........' ],
     { v: C.vest, L: C.linen, l: C.linenSh, S: C.skin });
-  k.fill('body', 'front', C.linen, 3, 3, 2, 6); k.fill('body', 'front', C.linenSh, 3, 3, 1, 6); // open front of the vest shows the shirt
+  k.fill('body', 'front', C.linen, 3, 3, 2, 6); k.fill('body', 'front', C.linenSh, 3, 3, 1, 6);
   k.fill('body', 'front', C.vestDk, 2, 3, 1, 6); k.fill('body', 'front', C.vestDk, 5, 3, 1, 6);
   for (let y = 4; y < 9; y += 2) { k.px('body', 'front', 3, y, C.stitch); k.px('body', 'front', 4, y, C.stitch); }
   k.fill('body', 'back', C.vest, 0, 0, undefined, 9); k.fill('body', 'back', C.vestDk, 3, 0, 2, 9);
   k.fill('body', 'right', C.linen, 0, 0, undefined, 9); k.fill('body', 'left', C.linen, 0, 0, undefined, 9);
   k.fill('body', 'right', C.vest, 0, 3, undefined, 6); k.fill('body', 'left', C.vest, 0, 3, undefined, 6);
-  k.band('body', C.trousers, 9, 3); k.fill('body', 'bottom', C.trousersDk); k.fill('body', 'top', C.linen);
-  // Outer layer: the belt, buckle and a pouch on the hip, and the vest's collar standing off the shoulders.
-  for (const f of SIDES) k.fill('jacket', f, C.belt, 0, 8, undefined, 2);
-  k.fill('jacket', 'front', C.buckle, 3, 8, 2, 2); k.px('jacket', 'front', 3, 8, '#f0d878'); k.px('jacket', 'front', 4, 9, '#a8872c');
-  k.fill('jacket', 'left', C.pouch, 1, 9, 2, 2); k.fill('jacket', 'left', C.belt, 1, 9, 2, 1);
+  k.fill('body', 'top', C.linen);
+  // The rows below the waist, and the legs: trousers, drawers or bare skin, by what is up and what is down. Bare rows are remembered
+  // (with the cheek they belong to) so the marks can be laid on them afterwards.
+  const bare = [];
+  const lowerTorso = down ? (drawersDown ? 'skin' : 'drawers') : 'trousers';
+  const colourOf = w => w === 'skin' ? C.seat : w === 'drawers' ? C.drawers : C.trousers;
+  for (const f of SIDES) k.fill('body', f, colourOf(lowerTorso), 0, 9, undefined, 3);
+  k.fill('body', 'bottom', colourOf(lowerTorso));
+  if (lowerTorso === 'skin') { bare.push(['body', 'back', 0, 9, 4, 3, 'L'], ['body', 'back', 4, 9, 4, 3, 'R']); }
+  if (lowerTorso === 'drawers') { k.fill('body', 'back', C.drawersSh, 3, 9, 2, 3); k.fill('body', 'front', C.drawersSh, 3, 9, 1, 1); }
+  // Outer layer: the belt, buckle and a pouch on the hip while the trousers are up; the vest's collar standing off the shoulders always.
+  if (!down) {
+    for (const f of SIDES) k.fill('jacket', f, C.belt, 0, 8, undefined, 2);
+    k.fill('jacket', 'front', C.buckle, 3, 8, 2, 2); k.px('jacket', 'front', 3, 8, '#f0d878'); k.px('jacket', 'front', 4, 9, '#a8872c');
+    k.fill('jacket', 'left', C.pouch, 1, 9, 2, 2); k.fill('jacket', 'left', C.belt, 1, 9, 2, 1);
+  }
   k.fill('jacket', 'front', C.vest, 0, 0, 2, 1); k.fill('jacket', 'front', C.vest, 6, 0, 2, 1); k.fill('jacket', 'back', C.vest, 0, 0, undefined, 1);
 
   // Arms: short linen sleeves rolled over the elbow, a leather wrist-wrap, bare forearm and hand.
@@ -142,17 +153,39 @@ function paintJack() {
   }
   k.px('rArm', 'front', 2, 10, C.skinSh); k.px('lArm', 'front', 1, 11, C.skinSh);
 
-  // Legs: patched trousers (patch and knee-stitching on the thigh), boots from mid-shin.
-  for (const leg of ['rLeg', 'lLeg']) {
+  // Legs. Standing straight, the trousers run down to the boots; pulled down, the thigh shows (drawers or bare) and the trousers
+  // bunch at the knee (rows 3-5); with the drawers down too, they bunch above the trousers on row 2.
+  const legRow = r => !down ? 'trousers' : r < 2 ? (drawersDown ? 'skin' : 'drawers') : r === 2 ? (drawersDown ? 'drawers' : 'skin') : 'trousers';
+  for (const [leg, cheek] of [['rLeg', 'R'], ['lLeg', 'L']]) {
     k.all(leg, C.trousers);
     k.band(leg, C.trousersDk, 6, 1); k.fill(leg, 'bottom', C.sole); k.fill(leg, 'top', C.trousersDk);
     k.band(leg, C.boot, 8, 4); k.band(leg, C.bootHi, 8, 1); k.band(leg, C.sole, 11, 1);
     k.fill(leg, 'front', C.patch, 1, 2, 2, 2); k.px(leg, 'front', 1, 2, C.stitch); k.px(leg, 'front', 2, 3, C.stitch);
     k.px(leg, 'front', 1, 9, C.lace); k.px(leg, 'front', 2, 10, C.lace); k.px(leg, 'front', 2, 9, C.bootHi); k.px(leg, 'front', 1, 10, C.bootHi);
+    if (down) {
+      for (let r = 0; r < 3; r++) {
+        const w = legRow(r);
+        for (const f of SIDES) k.fill(leg, f, colourOf(w), 0, r, undefined, 1);
+        if (w === 'skin') bare.push([leg, 'back', 0, r, 4, 1, cheek]);
+      }
+      for (const f of SIDES) k.fill(leg, f, C.trousersDk, 0, 5, undefined, 1);
+      k.fill(leg, 'top', C.seat);
+    }
   }
   k.grain(1021, 5, [{ x: 8, y: 8, w: 8, h: 8 }]);
+  // Marks: the bare rear colours up, patchy at first. Each bare pixel gets a share of its cheek's mark, jittered by position.
+  for (const [part, face, x, y, w, h, cheek] of bare) {
+    const m = st.marks && st.marks[cheek] || 0; if (m <= 0.01) continue;
+    const r = faceRect(k.A[part], face);
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const hsh = (((x + i) * 73856093) ^ ((y + j) * 19349663) ^ (cheek === 'L' ? 83492791 : 0)) >>> 0, jit = 0.6 + 0.8 * ((hsh % 1000) / 1000);
+      k.ctx.fillStyle = `rgba(186,48,44,${Math.min(0.85, 0.7 * m * jit)})`;
+      k.ctx.fillRect(r.x + x + i, r.y + y + j, 1, 1);
+    }
+  }
   return k;
 }
+function paintJack(st) { return paintJackInto(new Skin(3, 3), st); }
 const sideOuter = s => s + 'O';
 
 // ---------------------------------------------------------------------------------------------------------------------------
@@ -160,7 +193,7 @@ const sideOuter = s => s + 'O';
 // a cream apron and a full skirt, wool stockings and boots; auburn hair going grey at the temple, pinned up in a bun.
 // ---------------------------------------------------------------------------------------------------------------------------
 function paintGerda() {
-  const k = new Skin(3);
+  const k = new Skin(3, 3);
   const C = { skin: '#ecc3a0', skinSh: '#d3a584', skinHi: '#f3d0b0', line: '#dcae8c',
     hair: '#8a3a1e', hairHi: '#a8502a', hairDk: '#64280f', grey: '#a39a90', brow: '#6a2e16', white: '#f2f0ea', iris: '#5f7f95', lid: '#c79876', lip: '#a8525a', lipDk: '#8a3038', teeth: '#f6f2ea',
     blouse: '#ece6d6', blouseSh: '#cfc7b4', plum: '#7a2a3a', plumDk: '#5c1e2c', plumHi: '#923a4c', lace: '#e6d7b0', belt: '#4a3220', apron: '#e9dfc8', apronSh: '#cdc2a8', pocket: '#d8ccb0',
@@ -311,7 +344,7 @@ function buildCharacter(skin, opts) {
     const sm = mesh(p, o, 0.5, 6, 12); sm.position.y = -3; knee.add(sm);
     hips.add(thigh); rig[key] = { thigh, knee, sign };
   }
-  rig.apply = apply;
+  rig.apply = apply; rig.tex = tex;
   apply.call(rig);
   return rig;
 }
@@ -329,6 +362,7 @@ function apply() {
     const l = this[k];
     l.thigh.rotation.x = s.thighX; l.thigh.rotation.z = l.sign * s.spread; l.knee.rotation.x = s.shinX;
   }
+  if (this.after) this.after(this);   // a scene's own additions to the pose (the lap scene's swing and kicks)
 }
 
 function setPose(rig, name) { rig.target = Object.assign({}, POSES[name]); rig.pose = name; }
@@ -338,8 +372,8 @@ function step(rig, dt) {
   rig.apply();
 }
 
-const makeJack = () => buildCharacter(paintJack(), { armWidth: 4 });
+const makeJack = () => buildCharacter(paintJack(), { armWidth: 3 });
 const makeGerda = () => buildCharacter(paintGerda(), { armWidth: 3, bun: true, skirt: true });
 
-root.Blocky = { makeJack, makeGerda, setPose, step, POSES, Skin };
+root.Blocky = { makeJack, makeGerda, setPose, step, POSES, Skin, paintJackInto, faceRect };
 })(typeof window !== 'undefined' ? window : globalThis);
