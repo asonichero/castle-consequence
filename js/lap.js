@@ -365,7 +365,7 @@ function create(view, opts) {
     applyEdits('jack', ['frame'], jackWeights());
     B.step(jack, dt); scene.updateMatrixWorld(true);
     B.step(gerda, dt);
-    controls.update(); renderer.render(scene, camera);
+    updateHandles(); controls.update(); renderer.render(scene, camera);
   }
 
   // ── Cameras ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -383,7 +383,134 @@ function create(view, opts) {
   // ── Public ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
   // The pose editor's interface (the page builds the controls): preview only, nothing is stored; report() prints the file to paste back.
   const round = v => Math.round(v * 10) / 10;
+  // ── Pose handles: click and drag a joint in the view. Dragging a handle turns the bone it belongs to (so the joint at the other end of that bone
+  // follows the cursor), twists it, or moves it, by editing the held beat's offsets; the sliders show the same numbers. ──────────────────────────
+  const hpt = (parent, x, y, z) => { const o = new THREE.Object3D(); o.position.set(x, y, z); parent.add(o); return o; };
+  const H = (bone, kind, label, tip, axis) => ({ bone, kind, label, tip, axis });
+  const BLADE_END = -(HANDLE + BLADE_L);
+  const HANDLE_DEFS = {
+    gerda: [
+      H('neck', 'aim', 'Head', hpt(gerda.neck, 0, 4, 0)),
+      H('torso', 'aim', 'Chest (turns and leans the torso)', hpt(gerda.torso, 0, 12, 0)),
+      H('torso', 'move', 'Torso (moves it)', hpt(gerda.torso, 0, 2, 0)),
+      H('armL', 'aim', 'Left hand (swings the left arm)', hpt(gerda.armL, 0, -10, 0)),
+      H('armR', 'aim', 'Right elbow (swings the right upper arm)', gerda.elbow),
+      H('elbowR', 'aim', 'Right hand (bends the elbow)', hpt(gerda.wrist, 0, -6, 0)),
+      H('wristR', 'twist', 'Right wrist twist (turns the forearm, hand and paddle about the forearm)', hpt(gerda.wrist, 2.4, -3, 0), new V3(0, 1, 0)),
+      H('wristR', 'move', 'Right wrist (moves the hand and paddle mount)', hpt(gerda.wrist, 0, -4.5, 0)),
+      H('paddle', 'aim', 'Paddle tip (swings the paddle)', hpt(tool, 0, BLADE_END, 0)),
+      H('paddle', 'twist', 'Paddle roll (rolls the blade about its length)', hpt(tool, BLADE_W / 2, -(HANDLE + BLADE_L / 2), 0), new V3(0, 1, 0)),
+      H('thighL', 'aim', 'Left knee', hpt(gerda.legL.thigh, 0, -6, 0)), H('kneeL', 'aim', 'Left foot', hpt(gerda.legL.knee, 0, -6, 0)),
+      H('thighR', 'aim', 'Right knee', hpt(gerda.legR.thigh, 0, -6, 0)), H('kneeR', 'aim', 'Right foot', hpt(gerda.legR.knee, 0, -6, 0)),
+    ],
+    jack: [
+      H('frame', 'move', 'Jack (moves his whole body on her lap)', hpt(frame, 0, 0, 0)),
+      H('torso', 'aim', 'Shoulders (turns his torso)', hpt(jack.torso, 0, 12, 0)),
+      H('neck', 'aim', 'Head', hpt(jack.neck, 0, 4, 0)),
+      H('armL', 'aim', 'Left hand', hpt(jack.armL, 0, -10, 0)), H('armR', 'aim', 'Right hand', hpt(jack.armR, 0, -10, 0)),
+      H('glutes', 'aim', 'Glutes block (tilts it)', hpt(glutesTilt, 0, -5.2, 2.25)),
+      H('thighL', 'aim', 'Left knee', hpt(jack.legL.thigh, 0, -6, 0)), H('kneeL', 'aim', 'Left foot', hpt(jack.legL.knee, 0, -6, 0)),
+      H('thighR', 'aim', 'Right knee', hpt(jack.legR.thigh, 0, -6, 0)), H('kneeR', 'aim', 'Right foot', hpt(jack.legR.knee, 0, -6, 0)),
+    ],
+  };
+  // What each bone is, in plain words (shown in the editor).
+  const BONE_INFO = {
+    torso: 'Torso: turns and leans the whole upper body from the hips (its position moves it).',
+    neck: 'Head: tilts and turns the head from the base of the neck.',
+    armL: 'Left arm: swings the whole left arm from the shoulder.',
+    armR: 'Right shoulder: swings the whole right arm from the shoulder; the forearm follows.',
+    elbowR: 'Right elbow: bends the right forearm (and hand) at the elbow.',
+    wristR: 'Right wrist: the forearm turned about its own length (twist), and the forearm, hand and paddle mount moved as a unit (position). It does not bend the elbow.',
+    paddle: 'Paddle: swings the paddle at its mount on the forearm, and rolls the blade.',
+    thighL: 'Left thigh: swings the left leg from the hip.', thighR: 'Right thigh: swings the right leg from the hip.',
+    kneeL: 'Left knee: bends the left lower leg.', kneeR: 'Right knee: bends the right lower leg.',
+    glutes: 'Glutes block: tilts the block that bridges his back and thighs.',
+    frame: 'Jack: moves and turns his whole body on her lap.',
+  };
+  const handleMat = (color) => new THREE.MeshBasicMaterial({ color, depthTest: false, transparent: true, opacity: 0.9 });
+  const handleGeo = { aim: new THREE.SphereGeometry(0.85, 14, 10), move: new THREE.BoxGeometry(1.3, 1.3, 1.3), twist: new THREE.OctahedronGeometry(1.0) };
+  const HCOL = { aim: 0xffcc33, move: 0x44ddff, twist: 0xff66cc };
+  const handleGroup = new THREE.Group(); handleGroup.visible = false; scene.add(handleGroup);
+  for (const who in HANDLE_DEFS) for (const h of HANDLE_DEFS[who]) {
+    h.who = who; h.mesh = new THREE.Mesh(handleGeo[h.kind], handleMat(HCOL[h.kind])); h.mesh.renderOrder = 999; h.mesh.userData.handle = h; h.mesh.visible = false; handleGroup.add(h.mesh);
+  }
+  const hs = { on: false, who: 'gerda', bone: null, onPick: null, onChange: null, drag: null };
+  function updateHandles() {
+    if (!hs.on) return;
+    for (const w in HANDLE_DEFS) for (const h of HANDLE_DEFS[w]) {
+      const show = w === hs.who; h.mesh.visible = show;
+      if (!show) continue;
+      h.tip.getWorldPosition(h.mesh.position);
+      const sel = h.bone === hs.bone, d = camera.position.distanceTo(h.mesh.position);
+      h.mesh.scale.setScalar((sel ? 1.35 : 1) * Math.max(0.5, d / 70)); h.mesh.material.opacity = sel ? 1 : 0.65;
+      h.mesh.material.color.setHex(sel ? 0xffffff : HCOL[h.kind]);
+    }
+  }
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), dragPlane = new THREE.Plane(), hitP = new V3();
+  const weightsNow = () => cur.who === 'jack' ? jackWeights() : gerdaWeights();
+  function pointerRay(e) {
+    const r = renderer.domElement.getBoundingClientRect();
+    ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); ray.setFromCamera(ndc, camera);
+  }
+  function applyDrag(drag, target) {
+    const h = drag.h, fig = h.who, bone = BONES[fig][h.bone], set = setFor(cur.who)[cur.beat], wts = weightsNow(), wb = wts[cur.beat] || 1;
+    const entry = set[h.bone] || (set[h.bone] = { r: [0, 0, 0], p: [0, 0, 0] }); entry.r = entry.r || [0, 0, 0]; entry.p = entry.p || [0, 0, 0];
+    if (h.kind === 'move') {
+      const inv = new THREE.Matrix4().copy(bone.parent ? bone.parent.matrixWorld : new THREE.Matrix4()).invert();
+      const a = drag.startWorld.clone().applyMatrix4(inv), b = target.clone().applyMatrix4(inv);
+      for (let i = 0; i < 3; i++) entry.p[i] = drag.startP[i] + (b.getComponent(i) - a.getComponent(i)) / wb;
+    } else {
+      bone.updateWorldMatrix(true, false);
+      const pivot = bone.getWorldPosition(new V3()), tip = h.tip.getWorldPosition(new V3());
+      const cq = bone.getWorldQuaternion(new THREE.Quaternion()), pq = (bone.parent ? bone.parent.getWorldQuaternion(new THREE.Quaternion()) : new THREE.Quaternion());
+      let qw = new THREE.Quaternion();
+      if (h.kind === 'aim') {
+        const d0 = tip.clone().sub(pivot), d1 = target.clone().sub(pivot);
+        if (d0.length() < 1e-6 || d1.length() < 1e-6) return;
+        qw.setFromUnitVectors(d0.normalize(), d1.normalize());
+      } else {
+        const axis = h.axis.clone().applyQuaternion(cq).normalize();
+        const v0 = tip.clone().sub(pivot), v1 = target.clone().sub(pivot);
+        v0.addScaledVector(axis, -v0.dot(axis)); v1.addScaledVector(axis, -v1.dot(axis));
+        if (v0.length() < 1e-6 || v1.length() < 1e-6) return;
+        qw.setFromAxisAngle(axis, Math.atan2(v0.clone().cross(v1).dot(axis), v0.dot(v1)));
+      }
+      const newLocal = pq.clone().invert().multiply(qw.multiply(cq));
+      const proc = bone.userData.proc || bone.quaternion;
+      const tot = new THREE.Euler().setFromQuaternion(proc.clone().invert().multiply(newLocal), 'YXZ');
+      const want = [tot.x / DEG, tot.y / DEG, tot.z / DEG];
+      for (let i = 0; i < 3; i++) {                      // the others' share of the total stays; the held beat's share takes the rest
+        let others = 0; for (const b in wts) if (b !== cur.beat && setFor(cur.who)[b] && setFor(cur.who)[b][h.bone]) others += wts[b] * ((setFor(cur.who)[b][h.bone].r || [0, 0, 0])[i]);
+        entry.r[i] = (want[i] - others) / wb;
+      }
+    }
+    if (entry.r.every(v => Math.abs(v) < 0.05) && entry.p.every(v => Math.abs(v) < 0.005)) delete set[h.bone];
+    if (hs.onChange) hs.onChange(h.bone);
+  }
+  const hostEl = renderer.domElement.parentElement;
+  hostEl.addEventListener('pointerdown', e => {
+    if (!hs.on || e.button !== 0) return;
+    pointerRay(e);
+    const meshes = HANDLE_DEFS[hs.who].map(h => h.mesh), hit = ray.intersectObjects(meshes, false)[0];
+    if (!hit) return;
+    e.stopPropagation(); e.preventDefault();
+    const h = hit.object.userData.handle; hs.bone = h.bone; controls.enabled = false;
+    dragPlane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(new V3()).negate(), hit.point);
+    const set = setFor(cur.who)[cur.beat], ent = set[h.bone];
+    hs.drag = { h, grab: hit.point.clone().sub(h.mesh.position), startWorld: h.tip.getWorldPosition(new V3()), startP: ent && ent.p ? ent.p.slice() : [0, 0, 0] };
+    if (hs.onPick) hs.onPick(h.bone, h.label);
+    renderer.domElement.setPointerCapture && renderer.domElement.setPointerCapture(e.pointerId);
+  }, true);
+  hostEl.addEventListener('pointermove', e => {
+    if (!hs.drag) return;
+    pointerRay(e);
+    if (ray.ray.intersectPlane(dragPlane, hitP)) applyDrag(hs.drag, hitP.clone().sub(hs.drag.grab));
+  }, true);
+  const endDrag = () => { if (hs.drag) { hs.drag = null; controls.enabled = true; } };
+  hostEl.addEventListener('pointerup', endDrag, true); hostEl.addEventListener('pointercancel', endDrag, true);
+
   // who: 'hand', 'paddle' (Gerda with that implement) or 'jack'.
+  const cur = { who: 'paddle', beat: 'contactL' };      // what the editor is holding the scene at
   const figure = who => who === 'jack' ? 'jack' : 'gerda', setFor = who => who === 'jack' ? edits.jack : edits.gerda[who];
   const editor = {
     beats: BEATS, bones: who => Object.keys(BONES[figure(who)]).filter(n => who !== 'hand' || n !== 'paddle'),
@@ -397,6 +524,7 @@ function create(view, opts) {
     // Hold the scene at a beat so it can be posed: Gerda's rest, raised, or landed on the left or right cheek (with the hand or the paddle in
     // hand); Jack's base or fully reacting.
     hold(who, beat) {
+      cur.who = who; cur.beat = beat;
       st.runLeft = 0; st.swing = null;
       if (who !== 'jack') {
         st.implement = who; st.holdKick = null;
@@ -404,6 +532,12 @@ function create(view, opts) {
       } else st.holdKick = beat === 'react' ? 1 : 0;
     },
     release() { st.swing = null; st.holdKick = null; },
+    // Handles in the view: on or off, for Hand/Paddle (Gerda's) or Jack's; which bone is selected; callbacks for a pick and for a change by dragging.
+    handles(on, who) { hs.on = !!on; hs.who = who === 'jack' ? 'jack' : 'gerda'; handleGroup.visible = hs.on; if (!hs.on) { endDrag(); for (const w in HANDLE_DEFS) for (const h of HANDLE_DEFS[w]) h.mesh.visible = false; } },
+    select(bone) { hs.bone = bone; },
+    onPick(f) { hs.onPick = f; }, onChange(f) { hs.onChange = f; },
+    info: (who, bone) => BONE_INFO[bone] || '',
+    handleLabels: who => HANDLE_DEFS[who === 'jack' ? 'jack' : 'gerda'].map(h => ({ bone: h.bone, kind: h.kind, label: h.label })),
     report() {
       const dump = (set, beats, pad) => beats.map(b => {
         const bones = Object.keys(set[b]).map(n => { const e = set[b][n], parts = [];
