@@ -458,7 +458,16 @@ function buildCharacter(skin, opts) {
       for (let f = 0; f < 6; f++) for (let v = 0; v < 4; v++) {
         const i = f * 4 + v;
         if (f === 4) { const u0 = fr.x + half, u1 = u0 + 4, v0 = fr.y + 1, v1 = fr.y + 5; uv.setXY(i, (v & 1 ? u1 : u0) / 64, 1 - (v < 2 ? v0 : v1) / 64); }
-        else uv.setXY(i, (fr.x + half + 2.5) / 64, 1 - (fr.y + 3.5) / 64);
+        else {
+          // The other faces carry the front's edge colours on round: the top takes the colours of the front's top row and the bottom those of its last
+          // row (pixel for pixel across), the sides the colours of the front's outer and inner columns (row for row).
+          const u0 = fr.x + half, u1 = u0 + 4, v0 = fr.y + 1, v1 = fr.y + 5, down = v < 2 ? v0 : v1;
+          if (f === 2) uv.setXY(i, (v & 1 ? u1 : u0) / 64, 1 - (fr.y + 1.5) / 64);
+          else if (f === 3) uv.setXY(i, (v & 1 ? u1 : u0) / 64, 1 - (fr.y + 4.5) / 64);
+          else if (f === 0) uv.setXY(i, (u1 - 0.5) / 64, 1 - down / 64);      // the +x side: the front's right-hand column
+          else if (f === 1) uv.setXY(i, (u0 + 0.5) / 64, 1 - down / 64);      // the -x side: its left-hand column
+          else uv.setXY(i, (u0 + 2) / 64, 1 - (fr.y + 3) / 64);                // (the back is never seen)
+        }
       }
       const m = new THREE.Mesh(g, mat); m.position.set(sign * 1.9, 9.2, 2.8); rig.torso.add(m);
     }
