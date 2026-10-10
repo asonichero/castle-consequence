@@ -446,6 +446,20 @@ function buildCharacter(skin, opts) {
   // Torso and head.
   rig.torso = new THREE.Group(); hips.add(rig.torso);
   const torsoMesh = mesh('body', 'jacket', 0.5); torsoMesh.position.y = 6; rig.torso.add(torsoMesh);
+  if (opts.bust) {
+    // The bust: two blocks standing out from the front of the torso block (about two units, from rows 3 to 7), textured from the torso's own front, so
+    // whatever she wears (bodice, apron, gown) carries over them. Their other faces are one flat texel of the same cloth.
+    const fr = faceRect(A.body, 'front');
+    for (const [half, sign] of [[4, 1], [0, -1]]) {
+      const g = new THREE.BoxGeometry(3.6, 3.4, 2.2), uv = g.attributes.uv;
+      for (let f = 0; f < 6; f++) for (let v = 0; v < 4; v++) {
+        const i = f * 4 + v;
+        if (f === 4) { const u0 = fr.x + half, u1 = u0 + 4, v0 = fr.y + 3, v1 = fr.y + 7; uv.setXY(i, (v & 1 ? u1 : u0) / 64, 1 - (v < 2 ? v0 : v1) / 64); }
+        else uv.setXY(i, (fr.x + half + 2.5) / 64, 1 - (fr.y + 5.5) / 64);
+      }
+      const m = new THREE.Mesh(g, mat); m.position.set(sign * 1.9, 7.2, 2.8); rig.torso.add(m);
+    }
+  }
   rig.neck = new THREE.Group(); rig.neck.position.y = 12; rig.torso.add(rig.neck);
   const headMesh = mesh('head', 'hat', 1); headMesh.position.y = 4; rig.neck.add(headMesh);
   if (opts.bun) {
@@ -517,7 +531,7 @@ function step(rig, dt) {
 
 const makeJack = () => buildCharacter(paintJack(), { armWidth: 3 });
 const OUTFITS = { jack: ['Outdoor', 'Day', 'Soft', 'Fine'], gerda: ['Work', 'Fine'] };
-const makeGerda = outfit => buildCharacter(paintGerdaInto(new Skin(3, 3), outfit), { armWidth: 3, bun: true, skirt: true, elbow: 'armR' });
+const makeGerda = outfit => buildCharacter(paintGerdaInto(new Skin(3, 3), outfit), { armWidth: 3, bun: true, skirt: true, elbow: 'armR', bust: true });
 
 root.Blocky = { makeJack, makeGerda, setPose, step, POSES, Skin, OUTFITS, paintGerdaInto, paintJackInto, paintGlutesInto, makeGlutes, boxGeo, faceRect };
 })(typeof window !== 'undefined' ? window : globalThis);
