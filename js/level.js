@@ -186,7 +186,7 @@ function create(els, ui) {
     chores: { sweep: false, dish: false, water: false, trust: false }, dishFilled: false, troughFilled: false,
     counts: { claps: 0, spills: 0, startles: 0, unfinished: 0, dawdle: 0, litter: 0, tracked: 0 }, lie: false, told: null,
     hen: { pos: new V3(30 * K, 0, 24 * K), target: new V3(30 * K, 0, 24 * K), mode: 'wander', timer: 2, trust: 50, startleCool: 0, heading: 0, bob: 0, settled: false, dirt: 0, stride: 0 },
-    cam: { yaw: 0, pitch: 0.7 }, shrunk: [], hint: '', msg: '',
+    cam: { yaw: 0, pitch: 0.85 }, shrunk: [], hint: '', msg: '',
   };
   const keys = {};
   const note = (text, cls) => { S.log.unshift({ text, cls: cls || '', t: S.t }); if (S.log.length > 6) S.log.pop(); ui.log && ui.log(S.log); };
@@ -214,7 +214,7 @@ function create(els, ui) {
   renderer.domElement.addEventListener('pointerdown', e => { dragging = { x: e.clientX, y: e.clientY }; renderer.domElement.setPointerCapture && renderer.domElement.setPointerCapture(e.pointerId); });
   renderer.domElement.addEventListener('pointermove', e => {
     if (!dragging) return;
-    S.cam.yaw -= (e.clientX - dragging.x) * 0.006; S.cam.pitch = clamp(S.cam.pitch + (e.clientY - dragging.y) * 0.005, 0.06, 1.3); dragging.x = e.clientX; dragging.y = e.clientY;
+    S.cam.yaw -= (e.clientX - dragging.x) * 0.006; S.cam.pitch = clamp(S.cam.pitch + (e.clientY - dragging.y) * 0.005, 0.06, 1.4); dragging.x = e.clientX; dragging.y = e.clientY;
   });
   const endDrag = () => { dragging = null; };
   renderer.domElement.addEventListener('pointerup', endDrag); renderer.domElement.addEventListener('pointercancel', endDrag);
@@ -396,7 +396,8 @@ function create(els, ui) {
   // ── Characters on screen ───────────────────────────────────────────────────────────────────────────────────────────────────────────
   function poseJack(dt) {
     S.shownSize += (S.size - S.shownSize) * Math.min(1, dt * 5); const sc = S.shownSize * FULL;
-    jackG.position.copy(S.pos); if (S.sitting) { jackG.position.y = CHAIR_SEAT - 4 * sc; jackG.position.z = SPOT.chair.z + 6 * K - 1.5 - 6 * sc; }   // knees at the seat's front edge, shins hanging free jack.root.scale.setScalar(sc); jack.root.rotation.y = turn(jack.root.rotation.y, S.heading, Math.min(1, dt * 12));
+    jackG.position.copy(S.pos); if (S.sitting) { jackG.position.y = CHAIR_SEAT - 4 * sc; jackG.position.z = SPOT.chair.z + 6 * K - 1.5 - 6 * sc; }   // (knees at the seat's front edge, shins hanging free)
+    jack.root.scale.setScalar(sc); jack.root.rotation.y = turn(jack.root.rotation.y, S.heading, Math.min(1, dt * 12));
     carrier.scale.setScalar(K / sc);                                                       // (the broom and bucket stay the room's size)
     const patient = clamp((S.size - 0.5) / 0.45, 0, 1);                                      // 95%+ is fully patient, 50% kicks his feet playfully
     if (S.sitting !== !!jack.walk.sit) { B.setPose(jack, S.sitting ? 'sit' : 'stand'); jack.walk.sit = S.sitting; }
@@ -565,7 +566,7 @@ function create(els, ui) {
     // talk it takes in Gerda as well.
     const sc = S.shownSize * FULL, talk = S.phase !== 'play' && gerdaG.visible;
     const at = talk ? S.pos.clone().add(gerdaG.position).multiplyScalar(0.5) : S.pos.clone();
-    const dist = 96 * sc + (talk ? S.pos.distanceTo(gerdaG.position) * 1.1 : 0), lookH = (S.sitting ? CHAIR_SEAT * 0.8 + 12 * sc : 17 * sc) + (talk ? 8 : 0);
+    const dist = 105 * sc + (talk ? S.pos.distanceTo(gerdaG.position) * 1.1 : 0), lookH = (S.sitting ? CHAIR_SEAT * 0.8 + 12 * sc : 17 * sc) + (talk ? 8 : 0);
     const cp = Math.cos(S.cam.pitch), sp = Math.sin(S.cam.pitch);
     const want = new V3(at.x + Math.sin(S.cam.yaw) * cp * dist, lookH + sp * dist, at.z + Math.cos(S.cam.yaw) * cp * dist);
     want.x = clamp(want.x, HALL.x0 + 2, HALL.x1 - 2); want.z = clamp(want.z, HALL.z0 + 2, HALL.z1 - 2); want.y = clamp(want.y, 2, 150);
