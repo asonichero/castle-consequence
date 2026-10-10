@@ -15,6 +15,7 @@ root.LapPoses = {
     raised: {
       torso: { r: [41, 0, 0], p: [0, 0, -2] },
       armL: { r: [-11, 0, 0] },
+      elbowR: { r: [-10, -100, 25] },
     },
     contact: {
       torso: { r: [41, 0, 0], p: [0, 0, -2] },
