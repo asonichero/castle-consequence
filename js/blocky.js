@@ -214,7 +214,7 @@ const sideOuter = s => s + 'O';
 
 // ---------------------------------------------------------------------------------------------------------------------------
 // Gerda, late thirties: broad-shouldered, practical, laughs easily and means what she says. A plum bodice laced over a blouse,
-// a cream apron and a full skirt, wool stockings and boots; auburn hair going grey at the temple, pinned up in a bun.
+// a cream apron and a full skirt, bare legs and feet; auburn hair going grey at the temple, pinned up in a bun.
 // ---------------------------------------------------------------------------------------------------------------------------
 function paintGerda() {
   const k = new Skin(3, 3);
