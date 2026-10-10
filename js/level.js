@@ -108,7 +108,8 @@ function create(els, ui) {
   const room = new THREE.Group(); room.scale.setScalar(K); scene.add(room);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(2 * R_, 2 * R_), new THREE.MeshLambertMaterial({ map: earthTexture([14, 14]) })); floor.rotation.x = -Math.PI / 2; room.add(floor);   // packed earth
   const wallMat = new THREE.MeshLambertMaterial({ map: plankTexture('#6e5a46', '#55442f', [8, 3]) });
-  const wall = (w, h, d, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat); m.position.set(x, y, z); room.add(m); return m; };
+  const walls = [];                                                                                  // (each tagged with its side, so a wall the camera has gone through can be left out)
+  const wall = (w, h, d, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat); m.position.set(x, y, z); room.add(m); walls.push({ m, side: Math.abs(x) > Math.abs(z) ? (x < 0 ? 'w' : 'e') : (z < 0 ? 'n' : 's') }); return m; };
   const WH = 42, W = R_ + 1;                                                                        // wall height (design units): over a head taller than Gerda
   const half = (R_ - 9) / 2;
   wall(2 * W, WH, 2, 0, WH / 2, -W);                                                                  // north wall (the chair stands against it)
@@ -662,7 +663,7 @@ function create(els, ui) {
     return st;
   }
   function updateDiscipline(dt) {
-    lap.update(dt); ui.meter && ui.meter(lap.info());
+    lap.update(dt); cullWalls(lap.camera); ui.meter && ui.meter(lap.info());
     if (after) { B.step(after.j, dt); B.step(after.g, dt); after.t += dt; if (after.t > 1) { after.t = 0; after.paint(); } }
     if (stepAt >= steps.length) return;
     if (stepWait > 0) { stepWait -= dt; return; }
@@ -707,6 +708,12 @@ function create(els, ui) {
   }
   function redWord() { if (S.phase !== 'discipline' || !lap) return; stepAt = steps.length; lap.red(); say('Gerda', 'Red. Stopping at once. Come here.'); finishDiscipline(true); }
 
+  // A wall the camera has passed through is not drawn, so the scene stays visible from outside.
+  function cullWalls(cam) {
+    const lim = R_ * K, p = cam.position;
+    for (const w of walls) w.m.visible = !(w.side === 'n' ? p.z < -lim : w.side === 's' ? p.z > lim : w.side === 'w' ? p.x < -lim : p.x > lim);
+  }
+
   // ── Loop ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   function frame(dt) {
     if (S.phase === 'discipline') { updateDiscipline(dt); return; }
@@ -720,8 +727,8 @@ function create(els, ui) {
     const dist = 105 * sc + (talk ? S.pos.distanceTo(gerdaG.position) * 1.1 : 0), lookH = (S.sitting ? CHAIR_SEAT * 0.8 + 12 * sc : 17 * sc) + (talk ? 8 : 0);
     const cp = Math.cos(S.cam.pitch), sp = Math.sin(S.cam.pitch);
     const want = new V3(at.x + Math.sin(S.cam.yaw) * cp * dist, lookH + sp * dist, at.z + Math.cos(S.cam.yaw) * cp * dist);
-    want.x = clamp(want.x, HALL.x0 + 2, HALL.x1 - 2); want.z = clamp(want.z, HALL.z0 + 2, HALL.z1 - 2); want.y = clamp(want.y, 2, 150);
-    camera.position.lerp(want, Math.min(1, dt * 10)); camera.lookAt(at.x, lookH, at.z);
+    want.x = clamp(want.x, HALL.x0 - 90, HALL.x1 + 90); want.z = clamp(want.z, HALL.z0 - 90, HALL.z1 + 90); want.y = clamp(want.y, 2, 190);
+    camera.position.lerp(want, Math.min(1, dt * 10)); camera.lookAt(at.x, lookH, at.z); cullWalls(camera);
     renderer.render(scene, camera);
     ui.hud && ui.hud(S, { SIZE_MIN, TIME_LIMIT, patches: patches.filter(p => p.amount <= 0).length, patchTotal: patches.length, prints: prints.filter(p => p.amount > 0.05).length });
   }
