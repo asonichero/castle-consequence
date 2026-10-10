@@ -162,3 +162,9 @@ tests/edits.test.js   pose-report / design parsing, the reports, and the impleme
 tests/e2e-smoke.js    two days in headless Chromium, including every live control
 tests/skirt-physics.js + skirt.html  the cloth: weight, frame-rate independence, no clipping
 ```
+
+## Blocky models (Beanstalk prototype)
+
+`blocky.html` (script: `js/blocky.js`) is a separate prototype for a new, Minecraft-style direction: Jack (21) and Gerda, the Giantess
+(late 30s), as box-built characters with hand-painted 64×64 skins (base + outer layer, downloadable as ordinary Minecraft skins). Legs are
+split at the knee, so the bend only shows when seated. Open it from the same static server, `http://localhost:8765/blocky.html`.
