@@ -356,7 +356,16 @@ function buildCharacter(skin, opts) {
   const shoulderX = 4 + aw / 2;
   for (const [key, sign, p, o] of [['armL', 1, 'lArm', 'lArmO'], ['armR', -1, 'rArm', 'rArmO']]) {
     const pivot = new THREE.Group(); pivot.position.set(sign * shoulderX, 10, 0); pivot.rotation.order = 'ZXY';
-    const m = mesh(p, o, 0.5); m.position.y = -4; pivot.add(m); rig.torso.add(pivot); rig[key] = pivot; pivot.userData.sign = sign;
+    if (opts.elbow === key) {
+      // A swinging arm: cut at the elbow (row 6 of 12) into an upper arm and a forearm, as the legs are cut at the knee. The forearm hangs from a
+      // wrist group that can turn about the forearm's own axis (so the hand and anything held can be brought round).
+      const upper = mesh(p, o, 0.5, 0, 6); upper.position.y = -1; pivot.add(upper);
+      const elbow = new THREE.Group(); elbow.position.y = -4; pivot.add(elbow);
+      const wrist = new THREE.Group(); elbow.add(wrist);
+      const fore = mesh(p, o, 0.5, 6, 12); fore.position.y = -3; wrist.add(fore);
+      rig.elbow = elbow; rig.wrist = wrist;
+    } else { const m = mesh(p, o, 0.5); m.position.y = -4; pivot.add(m); }
+    rig.torso.add(pivot); rig[key] = pivot; pivot.userData.sign = sign;
   }
 
   // Legs: thigh from the hip, shin from the knee. Standing, the two meet flush; seated, the knee shows.
@@ -400,7 +409,7 @@ function step(rig, dt) {
 }
 
 const makeJack = () => buildCharacter(paintJack(), { armWidth: 3 });
-const makeGerda = () => buildCharacter(paintGerda(), { armWidth: 3, bun: true, skirt: true });
+const makeGerda = () => buildCharacter(paintGerda(), { armWidth: 3, bun: true, skirt: true, elbow: 'armR' });
 
 root.Blocky = { makeJack, makeGerda, setPose, step, POSES, Skin, paintJackInto, paintGlutesInto, makeGlutes, boxGeo, faceRect };
 })(typeof window !== 'undefined' ? window : globalThis);

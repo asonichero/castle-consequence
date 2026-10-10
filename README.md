@@ -184,7 +184,7 @@ game's own, ported:
 - **Red**: the safe word stops everything at once.
 - Cameras: Overview, Behind, Over your shoulder (Gerda's view), Face; drag to orbit as well.
 
-Gerda's arm is one straight block, so the swing is solved geometrically: with the paddle she may twist her upper body (no leaning: the lean is fixed, so a pose edit of her torso stays put) until the arm's end reaches the plane of his rear as near the middle of it as it can, and the arm comes down over both cheeks with the paddle rigid on its end. Which cheek takes the colour still alternates.
+Gerda's swinging (right) arm has an elbow (an upper arm and a forearm, cut like the legs at the knee) and a wrist twist, and the swing is solved geometrically: her torso never twists or leans for a strike (so a pose edit of it stays put). The hand's end lands exactly on the middle of his rear; the paddle's mount on the forearm is placed so its blade's middle lies on the cheek being struck, the elbow bending more for the nearer cheek and for a smaller Jack, the blade lying toward his head and rolled about its length to the angle of his glutes at contact. Which cheek takes the colour still alternates.
 Jack's size (10–100%) is a slider in the lap viewer: his body is scaled about his hip joint and re-seated on her lap, so the premise (he shrinks on arrival and regains his size level by level) can be previewed. The contact sites are on his body, so they move and shrink with him, and the aim is refitted each frame (the blade's height counts most in the fit) so the paddle always lies on his skin. The pain model does not yet change with his size.
 
 
