@@ -15,7 +15,8 @@ const srgb = hex => new THREE.Color(hex).convertSRGBToLinear();
 
 // Where everything is. P is Jack's hip joint; PITCH tips him head-down so his upper body leans toward the floor.
 const P = new V3(-6, 10, 6.5), PITCH = -0.05;   // hip joint: his torso's centre (6 up from it) is over the centre of her thighs (x 0, z 3)
-const HOVER = 1.4;             // at rest the hand or paddle hovers this far above the centre of his lower back (the contact pose, lifted)
+const JACK_FULL = 0.95;        // Jack's full size (100%) as a fraction of the model's own scale: he is a little smaller than the model he is built as
+const HOVER = 1.4;            // at rest the hand or paddle hovers this far above the centre of his lower back (the contact pose, lifted)
 const TIMES = { lift: 0.45, hold: 0.15, strike: 0.09, contact: 0.32, back: 0.3 };
 // Implements: the hand lands with the end of Gerda's arm block, on the middle of his rear. The paddle is a small rounded blade held out from the
 // right-hand face of her arm block (the side toward his head in the top view) with its face down, so it lies across one cheek at a time.
@@ -380,7 +381,7 @@ function create(view, opts) {
     repaintAt -= dt; if (dirty && repaintAt <= 0) { repaint(); repaintAt = 0.12; }
     // Jack's size (the premise: he shrinks on arrival): his frame is scaled about his hip joint, which is re-placed so his torso's centre is still
     // over the centre of her thighs and his belly still rests on them (their tops are at y = 8, 8.75 under the skirt; his body is 4 deep).
-    const sz = st.size; frame.scale.setScalar(sz);
+    const sz = st.size * JACK_FULL; frame.scale.setScalar(sz);    // (his full size, 100%, is 95% of the model's own scale)
     frame.position.set(-6 * sz, 8.75 + 2 * sz + 0.7 * J.kick * sz, P.z);
     applyEdits('jack', ['frame'], jackWeights());
     B.step(jack, dt); scene.updateMatrixWorld(true);

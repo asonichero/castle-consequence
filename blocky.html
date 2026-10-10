@@ -119,7 +119,9 @@
     document.getElementById('wardJ').appendChild(bt);
   });
   var size = document.getElementById('size'), out = document.getElementById('sizeOut');
-  size.oninput = function () { var s = size.value / 100; cast[0].rig.root.scale.setScalar(s); out.textContent = size.value + '%'; };
+  // Jack's full size (100%) is 95% of the model's own scale.
+  cast[0].rig.root.scale.setScalar(0.95);
+  size.oninput = function () { var s = size.value / 100; cast[0].rig.root.scale.setScalar(s * 0.95); out.textContent = size.value + '%'; };
   var spin = document.getElementById('spin');
   spin.onclick = function () { controls.autoRotate = !controls.autoRotate; spin.classList.toggle('on', controls.autoRotate); };
   document.getElementById('home').onclick = home;
