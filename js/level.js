@@ -315,8 +315,8 @@ function create(els, ui) {
     const w = S.holding;
     if (!w) {
       if (S.hen.pos.distanceTo(S.pos) < 14 && S.hen.trust >= 100 && !S.chores.trust) { S.chores.trust = true; note('The golden hen lets you stroke her. She trusts you. ✔', 'good'); return; }
-      if (S.hen.mode === 'rest' && S.hen.pos.distanceTo(S.pos) < 16) {                  // next to her nest: coo and pet her
-        if (S.cooCool > 0) return; S.cooCool = 0.5; const h = S.hen; h.trust = Math.min(100, h.trust + 12); h.restLeft = h.trust >= 100 ? Infinity : REST_MAX * h.trust / 100;
+      if (S.hen.mode === 'rest' && byNest(S.pos)) {                                      // in or next to her nest: settle her
+        if (S.cooCool > 0) return; S.cooCool = 0.5; const h = S.hen; h.trust = Math.min(100, h.trust + 12); h.restLeft = restFor(h.trust);
         S.floats.push({ text: '+trust', t: 0 }); note(h.trust >= 100 ? 'You coo to her and she settles completely.' : 'You coo and pet her softly. She trusts you a little more.', 'good'); return;
       }
       clap(); return;
@@ -358,8 +358,10 @@ function create(els, ui) {
   // and at full trust she stays. Next to the nest, Space coos to her, which builds her trust.
   const REST_MAX = 40, NEST_R = 14;
   const roamPoint = () => new V3(lerp(HALL.x0 + 14, HALL.x1 - 14, Math.random()), 0, lerp(HALL.z0 + 14, HALL.z1 - 14, Math.random()));
-  const nearNest = p => Math.hypot(p.x - SPOT.nest.x, p.z - SPOT.nest.z) < NEST_R;
-  function startRest() { const h = S.hen; h.mode = 'rest'; h.target = SPOT.nest.clone(); h.restLeft = h.trust >= 100 ? Infinity : REST_MAX * h.trust / 100; }
+  const nearNest = p => Math.abs(p.x - SPOT.nest.x) <= 10 * K && Math.abs(p.z - SPOT.nest.z) <= 7 * K;                 // anywhere within the nest's confines
+  const byNest = p => Math.abs(p.x - SPOT.nest.x) <= 10 * K + 12 && Math.abs(p.z - SPOT.nest.z) <= 7 * K + 12;       // inside it or right beside it
+  const restFor = trust => trust >= 100 ? Infinity : 5 + 0.2 * trust;                                                    // at least 5 s, plus 2 s for every 10% of trust
+  function startRest() { const h = S.hen; h.mode = 'rest'; h.target = SPOT.nest.clone(); h.restLeft = restFor(h.trust); }
   function fleeFrom(from) {
     const h = S.hen, away = h.pos.clone().sub(from); away.y = 0; if (away.lengthSq() < 0.01) away.set(1, 0, 0.3); away.normalize();
     let t = h.pos.clone().addScaledVector(away, 34); t.x = clamp(t.x, HALL.x0 + 14, HALL.x1 - 14); t.z = clamp(t.z, HALL.z0 + 14, HALL.z1 - 14);
@@ -375,7 +377,7 @@ function create(els, ui) {
       h.pos.copy(S.pos).addScaledVector(new V3(Math.sin(S.heading), 0, Math.cos(S.heading)), 7 * sc); hen.position.set(h.pos.x, 11 * sc, h.pos.z); hen.rotation.y = S.heading + Math.PI;
       h.bob += dt * 14; henP.wingL.rotation.z = 0.6 + 0.5 * Math.sin(h.bob); henP.wingR.rotation.z = -henP.wingL.rotation.z; henP.head.rotation.x = -0.2; henP.tail.rotation.x = -0.4; return;
     }
-    const staying = h.mode === 'rest' && h.trust >= 100;                                   // a fully trusting hen is not scared out of her nest
+    const staying = h.mode === 'rest';                                                     // once settled she is unmoved by fast movement
     if (d < ALARM_RADIUS && S.speedN > HEN_ALARM && h.mode !== 'flee' && !staying) {         // too fast, too close: she backs away
       fleeFrom(S.pos); h.trust = Math.max(0, h.trust - 14);
       if (h.startleCool <= 0) { h.startleCool = 4; S.counts.startles++; note('You moved too fast: the hen backs away.', 'bad'); shrink(COST.startle, 'Startling the hen'); }
@@ -464,7 +466,7 @@ function create(els, ui) {
     else if (S.holding === 'grain') S.hint = near(SPOT.dish, 14) ? 'Space: fill the dish' : near(SPOT.sack) ? 'E: put the grain back' : 'Take it to her dish (Space pours it out)';
     else if (S.holding === 'bucket') S.hint = near(SPOT.trough, 19) ? 'Space: pour the water in' : near(SPOT.well, 21) ? (S.water < 100 ? 'Space: fill the bucket from the basin' : 'Sneak (C) to carry it to the trough') : near(SPOT.bucket, 13) ? 'E: put the bucket back' : 'Sneak (C) to carry it; Space pours it out';
     else if (dh < 14 && S.hen.trust >= 100 && !S.chores.trust) S.hint = 'Space: stroke the hen';
-    else if (dh < 16 && S.hen.mode === 'rest' && S.hen.trust < 100) S.hint = 'Space: coo and pet her · E: pick her up';
+    else if (S.hen.mode === 'rest' && byNest(S.pos) && S.hen.trust < 100) S.hint = 'Space: settle her · E: pick her up';
     else if (dh < 14) S.hint = 'E: pick up the hen';
     else if (floorItem) S.hint = `E: pick up the ${floorItem}`;
     else if (near(SPOT.chair, 18)) S.hint = 'E: sit on the chair';
