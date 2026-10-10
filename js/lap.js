@@ -126,10 +126,14 @@ function create(view, opts) {
   // ── Smacks ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
   function smack() {
     if (!canStrike() || st.swing) return false;
-    let side = st.side === 'alt' ? st.nextSide : st.side;
-    st.swing = { phase: 'lift', t: 0, side, waited: 0, tau: REST };
-    if (st.side === 'alt') st.nextSide = st.nextSide === 'R' ? 'L' : 'R';
+    st.swing = { phase: 'lift', t: 0, side: pickSide(), waited: 0, tau: REST };
     return true;
+  }
+  // Which cheek takes the colour of the next smack (alternating, or the one chosen).
+  function pickSide() {
+    const side = st.side === 'alt' ? st.nextSide : st.side;
+    if (st.side === 'alt') st.nextSide = st.nextSide === 'R' ? 'L' : 'R';
+    return side;
   }
   function impact(sw) {
     const impl = IMPL[st.implement], tender = (st.marks.L + st.marks.R) / 2;
@@ -150,7 +154,12 @@ function create(view, opts) {
       case 'lift': sw.tau = lerp(REST, 0, ease(clamp(sw.t / TIMES.lift, 0, 1))); if (sw.t >= TIMES.lift) { sw.phase = 'hold'; sw.t = 0; } break;
       case 'hold': sw.tau = 0; sw.waited = sw.t; if (sw.t >= TIMES.hold) { sw.phase = 'strike'; sw.t = 0; } break;
       case 'strike': { const x = clamp(sw.t / TIMES.strike, 0, 1); sw.tau = x * x; if (x >= 1) { sw.tau = 1; sw.phase = 'contact'; sw.t = 0; impact(sw); } break; }
-      case 'contact': sw.tau = 1; if (sw.t >= TIMES.contact) { sw.phase = 'back'; sw.t = 0; } break;
+      case 'contact': sw.tau = 1; if (sw.t >= TIMES.contact) {
+        // In a run the arm goes straight from contact back up to raised for the next smack; only the last one returns to rest.
+        if (st.runLeft > 0 && canStrike()) { st.runLeft--; sw.phase = 'rise'; sw.side = pickSide(); sw.waited = 0; } else sw.phase = 'back';
+        sw.t = 0;
+      } break;
+      case 'rise': sw.tau = lerp(1, 0, ease(clamp(sw.t / TIMES.lift, 0, 1))); if (sw.t >= TIMES.lift) { sw.phase = 'hold'; sw.t = 0; } break;
       case 'back': sw.tau = lerp(1, REST, ease(clamp(sw.t / TIMES.back, 0, 1))); if (sw.t >= TIMES.back) { st.swing = null; st.gap = 0.25; } break;
     }
   }
@@ -208,7 +217,7 @@ function create(view, opts) {
     switch (sw.phase) {
       case 'lift': { const a = clamp((REST - t) / REST, 0, 1); return { rest: 1 - a, raised: a }; }
       case 'hold': return { raised: 1 };
-      case 'strike': case 'freeze': return { raised: 1 - t, contact: t };
+      case 'strike': case 'rise': case 'freeze': return { raised: 1 - t, contact: t };
       case 'contact': return { contact: 1 };
       case 'back': { const b = clamp((1 - t) / (1 - REST), 0, 1); return { contact: 1 - b, rest: b }; }
     }
@@ -332,7 +341,6 @@ function create(view, opts) {
     restoreBones();
     J.t += dt; J.kick *= Math.exp(-dt * 4.5); if (st.holdKick != null) J.kick = st.holdKick;
     if (st.swing) advance(dt);
-    else if (st.runLeft > 0 && canStrike()) { st.gap -= dt; if (st.gap <= 0) { smack(); st.runLeft--; } }
     pain.update(dt, !!(st.swing && st.swing.phase === 'contact'));
     if (st.ended && !st.swing && st.runLeft) st.runLeft = 0;
     if (exprFor() !== st.expr) dirty = true;
@@ -398,7 +406,8 @@ function create(view, opts) {
     scene, camera, controls, renderer, gerda, jack, pain, st, IMPL, BANDS, J,
     on: f => events.push(f),
     update, view: view_, smack,
-    run(n) { if (!canStrike()) return; st.runLeft = Math.max(1, n | 0); st.gap = 0; },
+    // A run: the first smack lifts from rest, each next one comes straight up from contact to raised, and the last one returns to rest.
+    run(n) { if (!canStrike()) return; n = Math.max(1, n | 0); if (st.swing) st.runLeft = n; else if (smack()) st.runLeft = n - 1; },
     stop() { st.runLeft = 0; },
     end() { if (st.ended) return; st.ended = true; st.runLeft = 0; say('end', { red: false, hits: st.hits, peak: st.peak }); },
     red() { if (st.ended) return; st.ended = true; st.red = true; st.runLeft = 0; st.swing = null; say('end', { red: true, hits: st.hits, peak: st.peak }); },
