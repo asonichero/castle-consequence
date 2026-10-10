@@ -33,7 +33,7 @@ const R_ = 62;                                  // the room is square: 124 desig
 const HALL = { x0: -R_ * K, x1: R_ * K, z0: -R_ * K, z1: R_ * K };
 const ALARM_RADIUS = 28;                        // the hen only minds his pace within this distance
 const D = { rack: [-44, -56], sack: [-50, 46], dish: [20, 20], trough: [36, 20], well: [48, -34], nest: [34, 36], chair: [0, -56.7] };   // (design coordinates; the world's are K times these)
-const SPOT = {}; for (const k in D) SPOT[k] = new V3(D[k][0] * K, 0, D[k][1] * K); SPOT.door = new V3(-(R_ + 2) * K, 0, 0);
+const SPOT = {}; for (const k in D) SPOT[k] = new V3(D[k][0] * K, 0, D[k][1] * K); SPOT.bucket = new V3((D.rack[0] + 9) * K, 0, (D.rack[1] + 5) * K); SPOT.door = new V3(-(R_ + 2) * K, 0, 0);
 const PEN = { x0: 6 * K, x1: 56 * K, z0: 4 * K, z1: 54 * K };
 const PATCHES = [[-30, -20], [-10, 10], [5, -25], [-45, 10], [20, -8], [-20, 28]].map(p => [p[0] * K, p[1] * K]);
 const CHORES = ['sweep', 'dish', 'water', 'trust'];
@@ -138,9 +138,11 @@ function create(els, ui) {
   // The chair against the north wall, facing south: the very chair in the correction scene (built in world units, so scaled back down inside the room group).
   props.chair = B.makeChair(); props.chair.scale.setScalar(1 / K); props.chair.position.set(D.chair[0], B.CHAIR.legH / K, D.chair[1]); room.add(props.chair);
   const makeBucket = () => { const b = new THREE.Group(); box(4.4, 4, 4.4, 0, 2, 0, 0x7a5a38, b); const w = box(3.6, 0.6, 3.6, 0, 3.8, 0, 0x6ab8f6, b); b.userData.water = w; box(0.5, 3, 0.5, 0, 6, 0, 0x4a3a2a, b); return b; };
-  const bucket = makeBucket(); bucket.position.set(0, 9.2, 0); props.well.add(bucket);          // sits on the well's rim
+  const bucket = makeBucket(); bucket.position.set(SPOT.bucket.x / K, 0, SPOT.bucket.z / K); room.add(bucket);          // stands on the floor beside the broom
+  bucket.userData.water.visible = false;                                                               // (empty until he fills it)
+  box(7.4, 0.8, 7.4, 0, 6.2, 0, 0x6ab8f6, props.well);                                              // the basin is always full
   // Where the broom and the bucket belong (as a pose within their parents), so they can be put back.
-  const home = { broom: { parent: props.rack, pos: props.broom.position.clone(), rotX: -0.12 }, bucket: { parent: props.well, pos: bucket.position.clone(), rotX: 0 } };
+  const home = { broom: { parent: props.rack, pos: props.broom.position.clone(), rotX: -0.12 }, bucket: { parent: room, pos: bucket.position.clone(), rotX: 0 } };
 
   // Dirt to sweep (world coordinates) and the footprints left in it.
   const patches = [];
@@ -220,7 +222,7 @@ function create(els, ui) {
 
   // ── Doing things ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   const near = (p, r) => S.pos.distanceTo(p) < (r || 13);
-  const itemPos = n => { const it = S.items[n]; return it.where === 'floor' ? new V3(it.x, 0, it.z) : n === 'broom' ? SPOT.rack : SPOT.well; };
+  const itemPos = n => { const it = S.items[n]; return it.where === 'floor' ? new V3(it.x, 0, it.z) : n === 'broom' ? SPOT.rack : SPOT.bucket; };
   function setHeld(what) {
     S.holding = what; carryBroom.visible = what === 'broom'; carryGrain.visible = what === 'grain'; carryBucket.visible = what === 'bucket';
     props.broom.visible = what !== 'broom'; bucket.visible = what !== 'bucket';
@@ -264,7 +266,7 @@ function create(els, ui) {
       if (what === 'hen') { releaseHen(); return; }
       if (what === 'broom') { setHeld(null); if (near(SPOT.rack)) { placeItem('broom', 'home'); note('You hang the broom back up.', 'good'); } else { placeItem('broom', 'floor'); note('You drop the broom here.'); } return; }
       if (what === 'bucket') {
-        if (near(SPOT.well, 21)) { setHeld(null); S.water = 0; placeItem('bucket', 'home'); note('You set the bucket back on the well.', 'good'); return; }
+        if (near(SPOT.bucket, 13)) { setHeld(null); S.water = 0; placeItem('bucket', 'home'); note('You put the bucket back by the broom.', 'good'); return; }
         if (S.water > 0) dumpWater('Dropping the water');
         setHeld(null); placeItem('bucket', 'floor'); note('You drop the bucket here.'); return;
       }
@@ -273,7 +275,7 @@ function create(els, ui) {
     }
     const c = [];
     const dh = S.hen.pos.distanceTo(S.pos); if (dh < 14) c.push(['hen', dh]);
-    for (const n of ['broom', 'bucket']) { const d = itemPos(n).distanceTo(S.pos); if (d < (n === 'bucket' && S.items.bucket.where === 'home' ? 21 : 13)) c.push([n, d]); }
+    for (const n of ['broom', 'bucket']) { const d = itemPos(n).distanceTo(S.pos); if (d < 13) c.push([n, d]); }
     const ds = SPOT.sack.distanceTo(S.pos); if (ds < 13) c.push(['grain', ds]);
     const dc = SPOT.chair.distanceTo(S.pos); if (dc < 18) c.push(['chair', dc]);
     if (!c.length) { note('Nothing to pick up here.'); return; }
@@ -281,7 +283,7 @@ function create(els, ui) {
     if (w === 'chair') { sitDown(); return; }
     if (w === 'hen') { setHeld('hen'); note('You pick the hen up. She does not like it.', 'bad'); return; }
     setHeld(w); S.water = 0;
-    note(w === 'broom' ? 'You take the broom. Hold Space to sweep.' : w === 'bucket' ? 'You take the bucket. Space at the well fills it.' : 'You scoop up some grain. Space at the dish pours it.');
+    note(w === 'broom' ? 'You take the broom. Hold Space to sweep.' : w === 'bucket' ? 'You take the bucket. Space at the basin fills it.' : 'You scoop up some grain. Space at the dish pours it.');
   }
   // Space: clap if his hands are free, or use what he holds (the broom sweeps while it is held down).
   function spaceAction() {
@@ -415,14 +417,14 @@ function create(els, ui) {
     else if (S.holding === 'hen') S.hint = 'E: put the hen down';
     else if (S.holding === 'broom') S.hint = near(SPOT.rack) ? 'E: hang up the broom · Space (hold): sweep' : 'Space (hold): sweep · E: drop it';
     else if (S.holding === 'grain') S.hint = near(SPOT.dish, 14) ? 'Space: fill the dish' : near(SPOT.sack) ? 'E: put the grain back' : 'Take it to her dish (Space pours it out)';
-    else if (S.holding === 'bucket') S.hint = near(SPOT.trough, 19) ? 'Space: pour the water in' : near(SPOT.well, 21) ? (S.water < 100 ? 'Space: fill the bucket · E: set it down' : 'E: set the bucket down') : 'Sneak (C) to carry it; Space pours it out';
+    else if (S.holding === 'bucket') S.hint = near(SPOT.trough, 19) ? 'Space: pour the water in' : near(SPOT.well, 21) ? (S.water < 100 ? 'Space: fill the bucket from the basin' : 'Sneak (C) to carry it to the trough') : near(SPOT.bucket, 13) ? 'E: put the bucket back' : 'Sneak (C) to carry it; Space pours it out';
     else if (dh < 14 && S.hen.trust >= 100 && !S.chores.trust) S.hint = 'Space: stroke the hen';
     else if (dh < 14) S.hint = 'E: pick up the hen';
     else if (floorItem) S.hint = `E: pick up the ${floorItem}`;
     else if (near(SPOT.chair, 18)) S.hint = 'E: sit on the chair';
     else if (near(SPOT.rack)) S.hint = S.items.broom.where === 'home' ? 'E: take the broom' : '';
     else if (near(SPOT.sack)) S.hint = 'E: scoop grain';
-    else if (near(SPOT.well, 21)) S.hint = S.items.bucket.where === 'home' ? 'E: take the bucket' : '';
+    else if (near(SPOT.bucket, 13)) S.hint = S.items.bucket.where === 'home' ? 'E: take the bucket' : '';
     // End of the job: when everything is done (and tidy), or the clock runs out.
     const done = CHORES.every(c => S.chores[c]);
     if (done && !S.doneAt) { S.doneAt = S.t; note('All done. Gerda will be back any moment… (or call her with G)'); }
