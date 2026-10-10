@@ -176,7 +176,7 @@ function create(view, opts) {
   // ── Pose edits (js/lap-poses.js): offsets on top of the procedural pose, per beat, applied bone by bone ───────────────────────────────────
   const ARM = 10, shoulderLocal = new V3(-5.5, 10, 0), DEG = Math.PI / 180, eul = new THREE.Euler(0, 0, 0, 'YXZ'), qd = new THREE.Quaternion();
   const edits = JSON.parse(JSON.stringify(root.LapPoses || {}));
-  const BEATS = { gerda: ['rest', 'raised', 'contact'], jack: ['base', 'react'] };
+  const BEATS = { gerda: ['rest', 'raised', 'contact', 'contactL', 'contactR'], jack: ['base', 'react'] };
   for (const w in BEATS) { edits[w] = edits[w] || {}; for (const b of BEATS[w]) edits[w][b] = edits[w][b] || {}; }
   const BONES = {
     gerda: { torso: gerda.torso, neck: gerda.neck, armL: gerda.armL, armR: gerda.armR, elbowR: gerda.elbow, wristR: gerda.wrist, thighL: gerda.legL.thigh, thighR: gerda.legR.thigh, kneeL: gerda.legL.knee, kneeR: gerda.legR.knee, paddle: tool },
@@ -214,7 +214,13 @@ function create(view, opts) {
     }
   }
   // How much of each beat's offsets applies now.
+  // 'contact' is the landed pose for either cheek; 'contactL' and 'contactR' are laid on top of it when the left or right cheek is the one struck.
   function gerdaWeights() {
+    const w = gerdaBeatWeights(), sw = st.swing;
+    if (sw && w.contact) w[sw.side === 'L' ? 'contactL' : 'contactR'] = w.contact;
+    return w;
+  }
+  function gerdaBeatWeights() {
     const sw = st.swing; if (!sw) return { rest: 1 };
     const t = sw.tau;
     switch (sw.phase) {
@@ -385,7 +391,7 @@ function create(view, opts) {
     // Hold the scene at a beat so it can be posed: Gerda's rest, raised or contact; Jack's base or fully reacting.
     hold(who, beat) {
       st.runLeft = 0;
-      if (who === 'gerda') { st.holdKick = null; st.swing = beat === 'rest' ? null : { phase: 'freeze', t: 0, side: 'C', waited: 0, tau: beat === 'raised' ? 0 : 1 }; }
+      if (who === 'gerda') { st.holdKick = null; st.swing = beat === 'rest' ? null : { phase: 'freeze', t: 0, side: beat === 'contactL' ? 'L' : 'R', waited: 0, tau: beat === 'raised' ? 0 : 1 }; }
       else { st.swing = null; st.holdKick = beat === 'react' ? 1 : 0; }
     },
     release() { st.swing = null; st.holdKick = null; },
