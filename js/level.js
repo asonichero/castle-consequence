@@ -686,6 +686,7 @@ function create(els, ui) {
   function updateDiscipline(dt) {
     lap.update(dt); cullWalls(lap.camera); ui.meter && ui.meter(lap.info());
     while (talkAt < talk.length && lap.st.hits >= talk[talkAt].at) { say(talk[talkAt].who, talk[talkAt].text); talkAt++; }
+    if (after) { const a = after, cp = Math.cos(a.pitch); lap.camera.position.set(a.T.x + Math.sin(a.yaw) * cp * a.dist, a.T.y + Math.sin(a.pitch) * a.dist, a.T.z + Math.cos(a.yaw) * cp * a.dist); lap.camera.lookAt(a.T); cullWalls(lap.camera); }
     if (after) { B.step(after.j, dt); B.step(after.g, dt); after.t += dt; if (after.t > 1) { after.t = 0; after.paint(); } }
     if (stepAt >= steps.length) return;
     if (stepWait > 0) { stepWait -= dt; return; }
@@ -725,8 +726,14 @@ function create(els, ui) {
     gh.position.set(-14, 0, -30);                                        // (she stands nearer the chair than to him) gh.rotation.y = Math.PI;                                              // (facing him)
     world.add(jh); world.add(gh);
     // The camera is locked on his glutes, from behind and a little above.
-    lap.controls.enabled = false; const fy = world.position.y; lap.camera.position.set(9, fy + 14, bz + 24); lap.controls.target.set(0, fy + 7.2, bz);   // (the room sits on the lowered floor) lap.camera.lookAt(lap.controls.target);
-    after = { j, g, paint, t: 0 };
+    // (the room sits on the lowered floor) The usual camera rules, except it is pinned to his glutes rather than the back of his head: it sits behind him,
+    // the player tilts it with a vertical drag and swings it round him with a horizontal one.
+    lap.controls.enabled = false; const fy = world.position.y; lap.controls.target.set(0, fy + 7.2, bz); lap.camera.position.set(9, fy + 14, bz + 24);
+    after = { j, g, paint, t: 0, yaw: 0.35, pitch: 0.27, dist: 26, T: new V3(0, fy + 7.2, bz) };
+    const el = lap.renderer.domElement, ptr = new Map(); el.style.touchAction = 'none';
+    el.addEventListener('pointerdown', e => { ptr.set(e.pointerId, { x: e.clientX, y: e.clientY }); el.setPointerCapture && el.setPointerCapture(e.pointerId); });
+    el.addEventListener('pointermove', e => { const d = ptr.get(e.pointerId); if (!d || !after) return; after.yaw -= (e.clientX - d.x) * 0.006; after.pitch = clamp(after.pitch + (e.clientY - d.y) * 0.005, 0.02, 1.4); d.x = e.clientX; d.y = e.clientY; });
+    ['pointerup', 'pointercancel'].forEach(ev => el.addEventListener(ev, e => ptr.delete(e.pointerId)));
   }
   function redWord() { if (S.phase !== 'discipline' || !lap) return; stepAt = steps.length; lap.red(); say('Gerda', 'Red. Stopping at once. Come here.'); finishDiscipline(true); }
 
