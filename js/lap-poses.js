@@ -19,6 +19,8 @@ root.LapPoses = {
     contact: {
       torso: { r: [41, 0, 0], p: [0, 0, -2] },
       armL: { r: [-11, 0, 0] },
+      paddle: { r: [8, -8, 0] },
+      wristR: { r: [0, -22, 0], p: [-1.6, -0.4, -2] },
     },
   },
   jack: {
