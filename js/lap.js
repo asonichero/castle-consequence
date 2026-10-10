@@ -15,7 +15,6 @@ const srgb = hex => new THREE.Color(hex).convertSRGBToLinear();
 
 // Where everything is. P is Jack's hip joint; PITCH tips him head-down so his upper body leans toward the floor.
 const P = new V3(-6, 10, 5), PITCH = -0.05;   // hip joint: his torso's centre (6 up from it) is over the centre of her thighs (x 0, z 3)
-const LEAN = -0.3;             // Gerda sits back in the chair; her straight arm only reaches Jack's rear from there
 const REST = 0.88;             // how near the hand hovers to the rear between smacks (0 = raised, 1 = landed)
 const TIMES = { lift: 0.45, hold: 0.15, strike: 0.09, contact: 0.32, back: 0.3 };
 // Implements: the hand lands with the end of Gerda's arm block; the paddle is a small blade gripped in her fist, running on from the end of
@@ -25,7 +24,8 @@ const IMPL = {
   hand:   { name: 'Hand',   mark: 1,     dual: false, reach: 12 },
   paddle: { name: 'Paddle', mark: 8 / 3, dual: true,  reach: 13 },
 };
-const LEAN_MAX = -1.0;           // the furthest she will sit back to reach
+const LEAN = -0.75;              // how far back she sits (fixed: she twists, not leans, to reach)
+const TWIST = [-1.0, 0.3];       // the range of her twist (her right shoulder going back is negative)
 const BANDS = ['composed', 'flinching', 'struggling', 'close to the edge of resistance', 'past the edge of resistance: most receptive', 'too harsh'];
 
 function create(view, opts) {
@@ -80,7 +80,7 @@ function create(view, opts) {
   // ── The session ─────────────────────────────────────────────────────────────────────────────────────────────────────────
   const pain = S.createPain({ tolerance: 0.45, resilience: 0.5 });
   const st = {
-    lean: -0.4, size: 1, implement: 'hand', pace: 1, strength: 1, side: 'alt', nextSide: 'R',
+    lean: LEAN, size: 1, implement: 'hand', pace: 1, strength: 1, side: 'alt', nextSide: 'R',
     trousers: 'up', drawers: 'up', marks: { L: 0, R: 0 }, expr: 0,
     hits: 0, ended: false, red: false, peak: 0, swing: null, runLeft: 0, gap: 0, sound: true, last: null,
   };
@@ -155,7 +155,7 @@ function create(view, opts) {
   };
 
   // ── Pose edits (js/lap-poses.js): offsets on top of the procedural pose, per beat, applied bone by bone ───────────────────────────────────
-  const DEG = Math.PI / 180, eul = new THREE.Euler(0, 0, 0, 'YXZ'), qd = new THREE.Quaternion();
+  const ARM = 12, shoulderLocal = new V3(-5.5, 10, 0), DEG = Math.PI / 180, eul = new THREE.Euler(0, 0, 0, 'YXZ'), qd = new THREE.Quaternion();
   const edits = JSON.parse(JSON.stringify(root.LapPoses || {}));
   const BEATS = { gerda: ['rest', 'raised', 'contact'], jack: ['base', 'react'] };
   for (const w in BEATS) { edits[w] = edits[w] || {}; for (const b of BEATS[w]) edits[w][b] = edits[w][b] || {}; }
@@ -173,17 +173,22 @@ function create(view, opts) {
     }
     frame.quaternion.copy(frameBase); glutesTilt.quaternion.copy(glutesBase);
   }
+  // The offsets one bone takes at the given beat weights: a rotation (quaternion) and a position shift, or null if it has none.
+  function editFor(who, n, weights) {
+    let any = false; const rr = [0, 0, 0], pp = [0, 0, 0];
+    for (const beat in weights) {
+      const e = edits[who][beat] && edits[who][beat][n], wt = weights[beat]; if (!e || !wt) continue;
+      any = true; for (let i = 0; i < 3; i++) { rr[i] += wt * (e.r ? e.r[i] : 0); pp[i] += wt * (e.p ? e.p[i] : 0); }
+    }
+    return any ? { q: new THREE.Quaternion().setFromEuler(new THREE.Euler(rr[0] * DEG, rr[1] * DEG, rr[2] * DEG, 'YXZ')), p: pp } : null;
+  }
   function applyEdits(who, names, weights) {
     for (const n of names) {
-      const bone = BONES[who][n]; let any = false; const rr = [0, 0, 0], pp = [0, 0, 0];
-      for (const beat in weights) {
-        const e = edits[who][beat] && edits[who][beat][n], wt = weights[beat]; if (!e || !wt) continue;
-        any = true; for (let i = 0; i < 3; i++) { rr[i] += wt * (e.r ? e.r[i] : 0); pp[i] += wt * (e.p ? e.p[i] : 0); }
-      }
-      if (!any) continue;
+      const e = editFor(who, n, weights); if (!e) continue;
+      const bone = BONES[who][n];
       bone.userData.proc = bone.quaternion.clone();
-      bone.quaternion.multiply(qd.setFromEuler(eul.set(rr[0] * DEG, rr[1] * DEG, rr[2] * DEG)));
-      bone.position.x += pp[0]; bone.position.y += pp[1]; bone.position.z += pp[2];
+      bone.quaternion.multiply(e.q);
+      bone.position.x += e.p[0]; bone.position.y += e.p[1]; bone.position.z += e.p[2];
     }
   }
   // How much of each beat's offsets applies now.
@@ -202,19 +207,33 @@ function create(view, opts) {
   const jackWeights = () => ({ base: 1, react: clamp(J.kick, 0, 1) });
 
   gerda.after = function (g) {
-    g.torso.rotation.x = st.lean; g.neck.rotation.x = 0.55 + 0.4 * (st.lean || 0);
-    const gw = gerdaWeights();
+    const gw = gerdaWeights(), sw = st.swing, impl = IMPL[st.implement], tau = sw ? sw.tau : REST;
+    // Where she lands: the middle of his rear (the paddle's middle plane stands half its thickness off his skin).
+    const T = world(rear.C); if (impl.dual) T.y += 0.55;
+    // Her arm is one straight block, so she twists her upper body (right shoulder back, no leaning) until the arm's end reaches the plane of his
+    // rear as close as it can come to the middle of it. The shoulder is evaluated with her edits included.
+    const tq = new THREE.Quaternion(), tv = new V3(), sv = new V3(), tEdit = editFor('gerda', 'torso', gw), tBase = basePos.get(g.torso);
+    const reachGap = yaw => {
+      tq.setFromEuler(eul.set(LEAN, yaw, 0, 'YXZ')); if (tEdit) tq.multiply(tEdit.q);
+      tv.copy(tBase); if (tEdit) tv.x += tEdit.p[0], tv.y += tEdit.p[1], tv.z += tEdit.p[2];
+      sv.copy(g.hips.position).add(tv).add(shoulderLocal.clone().applyQuaternion(tq));
+      const dy = sv.y - T.y, rho = Math.sqrt(Math.max(0, ARM * ARM - dy * dy));
+      return rho - Math.hypot(T.x - sv.x, T.z - sv.z);          // > 0: the arm would overshoot the middle; < 0: fall short of it
+    };
+    let lo = TWIST[0], hi = TWIST[1];                           // the gap falls as she twists back (the shoulder moves away)
+    for (let i = 0; i < 14; i++) { const mid = (lo + hi) / 2; if (reachGap(mid) > 0) hi = mid; else lo = mid; }
+    const yawT = clamp((lo + hi) / 2, TWIST[0], TWIST[1]);
+    st.yaw = st.yaw == null ? yawT : st.yaw + (yawT - st.yaw) * 0.25;
+    g.torso.rotation.order = 'YXZ'; g.torso.rotation.set(LEAN, st.yaw, 0); g.neck.rotation.x = 0.55 + 0.4 * LEAN; g.neck.rotation.y = -st.yaw * 0.9;
     applyEdits('gerda', ['torso', 'neck', 'thighL', 'thighR', 'kneeL', 'kneeR'], gw);
     g.root.updateMatrixWorld(true);
     // Left hand rests on Jack's back.
     const sL = world(g.armL), tL = world(upperBack);
     aim(g.armL, tmpB.copy(tL).sub(sL)); applyEdits('gerda', ['armL'], gw);
-    // Right arm: a straight block from the shoulder. The hand lands with the end of it; the paddle's blade lies on from there, face down on him.
-    const sw = st.swing, impl = IMPL[st.implement];
-    const tau = sw ? sw.tau : REST;
-    const sh = world(g.armR), T = world(rear.C);   // always the middle of his rear; which cheek takes the colour is decided in impact()
-    if (impl.dual) T.y += 0.55;                  // the blade's middle plane stands half its thickness off his skin
-    const d = T.clone().sub(sh), u = d.clone().normalize();
+    // Right arm: a straight block from the shoulder, the paddle rigid on the end of it. Its end comes down on the plane of his rear.
+    const sh = world(g.armR), dy = sh.y - T.y, rho = Math.sqrt(Math.max(0, ARM * ARM - dy * dy));
+    const hz = new V3(T.x - sh.x, 0, T.z - sh.z).normalize(), E = new V3(sh.x + hz.x * rho, T.y, sh.z + hz.z * rho);
+    const d = E.clone().sub(sh), u = d.clone().normalize();
     const raised = u.clone().multiplyScalar(0.35).addScaledVector(UP, 0.9).normalize();
     const dir = raised.lerp(u, tau).normalize();
     aim(g.armR, dir); applyEdits('gerda', ['armR'], gw);
@@ -251,18 +270,6 @@ function create(view, opts) {
     applyEdits('jack', ['torso', 'neck', 'glutes', 'armL', 'armR', 'thighL', 'thighR', 'kneeL', 'kneeR'], jackWeights());
   };
 
-  // Her arm is one straight block, so to land on him she sits back until her shoulder is exactly the arm's reach from the spot (no twisting: the
-  // arm comes down over both cheeks, at the middle of his rear); the paddle, with its handle, needs her a little further back.
-  const rEuler = new THREE.Euler(0, 0, 0, 'YXZ'), shoulderLocal = new V3(-4 - 1.5, 10, 0), torsoAt = new V3(0, 4, 0), tmpS = new V3();
-  function solveLean(dt) {
-    const impl = IMPL[st.implement], T = world(rear.C); if (impl.dual) T.y += 0.55;
-    const dist = lean => { rEuler.set(lean, 0, 0); return tmpS.copy(shoulderLocal).applyEuler(rEuler).add(torsoAt).distanceTo(T); };
-    let lo = LEAN_MAX, hi = 0.2;                     // the distance grows as she leans back (more negative)
-    for (let i = 0; i < 14; i++) { const mid = (lo + hi) / 2; if (dist(mid) > impl.reach) lo = mid; else hi = mid; }
-    const lean = (lo + hi) / 2;
-    st.lean = st.lean == null ? lean : st.lean + (lean - st.lean) * Math.min(1, dt * 8);
-  }
-
   // ── Frame loop ──────────────────────────────────────────────────────────────────────────────────────────────────────────
   function repaint() {
     st.expr = exprFor();
@@ -287,7 +294,7 @@ function create(view, opts) {
     frame.position.set(-6 * sz, 8.75 + 2 * sz + 0.7 * J.kick * sz, P.z);
     applyEdits('jack', ['frame'], jackWeights());
     B.step(jack, dt); scene.updateMatrixWorld(true);
-    solveLean(dt); B.step(gerda, dt);
+    B.step(gerda, dt);
     controls.update(); renderer.render(scene, camera);
   }
 

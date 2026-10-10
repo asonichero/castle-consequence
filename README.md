@@ -178,13 +178,13 @@ game's own, ported:
   hold on the skin (which keeps stinging).
 - The engine's **pain model** (`Starlight.createPain`, from `starlight-engine.js`) turns each smack into Jack's **distress**; its bands (composed, flinching, struggling, close to
   the edge, past it, too harsh) drive his kicks and wriggling and his face (four expressions, repainted into his skin). At 1.5 it is too harsh and nothing more is struck.
-- **Implements**: the hand (landed with the end of Gerda's arm block) and a small paddle gripped in her fist, face toward Jack, landing on both cheeks at once; each with the engine's weight and sting. (She sits back until the arm just reaches, further for the paddle.)
+- **Implements**: the hand (landed with the end of Gerda's arm block) and a small paddle gripped in her fist, face toward Jack, landing on both cheeks at once; each with the engine's weight and sting. 
 - **Clothes**: trousers up or down, and drawers up or down (with the trousers down). Cloth over the rear cushions the sting only, as in the engine.
 - **Marks**: the bare rear colours up with the smacks, cheek by cheek, and tender skin hurts more.
 - **Red**: the safe word stops everything at once.
 - Cameras: Overview, Behind, Over your shoulder (Gerda's view), Face; drag to orbit as well.
 
-Gerda's arm is one straight block, so the swing is solved geometrically: she sits back until her shoulder is exactly the arm's reach from the middle of his rear, and the arm comes down over both cheeks (the paddle is rigid along it). Which cheek takes the colour still alternates.
+Gerda's arm is one straight block, so the swing is solved geometrically: she twists her upper body (no leaning: the lean is fixed, so a pose edit of her torso stays put) until the arm's end reaches the plane of his rear as near the middle of it as it can, and the arm comes down over both cheeks with the paddle rigid on its end. Which cheek takes the colour still alternates.
 Jack's size (10–100%) is a slider in the lap viewer: his body is scaled about his hip joint and re-seated on her lap, so the premise (he shrinks on arrival and regains his size level by level) can be previewed. The pain model does not yet change with his size.
 
 
