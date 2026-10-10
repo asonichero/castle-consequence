@@ -631,7 +631,19 @@ function create(els, ui) {
   function scriptFor(p) {
     const r = p.reasons, st = [];
     st.push({ do: () => lap.view('overview'), wait: 900 });
-    const chunk = (n, line, jackLine) => { if (!n) return; st.push({ run: n }); if (line) st.push(sayStep('Gerda', line, 2200)); if (jackLine) st.push(sayStep('Jack', jackLine, 1800)); };
+    // A run of smacks is broken into short bursts with a line between them (Gerda's, or Jack's own cries), so there is always something being said.
+    const G = ['Hold still.', 'Hands where they are.', 'Every one of these was avoidable.', 'You know exactly why.', 'Stay over my knee.', 'I am not nearly done.', 'This is what comes of it.', 'Count them for me. No? Then just feel them.'];
+    const Jl = ['Ow!', 'Ahh — sorry!', 'Please!', 'Ow, ow, ow!', 'I will do better, I promise!', 'It stings!', 'I am sorry, Gerda!', 'Ah — ah — please!'];
+    let gi = 0, ji = 0, who = 0;
+    const chunk = (n, line, jackLine) => {
+      if (!n) return;
+      const pieces = Math.ceil(n / 4);
+      for (let i = 0; i < pieces; i++) {
+        st.push({ run: Math.min(4, n - 4 * i) });
+        if (i < pieces - 1) { who ^= 1; st.push(who ? sayStep('Gerda', G[gi++ % G.length], 1500) : sayStep('Jack', Jl[ji++ % Jl.length], 1300)); }
+      }
+      if (line) st.push(sayStep('Gerda', line, 2200)); if (jackLine) st.push(sayStep('Jack', jackLine, 1800));
+    };
     if (p.tier === 0) { chunk(p.hand, 'There. Off you go.'); }
     else if (p.tier === 1) { chunk(Math.ceil(p.hand / 2), 'Hold still.', 'Ow — I am sorry!'); chunk(Math.floor(p.hand / 2), 'That will do.'); }
     else if (p.tier === 2) {

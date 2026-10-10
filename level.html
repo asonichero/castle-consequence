@@ -153,7 +153,7 @@
       $('speech').style.display = 'none'; $('dlg').style.display = 'block'; $('dlgWho').textContent = d.who; $('dlgText').textContent = d.text; var c = $('dlgChoices'); c.innerHTML = '';
       d.choices.forEach(function (ch) { var b = document.createElement('button'); b.textContent = ch.label; b.onclick = function () { $('dlg').style.display = 'none'; ch.fn(); }; c.appendChild(b); });
     },
-    discipline: function (on, plan) { $('disc').style.display = on ? 'block' : 'none'; $('hud').style.display = 'none'; $('help').style.display = 'none'; $('actions').style.display = 'none'; $('feed').style.display = 'none'; $('hint').style.display = 'none'; $('dlg').style.display = 'none'; if (on) $('discSize').textContent = 'Jack is ' + Math.round(L.S.size * 100) + '% · ' + plan.name + ' correction'; },
+    discipline: function (on, plan) { $('disc').style.display = on ? 'block' : 'none'; $('speech').style.display = on ? 'block' : 'none'; $('hud').style.display = 'none'; $('help').style.display = 'none'; $('actions').style.display = 'none'; $('feed').style.display = 'none'; $('hint').style.display = 'none'; $('dlg').style.display = 'none'; if (on) $('discSize').textContent = 'Jack is ' + Math.round(L.S.size * 100) + '% · ' + plan.name + ' correction'; },
     say: function (who, text) { $('spWho').textContent = who; $('spText').textContent = text; },
     meter: function (i) { $('discBar').style.width = Math.min(100, i.distress / 1.5 * 100) + '%'; $('discBand').textContent = 'Distress ' + i.distress.toFixed(2) + ' — ' + i.band; },
     finish: function (r) {

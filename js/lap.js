@@ -123,6 +123,25 @@ function create(view, opts) {
     } catch (e) { /* no audio here */ }
   };
 
+  // Jack's voice: a synthesised vowel (a sawtooth through two formant filters, with a little vibrato), higher, longer and more broken the more distressed he is:
+  // a grunt, an "ah!", an "ow!", a rising cry, and at the edge a shaky whimper.
+  const voice = (power, band) => {
+    if (!st.sound) return;
+    try {
+      actx = actx || new (root.AudioContext || root.webkitAudioContext)();
+      const t0 = actx.currentTime + 0.05 + Math.random() * 0.05, dur = [0.12, 0.2, 0.3, 0.42, 0.6, 0.6][band] || 0.3;
+      const f0 = 125 + 70 * clamp(power, 0, 1.5) + 22 * band + Math.random() * 14;
+      const vowel = [[420, 800], [760, 1150], [620, 1000], [700, 1100], [520, 920], [480, 880]][band] || [650, 1000];
+      const osc = actx.createOscillator(); osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(f0, t0); osc.frequency.linearRampToValueAtTime(f0 * (band >= 3 ? 1.35 : band === 2 ? 1.12 : 0.9), t0 + dur);
+      const lfo = actx.createOscillator(), lg = actx.createGain(); lfo.frequency.value = band >= 4 ? 7 : 5; lg.gain.value = band >= 4 ? f0 * 0.06 : f0 * 0.015; lfo.connect(lg); lg.connect(osc.frequency);
+      const out = actx.createGain(), peak = clamp(0.07 + 0.08 * power + 0.02 * band, 0.06, 0.28);
+      out.gain.setValueAtTime(0.0001, t0); out.gain.linearRampToValueAtTime(peak, t0 + 0.025); out.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      for (const fc of vowel) { const f = actx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = fc; f.Q.value = 5; const g = actx.createGain(); g.gain.value = fc === vowel[0] ? 1 : 0.6; osc.connect(f); f.connect(g); g.connect(out); }
+      out.connect(actx.destination); osc.start(t0); lfo.start(t0); osc.stop(t0 + dur + 0.05); lfo.stop(t0 + dur + 0.05);
+    } catch (e) { /* no audio here */ }
+  };
+
   // ── Smacks ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
   function smack() {
     if (!canStrike() || st.swing) return false;
@@ -142,7 +161,7 @@ function create(view, opts) {
     for (const c of sw.side === 'C' ? ['L', 'R'] : [sw.side]) st.marks[c] = 1 - (1 - st.marks[c]) * (1 - gain);
     st.hits++; st.peak = Math.max(st.peak, pain.distress()); st.last = hit;
     J.kick = Math.max(J.kick, hit.reaction); J.kickSide = sw.side === 'C' ? (Math.random() < 0.5 ? 'L' : 'R') : sw.side;
-    thwack(hit.reaction); dirty = true;
+    thwack(hit.reaction); voice(hit.reaction, bandIndex()); dirty = true;
     say('hit', { hit, side: sw.side, distress: pain.distress(), band: BANDS[bandIndex()] });
     if (pain.tooHarsh) { st.runLeft = 0; say('tooharsh', {}); }
   }
