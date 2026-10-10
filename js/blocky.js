@@ -214,7 +214,7 @@ const sideOuter = s => s + 'O';
 
 // ---------------------------------------------------------------------------------------------------------------------------
 // Gerda, late thirties: broad-shouldered, practical, laughs easily and means what she says. A plum bodice laced over a blouse,
-// a cream apron and a full skirt, bare legs and feet; auburn hair going grey at the temple, pinned up in a bun.
+// a cream apron and a full skirt, bare legs and feet; brunette hair going grey at the temple, pinned up in a bun.
 // ---------------------------------------------------------------------------------------------------------------------------
 // Gerda's skin, painted from scratch for an outfit: 'Work' (the plum bodice, apron and ankle-length skirt, bare feet) or 'Fine' (a lavender
 // embroidered gown to mid-calf, 3/4 sleeves, gold bracelets and anklets hung with small bells and moonstones, bare feet).
@@ -222,7 +222,7 @@ function paintGerdaInto(k, outfit) {
   outfit = outfit === 'Fine' ? 'Fine' : 'Work';
   k.ctx.clearRect(0, 0, 64, 64);
   const C = { skin: '#ecc3a0', skinSh: '#d3a584', skinHi: '#f3d0b0', line: '#dcae8c',
-    hair: '#8a3a1e', hairHi: '#a8502a', hairDk: '#64280f', grey: '#a39a90', brow: '#6a2e16', white: '#f2f0ea', iris: '#5f7f95', lid: '#c79876', lip: '#a8525a', lipDk: '#8a3038', teeth: '#f6f2ea',
+    hair: '#4b3022', hairHi: '#67432f', hairDk: '#33201a', grey: '#a39a90', brow: '#3a2418', white: '#f2f0ea', iris: '#5f7f95', lid: '#c79876', lip: '#a8525a', lipDk: '#8a3038', teeth: '#f6f2ea',
     blouse: '#ece6d6', blouseSh: '#cfc7b4', plum: '#7a2a3a', plumDk: '#5c1e2c', plumHi: '#923a4c', lace: '#e6d7b0', belt: '#4a3220', apron: '#e9dfc8', apronSh: '#cdc2a8', pocket: '#d8ccb0',
     stocking: '#d8cdb4', stockingSh: '#bfb398', boot: '#4a2f1c', bootHi: '#6a4528', sole: '#22160c', ring: '#e6c24a', trim: '#c9a84c' };
   const pal = { H: C.hair, h: C.hairHi, d: C.hairDk, g: C.grey, S: C.skin, s: C.skinSh, t: C.line, b: C.brow, W: C.white, E: C.iris, M: C.lip, m: C.lipDk, n: C.skinSh, k: C.skinHi };
@@ -391,7 +391,7 @@ function buildCharacter(skin, opts) {
   const headMesh = mesh('head', 'hat', 1); headMesh.position.y = 4; rig.neck.add(headMesh);
   if (opts.bun) {
     const c = document.createElement('canvas'); c.width = c.height = 16; const x = c.getContext('2d');
-    const cols = ['#8a3a1e', '#a8502a', '#64280f', '#8a3a1e', '#b9b0a6'];
+    const cols = ['#4b3022', '#67432f', '#33201a', '#4b3022', '#b9b0a6'];
     let s = 7; for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) { s = (s * 1103515245 + 12345) >>> 0; const r = (s >> 16) % 12; x.fillStyle = r < 6 ? cols[0] : r < 9 ? cols[1] : r < 11 ? cols[2] : (j % 4 === 0 ? cols[4] : cols[3]); x.fillRect(i, j, 1, 1); }
     const bt = new THREE.CanvasTexture(c); bt.magFilter = bt.minFilter = THREE.NearestFilter; bt.generateMipmaps = false; bt.encoding = THREE.sRGBEncoding;
     const bun = new THREE.Mesh(new THREE.BoxGeometry(5, 4, 4), new THREE.MeshLambertMaterial({ map: bt }));
