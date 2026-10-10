@@ -15,7 +15,7 @@ const srgb = hex => new THREE.Color(hex).convertSRGBToLinear();
 
 // Where everything is. P is Jack's hip joint; PITCH tips him head-down so his upper body leans toward the floor.
 const P = new V3(-6, 10, 6.5), PITCH = -0.05;   // hip joint: his torso's centre (6 up from it) is over the centre of her thighs (x 0, z 3)
-const REST = 0.88;             // how near the hand hovers to the rear between smacks (0 = raised, 1 = landed)
+const HOVER = 1.4;             // at rest the hand or paddle hovers this far above the centre of his lower back (the contact pose, lifted)
 const TIMES = { lift: 0.45, hold: 0.15, strike: 0.09, contact: 0.32, back: 0.3 };
 // Implements: the hand lands with the end of Gerda's arm block, on the middle of his rear. The paddle is a small rounded blade held out from the
 // right-hand face of her arm block (the side toward his head in the top view) with its face down, so it lies across one cheek at a time.
@@ -126,7 +126,7 @@ function create(view, opts) {
   // ── Smacks ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
   function smack() {
     if (!canStrike() || st.swing) return false;
-    st.swing = { phase: 'lift', t: 0, side: pickSide(), waited: 0, tau: REST };
+    st.swing = { phase: 'lift', t: 0, side: pickSide(), waited: 0, tau: 1, hover: 1 };
     return true;
   }
   // Which cheek takes the colour of the next smack (alternating, or the one chosen).
@@ -151,7 +151,7 @@ function create(view, opts) {
     const sp = st.pace; sw.t += sw.phase === 'hold' || sw.phase === 'contact' ? dt : dt * sp;
     const ease = x => x * x * (3 - 2 * x);
     switch (sw.phase) {
-      case 'lift': sw.tau = lerp(REST, 0, ease(clamp(sw.t / TIMES.lift, 0, 1))); if (sw.t >= TIMES.lift) { sw.phase = 'hold'; sw.t = 0; } break;
+      case 'lift': sw.tau = lerp(1, 0, ease(clamp(sw.t / TIMES.lift, 0, 1))); sw.hover = sw.tau; if (sw.t >= TIMES.lift) { sw.phase = 'hold'; sw.t = 0; } break;
       case 'hold': sw.tau = 0; sw.waited = sw.t; if (sw.t >= TIMES.hold) { sw.phase = 'strike'; sw.t = 0; } break;
       case 'strike': { const x = clamp(sw.t / TIMES.strike, 0, 1); sw.tau = x * x; if (x >= 1) { sw.tau = 1; sw.phase = 'contact'; sw.t = 0; impact(sw); } break; }
       case 'contact': sw.tau = 1; if (sw.t >= TIMES.contact) {
@@ -160,7 +160,7 @@ function create(view, opts) {
         sw.t = 0;
       } break;
       case 'rise': sw.tau = lerp(1, 0, ease(clamp(sw.t / TIMES.lift, 0, 1))); if (sw.t >= TIMES.lift) { sw.phase = 'hold'; sw.t = 0; } break;
-      case 'back': sw.tau = lerp(1, REST, ease(clamp(sw.t / TIMES.back, 0, 1))); if (sw.t >= TIMES.back) { st.swing = null; st.gap = 0.25; } break;
+      case 'back': sw.tau = 1; sw.hover = ease(clamp(sw.t / TIMES.back, 0, 1)); if (sw.t >= TIMES.back) { st.swing = null; st.gap = 0.25; } break;
     }
   }
 
@@ -240,11 +240,11 @@ function create(view, opts) {
     const sw = st.swing; if (!sw) return { rest: 1 };
     const t = sw.tau;
     switch (sw.phase) {
-      case 'lift': { const a = clamp((REST - t) / REST, 0, 1); return { rest: 1 - a, raised: a }; }
+      case 'lift': { const a = clamp(1 - t, 0, 1); return { rest: 1 - a, raised: a }; }
       case 'hold': return { raised: 1 };
       case 'strike': case 'rise': case 'freeze': return { raised: 1 - t, contact: t };
       case 'contact': return { contact: 1 };
-      case 'back': { const b = clamp((1 - t) / (1 - REST), 0, 1); return { contact: 1 - b, rest: b }; }
+      case 'back': { const b = clamp(sw.hover || 0, 0, 1); return { contact: 1 - b, rest: b }; }
     }
     return { rest: 1 };
   }
@@ -266,11 +266,16 @@ function create(view, opts) {
   const sideOf = f => { const v = new V3(1, 0, 0).addScaledVector(f, -f.x); return v.lengthSq() > 1e-4 ? v.normalize() : new V3(0, 0, 1); };
 
   gerda.after = function (g) {
-    const gw = gerdaWeights(), sw = st.swing, impl = IMPL[st.implement], tau = sw ? sw.tau : REST;
+    const gw = gerdaWeights(), sw = st.swing, impl = IMPL[st.implement], tau = sw ? sw.tau : 1, hover = sw ? (sw.hover || 0) : 1;
     // Where she lands, on the cheek being struck (they alternate, or the one chosen). The hand: the end of her forearm on its middle. The paddle: the
     // middle of its blade on it (the blade's middle plane stands a little off his skin).
+    // At rest (no swing) the aim is the centre of his lower back, at whatever size he is; during a swing it is the cheek struck. It eases from one to
+    // the other (and is exact while the editor holds a pose).
     const padSide = sw ? sw.side : (st.side === 'alt' ? st.nextSide : st.side);
-    const T = world(rear[padSide]); if (impl.paddle) T.y += 0.4;
+    const goal = world(rear[sw ? padSide : 'C']); if (impl.paddle) goal.y += 0.4; goal.y += hover * HOVER;
+    const snap = !st.aim || hs.on || (sw && sw.phase === 'freeze');
+    st.aim = snap ? goal.clone() : st.aim.lerp(goal, 1 - Math.exp(-(st.dt || 0.016) * 12));
+    const T = st.aim.clone();
     // Her torso never twists or leans for a strike (a pose edit of it stays put); the arm and, for the paddle, the blade's angle do the aiming.
     st.yaw = 0;
     g.torso.rotation.order = 'YXZ'; g.torso.rotation.set(LEAN, st.yaw, 0); g.neck.rotation.x = 0.55 + 0.4 * LEAN; g.neck.rotation.y = -st.yaw * 0.9;
@@ -319,7 +324,8 @@ function create(view, opts) {
     g.armR.quaternion.copy(pr.q).slerp(pc.q, tau);
     g.elbow.rotation.set(lerp(pr.psi, pc.psi, tau), 0, 0); g.wrist.rotation.set(0, lerp(pr.omega, pc.omega, tau), 0);
     paddle.visible = impl.paddle;
-    applyEdits('gerda', ['armR', 'elbowR', 'wristR'], gw);
+    const gwArm = Object.assign({}, gw); delete gwArm.rest;      // at rest the right arm is aimed (over the centre of his lower back), not posed by hand
+    applyEdits('gerda', ['armR', 'elbowR', 'wristR'], gwArm);
     if (impl.paddle) {
       // Roll the blade about its own length so that, at contact, its face lies on the angle of his glutes (the block's back face, tipped between his
       // back and his thighs); raised, it is left as the forearm carries it.
@@ -330,7 +336,7 @@ function create(view, opts) {
       const want = nIn.addScaledVector(lw, -nIn.dot(lw));
       if (want.lengthSq() > 1e-4) { want.normalize(); tool.rotation.set(Math.atan2(zw.clone().cross(want).dot(lw), zw.dot(want)) * tau, 0, Math.PI / 2); }
     }
-    if (impl.paddle) applyEdits('gerda', ['paddle'], gw);
+    if (impl.paddle) applyEdits('gerda', ['paddle'], gwArm);
   };
   jack.after = function (j) {
     const k = J.kick, d = clamp(pain.distress(), 0, 1.5), w = Math.sin(J.t * 9) * 0.05 * Math.min(1, d) + Math.sin(J.t * 5.3) * 0.03 * Math.min(1, d);
@@ -363,7 +369,7 @@ function create(view, opts) {
     dirty = false;
   }
   function update(dt) {
-    restoreBones();
+    restoreBones(); st.dt = dt;
     J.t += dt; J.kick *= Math.exp(-dt * 4.5); if (st.holdKick != null) J.kick = st.holdKick;
     if (st.swing) advance(dt);
     pain.update(dt, !!(st.swing && st.swing.phase === 'contact'));
