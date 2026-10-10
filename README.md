@@ -195,3 +195,20 @@ Jack's size (50–100%, where 100% is 95% of the model's own scale) is a slider 
 #### Wardrobe
 
 Jack has **Outdoor** (linen shirt, green jerkin, patched trousers, boots), **Day** (a soft green tunic with wooden buttons, hem brushing the tops of his thighs, over plain snug shorts, barefoot), **Soft** (a cornflower tunic, softer, with a small pocket sewn on the front, over cornflower shorts short enough to show his knees, barefoot) and **Fine** (the outdoor clothes dressed up: a deep green jerkin edged in gold, clean breeches with a gold seam, polished boots with brass buckles). In the lap scene the tunic is lifted clear of his seat, so his shorts or trousers, drawers or bare skin show as before. Gerda has **Work** (plum bodice, a bibless apron tied at the waist, ankle-length skirt, barefoot) and **Fine** (barefoot, gold anklets hung with small bells and moonstones, a lavender gown with cream embroidery falling to mid-calf, 3/4 sleeves, bracelets to match the anklets). Pick them in the Wardrobe section of `lap.html` and `blocky.html`; `Blocky.OUTFITS` lists them and `Blocky.paintGerdaInto(skin, 'Fine')` repaints her skin.
+
+### Test level: the golden hen (`level.html`, `js/level.js`)
+
+Gerda has gone out and left Jack (Day clothes, starting at **75%** of his size) looking after her golden hen. He must **sweep the floor** (take the broom, hold Space over the dirt), **fill the hen's dish** (grain from the sack), **carry water to the trough without spilling it** (bucket from the well; hold Shift to creep, or it slops), and **win the hen's trust** by approaching slowly and keeping still near her (move fast near her and she backs away). WASD or the arrows walk, Shift creeps, E takes and uses, Q puts down, C claps.
+
+His size never goes below **50%**. What makes him shrink (percentage points of his full size):
+
+| Cause | Cost |
+|---|---|
+| Clapping to shoo the hen | 3% |
+| Lying to Gerda about how it went | 5% (a flat cost, not a reset) |
+| Spilling the water (each 15 units lost, or dropping the bucket) | 2% |
+| Startling the hen (moving too fast near her, at most once every 4 s) | 1% |
+| Each chore still undone when Gerda comes back | 2% |
+| Not finished when the 4-minute clock runs out | 2% |
+
+When the chores are done (or time is up) Gerda (Work clothes) walks in and asks how it went: Jack can tell her exactly what happened, or say it all went perfectly (which is only a lie if it didn't, and then costs 5%). A scripted correction follows across her lap (`js/lap.js`), run with Jack at the size he ends at (a smaller Jack feels the same hand a little more). Its severity comes from how he really did (undone chores 2 each, spills 1.5, startles 0.5, claps 1, running late 1) and then whether he lied: Token, Light, Firm (shorts come down part-way), Severe (hand, then the paddle, bare for the last of it); a lie lifts it one tier. "Red" stops it on the spot.
