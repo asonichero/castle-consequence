@@ -73,7 +73,7 @@ function create(view, opts) {
   const rear = { C: mk(0, -2.4, -0.05, glutesTilt) }, upperBack = mk(0, 10, -2);
 
   // The paddle: a short handle out of the middle of the end of her right arm (as if in her fist) and a small blade, 6 long in all (the blade begins 1 past the arm).
-  const tool = new THREE.Group(); tool.position.y = -12; gerda.armR.add(tool);
+  const tool = new THREE.Group(); tool.position.y = -10; gerda.armR.add(tool);
   const box = (w, h, d, y, color) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color: srgb(color) })); m.position.y = y; return m; };
   const paddle = new THREE.Group(); paddle.add(box(1.4, 1, 1.4, -0.5, 0x7a4e26), box(4, 5, 1.1, -3.5, 0x9a6a38)); paddle.visible = false; tool.add(paddle);
 
@@ -155,7 +155,7 @@ function create(view, opts) {
   };
 
   // ── Pose edits (js/lap-poses.js): offsets on top of the procedural pose, per beat, applied bone by bone ───────────────────────────────────
-  const ARM = 12, shoulderLocal = new V3(-5.5, 10, 0), DEG = Math.PI / 180, eul = new THREE.Euler(0, 0, 0, 'YXZ'), qd = new THREE.Quaternion();
+  const ARM = 10, shoulderLocal = new V3(-5.5, 10, 0), DEG = Math.PI / 180, eul = new THREE.Euler(0, 0, 0, 'YXZ'), qd = new THREE.Quaternion();
   const edits = JSON.parse(JSON.stringify(root.LapPoses || {}));
   const BEATS = { gerda: ['rest', 'raised', 'contact'], jack: ['base', 'react'] };
   for (const w in BEATS) { edits[w] = edits[w] || {}; for (const b of BEATS[w]) edits[w][b] = edits[w][b] || {}; }
@@ -220,9 +220,10 @@ function create(view, opts) {
       const dy = sv.y - T.y, rho = Math.sqrt(Math.max(0, ARM * ARM - dy * dy));
       return rho - Math.hypot(T.x - sv.x, T.z - sv.z);          // > 0: the arm would overshoot the middle; < 0: fall short of it
     };
-    let lo = TWIST[0], hi = TWIST[1];                           // the gap falls as she twists back (the shoulder moves away)
+    const range = impl.dual ? TWIST : [0, 0];                   // only the paddle needs her to twist; the hand lands with her facing forward
+    let lo = range[0], hi = range[1];                           // the gap falls as she twists back (the shoulder moves away)
     for (let i = 0; i < 14; i++) { const mid = (lo + hi) / 2; if (reachGap(mid) > 0) hi = mid; else lo = mid; }
-    const yawT = clamp((lo + hi) / 2, TWIST[0], TWIST[1]);
+    const yawT = clamp((lo + hi) / 2, range[0], range[1]);
     st.yaw = st.yaw == null ? yawT : st.yaw + (yawT - st.yaw) * 0.25;
     g.torso.rotation.order = 'YXZ'; g.torso.rotation.set(LEAN, st.yaw, 0); g.neck.rotation.x = 0.55 + 0.4 * LEAN; g.neck.rotation.y = -st.yaw * 0.9;
     applyEdits('gerda', ['torso', 'neck', 'thighL', 'thighR', 'kneeL', 'kneeR'], gw);
