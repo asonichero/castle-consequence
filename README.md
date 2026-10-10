@@ -178,14 +178,14 @@ game's own, ported:
   hold on the skin (which keeps stinging).
 - The engine's **pain model** (`Starlight.createPain`, from `starlight-engine.js`) turns each smack into Jack's **distress**; its bands (composed, flinching, struggling, close to
   the edge, past it, too harsh) drive his kicks and wriggling and his face (four expressions, repainted into his skin). At 1.5 it is too harsh and nothing more is struck.
-- **Implements**: the hand (landed with the end of Gerda's arm block, on the middle of his rear) and a small rounded paddle held out from the right-hand face of her arm block, face down, landing on one cheek at a time (it alternates with the hand's colour); each with the engine's weight and sting. 
+- **Implements**: the hand (landed with the end of Gerda's arm block, on the middle of his rear) and a small rounded paddle held out from the face of her arm block that looks toward his head in the top view, face down, landing on one cheek at a time (it alternates with the hand's colour); each with the engine's weight and sting. 
 - **Clothes**: trousers up or down, and drawers up or down (with the trousers down). Cloth over the rear cushions the sting only, as in the engine.
 - **Marks**: the bare rear colours up with the smacks, cheek by cheek, and tender skin hurts more.
 - **Red**: the safe word stops everything at once.
 - Cameras: Overview, Behind, Over your shoulder (Gerda's view), Face; drag to orbit as well.
 
 Gerda's arm is one straight block, so the swing is solved geometrically: with the paddle she may twist her upper body (no leaning: the lean is fixed, so a pose edit of her torso stays put) until the arm's end reaches the plane of his rear as near the middle of it as it can, and the arm comes down over both cheeks with the paddle rigid on its end. Which cheek takes the colour still alternates.
-Jack's size (10–100%) is a slider in the lap viewer: his body is scaled about his hip joint and re-seated on her lap, so the premise (he shrinks on arrival and regains his size level by level) can be previewed. The pain model does not yet change with his size.
+Jack's size (10–100%) is a slider in the lap viewer: his body is scaled about his hip joint and re-seated on her lap, so the premise (he shrinks on arrival and regains his size level by level) can be previewed. The contact sites are on his body, so they move and shrink with him, and the aim is refitted each frame (the blade's height counts most in the fit) so the paddle always lies on his skin. The pain model does not yet change with his size.
 
 
 #### Pose editor (lap viewer)

@@ -18,14 +18,14 @@ const P = new V3(-6, 10, 5), PITCH = -0.05;   // hip joint: his torso's centre (
 const REST = 0.88;             // how near the hand hovers to the rear between smacks (0 = raised, 1 = landed)
 const TIMES = { lift: 0.45, hold: 0.15, strike: 0.09, contact: 0.32, back: 0.3 };
 // Implements: the hand lands with the end of Gerda's arm block, on the middle of his rear. The paddle is a small rounded blade held out from the
-// right-hand face of her arm block (the side facing her right) with its face down, so it lies across one cheek at a time.
+// right-hand face of her arm block (the side toward his head in the top view) with its face down, so it lies across one cheek at a time.
 // mark is the engine's weight toward the colour at the contact site; weight/sting live in the engine's PAIN.implement.
 const IMPL = {
   hand:   { name: 'Hand',   mark: 1,     paddle: false },
   paddle: { name: 'Paddle', mark: 8 / 3, paddle: true },
 };
 const LEAN = -0.75;              // how far back she sits (fixed: she twists, not leans, to reach)
-const TWIST = [-1.0, 0.5];       // the range of her twist (her right shoulder going back is negative)
+const TWIST = [-1.0, 1.0];       // the range of her twist (her right shoulder going back is negative)
 const BANDS = ['composed', 'flinching', 'struggling', 'close to the edge of resistance', 'past the edge of resistance: most receptive', 'too harsh'];
 
 function create(view, opts) {
@@ -72,12 +72,12 @@ function create(view, opts) {
   const mk = (x, y, z, parent) => { const o = new THREE.Object3D(); o.position.set(x, y, z); (parent || jack.torso).add(o); return o; };
   const rear = { L: mk(2, -2.4, -0.05, glutesTilt), R: mk(-2, -2.4, -0.05, glutesTilt), C: mk(0, -2.4, -0.05, glutesTilt) }, upperBack = mk(0, 10, -2);
 
-  // The paddle: a short round handle out of the middle of the right-hand face of her arm block (the side facing her right, -x in the arm's own
-  // frame, near its end) and a small blade with rounded corners, lying along that direction with its face down at the contact, its width along
-  // the arm, across one cheek. Tool-local, the paddle runs along -y; the tool group is turned a quarter so that it runs along the arm's -x.
+  // The paddle: a short round handle out of the middle of the right-hand face of her arm block (the face toward his head in the top view, +x in the
+  // arm's own frame, near its end) and a small blade with rounded corners, lying along that direction with its face down at the contact, its
+  // width along the arm, across one cheek. Tool-local, the paddle runs along -y; the tool group is turned a quarter so that it runs along the arm's +x.
   const HANDLE = 1.2, BLADE_L = 4.5, BLADE_W = 4;
-  const PAD_ARM = 9.2, PAD_SIDE = 1.5 + HANDLE + BLADE_L / 2;   // how far along the arm the paddle springs, and how far its blade's middle stands out to the side
-  const tool = new THREE.Group(); tool.position.set(-1.5, -PAD_ARM, 0); tool.rotation.z = -Math.PI / 2; gerda.armR.add(tool);
+  const PAD_ARM = 9.8, PAD_SIDE = 1.5 + HANDLE + BLADE_L / 2;   // how far along the arm the paddle springs, and how far its blade's middle stands out to the side
+  const tool = new THREE.Group(); tool.position.set(1.5, -PAD_ARM, 0); tool.rotation.z = Math.PI / 2; gerda.armR.add(tool);
   const woodMat = c => new THREE.MeshLambertMaterial({ color: srgb(c) });
   const paddle = new THREE.Group(); paddle.visible = false; tool.add(paddle);
   const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.65, HANDLE + 0.2, 12), woodMat(0x7a4e26)); handle.position.y = -(HANDLE + 0.2) / 2; paddle.add(handle);
@@ -217,27 +217,46 @@ function create(view, opts) {
   }
   const jackWeights = () => ({ base: 1, react: clamp(J.kick, 0, 1) });
 
+  // Where the paddle's blade ends up for an arm pointing along u from shoulder sh: the arm's end is PAD_ARM along it, the blade's middle PAD_SIDE out
+  // to the side, the blade lying toward the world's +x (as far as the arm's axis allows). Gauss-Newton on the aim (azimuth, elevation) puts the
+  // blade's middle on the target; returns the aim and how far off it still is (the arm cannot always get there).
+  function fitPaddle(sh, target) {
+    const U = (a, e) => new V3(Math.sin(a) * Math.cos(e), Math.sin(e), Math.cos(a) * Math.cos(e));
+    const C = (a, e) => { const u = U(a, e), side = new V3(1, 0, 0).addScaledVector(u, -u.x).normalize(); return sh.clone().addScaledVector(u, PAD_ARM).addScaledVector(side, PAD_SIDE); };
+    // Height counts triple in the fit: the blade must lie on his skin (whatever his size), a little sideways slip along it matters less.
+    const Cw = (a, e) => { const c = C(a, e); c.y *= 3; return c; }, tw = target.clone(); tw.y *= 3;
+    const d0 = target.clone().sub(sh); let a = Math.atan2(d0.x, d0.z), e = Math.asin(clamp(d0.y / d0.length(), -1, 1));
+    for (let it = 0; it < 10; it++) {
+      const r = Cw(a, e).sub(tw), h = 1e-3, ja = Cw(a + h, e).sub(Cw(a, e)).divideScalar(h), je = Cw(a, e + h).sub(Cw(a, e)).divideScalar(h);
+      const A = ja.dot(ja) + 1e-3, Bm = ja.dot(je), D = je.dot(je) + 1e-3, g1 = ja.dot(r), g2 = je.dot(r), det = A * D - Bm * Bm;
+      if (Math.abs(det) < 1e-9) break;
+      a -= (D * g1 - Bm * g2) / det; e = clamp(e - (A * g2 - Bm * g1) / det, -1.4, 1.4);
+    }
+    return { u: U(a, e), miss: C(a, e).distanceTo(target) };
+  }
+
   gerda.after = function (g) {
     const gw = gerdaWeights(), sw = st.swing, impl = IMPL[st.implement], tau = sw ? sw.tau : REST;
-    // Where she lands. The hand: the middle of his rear. The paddle: the middle of one cheek (its blade's middle stands out to the side of the arm, and
-    // half its thickness off his skin), so the arm itself comes down PAD_SIDE to the inside of it (toward his head), and only PAD_ARM of the arm is in play.
+    // Where she lands. The hand: the end of her arm on the middle of his rear. The paddle: the middle of its blade on the middle of one cheek (the
+    // blade's middle plane stands a little off his skin).
     const padSide = sw ? sw.side : (st.side === 'alt' ? st.nextSide : st.side);
-    const T = world(rear[impl.paddle ? padSide : 'C']); if (impl.paddle) { T.y += 0.4; T.x += PAD_SIDE; }
-    const ARMEFF = impl.paddle ? PAD_ARM : ARM;
-    // Her arm is one straight block, so she twists her upper body (right shoulder back, no leaning) until the arm's end reaches the plane of his
-    // rear as close as it can come to the middle of it. The shoulder is evaluated with her edits included.
-    const tq = new THREE.Quaternion(), tv = new V3(), sv = new V3(), tEdit = editFor('gerda', 'torso', gw), tBase = basePos.get(g.torso);
-    const reachGap = yaw => {
+    const T = world(rear[impl.paddle ? padSide : 'C']); if (impl.paddle) T.y += 0.4;
+    // Her arm is one straight block. The hand needs her facing forward; for the paddle she may twist her upper body (no leaning) a little: the
+    // twist is the one, within range, that lets the blade come closest to the cheek. The shoulder is evaluated with her edits included.
+    const tq = new THREE.Quaternion(), tv = new V3(), tEdit = editFor('gerda', 'torso', gw), tBase = basePos.get(g.torso);
+    const shoulderAt = yaw => {
       tq.setFromEuler(eul.set(LEAN, yaw, 0, 'YXZ')); if (tEdit) tq.multiply(tEdit.q);
       tv.copy(tBase); if (tEdit) tv.x += tEdit.p[0], tv.y += tEdit.p[1], tv.z += tEdit.p[2];
-      sv.copy(g.hips.position).add(tv).add(shoulderLocal.clone().applyQuaternion(tq));
-      const dy = sv.y - T.y, rho = Math.sqrt(Math.max(0, ARMEFF * ARMEFF - dy * dy));
-      return rho - Math.hypot(T.x - sv.x, T.z - sv.z);          // > 0: the arm would overshoot the middle; < 0: fall short of it
+      return g.hips.position.clone().add(tv).add(shoulderLocal.clone().applyQuaternion(tq));
     };
-    const range = impl.paddle ? TWIST : [0, 0];                   // only the paddle needs her to twist; the hand lands with her facing forward
-    let lo = range[0], hi = range[1];                           // the gap falls as she twists back (the shoulder moves away)
-    for (let i = 0; i < 14; i++) { const mid = (lo + hi) / 2; if (reachGap(mid) > 0) hi = mid; else lo = mid; }
-    const yawT = clamp((lo + hi) / 2, range[0], range[1]);
+    let yawT = 0;
+    if (impl.paddle) {
+      let best = Infinity;
+      for (let i = 0; i <= 18; i++) {
+        const y = TWIST[0] + (TWIST[1] - TWIST[0]) * i / 18, cost = fitPaddle(shoulderAt(y), T).miss + 0.4 * Math.abs(y);
+        if (cost < best) { best = cost; yawT = y; }
+      }
+    }
     st.yaw = st.yaw == null ? yawT : st.yaw + (yawT - st.yaw) * 0.25;
     g.torso.rotation.order = 'YXZ'; g.torso.rotation.set(LEAN, st.yaw, 0); g.neck.rotation.x = 0.55 + 0.4 * LEAN; g.neck.rotation.y = -st.yaw * 0.9;
     applyEdits('gerda', ['torso', 'neck', 'thighL', 'thighR', 'kneeL', 'kneeR'], gw);
@@ -245,18 +264,22 @@ function create(view, opts) {
     // Left hand rests on Jack's back.
     const sL = world(g.armL), tL = world(upperBack);
     aim(g.armL, tmpB.copy(tL).sub(sL)); applyEdits('gerda', ['armL'], gw);
-    // Right arm: a straight block from the shoulder, the paddle rigid on the end of it. Its end comes down on the plane of his rear.
-    const sh = world(g.armR), dy = sh.y - T.y, rho = Math.sqrt(Math.max(0, ARMEFF * ARMEFF - dy * dy));
-    const hz = new V3(T.x - sh.x, 0, T.z - sh.z).normalize(), E = new V3(sh.x + hz.x * rho, T.y, sh.z + hz.z * rho);
-    const d = E.clone().sub(sh), u = d.clone().normalize();
+    // Right arm, aimed from the shoulder.
+    const sh = world(g.armR);
+    let u;
+    if (impl.paddle) u = fitPaddle(sh, T).u;
+    else {                                    // the hand: the end of the arm comes down on the plane of his rear, toward the middle of it
+      const dy = sh.y - T.y, rho = Math.sqrt(Math.max(0, ARM * ARM - dy * dy)), hz = new V3(T.x - sh.x, 0, T.z - sh.z).normalize();
+      u = new V3(hz.x * rho, T.y - sh.y, hz.z * rho).normalize();
+    }
     const raised = u.clone().multiplyScalar(0.35).addScaledVector(UP, 0.9).normalize();
     const dir = raised.lerp(u, tau).normalize();
     aim(g.armR, dir);
     paddle.visible = impl.paddle;
     if (impl.paddle) {
-      // Roll the arm about its own axis so the blade lies out to the right (world -x) with its face down: its -x face toward the world's -x.
+      // Roll the arm about its own axis so the blade lies out toward his head (world +x) with its face down: its +x face toward the world's +x.
       g.armR.updateMatrixWorld(true);
-      const xw = new V3(-1, 0, 0).applyQuaternion(g.armR.getWorldQuaternion(tmpQ2)), want = new V3(-1, 0, 0).addScaledVector(dir, dir.x);
+      const xw = new V3(1, 0, 0).applyQuaternion(g.armR.getWorldQuaternion(tmpQ2)), want = new V3(1, 0, 0).addScaledVector(dir, -dir.x);
       if (want.lengthSq() > 1e-4) {
         want.normalize();
         const ang = Math.atan2(xw.clone().cross(want).dot(dir), xw.dot(want));
