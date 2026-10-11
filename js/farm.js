@@ -234,7 +234,8 @@ function interior() {
   // Table (small), a cabinet, store cupboards, shelves and sacks.
   const table = new THREE.Group(); table.position.set(46, -5.7, 30); room.add(table);          // (a kitchen table: its top 13.5 from the floor, the right height to bend over)
   box(30, 2.4, 20, mat('plank'), 0, 18, 0, table); for (const [x, z] of [[-12, -7], [12, -7], [-12, 7], [12, 7]]) box(2.6, 17, 2.6, mat('bark'), x, 8.5, z, table);
-  box(8, 2.6, 8, plain('#6a5a48'), -7, 20.5, 2, table); box(8, 2.6, 8, plain('#6a5a48'), 6, 20.5, -3, table); box(7, 3.4, 4, plain('#b48a50'), 8, 20.8, 5, table); box(1.4, 6, 1.4, plain('#e8dcc0'), -11, 22, -5, table); box(2.2, 0.6, 2.2, unlit('#ffd870'), -11, 25.3, -5, table);
+  const tableClutter = new THREE.Group(); table.add(tableClutter);                                                                                     // (what stands on it: lifted off when someone is to be bent over it)
+  box(8, 2.6, 8, plain('#6a5a48'), -7, 20.5, 2, tableClutter); box(8, 2.6, 8, plain('#6a5a48'), 6, 20.5, -3, tableClutter); box(7, 3.4, 4, plain('#b48a50'), 8, 20.8, 5, tableClutter); box(1.4, 6, 1.4, plain('#e8dcc0'), -11, 22, -5, tableClutter); box(2.2, 0.6, 2.2, unlit('#ffd870'), -11, 25.3, -5, tableClutter);
   const cab = new THREE.Group(); cab.position.set(W / 2 - 8, 0, -34); room.add(cab);
   box(14, 46, 22, mat('plankDark'), 0, 23, 0, cab); box(1, 38, 9, mat('plank'), -7.2, 24, -5.2, cab); box(1, 38, 9, mat('plank'), -7.2, 24, 5.2, cab); box(1.4, 3, 1.4, plain('#b8923a'), -7.9, 24, -1.2, cab); box(1.4, 3, 1.4, plain('#b8923a'), -7.9, 24, 1.2, cab); box(16, 3, 24, mat('timber'), 0, 47.5, 0, cab);
   const cup = new THREE.Group(); cup.position.set(W / 2 - 8, 0, 4); room.add(cup);
@@ -264,7 +265,7 @@ function interior() {
   const win = new THREE.Group(); win.position.set(-34, 30, D / 2 - 1); room.add(win); box(22, 20, 3, mat('timber'), 0, 0, 0, win); box(16, 14, 1.2, unlit('#6a7a8a'), 0, 0, -0.6, win); box(1.6, 14, 1.6, mat('timber'), 0, 0, -1, win); box(16, 1.6, 1.6, mat('timber'), 0, 0, -1, win);
   const dr = new THREE.Group(); dr.position.set(34, 0, D / 2 - 1.5); room.add(dr); box(20, 32, 3, mat('timber'), 0, 16, 0, dr); box(16, 29, 2, mat('plankDark'), 0, 15, -0.8, dr); box(2, 2, 2, plain('#b8923a'), 5, 15, -2, dr);
   return {
-    scene, room, dim, fire, W, D, H, chair, table, birchHook, birchProp,
+    scene, room, dim, fire, W, D, H, chair, table, tableClutter, birchHook, birchProp,
     spots: { birch: P(-36, 0, -D / 2 + 12), chair: P(-26, 0, -24), stool: P(26, 0, -24), jack: P(-6, 0, -24), table: P(46, 0, 30), hearth: P(0, 0, -D / 2 + 14) },
     update(dt, t) {
       for (const f of flames) { const s = f.base * (0.8 + 0.55 * Math.sin(t * 9 + f.ph) * Math.sin(t * 5.3 + f.ph * 2)); f.m.scale.y = Math.max(0.3, s / 5); f.m.position.y = 6 + s * 0.8 * 0.5; f.m.rotation.z = 0.12 * Math.sin(t * 7 + f.ph); }

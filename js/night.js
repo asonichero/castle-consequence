@@ -135,11 +135,11 @@ async function run(G, choices, opts) {
   mother.root.position.set(-22, 0, -27); mother.root.rotation.y = Math.PI / 2; jackIn.root.position.set(34, 0, 50); jackIn.root.rotation.y = Math.PI; W.paintJack(jackIn, { expr: pick(1, 5, 5) }); ja.fist = 1;
   for (let i = 0; i < 20; i++) { B.step(mother, 0.1); B.step(jackIn, 0.1); }
   const sh = {
-    wide: { pos: v(30, 34, 24), look: v(-10, 18, -28), fov: 54 },
-    door: { pos: v(14, 20, 20), look: v(34, 18, 52), fov: 46 },
-    mFace: { pos: v(0, 23, -12), look: v(-22, 22, -27), fov: 32 },
-    jFace: { pos: v(-26, 22, -14), look: v(-4, 21, -27), fov: 32 },
-    two: { pos: v(-12, 22, 8), look: v(-12, 19, -27), fov: 40 },
+    wide: { pos: v(-14, 24, 38), look: v(-12, 19, -27), fov: 42 },
+    door: { pos: v(-10, 26, -34), look: v(30, 16, 46), fov: 50 },
+    mFace: { pos: v(-10, 24, 18), look: v(-24, 21, -26), fov: 34 },
+    jFace: { pos: v(-34, 22, 8), look: v(-4, 17, -26), fov: 40 },
+    two: { pos: v(-14, 24, 38), look: v(-12, 19, -27), fov: 42 },
   };
   G.cut(sh.wide); await G.fade(false, 1.2); await G.wait(0.6);
   await walk(jackIn, ja, [v(34, 0, 30), v(12, 0, 26), v(12, 0, -26), v(-2, 0, -26)], 24, -Math.PI / 2);
@@ -179,11 +179,11 @@ async function run(G, choices, opts) {
   // ── 3. Across her knee. ──
   W.placeStage(SEAT);
   const cams = {
-    seat: stageShot(W, [-50, 22, 20], [0, 11, 5], 40),
-    seatClose: stageShot(W, [-26, 18, 24], [0, 11, 8], 34),
+    seat: stageShot(W, [-60, 20, 16], [0, 12, 6], 38),
+    seatClose: stageShot(W, [-44, 16, 12], [0, 12, 6], 32),
     lap: stageShot(W, [-44, 52, 46], [-3, 9, 4], 38),
-    lapBehind: stageShot(W, [-38, 50, 12], [-8, 9, 4], 40),
-    lapFace: stageShot(W, [22, 6, 30], [6, 5, 3], 36),
+    lapBehind: stageShot(W, [-30, 16, 10], [-6, 8, 5], 36),
+    lapFace: stageShot(W, [6, 14, 60], [6, 6, 4], 36),
   };
   jackIn.root.visible = false; mother.root.visible = false; lap.stage.visible = true; int.chair.visible = false;
   lap.reset(); lap.layers({ trousers: 'up', drawers: 'up' }); lap.armed(false); lap.place('seat', 0); lap.giver('mother', 1);
@@ -254,7 +254,7 @@ async function run(G, choices, opts) {
     W.paintJack(jackIn, { expr: 3, trousers: 'down', drawers: 'down', marks: lap.st.marks }); ja.cover = 0; ja.shuffle = 1; ja.bow = 1;
     jackIn.root.position.set(-17, 0, -24); jackIn.root.rotation.y = -Math.PI / 2;
     const hook = int.spots.birch;
-    const walkCams = { wide: { pos: v(10, 32, -6), look: v(-24, 16, -34), fov: 54 }, hook: { pos: v(-14, 20, -38), look: v(-36, 16, -50), fov: 38 } };
+    const walkCams = { wide: { pos: v(14, 34, -2), look: v(-26, 16, -36), fov: 56 }, hook: { pos: v(-52, 26, -18), look: v(-34, 18, -50), fov: 44 } };
     G.cut(walkCams.wide);
     await walk(jackIn, ja, [v(-30, 0, -40), v(hook.x + 3, 0, hook.z + 1)], 9, -Math.PI * 0.95);
     G.cut(walkCams.hook); int.birchProp.root.visible = false; jBirch.root.visible = true; ja.hold = 0.7; await G.wait(0.8);
@@ -269,12 +269,12 @@ async function run(G, choices, opts) {
     // To the table: she stands, he takes his place at its edge, and bends.
     mother.root.visible = false; jackIn.root.visible = false; lap.stage.visible = true; int.chair.visible = true;
     W.placeStage(TABLE);
-    lap.layers({ trousers: 'down', drawers: 'down' }); lap.armed(true); lap.implement('birch'); lap.place('after', 0); lap.giver('mother', 1); lap.st.strength = 1.35;
+    int.tableClutter.visible = false; lap.layers({ trousers: 'down', drawers: 'down' }); lap.armed(true); lap.implement('birch'); lap.place('after', 0); lap.giver('mother', 1); lap.st.strength = 1.35;
     const tcams = {
-      behind: stageShot(W, [-52, 26, -22], [-6, 8, -3], 42),
-      above: stageShot(W, [-40, 46, 14], [-7, 9, -2], 42),
-      side: stageShot(W, [-26, 22, 40], [-2, 10, -2], 40),
-      face: stageShot(W, [38, 20, 18], [-2, 10, -3], 36),
+      behind: stageShot(W, [-46, 22, 30], [-4, 9, -2], 40),
+      above: stageShot(W, [-20, 46, 40], [-4, 9, -2], 40),
+      side: stageShot(W, [-46, 22, 30], [-4, 9, -2], 40),
+      face: stageShot(W, [14, 24, 46], [-4, 10, -2], 40),
     };
     G.cut(tcams.side); await G.wait(0.5);
     lap.place('table', 1.6); await G.wait(1.9);
