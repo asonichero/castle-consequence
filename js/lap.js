@@ -194,19 +194,17 @@ function create(view, opts) {
   const SIZE_MIN = 0.5;                       // below this the poses do not reach (the lower limit of the position)
   // Editable poses: Hand, Paddle and Birch { rest, raised, contactL, contactR } for Gerda (the contact pose is per cheek, and per implement), and Jack { base, react }.
   const GERDA_BEATS = ['rest', 'raised', 'contactL', 'contactR'], WIELD = ['hand', 'paddle', 'birch'];
-  const BEATS = { hand: GERDA_BEATS, paddle: GERDA_BEATS, birch: GERDA_BEATS, jack: ['base', 'react'] };
   for (const pos in SETS) for (const k of [100, 50]) {
     const e = SETS[pos][k]; e.gerda = e.gerda || {}; e.jack = e.jack || {};
     for (const w of WIELD) { e.gerda[w] = e.gerda[w] || {}; for (const b of GERDA_BEATS) e.gerda[w][b] = e.gerda[w][b] || {}; }
-    for (const b of BEATS.jack) e.jack[b] = e.jack[b] || {};
+    for (const w of WIELD) { e.jack[w] = e.jack[w] || {}; for (const b of GERDA_BEATS) e.jack[w][b] = e.jack[w][b] || {}; }     // (Jack's beats are the giver's: the same moments of the same blow)
   }
-  let editPos = 'lap';                        // the position the editor is working on
-  const posKey = () => hs.on ? editPos : (stanceNow() === 'table' ? 'table' : 'lap');
-  const EDITS = new Proxy({}, { get: (_, k) => SETS[posKey()][k] });   // (the set in force: the editor's position while it is open, otherwise where Jack is)
+  const posKey = () => stanceNow() === 'table' ? 'table' : 'lap';           // the poses in force are those of where the scene is
+  const EDITS = new Proxy({}, { get: (_, k) => SETS[posKey()][k] });
   let editKey = 100;                          // the set the editor is working on (Jack is held at that size while it is open)
   const sizeT = () => clamp((st.size - SIZE_MIN) / (1 - SIZE_MIN), 0, 1);    // 0 at 50%, 1 at 100%
   // The set of edits in force for a figure's bones: Gerda's depend on the implement in hand.
-  const setOf = (who, key) => who === 'gerda' ? EDITS[key].gerda[st.implement] : EDITS[key].jack;
+  const setOf = (who, key) => EDITS[key][who === 'gerda' ? 'gerda' : 'jack'][st.implement];      // each body's poses for the implement in hand
   const BONES = {
     gerda: { torso: gerda.torso, neck: gerda.neck, armL: gerda.armL, armR: gerda.armR, elbowR: gerda.elbow, wristR: gerda.wrist, thighL: gerda.legL.thigh, thighR: gerda.legR.thigh, kneeL: gerda.legL.knee, kneeR: gerda.legR.knee, paddle: tool, birch: birchTool },
     jack: { frame, torso: jack.torso, neck: jack.neck, glutes: glutesTilt, armL: jack.armL, armR: jack.armR, thighL: jack.legL.thigh, thighR: jack.legR.thigh, kneeL: jack.legL.knee, kneeR: jack.legR.knee },
@@ -265,7 +263,7 @@ function create(view, opts) {
     }
     return { rest: 1 };
   }
-  const jackWeights = () => ({ base: 1, react: clamp(J.kick, 0, 1) });
+  const jackWeights = () => gerdaWeights();                // his beats are hers
 
   // Her swinging arm has an elbow: an upper arm of 4 (shoulder pivot to elbow) and a forearm of 6. Two-bone reach: where the elbow goes for the
   // shoulder at S to bring the point m along the forearm to M (it bends toward the pole when M is nearer than the arm's full length, and the arm
@@ -342,19 +340,7 @@ function create(view, opts) {
     const ph = sw && sw.phase, flex = !sw ? 0.04 : (ph === 'lift' || ph === 'hold' || ph === 'rise') ? -0.25 * (1 - sw.tau) : ph === 'strike' ? -0.25 * (1 - tau) + 0.2 * tau : ph === 'contact' ? 0.2 * Math.max(0.3, 1 - sw.t / TIMES.contact) : ph === 'freeze' ? -0.25 * (1 - tau) + 0.2 * tau : ph === 'back' ? 0.1 * (1 - (sw.hover || 0)) : 0.1;
     twigs.rotation.x = flex; for (const j of tips) j.rotation.x = flex * 1.3;
   }
-  // Free pose (the editor, at the table): nothing is pinned: no hand is brought to the skin, no arm aimed. She stands as she is, and the offsets ARE the pose.
-  const isFree = () => hs.on && editPos === 'table' && st.freeOn;
-  function freePose(g) {
-    const impl = IMPL[st.implement], gw = gerdaWeights(), sw = st.swing;
-    g.torso.rotation.order = 'YXZ'; g.torso.rotation.set(0, 0, 0); g.neck.rotation.set(0.1, 0, 0); g.elbow.rotation.set(0, 0, 0); g.wrist.rotation.set(0, 0, 0);
-    paddle.visible = !!impl.paddle && st.armed; birch.visible = !!impl.birch && st.armed; tool.rotation.set(0, 0, Math.PI / 2); birchTool.quaternion.identity();
-    g.root.updateMatrixWorld(true);
-    applyEdits('gerda', ['torso', 'neck', 'armL', 'armR', 'elbowR', 'wristR', 'thighL', 'thighR', 'kneeL', 'kneeR'], gw);
-    if (impl.paddle) applyEdits('gerda', ['paddle'], gw);
-    if (impl.birch) { birchFlex(sw, sw ? sw.tau : 1); applyEdits('gerda', ['birch'], gw); }
-  }
   gerda.after = function (g) {
-    if (isFree()) { freePose(g); return; }
     const sw0 = st.swing, standing = st.giverStance === 'stand';
     if (!strikeStance()) {
       // Hands on him: at his belt (and a little fumbling at it, if `fumble` is up), or on his shoulders once he is upright again.
@@ -592,20 +578,13 @@ function create(view, opts) {
     }
   }
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), dragPlane = new THREE.Plane(), hitP = new V3();
-  const weightsNow = () => cur.who === 'jack' ? jackWeights() : gerdaWeights();
+  const weightsNow = () => gerdaWeights();
   function pointerRay(e) {
     const r = renderer.domElement.getBoundingClientRect();
     ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); ray.setFromCamera(ndc, camera);
   }
   function applyDrag(drag, target) {
-    const set0 = setFor(cur.who)[cur.beat], key0 = drag.h.bone;
-    if (!isFree()) return applyDrag_(drag, target);
-    poseNow(); const before = penetration(), old = set0[key0] ? JSON.stringify(set0[key0]) : null;
-    applyDrag_(drag, target); poseNow(); const why = worse(penetration(), before);
-    if (why) { if (old === null) delete set0[key0]; else set0[key0] = JSON.parse(old); poseNow(); blocked.why = why; blocked.at = performance.now(); if (hs.onChange) hs.onChange(key0); }
-  }
-  function applyDrag_(drag, target) {
-    const h = drag.h, fig = h.who, bone = BONES[fig][h.bone], set = setFor(cur.who)[cur.beat], wts = weightsNow(), wb = wts[cur.beat] || 1;
+    const h = drag.h, fig = h.who, bone = BONES[fig][h.bone], set = setFor(cur.fig)[cur.beat], wts = weightsNow(), wb = wts[cur.beat] || 1;
     const entry = set[h.bone] || (set[h.bone] = { r: [0, 0, 0], p: [0, 0, 0] }); entry.r = entry.r || [0, 0, 0]; entry.p = entry.p || [0, 0, 0];
     if (h.kind === 'move') {
       const inv = new THREE.Matrix4().copy(bone.parent ? bone.parent.matrixWorld : new THREE.Matrix4()).invert();
@@ -632,7 +611,7 @@ function create(view, opts) {
       const tot = new THREE.Euler().setFromQuaternion(proc.clone().invert().multiply(newLocal), 'YXZ');
       const want = [tot.x / DEG, tot.y / DEG, tot.z / DEG];
       for (let i = 0; i < 3; i++) {                      // the others' share of the total stays; the held beat's share takes the rest
-        let others = 0; for (const b in wts) if (b !== cur.beat && setFor(cur.who)[b] && setFor(cur.who)[b][h.bone]) others += wts[b] * ((setFor(cur.who)[b][h.bone].r || [0, 0, 0])[i]);
+        let others = 0; for (const b in wts) if (b !== cur.beat && setFor(cur.fig)[b] && setFor(cur.fig)[b][h.bone]) others += wts[b] * ((setFor(cur.fig)[b][h.bone].r || [0, 0, 0])[i]);
         entry.r[i] = (want[i] - others) / wb;
       }
     }
@@ -648,7 +627,7 @@ function create(view, opts) {
     e.stopPropagation(); e.preventDefault();
     const h = hit.object.userData.handle; hs.bone = h.bone; controls.enabled = false;
     dragPlane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(new V3()).negate(), hit.point);
-    const set = setFor(cur.who)[cur.beat], ent = set[h.bone];
+    const set = setFor(cur.fig)[cur.beat], ent = set[h.bone];
     hs.drag = { h, grab: hit.point.clone().sub(h.mesh.position), startWorld: h.tip.getWorldPosition(new V3()), startP: ent && ent.p ? ent.p.slice() : [0, 0, 0] };
     if (hs.onPick) hs.onPick(h.bone, h.label);
     renderer.domElement.setPointerCapture && renderer.domElement.setPointerCapture(e.pointerId);
@@ -661,90 +640,34 @@ function create(view, opts) {
   const endDrag = () => { if (hs.drag) { hs.drag = null; controls.enabled = true; } };
   hostEl.addEventListener('pointerup', endDrag, true); hostEl.addEventListener('pointercancel', endDrag, true);
 
-  // ── Collisions (free-pose editing): feet and the rest of both bodies stay above the floor, the two bodies do not pass through each other, and neither passes through the table. ──
-  // Each body is a string of spheres along its bones; an edit that would make things worse than they already are is refused (the pose stays as it was).
-  const poseNow = () => {                                // pose both figures again from the current edits, without letting any time pass
-    restoreBones(); applyEdits('jack', ['frame'], jackWeights());
-    B.step(jack, 0); scene.updateMatrixWorld(true); B.step(gerda, 0); scene.updateMatrixWorld(true);
-  };
-  const tmpP = new V3();
-  function spheres() {
-    const out = [], add = (obj, x, y, z, r, tag) => { obj.localToWorld(tmpP.set(x, y, z)); out.push({ x: tmpP.x, y: tmpP.y, z: tmpP.z, r, tag }); };
-    for (const [rig, who, k] of [[gerda, 'g', 1], [jack, 'j', frame.scale.x]]) {
-      for (const y of [1, 5, 9]) add(rig.torso, 0, y, 0, (who === 'j' ? 1.9 : 2.6) * k, who + 'torso');
-      add(rig.neck, 0, 4, 0, 3.6 * k, who + 'head');
-      for (const key of ['armL', 'armR']) {
-        const a = rig[key];
-        if (rig.elbow && key === 'armR') { add(a, 0, -1, 0, 1.6 * k, who + 'arm'); add(a, 0, -3.5, 0, 1.6 * k, who + 'arm'); add(rig.wrist, 0, -1.5, 0, 1.4 * k, who + 'hand'); add(rig.wrist, 0, -4.5, 0, 1.4 * k, who + 'hand'); add(rig.wrist, 0, -6.2, 0, 1.4 * k, who + 'hand'); }
-        else for (const y of [-2, -6, -10]) add(a, 0, y, 0, 1.5 * k, who + (y < -8 ? 'hand' : 'arm'));
-      }
-      for (const key of ['legL', 'legR']) { const l = rig[key]; add(l.thigh, 0, -1.5, 0, 2 * k, who + 'leg'); add(l.thigh, 0, -4.5, 0, 2 * k, who + 'leg'); add(l.knee, 0, -1.5, 0, 1.9 * k, who + 'leg'); add(l.knee, 0, -3.8, 0, 1.9 * k, who + 'leg'); add(l.knee, 0, -4.1, 0, 1.9 * k, who + 'foot'); }
-    }
-    add(rear.C.parent, 0, -2.4, 0, 2.4 * frame.scale.x, 'jrear');
-    return out;
-  }
-  const dBox = (s, b) => { const dx = Math.max(b.x0 - s.x, 0, s.x - b.x1), dy = Math.max(b.y0 - s.y, 0, s.y - b.y1), dz = Math.max(b.z0 - s.z, 0, s.z - b.z1); return Math.hypot(dx, dy, dz); };
-  function furniture() {
-    if (!table || st.showTable === false) return [];
-    const x0 = table.position.x, top = TABLE_TOP;
-    const boxes = [{ x0, x1: x0 + 22, y0: top - 2.4, y1: top, z0: -15, z1: 15 }];
-    for (const [x, z] of [[2.4, -12.6], [19.6, -12.6], [2.4, 12.6], [19.6, 12.6]]) boxes.push({ x0: x0 + x - 1.3, x1: x0 + x + 1.3, y0: FLOOR, y1: top - 2.4, z0: z - 1.3, z1: z + 1.3 });
-    return boxes;
-  }
-  const WHY = { floor: 'feet and bodies cannot go through the floor', table: 'bodies cannot go through the table', bodies: 'the two bodies cannot go through each other' };
-  function penetration() {                              // how far things are into one another, by kind
-    const S = spheres(), F = furniture(), t = { floor: 0, table: 0, bodies: 0 };
-    for (const s of S) if (s.y - s.r < FLOOR - 0.05) t.floor += FLOOR - (s.y - s.r);
-    for (const s of S) for (const bx of F) { const d = dBox(s, bx); if (d < s.r - 0.15) t.table += s.r - d; }
-    for (const a of S) if (a.tag[0] === 'g') for (const c of S) if (c.tag[0] === 'j') { const lim = a.r + c.r - 0.8, d = Math.hypot(a.x - c.x, a.y - c.y, a.z - c.z); if (d < lim) t.bodies += lim - d; }
-    return t;
-  }
-  const worse = (a, b) => (a.floor > b.floor + 0.05 ? WHY.floor : null);       // only the floor is a rule: nothing may go through it (bodies and furniture may overlap freely)
-  const blocked = { why: null, at: 0 };
-  // Run a change to the edits; if it makes the pose collide (more than it already did), put things back and say why.
-  function guarded(set, bone, change) {
-    if (!isFree()) { change(); return true; }
-    poseNow(); const before = penetration(), old = set[bone] ? JSON.stringify(set[bone]) : null;
-    change(); poseNow(); const why = worse(penetration(), before);
-    if (why) { if (old === null) delete set[bone]; else set[bone] = JSON.parse(old); poseNow(); blocked.why = why; blocked.at = performance.now(); return false; }
-    return true;
-  }
-
-  // who: 'hand', 'paddle' (Gerda with that implement) or 'jack'.
-  const cur = { who: 'paddle', beat: 'contactL' };      // what the editor is holding the scene at
-  const figure = who => who === 'jack' ? 'jack' : 'gerda', setFor = who => who === 'jack' ? SETS[editPos][editKey].jack : SETS[editPos][editKey].gerda[who];
+  // The editor holds the scene at a beat (rest, raised, or landed on one cheek) for whichever body is being posed: 'giver' or 'jack'. Both bodies have the same beats, and the
+  // position and implement are the scene's own (chosen outside the editor).
+  const cur = { fig: 'giver', beat: 'contactL' };
+  const bodyOf = fig => fig === 'jack' ? 'jack' : 'gerda';
+  const setFor = fig => SETS[posKey()][editKey][bodyOf(fig)][st.implement];
   const editor = {
-    beats: BEATS, bones: who => Object.keys(BONES[figure(who)]).filter(n => (n !== 'paddle' || who === 'paddle') && (n !== 'birch' || who === 'birch')),
-    get(who, beat, bone) { const e = setFor(who)[beat][bone] || {}; return { r: (e.r || [0, 0, 0]).slice(), p: (e.p || [0, 0, 0]).slice() }; },
-    set(who, beat, bone, r, p) {
-      const set = setFor(who)[beat];
-      return guarded(set, bone, () => { if (r.every(v => !v) && p.every(v => !v)) delete set[bone]; else set[bone] = { r: r.slice(), p: p.slice() }; });
-    },
-    free(on) { if (on === undefined) return st.freeOn; st.freeOn = !!on; return st.freeOn; },
-    blocked() { return performance.now() - blocked.at < 2500 ? blocked.why : null; },
-    resetBone(who, beat, bone) { delete setFor(who)[beat][bone]; },
-    resetBeat(who, beat) { setFor(who)[beat] = {}; },
-    clear() { for (const w in BEATS) for (const b of BEATS[w]) setFor(w)[b] = {}; },
+    beats: GERDA_BEATS,
+    bones: fig => Object.keys(BONES[bodyOf(fig)]).filter(n => (n !== 'paddle' || st.implement === 'paddle') && (n !== 'birch' || st.implement === 'birch')),
+    // Can the scene be posed as it is? (the knee or the table, once he is there; the birch is for the table)
+    editable() { return st.blend >= 1 && (st.to === 'table' || (st.to === 'lap' && st.implement !== 'birch')); },
+    get(fig, beat, bone) { const e = setFor(fig)[beat][bone] || {}; return { r: (e.r || [0, 0, 0]).slice(), p: (e.p || [0, 0, 0]).slice() }; },
+    set(fig, beat, bone, r, p) { const set = setFor(fig)[beat]; if (r.every(v => !v) && p.every(v => !v)) delete set[bone]; else set[bone] = { r: r.slice(), p: p.slice() }; },
+    resetBone(fig, beat, bone) { delete setFor(fig)[beat][bone]; },
+    resetBeat(fig, beat) { setFor(fig)[beat] = {}; },
+    clear() { for (const f of ['giver', 'jack']) for (const b of GERDA_BEATS) setFor(f)[b] = {}; },
     sizeMin: SIZE_MIN,
-    // Hold the scene at a beat so it can be posed: Gerda's rest, raised, or landed on the left or right cheek (with the hand or the paddle in
-    // hand); Jack's base or fully reacting.
-    hold(who, beat) {
-      cur.who = who; cur.beat = beat;
-      st.runLeft = 0; st.swing = null; st.armed = true; if (hs.on || st.place === 'lap' || st.place === 'table') { const pl = editPos === 'table' ? 'table' : 'lap'; if (st.place !== pl || st.blend < 1) place(pl, 0); }
-      if (who !== 'jack') {
-        st.implement = who; st.holdKick = null;
-        if (beat !== 'rest') st.swing = { phase: 'freeze', t: 0, side: beat === 'contactL' ? 'L' : 'R', waited: 0, tau: beat === 'raised' ? 0 : 1 };
-      } else st.holdKick = beat === 'react' ? 1 : 0;
+    hold(fig, beat) {
+      cur.fig = fig; cur.beat = beat; st.runLeft = 0; st.swing = null; st.armed = true; st.holdKick = null;
+      if (beat !== 'rest') st.swing = { phase: 'freeze', t: 0, side: beat === 'contactL' ? 'L' : 'R', waited: 0, tau: beat === 'raised' ? 0 : 1 };
     },
     release() { st.swing = null; st.holdKick = null; },
-    // Handles in the view: on or off, for Hand/Paddle (Gerda's) or Jack's; which bone is selected; callbacks for a pick and for a change by dragging.
-    handles(on, who) { hs.on = !!on; if (hs.on) st.size = editKey / 100; hs.who = who === 'jack' ? 'jack' : 'gerda'; handleGroup.visible = hs.on; if (!hs.on) { endDrag(); for (const w in HANDLE_DEFS) for (const h of HANDLE_DEFS[w]) h.mesh.visible = false; } },
+    // Handles in the view: on or off, for the giver's bones or Jack's; which bone is selected; callbacks for a pick and for a change by dragging.
+    handles(on, fig) { hs.on = !!on; if (hs.on) st.size = editKey / 100; hs.who = fig === 'jack' ? 'jack' : 'gerda'; handleGroup.visible = hs.on; if (!hs.on) { endDrag(); for (const w in HANDLE_DEFS) for (const h of HANDLE_DEFS[w]) h.mesh.visible = false; } },
     select(bone) { hs.bone = bone; },
     onPick(f) { hs.onPick = f; }, onChange(f) { hs.onChange = f; },
-    info: (who, bone) => BONE_INFO[bone] || '',
-    handleLabels: who => HANDLE_DEFS[who === 'jack' ? 'jack' : 'gerda'].map(h => ({ bone: h.bone, kind: h.kind, label: h.label })),
+    info: (fig, bone) => BONE_INFO[bone] || '',
+    handleLabels: fig => HANDLE_DEFS[bodyOf(fig)].map(h => ({ bone: h.bone, kind: h.kind, label: h.label })),
     // Which of the two sets is being edited (100 or 50); Jack is held at that size while the editor is open.
-    position(k) { if (k === undefined) return editPos; editPos = k === 'table' ? 'table' : 'lap'; if (hs.on) place(editPos, 0); return editPos; },
     sizeKey(k) { if (k === undefined) return editKey; editKey = k === 50 ? 50 : 100; if (hs.on) st.size = editKey / 100; return editKey; },
     report() {
       const dump = (set, beats, pad) => beats.map(b => {
@@ -754,10 +677,8 @@ function create(view, opts) {
           return `${n}: { ${parts.join(', ')} }`; });
         return `${pad}${b}: {${bones.length ? '\n' + pad + '  ' + bones.join(',\n' + pad + '  ') + ',\n' + pad : ''}}`;
       }).join(',\n');
-      const one = (pos, k, ind) => {
-        const e = SETS[pos][k], gerdaOut = WIELD.map(w => `${ind}    ${w}: {\n${dump(e.gerda[w], GERDA_BEATS, ind + '      ')},\n${ind}    }`).join(',\n');
-        return `${ind}${k}: {\n${ind}  gerda: {\n${gerdaOut},\n${ind}  },\n${ind}  jack: {\n${dump(e.jack, BEATS.jack, ind + '    ')},\n${ind}  },\n${ind}},`;
-      };
+      const body = (set, ind) => WIELD.map(w => `${ind}    ${w}: {\n${dump(set[w], GERDA_BEATS, ind + '      ')},\n${ind}    }`).join(',\n');
+      const one = (pos, k, ind) => { const e = SETS[pos][k]; return `${ind}${k}: {\n${ind}  gerda: {\n${body(e.gerda, ind)},\n${ind}  },\n${ind}  jack: {\n${body(e.jack, ind)},\n${ind}  },\n${ind}},`; };
       return `root.LapPoses = {\n${one('lap', 100, '  ')}\n${one('lap', 50, '  ')}\n  table: {\n${one('table', 100, '    ')}\n${one('table', 50, '    ')}\n  },\n};`;
     },
   };
@@ -797,7 +718,7 @@ function create(view, opts) {
     },
     outfits: B.OUTFITS,
     clearMarks() { st.marks = { L: 0, R: 0 }; dirty = true; },
-    implement(name) { if (!IMPL[name] || st.swing) return; st.implement = name; },
+    implement(name) { if (!IMPL[name] || (st.swing && st.swing.phase !== 'freeze')) return; st.implement = name; },
     layers(o) { Object.assign(st, o); dirty = true; },
     canStrike, bandIndex, bandName: () => BANDS[bandIndex()],
     info: () => ({ distress: pain.distress(), band: BANDS[bandIndex()], hits: st.hits, peak: st.peak, ended: st.ended, red: st.red, tooHarsh: pain.tooHarsh, busy: !!st.swing, running: st.runLeft > 0, marks: st.marks, receptivity: pain.receptivity() }),

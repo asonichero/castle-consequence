@@ -39,10 +39,8 @@
   <h1>Across the lap</h1>
   <div class="sub">Gerda gives, Jack receives. Drag to orbit, scroll to zoom, right-drag to pan. Space smacks.</div>
 
-  <h3>Place</h3>
+  <h3>Position</h3>
   <div class="btns" id="places"></div>
-  <div class="btns" style="margin-top:6px"><button id="armed" class="on">Implement in hand</button><button id="fumble">Fumbling at the belt</button><button id="cover">Hands cover his rear</button></div>
-  <div class="sub" style="margin-top:4px">Seat: he stands before her. Over the knee: the lap. Table: bent over it, her standing at his side. Upright: he is set on his feet again. Moving between them takes a moment; smacks work in the lap and at the table.</div>
 
   <h3>The correction</h3>
   <div class="btns"><button id="smack" class="big">Smack</button><button id="run">Run</button><input id="runN" type="number" min="1" max="60" value="6"><button id="stop">Stop</button></div>
@@ -77,15 +75,11 @@
   <h3>Pose editor</h3>
   <div class="btns"><button id="peToggle">Edit poses</button></div>
   <div id="pe">
-    <div class="sub" style="margin:6px 0">Offsets are laid on top of the pose and shown live. Nothing is saved: press Report when you are happy and paste it into the chat.</div>
-    <div class="btns" style="margin:6px 0"><button id="peFree" class="on">Pins released (free pose, at the table)</button></div>
-    <div class="sub" id="peMsg" style="color:#f0a090;min-height:1.4em"></div>
-    <div class="sub">At the table nothing is pinned: no hand is brought to the skin, no arm aimed; she stands as she is and your offsets are the pose. The one rule: nothing can go through the floor (a move that would is refused). Bodies and the table may overlap freely. (Over the knee keeps its aimed arm.)</div>
-    <h4>Position (each has its own poses)</h4><div class="btns" id="pePos"></div>
+    <div class="sub" style="margin:6px 0">Offsets are laid on top of the pose and shown live. The position and implement are the ones chosen above. Nothing is saved: press Report when you are happy and paste it into the chat.</div>
+    <div class="sub" id="peWhere" style="margin:4px 0;color:#c9a84c"></div>
     <h4>Jack's size (two sets of poses: they blend between)</h4><div class="btns" id="peSize"></div>
-    <h4>Whose body</h4><div class="btns" id="peFig"></div>
-    <h4>Implement in her hand (each has its own poses)</h4><div class="btns" id="peWho"></div>
-    <h4>Beat (the scene is held there)</h4><div class="btns" id="peBeat"></div>
+    <h4>Body</h4><div class="btns" id="peFig"></div>
+    <h4>Beat (the scene is held there; the same for both bodies)</h4><div class="btns" id="peBeat"></div>
     <h4>Bone</h4><div class="btns" id="peBone"></div>
     <div class="sub" id="peInfo" style="margin:6px 0"></div>
     <div class="sub">Or drag the handles in the view: <b style="color:#ffcc33">yellow spheres</b> swing a bone so the joint at its far end follows the cursor, <b style="color:#44ddff">cyan cubes</b> move it, <b style="color:#ff66cc">pink diamonds</b> twist it. The selected one is white.</div>
@@ -120,21 +114,20 @@
     document.querySelectorAll('#wardJ button').forEach(function (b) { b.classList.toggle('on', b.dataset.k === st.outfit.jack); });
   }
   // implements
-  Object.keys(L.IMPL).forEach(function (k) { btn('impl', L.IMPL[k].name, function () { L.implement(k); mark(); }, k); });
+  Object.keys(L.IMPL).forEach(function (k) { btn('impl', L.IMPL[k].name, function () { L.implement(k); mark(); if (window.__peSync) window.__peSync(); }, k); });
   [['alt', 'Alternate'], ['L', 'Left'], ['R', 'Right']].forEach(function (p) { btn('side', p[1], function () { st.side = p[0]; mark(); }, p[0]); });
-  [['overview', 'Overview'], ['behind', 'Behind'], ['shoulder', 'Over your shoulder'], ['face', 'Face'], ['seat', 'Seat'], ['tableSide', 'Table: side'], ['tableBehind', 'Table: behind'], ['tableFront', 'Table: front']].forEach(function (p) { btn('cams', p[1], function () { L.view(p[0]); }, p[0]); });
+  [['overview', 'Overview'], ['behind', 'Behind'], ['shoulder', 'Over your shoulder'], ['face', 'Face'], ['tableSide', 'Table: side'], ['tableBehind', 'Table: behind'], ['tableFront', 'Table: front']].forEach(function (p) { btn('cams', p[1], function () { L.view(p[0]); }, p[0]); });
   function mark() {
-    var bb = document.querySelector('#impl button[data-k=birch]'); if (bb) { bb.disabled = st.to === 'lap' || st.to === 'standSeat'; bb.title = 'The birch is for the table'; }
+    var bb = document.querySelector('#impl button[data-k=birch]'); if (bb) { bb.disabled = st.to !== 'table'; bb.title = 'The birch is for the table'; }
     document.querySelectorAll('#impl button').forEach(function (b) { b.classList.toggle('on', b.dataset.k === st.implement); });
     document.querySelectorAll('#side button').forEach(function (b) { b.classList.toggle('on', b.dataset.k === st.side); });
     $('trousers').textContent = 'Trousers: ' + st.trousers; $('drawers').textContent = 'Drawers: ' + st.drawers;
     $('drawers').disabled = st.trousers === 'up';
   }
-  [['seat', 'Seat'], ['lap', 'Over the knee'], ['table', 'Bent over the table'], ['after', 'Upright']].forEach(function (p) { btn('places', p[1], function () { L.place(p[0], 1.4); if (p[0] === 'table') L.view('tableSide'); if (p[0] === 'lap') L.view('overview'); if (p[0] === 'seat') L.view('seat'); markP(); }, p[0]); });
+  [['lap', 'Over the knee'], ['table', 'Over the table']].forEach(function (p) { btn('places', p[1], function () {
+    if (p[0] === 'lap' && st.implement === 'birch') L.implement('hand');          // (the birch is for the table)
+    L.place(p[0], 1.2); L.view(p[0] === 'table' ? 'tableBehind' : 'overview'); markP(); if (window.__peSync) window.__peSync(); }, p[0]); });
   function markP() { document.querySelectorAll('#places button').forEach(function (b) { b.classList.toggle('on', b.dataset.k === st.place); }); }
-  $('armed').onclick = function () { st.armed = !st.armed; L.armed(st.armed); $('armed').classList.toggle('on', st.armed); };
-  $('fumble').onclick = function () { st.fumble = st.fumble ? 0 : 1; L.fumble(st.fumble); $('fumble').classList.toggle('on', !!st.fumble); };
-  $('cover').onclick = function () { st.cover = st.cover ? 0 : 1; L.cover(st.cover); $('cover').classList.toggle('on', !!st.cover); };
   mark(); markW(); markP();
   $('smack').onclick = function () { L.smack(); };
   $('run').onclick = function () { L.run(+$('runN').value); };
@@ -171,20 +164,20 @@
     var i = L.info();
     $('fill').style.width = Math.min(100, i.distress / 1.5 * 100) + '%';
     $('band').innerHTML = 'Distress <b>' + i.distress.toFixed(2) + '</b> — ' + i.band + ' · ' + i.hits + ' smack' + (i.hits === 1 ? '' : 's');
-    mark(); var bm = L.editor.blocked(); $('peMsg').textContent = bm ? 'Blocked: ' + bm : '';
+    mark(); var okE = L.editor.editable(); if (okE !== window.__wasOk) { window.__wasOk = okE; if (window.__peSync) window.__peSync(); }
     $('smack').disabled = !L.canStrike() || i.busy; $('run').disabled = !L.canStrike(); $('stop').disabled = !i.running;
     $('endBtn').disabled = i.ended; $('red').disabled = i.ended;
     requestAnimationFrame(loop);
   })(last);
 
-  // ── Pose editor ──
+  // ── Pose editor: the position and implement are the scene's (chosen above); here the body, the beat and the bone. ──
   (function () {
-    var E = L.editor, S = { who: 'paddle', impl: 'paddle', beat: 'contactL', bone: 'armR' }, sl = { r: [], p: [] };
+    var E = L.editor, S = { fig: 'giver', beat: 'contactL', bone: 'armR' }, sl = { r: [], p: [] }, open = false;
     E.onPick(function (bone) { S.bone = bone; refresh(); });
     E.onChange(function () { pull(); });
-    function chips(box, items, key, on) {
+    function chips(box, items, key, on, label) {
       var el = $(box); el.innerHTML = '';
-      items.forEach(function (it) { var b = document.createElement('button'); b.textContent = it; b.className = S[key] === it ? 'on' : ''; b.onclick = function () { S[key] = it; on(); }; el.appendChild(b); });
+      items.forEach(function (it) { var b = document.createElement('button'); b.textContent = label ? label(it) : it; b.className = S[key] === it ? 'on' : ''; b.onclick = function () { S[key] = it; on(); }; el.appendChild(b); });
     }
     function sliders(box, kind, lo, hi, step) {
       var el = $(box); el.innerHTML = ''; sl[kind] = [];
@@ -196,33 +189,34 @@
         sl[kind].push({ inp: inp, out: out }); el.appendChild(row);
       });
     }
-    function push() { var ok = E.set(S.who, S.beat, S.bone, sl.r.map(function (s) { return +s.inp.value; }), sl.p.map(function (s) { return +s.inp.value; })); if (ok === false) pull(); }
+    function push() { E.set(S.fig, S.beat, S.bone, sl.r.map(function (s) { return +s.inp.value; }), sl.p.map(function (s) { return +s.inp.value; })); }
     function pull() {
-      var v = E.get(S.who, S.beat, S.bone);
+      var v = E.get(S.fig, S.beat, S.bone);
       ['r', 'p'].forEach(function (k) { sl[k].forEach(function (s, i) { s.inp.value = v[k][i]; s.out.textContent = (+v[k][i]).toFixed(k === 'r' ? 0 : 1); }); });
     }
     function refresh() {
-      var pb = $('pePos'); pb.innerHTML = '';
-      [['lap', 'Over the knee'], ['table', 'Bent over the table']].forEach(function (k) { var b = document.createElement('button'); b.textContent = k[1]; b.className = E.position() === k[0] ? 'on' : ''; b.onclick = function () { E.position(k[0]); hold(); refresh(); }; pb.appendChild(b); });
+      if (!open) return;
+      var ok = E.editable();
+      $('peWhere').textContent = (st.to === 'table' ? 'Over the table' : 'Over the knee') + ' · ' + L.IMPL[st.implement].name + (ok ? '' : ' — not poseable (wait for him to settle, or pick a position and implement that strike)');
       var sb = $('peSize'); sb.innerHTML = '';
       [100, 50].forEach(function (k) { var b = document.createElement('button'); b.textContent = k + '%'; b.className = E.sizeKey() === k ? 'on' : ''; b.onclick = function () { E.sizeKey(k); $('size').value = k; $('sizeV').textContent = k + '%'; refresh(); }; sb.appendChild(b); });
-      var fb = $('peFig'); fb.innerHTML = '';
-      [['giver', 'The giver'], ['jack', 'Jack']].forEach(function (f) { var b = document.createElement('button'); b.textContent = f[1]; b.className = (S.who === 'jack') === (f[0] === 'jack') ? 'on' : ''; b.onclick = function () { S.who = f[0] === 'jack' ? 'jack' : (S.impl || 'paddle'); S.beat = E.beats[S.who][S.who === 'jack' ? 1 : 2]; S.bone = E.bones(S.who)[0]; hold(); refresh(); }; fb.appendChild(b); });
-      var ib = $('peWho'); ib.innerHTML = ''; ib.style.display = S.who === 'jack' ? 'none' : '';
-      ['hand', 'paddle', 'birch'].forEach(function (w) { var b = document.createElement('button'); b.textContent = w; b.className = S.who === w ? 'on' : ''; b.onclick = function () { S.who = S.impl = w; S.beat = E.beats[w][2]; if (E.bones(w).indexOf(S.bone) < 0) S.bone = E.bones(w)[0]; hold(); refresh(); }; ib.appendChild(b); });
-      chips('peBeat', E.beats[S.who], 'beat', function () { hold(); refresh(); });
-      if (E.bones(S.who).indexOf(S.bone) < 0) S.bone = E.bones(S.who)[0];
-      chips('peBone', E.bones(S.who), 'bone', function () { refresh(); });
-      $('peInfo').textContent = E.info(S.who, S.bone); E.select(S.bone); E.handles($('pe').classList.contains('on'), S.who);
+      if (!ok) { E.release(); E.handles(false); return; }
+      chips('peFig', ['giver', 'jack'], 'fig', function () { S.bone = E.bones(S.fig)[0]; hold(); refresh(); }, function (f) { return f === 'jack' ? 'Jack' : 'The giver'; });
+      chips('peBeat', E.beats, 'beat', function () { hold(); refresh(); });
+      if (E.bones(S.fig).indexOf(S.bone) < 0) S.bone = E.bones(S.fig)[0];
+      chips('peBone', E.bones(S.fig), 'bone', function () { refresh(); });
+      $('peInfo').textContent = E.info(S.fig, S.bone); E.select(S.bone); E.handles(true, S.fig);
       pull();
     }
-    function hold() { E.hold(S.who, S.beat); }
+    function hold() { E.hold(S.fig, S.beat); }
+    window.__peSync = function () { if (open) { hold(); refresh(); } };
     sliders('peR', 'r', -180, 180, 1); sliders('peP', 'p', -10, 10, 0.1);
-    $('peToggle').onclick = function () { var on = !$('pe').classList.contains('on'); $('pe').classList.toggle('on', on); $('peToggle').classList.toggle('on', on); $('size').disabled = on;
-      if (on) { E.handles(true, S.who); $('size').value = E.sizeKey(); $('sizeV').textContent = E.sizeKey() + '%'; hold(); refresh(); } else { E.release(); E.handles(false); } };
-    $('peFree').onclick = function () { var on = !E.free(); E.free(on); $('peFree').classList.toggle('on', on); };
-    $('peResetBone').onclick = function () { E.resetBone(S.who, S.beat, S.bone); pull(); };
-    $('peResetBeat').onclick = function () { E.resetBeat(S.who, S.beat); pull(); };
+    $('peToggle').onclick = function () {
+      open = !open; $('pe').classList.toggle('on', open); $('peToggle').classList.toggle('on', open); $('size').disabled = open;
+      if (open) { $('size').value = E.sizeKey(); $('sizeV').textContent = E.sizeKey() + '%'; hold(); refresh(); } else { E.release(); E.handles(false); }
+    };
+    $('peResetBone').onclick = function () { E.resetBone(S.fig, S.beat, S.bone); pull(); };
+    $('peResetBeat').onclick = function () { E.resetBeat(S.fig, S.beat); pull(); };
     $('peRelease').onclick = function () { E.release(); };
     $('peReport').onclick = function () { $('peOut').value = E.report(); };
     $('peCopy').onclick = function () { $('peOut').value = E.report(); $('peOut').select(); try { document.execCommand('copy'); } catch (e) { /* select-and-copy by hand */ } };
