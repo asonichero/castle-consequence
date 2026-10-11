@@ -141,6 +141,7 @@ function create(view, opts) {
   }
   // Which cheek takes the colour of the next smack (alternating, or the one chosen).
   function pickSide() {
+    if (st.implement === 'birch') return 'C';                                        // (the birch lays across both cheeks in one stroke)
     const side = st.side === 'alt' ? st.nextSide : st.side;
     if (st.side === 'alt') st.nextSide = st.nextSide === 'R' ? 'L' : 'R';
     return side;
@@ -251,7 +252,7 @@ function create(view, opts) {
   // The landed pose belongs to the cheek being struck: contactL or contactR.
   function gerdaWeights() {
     const w = gerdaBeatWeights(), sw = st.swing;
-    if (w.contact) { w[sw && sw.side === 'L' ? 'contactL' : 'contactR'] = w.contact; delete w.contact; }
+    if (w.contact) { w[sw && sw.side === 'R' ? 'contactR' : 'contactL'] = w.contact; delete w.contact; }       // (both cheeks at once, 'C', is the left-hand pose)
     return w;
   }
   function gerdaBeatWeights() {
