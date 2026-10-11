@@ -529,17 +529,19 @@ async function trade(G, W, res) {
   await say('There. Strong in the shoulder, and a gentle eye. She will take to the shafts as if she were born to them.');
   // The Peddler walks her to the front of the cart and puts her into the harness (a three-quarter view from the road, the whole cart in it).
   const spot = (a, l) => v(end.x + t.x * a + n.x * l, 0, end.z + t.z * a + n.z * l);                     // a point by its distance along the road's end and across it
-  const hitchShot = { pos: (q => v(q.x, 30, q.z))(spot(-76, 46)), look: (q => v(q.x, 18, q.z))(spot(-6, 0)), fov: 50 };
+  const hitchShot = { pos: (q => v(q.x, 52, q.z))(spot(-112, 84)), look: (q => v(q.x, 14, q.z))(spot(-14, 0)), fov: 46 };
   G.cut(hitchShot);
   W.cart.updateMatrixWorld(true);
   const slot = W.cart.localToWorld(v(0, 0, 47)), ca = Math.atan2(-t.x, -t.z), beside = v(slot.x + n.x * 20, 0, slot.z + n.z * 20);
-  pa.speed = 12;
+  const PP = spot(-50, 14), JJ = spot(-76, -2), jw = [v(J0.x, 0, J0.z), spot(-30, 34), JJ];                    // Jack backs away, round the cow, while she is led to the shafts
+  pa.speed = 12; ja.speed = 22;
   for (let i = 0; i < 110; i++) {
+    { const u = (i + 1) / 110, k = u * 2, seg = Math.min(1, Math.floor(k)), f = k - seg, q = jw[seg].clone().lerp(jw[seg + 1], f), ang = Math.atan2(jw[seg + 1].x - jw[seg].x, jw[seg + 1].z - jw[seg].z); jack.root.position.set(q.x, 0, q.z); jack.root.rotation.y = turn(jack.root.rotation.y, ang, 0.3); ja.phase += 0.4; }
     P.x += (beside.x - P.x) * 0.05; P.z += (beside.z - P.z) * 0.05; pa.phase += 0.3; peddler.root.rotation.y = turn(peddler.root.rotation.y, Math.atan2(slot.x - P.x, slot.z - P.z), 0.15);
     cow.pos.x += (slot.x - cow.pos.x) * 0.05; cow.pos.z += (slot.z - cow.pos.z) * 0.05; cow.heading = turn(cow.heading, ca, 0.07); cowM.position.set(cow.pos.x, 0, cow.pos.z); cowM.rotation.y = cow.heading;
     await G.wait(0.04);
   }
-  pa.speed = 0; cowM.position.set(slot.x, 0, slot.z); cowM.rotation.y = ca; cow.pos.set(slot.x, 0, slot.z);
+  pa.speed = 0; ja.speed = 0; cowM.position.set(slot.x, 0, slot.z); cowM.rotation.y = ca; cow.pos.set(slot.x, 0, slot.z);
   G.updaters = G.updaters.filter(u => u !== cordTick); hideCord(W);
   // The harness: a collar, and traces to the tips of the shafts.
   { const leather = C.col('#4a2e1a'), collar = new THREE.Mesh(new THREE.BoxGeometry(15, 15, 4), leather); collar.position.set(0, 19, 13.5); cowM.children[0].add(collar);
@@ -547,16 +549,10 @@ async function trade(G, W, res) {
     for (const sx of [-1, 1]) { const a = cowM.children[0].localToWorld(v(sx * 7.6, 20, 12)), bb = W.cart.localToWorld(v(sx * 8, 11, 52)), m = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 1), leather); m.position.copy(a).add(bb).multiplyScalar(0.5); m.scale.set(1, 1, a.distanceTo(bb)); W.scene.add(m); m.lookAt(bb); W.hitch.push(m); }
     W.hitch.push(collar); }
   pa.point = 0.5; pa.lean = 1; A && A.thwack(0.2, true, 0.35); await G.wait(1.6); pa.point = 0; pa.lean = 0;
-  // The two of them take up places clear of the cow, in front of the cart: she by the cow's head, Jack back along the road, facing her.
-  const PP = spot(-50, 14), JJ = spot(-76, -2), jw = [v(J0.x, 0, J0.z), spot(-30, 34), JJ], jstart = v(P.x, 0, P.z), pstart = v(P.x, 0, P.z);
-  pa.speed = 12; ja.speed = 22;
-  for (let i = 0; i < 90; i++) {
-    const u = (i + 1) / 90, k = u * 2, seg = Math.min(1, Math.floor(k)), f = k - seg, q = jw[seg].clone().lerp(jw[seg + 1], f);
-    const ang = Math.atan2(jw[seg + 1].x - jw[seg].x, jw[seg + 1].z - jw[seg].z); jack.root.position.set(q.x, 0, q.z); jack.root.rotation.y = turn(jack.root.rotation.y, ang, 0.3); ja.phase += 0.4;
-    P.x = pstart.x + (PP.x - pstart.x) * smooth(u); P.z = pstart.z + (PP.z - pstart.z) * smooth(u); pa.phase += 0.3; peddler.root.rotation.y = turn(peddler.root.rotation.y, Math.atan2(JJ.x - P.x, JJ.z - P.z), 0.15);
-    await G.wait(0.04);
-  }
-  pa.speed = 0; ja.speed = 0; jack.root.rotation.y = Math.atan2(PP.x - JJ.x, PP.z - JJ.z); peddler.root.rotation.y = Math.atan2(JJ.x - P.x, JJ.z - P.z);
+  // The Peddler takes her place by the cow's head; Jack waits back along the road, facing her.
+  { const pstart = v(P.x, 0, P.z); pa.speed = 12;
+    for (let i = 0; i < 60; i++) { const u = smooth((i + 1) / 60); P.x = pstart.x + (PP.x - pstart.x) * u; P.z = pstart.z + (PP.z - pstart.z) * u; pa.phase += 0.3; peddler.root.rotation.y = turn(peddler.root.rotation.y, Math.atan2(JJ.x - P.x, JJ.z - P.z), 0.15); jack.root.rotation.y = turn(jack.root.rotation.y, Math.atan2(PP.x - JJ.x, PP.z - JJ.z), 0.15); await G.wait(0.04); } }
+  pa.speed = 0; jack.root.rotation.y = Math.atan2(PP.x - JJ.x, PP.z - JJ.z); peddler.root.rotation.y = Math.atan2(JJ.x - P.x, JJ.z - P.z);
   // The last exchange, shot clear of the cow: over Jack's shoulder at the Peddler, over hers at Jack.
   const after = {
     peddler: { pos: (q => v(q.x, 30, q.z))(spot(-90, -20)), look: (q => v(q.x, 26.5, q.z))(PP), fov: 32 },
