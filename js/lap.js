@@ -340,7 +340,20 @@ function create(view, opts) {
     const ph = sw && sw.phase, flex = !sw ? 0.04 : (ph === 'lift' || ph === 'hold' || ph === 'rise') ? -0.25 * (1 - sw.tau) : ph === 'strike' ? -0.25 * (1 - tau) + 0.2 * tau : ph === 'contact' ? 0.2 * Math.max(0.3, 1 - sw.t / TIMES.contact) : ph === 'freeze' ? -0.25 * (1 - tau) + 0.2 * tau : ph === 'back' ? 0.1 * (1 - (sw.hover || 0)) : 0.1;
     twigs.rotation.x = flex; for (const j of tips) j.rotation.x = flex * 1.3;
   }
+  // Free pose (the editor, over the table): nothing is pinned to the skin: no hand is brought to a contact point and no arm or implement aimed at one. She stands as she is, and
+  // the offsets ARE the pose.
+  const isFree = () => hs.on && posKey() === 'table';
+  function freePose(g) {
+    const impl = IMPL[st.implement], gw = gerdaWeights(), sw = st.swing;
+    g.torso.rotation.order = 'YXZ'; g.torso.rotation.set(0, 0, 0); g.neck.rotation.set(0.1, 0, 0); g.elbow.rotation.set(0, 0, 0); g.wrist.rotation.set(0, 0, 0);
+    paddle.visible = !!impl.paddle && st.armed; birch.visible = !!impl.birch && st.armed; tool.rotation.set(0, 0, Math.PI / 2); birchTool.quaternion.identity();
+    g.root.updateMatrixWorld(true);
+    applyEdits('gerda', ['torso', 'neck', 'armL', 'armR', 'elbowR', 'wristR', 'thighL', 'thighR', 'kneeL', 'kneeR'], gw);
+    if (impl.paddle) applyEdits('gerda', ['paddle'], gw);
+    if (impl.birch) { birchFlex(sw, sw ? sw.tau : 1); applyEdits('gerda', ['birch'], gw); }
+  }
   gerda.after = function (g) {
+    if (isFree()) { freePose(g); return; }
     const sw0 = st.swing, standing = st.giverStance === 'stand';
     if (!strikeStance()) {
       // Hands on him: at his belt (and a little fumbling at it, if `fumble` is up), or on his shoulders once he is upright again.
