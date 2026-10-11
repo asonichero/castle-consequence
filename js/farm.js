@@ -132,9 +132,9 @@ function exterior() {
     else { box(9, 18, 1.6, mat('plankDark'), -15.5, 0, 3, wd); box(9, 18, 1.6, mat('plankDark'), 15.5, 0, 3, wd); }
   }
   const door = new THREE.Group(); door.position.set(34, 0, D / 2 + 1); cottage.add(door);                                          // the door, and its worn step
-  box(20, 32, 3, mat('timber'), 0, 16, 0, door); box(14, 29, 1.4, unlit('#241408'), 0, 15, 1.2, door); box(12, 27, 0.4, unlit('#4a2c14'), 0, 14, 1.9, door);   // the frame, and the dark doorway behind the door
-  const doorLeaf = new THREE.Group(); doorLeaf.position.set(-7, 0, 2.2); door.add(doorLeaf);                                      // the door itself, hinged on its left edge (closed at rest)
-  box(14, 29, 1.8, mat('plankDark'), 7, 15, 0, doorLeaf); box(2, 2, 2, plain('#b8923a'), 12, 15, 1.4, doorLeaf); box(14, 2.6, 2, mat('timber'), 7, 6, 0.4, doorLeaf); box(14, 2.6, 2, mat('timber'), 7, 24, 0.4, doorLeaf);
+  box(22, 42, 3, mat('timber'), 0, 21, 0, door); box(15, 38, 1.4, unlit('#241408'), 0, 19.5, 1.2, door); box(13, 36, 0.4, unlit('#4a2c14'), 0, 19, 1.9, door);   // the frame, and the dark doorway behind the door
+  const doorLeaf = new THREE.Group(); doorLeaf.position.set(-7.5, 0, 2.2); door.add(doorLeaf);                                      // the door itself, hinged on its left edge (closed at rest)
+  box(15, 38, 1.8, mat('plankDark'), 7.5, 19.5, 0, doorLeaf); box(2, 2, 2, plain('#b8923a'), 12.5, 19, 1.4, doorLeaf); box(15, 2.6, 2, mat('timber'), 7.5, 8, 0.4, doorLeaf); box(15, 2.6, 2, mat('timber'), 7.5, 30, 0.4, doorLeaf);
   box(26, 3, 10, mat('stone'), 0, 1.5, 6, door);
   // Odds and ends at the door: a woodpile with a chopping block and an axe, a rain barrel.
   for (let i = 0; i < 10; i++) box(14, 4, 4, mat('bark'), 62 + (i % 2) * 1, 2 + Math.floor(i / 2) * 4, -D / 2 + 8 - 0 + (i % 2) * 5 + 12, cottage);
@@ -163,12 +163,10 @@ function exterior() {
   tree(-96, -70, 0, 1.2, farm, r, true);
   // The cowshed: open at the front, a back wall of planks and a lean-to roof; a trough, some hay, and a rail fence round the yard where the cow stands.
   const shed = new THREE.Group(); shed.position.set(122, 0, -34); farm.add(shed);
-  for (const [x, z] of [[-34, -26], [34, -26], [-34, 20], [34, 20]]) box(4, 30, 4, mat('timber'), x, 15, z, shed);
-  box(70, 28, 2.4, mat('plankDark'), 0, 14, -26, shed); box(2.4, 28, 46, mat('plankDark'), -34, 14, -3, shed); box(2.4, 28, 46, mat('plankDark'), 34, 14, -3, shed);
-  for (let i = 0; i < 9; i++) { const zz = -26 + i * 6; box(82, 4, 8, mat(i % 3 === 1 ? 'thatchOld' : 'thatch'), 0, 34 - i * 1.2, zz + 4 - 9, shed).rotation.x = -0.12; }
+  for (const [x, z] of [[-34, -26], [34, -26], [-34, 20], [34, 20]]) box(4, 48, 4, mat('timber'), x, 24, z, shed);
+  box(70, 46, 2.4, mat('plankDark'), 0, 23, -26, shed); box(2.4, 46, 46, mat('plankDark'), -34, 23, -3, shed); box(2.4, 46, 46, mat('plankDark'), 34, 23, -3, shed);   // tall enough for a man to stand in with the roof well over his head
+  for (let i = 0; i < 9; i++) { const zz = -26 + i * 6; box(82, 4, 8, mat(i % 3 === 1 ? 'thatchOld' : 'thatch'), 0, 57 - i * 1.25, zz + 4 - 9, shed).rotation.x = -0.12; }
   box(20, 7, 5, mat('plank'), -4, 4, 6, shed); box(16, 2, 3, plain('#3a6a8a'), -4, 7.5, 6, shed); box(22, 8, 12, mat('hay'), 18, 4, -17, shed);
-  for (let i = 0; i < 9; i++) box(2, 14, 2, mat('bark'), 52, 7, 12 + i * 11, shed);                                                // the yard's fence posts, with a rail (no gaps to stop Jack: it is for show)
-  box(2, 2, 100, mat('bark'), 52, 11, 62, shed);
   const cow = Cast.makeCow(); cow.position.set(186, 0, 24); cow.rotation.y = -2.2; farm.add(cow);
   tree(-60, -150, 0, 1.3, farm, r); tree(160, -150, 0, 1.2, farm, r); tree(-250, 40, 6, 1.4, farm, r); tree(260, 10, 12, 1.2, farm, r); tree(250, -90, 18, 1.3, farm, r); tree(-240, -120, 18, 1.2, farm, r);
   for (let i = 0; i < 20; i++) { const x = (r() - 0.5) * 520, z = -170 + r() * 80, y = 24 + r() * 14; if (Math.abs(x) > 230 || z < -150) tree(x, z, y - 8, 0.9 + r() * 0.5, scene, r); }

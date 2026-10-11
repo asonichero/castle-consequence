@@ -55,17 +55,17 @@ function create(els) {
     if (G.skipping || (!G.settings.subtitles && !(opts && opts.force))) { resolve(); return; }
     const w = WHO[who] || [who, '#e6c46a']; subWho.textContent = w[0]; subWho.style.color = w[1]; subs.style.display = 'block'; subText.textContent = '';
     const cps = 34 * G.settings.speed, typeSecs = Math.max(0.6, text.length / cps), voice = Audio_ && who !== 'narrator' ? Audio_.speak(who, text, typeSecs, { muffle: opts && opts.muffle }) : null;
-    const t0 = performance.now(); let typed = false, hold = null, poll = null, typing = null;
-    const close = () => { clearTimeout(hold); clearInterval(typing); clearInterval(poll); advance = null; if (voice) voice.stop(); subs.style.display = 'none'; resolve(); };
-    const finish = () => { if (typed) return; typed = true; clearInterval(typing); subText.textContent = text; if (G.settings.auto) hold = setTimeout(close, Math.max(1100, text.length * 48 / G.settings.speed)); };
+    const t0 = performance.now(); let typed = false, hold = null, poll = null, typing = null; const gateBtn = document.getElementById('subGate');
+    const close = () => { clearTimeout(hold); clearInterval(typing); clearInterval(poll); advance = null; if (voice) voice.stop(); if (gateBtn) gateBtn.style.display = 'none'; subs.style.display = 'none'; resolve(); };
+    const gateLabel = opts && opts.gate;
+    const finish = () => {
+      if (typed) return; typed = true; clearInterval(typing); subText.textContent = text;
+      if (gateLabel) { gateBtn.textContent = gateLabel; gateBtn.style.display = 'inline-block'; gateBtn.onclick = e => { e.stopPropagation(); gateBtn.style.display = 'none'; close(); }; }   // a button inside the box that ends the line, so it cannot be missed
+      else if (G.settings.auto) hold = setTimeout(close, Math.max(1100, text.length * 48 / G.settings.speed));
+    };
     typing = setInterval(() => { const n = Math.min(text.length, Math.floor((performance.now() - t0) / 1000 * cps)); subText.textContent = text.slice(0, n); if (n >= text.length) finish(); }, 30);
-    advance = () => { if (!typed) { finish(); if (voice) voice.stop(); } else close(); };            // a tap finishes the typing, the next one moves on
+    advance = () => { if (!typed) { finish(); if (voice) voice.stop(); } else if (!gateLabel) close(); };            // a tap finishes the typing, the next one moves on
     poll = setInterval(() => { if (G.skipping) close(); }, 60);
-  });
-  // A "Continue" button for the end of a scene; resolves when it is pressed (or at once if skipping).
-  G.gate = (label = 'Continue') => new Promise(res => {
-    const b = document.getElementById('gate'); if (!b || G.skipping) { res(); return; }
-    b.textContent = label; b.style.display = 'block'; b.onclick = () => { b.style.display = 'none'; res(); };
   });
   G.hideLine = () => { subs.style.display = 'none'; advance = null; };
 
