@@ -60,7 +60,7 @@ function build(G) {
   hold(jackOut, poseJack(jackOut, aOut)); hold(jackIn, poseJack(jackIn, aIn));
   jackOut.root.visible = false; ext.scene.add(jackOut.root);
   const mother = C.makeMother(); mother.setExpr(1);
-  const ma = { t: 0, phase: 0, speed: 0, wag: 0, gesture: 0, fold: 0, chin: 0, tilt: 0, birch: 0, point: 0 };
+  const ma = { t: 0, phase: 0, speed: 0, wag: 0, gesture: 0, fold: 0, chin: 0, tilt: 0, birch: 0, point: 0, side: 0 };
   mother.after = r => {
     const s = Math.sin(ma.phase) * clamp(ma.speed / 12, 0, 1) * 0.6, t = ma.t;
     if (mother.pose !== 'sit') { r.legL.thigh.rotation.x = s; r.legR.thigh.rotation.x = -s; }
@@ -68,6 +68,7 @@ function build(G) {
     r.armL.rotation.x = (mother.pose === 'sit' ? -0.9 : -0.05) * (1 - f) - 1.0 * f; r.armL.rotation.z = -0.1 * (1 - f) + 0.55 * f;
     r.armR.rotation.x = (-0.5 - 0.5 * ma.gesture + ma.wag * 0.14 * Math.sin(t * 8) - 0.5 * ma.point) * (1 - f) - 1.1 * f; r.armR.rotation.z = (0.15 + 0.1 * ma.gesture) * (1 - f) - 0.55 * f;
     if (r.elbow) r.elbow.rotation.x = (-0.3 - 0.9 * ma.gesture) * (1 - f) - 0.6 * f;
+    if (ma.side) { r.armL.rotation.x = -0.05; r.armL.rotation.z = -0.1; r.armR.rotation.x = -0.05; r.armR.rotation.z = 0.1; if (r.elbow) r.elbow.rotation.x = -0.05; }     // (both arms hanging still at her sides)
     r.neck.rotation.y = ma.chin * 0.65; r.neck.rotation.x = 0.05 + 0.04 * Math.sin(t * 0.7); r.neck.rotation.z = ma.tilt * 0.12;
   };
   scene.add(mother.root); scene.add(jackIn.root);
@@ -104,12 +105,18 @@ async function run(G, choices, opts) {
   G.setScene(W.world); A && A.ambience({ wind: 0.25, birds: 0, fire: 0 }); A && A.duckMusic(0.5, 2); A && A.startMusic({ dark: true });
   const outJack = (x, z) => { jackOut.root.visible = true; jackOut.root.position.set(x, 0, z); jackOut.root.rotation.y = Math.PI; aOut.speed = 0; aOut.fist = 1; aOut.bow = 0.2; W.paintJack(jackOut, { expr: pick(1, 5, 5) }); };
   const outShots = {
+    wide: { pos: v(250, 270, 460), look: v(-70, 10, -34), fov: 48 },
     gate: { pos: v(-62, 20, 176), look: v(4, 14, 100), fov: 46 },
     path: { pos: v(-40, 16, 88), look: v(6, 14, 60), fov: 48 },
     door: { pos: v(84, 16, 56), look: v(30, 16, 26), fov: 44 },
   };
+  // The first angle is the wide shot from the title card, by night: Jack comes up the road towards the gate.
+  const roadX = z => z > 140 ? 40 * Math.sin((z - 140) / 70) - 10 * Math.sin((z - 140) / 31) : 0;
+  const roadPts = [200, 170, 150, 138].map(z => v(roadX(z), 0, z));
+  G.cut(outShots.wide, () => outJack(roadX(230), 230));
+  G.fade(false, 1.6);
+  await walk(jackOut, aOut, roadPts, 22, Math.PI);
   G.cut(outShots.gate, () => outJack(0, 120));                           // just inside the gate
-  await G.fade(false, 1.6);
   await walk(jackOut, aOut, [v(0, 0, 84)], 24, Math.PI);
   G.cut(outShots.path, () => outJack(0, 84));                            // straight across to the door, saying his piece as he goes
   const toDoor = walk(jackOut, aOut, [v(34, 0, 29)], 16, Math.PI);
@@ -122,18 +129,18 @@ async function run(G, choices, opts) {
 
   // ── 2. Indoors: the telling. Every beat puts Jack and his Mother where they are as it begins (telling()), then does only what happens within it. ──
   const sh = {
-    wide: { pos: v(-40.39, 29.64, -69.07), look: v(-23.69, 22, -23.68), fov: 46 },
+    wide: { pos: v(-32, 30, -63), look: v(-19, 22, -24), fov: 42 },
     mother: { pos: v(-21, 25, 10), look: v(-30, 25, -32), fov: 40 },
     jack: { pos: v(-46, 28, -25), look: v(-23, 22, -23), fov: 50 },
-    two: { pos: cl(64, 36, -44), look: cl(16, 22), fov: 46 },
+    two: { pos: v(-55, 28, 18), look: v(-15, 19, -24), fov: 47 },
   };
   const telling = (o) => {
-    o = Object.assign({ jackAt: cl(28, 0), ry: SEAT.ry + Math.PI, bow: pick(1, 0.4, 0), fist: 1, hold: 0, gesture: 0, wag: 0, fold: 1, chin: 0, seated: false }, o || {});
+    o = Object.assign({ jackAt: cl(28, 0), ry: SEAT.ry + Math.PI, bow: pick(1, 0.4, 0), fist: 1, hold: 0, gesture: 0, wag: 0, fold: 1, chin: 0, side: 0, seated: false }, o || {});
     G.setScene(W.iworld); A && A.ambience({ wind: 0.1, birds: 0, fire: 0.8 });
     jackOut.root.visible = false; mother.root.visible = true; jackIn.root.visible = true; int.chair.visible = true; mother.setExpr(1);
     jackIn.root.position.copy(o.jackAt); jackIn.root.rotation.y = o.ry; W.paintJack(jackIn, { expr: pick(1, 5, 5) });
     ja.speed = 0; ja.fist = o.fist; ja.hold = o.hold; ja.bow = o.bow; ja.cover = 0; ja.shuffle = 0;
-    ma.gesture = o.gesture; ma.wag = o.wag; ma.fold = o.fold; ma.chin = o.chin; ma.speed = 0;
+    ma.gesture = o.gesture; ma.wag = o.wag; ma.fold = o.fold; ma.chin = o.chin; ma.side = o.side; ma.speed = 0;
     if (o.seated) { B.setPose(mother, 'sit'); mother.pose = 'sit'; mother.root.position.set(SEAT.x, STAGE_Y, SEAT.z); }
     else { B.setPose(mother, 'stand'); mother.pose = 'stand'; mother.root.position.copy(cl(5, 0)); }
     mother.root.rotation.y = SEAT.ry;
@@ -142,7 +149,7 @@ async function run(G, choices, opts) {
   // Jack comes in at the door already walking, past the table and straight to where he stands before her; they speak as he crosses.
   G.cut(sh.wide, () => { telling({ jackAt: v(34, 0, 66), ry: Math.PI, bow: 0 }); ja.speed = 23; });
   G.fade(false, 0.8);
-  const crossing = walk(jackIn, ja, [v(30, 0, 0), cl(28, 0)], 24, SEAT.ry + Math.PI);
+  const crossing = walk(jackIn, ja, [cl(80, 0), cl(28, 0)], 24, SEAT.ry + Math.PI);      // past the table, then straight along the line to her
   await who('mother', 'Where is Milky-White?');
   await who('jack', pick('I sold her, Mother. But not for coin. I know how it will sound.', 'I sold her, Mother. Look what I got for her.', 'Gone, Mother. Sold, and for a good deal more than coin.'));
   await crossing;
@@ -155,13 +162,13 @@ async function run(G, choices, opts) {
   await who('mother', 'Beans.');
   ma.gesture = 1; ma.wag = 0.6; ma.fold = 0;
   await who('mother', 'We had one cow. One. You were to bring home coin for the roof and flour for the winter. And you have brought me five beans.');
-  G.cut(sh.jack, () => telling({ fist: 0, gesture: 1, wag: 0.6, fold: 0 }));
+  G.cut(sh.jack, () => telling({ fist: 0, gesture: 0, wag: 0, fold: 0, side: 1 }));
   await who('jack', pick('I know. I’m sorry. I didn’t think. She spoke so well, and I wanted so badly to bring you something.', 'It was a fair trade, Mother. She said so herself.', 'It was a fair exchange. You’ll see. By spring we’ll have more than a cow’s worth, and you’ll be the first to say so.'));
   G.cut(sh.mother, () => telling({ fist: 0, gesture: 1, wag: 1, fold: 0 }));
   await who('mother', 'A fair trade. This is the third time this week you have come home with foolishness in place of sense, and the last of our cow besides. I told you this morning. Not for stories. Not for tricks.');
-  G.cut(sh.jack, () => telling({ fist: 0, gesture: 1, wag: 1, fold: 0 }));
+  G.cut(sh.jack, () => telling({ fist: 0, gesture: 0, wag: 0, fold: 0, side: 1 }));
   await who('jack', pick('Mother, please. I can fix this. I’ll find her, I’ll—', 'I did what I thought was best.', 'You never believe me! One day you’ll see I was right.'));
-  G.cut(sh.mother, () => telling({ fist: 0, gesture: 1, wag: 0.4, fold: 0 }));
+  G.cut(sh.mother, () => telling({ fist: 0, gesture: 0, wag: 0, fold: 0, side: 1 }));
   await who('mother', pick('Hush.', 'You did what pleased you.', 'I believe every word you say, Jack. That is the trouble.'));
   // She is in the chair by the hearth when the next angle opens, and calls him to her.
   G.cut(sh.two, () => telling({ fist: 0, gesture: 0, wag: 0, fold: 0, seated: true }));
