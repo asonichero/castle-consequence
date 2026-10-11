@@ -4,7 +4,7 @@
 const $ = id => document.getElementById(id), A = root.GameAudio;
 const G = root.Game.create({ stage: $('stage'), fade: $('fade'), subs: $('subs'), subWho: $('subWho'), subText: $('subText') });
 root.__game = G;
-const W = G.worlds = root.Opening.build(G);
+const W = G.worlds = root.Opening.build(G); W.market = root.Market.build(G, W);
 const show = id => document.querySelectorAll('.screen').forEach(s => { if (s.id === id) s.classList.add('on'); else if (s.id !== 'dev') s.classList.remove('on'); });
 const hideAll = () => document.querySelectorAll('.screen').forEach(s => { if (s.id !== 'dev') s.classList.remove('on'); });
 $('dev').style.display = 'block';
@@ -31,10 +31,24 @@ async function playOpening() {
   hideAll(); $('dev').style.display = 'none'; wake();
   await root.Opening.run(G, W);
   G.skipping = false; G.save({ step: 'market-day', opening: true, size: 0.8 });
-  show('endcard'); G.mode = 'end'; $('fade').style.transition = 'none'; $('fade').style.opacity = 0;
+  await playMarket();
+}
+// Chapter One: the dialogue at the cottage door, the cow to wrangle, the closing scene. (It starts from black.)
+async function playMarket() {
+  hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
+  $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60));
+  const res = await root.Market.run(G, W, W.market);
+  G.skipping = false; G.save({ step: 'market-road', care: { cowStartles: res ? res.startles : 0 } });
+  showEnd();
+}
+function showEnd() {
+  const s = G.loadSave() || {}, road = s.step === 'market-road';
+  $('endTitle').textContent = road ? 'Chapter Two \u2014 The Road to Market' : 'Chapter One \u2014 Market Day';
+  $('endText').textContent = road ? 'Jack and Milky-White set out for market.' : 'Jack has a cow to sell in the morning.';
+  show('endcard'); G.mode = 'end'; $('fade').style.transition = 'none'; $('fade').style.opacity = 0; document.body.classList.remove('playing', 'cutscene');
 }
 $('bNew').onclick = () => { if (G.loadSave() && !confirm('Start a new game? Your saved game will be replaced.')) return; G.clearSave(); playOpening(); };
-$('bContinue').onclick = () => { wake(); hideAll(); show('endcard'); G.mode = 'end'; };
+$('bContinue').onclick = () => { wake(); const sv = G.loadSave() || {}; if (sv.step === 'market-day') playMarket(); else { hideAll(); showEnd(); } };
 $('bSettings').onclick = () => { wake(); show('settings'); };
 $('bBack').onclick = () => { G.saveSettings(); show('title'); };
 $('bTitle').onclick = toTitle;

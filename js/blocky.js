@@ -76,13 +76,15 @@ class Skin {
 // ---------------------------------------------------------------------------------------------------------------------------
 // Jack, 21: lean, quick, a grin kept ready. Linen shirt under a green vest, patched brown trousers, boots.
 // ---------------------------------------------------------------------------------------------------------------------------
-// Jack's whole skin, painted from scratch for a state: st = { trousers: 'up'|'down', drawers: 'up'|'down', marks: { L, R } (0–1), expr: 0–3 }.
+// Jack's whole skin, painted from scratch for a state: st = { trousers: 'up'|'down', drawers: 'up'|'down', marks: { L, R } (0–1), expr: 0–3, 4 squinting, 5 cheeky }.
 // (Cheap: 64x64 pixels. The lap scene repaints it as the clothes change, the marks come up and the face reacts.)
 const JACK_FACES = [
   ['SbbSSbbS', 'SWESSEWS', 'SSSnnSSS', 'SsMTTMsS', 'SuuSSuuS'],   // 0 the grin kept ready
   ['SbbSSbbS', 'SlESSElS', 'SSSnnSSS', 'SsMMMMsS', 'SuuSSuuS'],   // 1 wincing
   ['SddSSddS', 'SddSSddS', 'SsSnnSsS', 'SMTTTTMS', 'SuuSSuuS'],   // 2 eyes screwed shut, teeth gritted
   ['SddSSddS', 'SddSSddS', 'SSSnnSSS', 'SMmmmmMS', 'SuMmmMuS'],   // 3 crying out
+  ['SSSSSSSS', 'SddSSddS', 'SsSnnSsS', 'SsMTTMsS', 'SuuSSuuS'],   // 4 squinting into the light, the grin still there
+  ['SbbSSbbS', 'SWESSEWS', 'SSSnnSSS', 'MTTTTTTM', 'SuuSSuuS'],   // 5 a cheeky, toothy grin
 ];
 // Jack's outfits: 'Outdoor' (linen shirt, green jerkin, patched trousers, boots), 'Fine' (the same, dressed up: a deep green jerkin with gold trim, clean
 // breeches with a gold seam, polished boots with brass buckles), 'Day' (a soft green tunic with wooden buttons, hem brushing the tops of his thighs, over
@@ -109,7 +111,7 @@ function paintJackInto(k, st) {
 
   // Head: skin all over, then hair; the face from the current expression.
   k.all('head', C.skin);
-  const F = JACK_FACES[Math.max(0, Math.min(3, st.expr | 0))];
+  const F = JACK_FACES[Math.max(0, Math.min(JACK_FACES.length - 1, st.expr | 0))];
   k.grid('head', 'front', ['HHHHHHHH', 'HhHHdHhH', 'HSSkHSSH', ...F], pal);
   if ((st.expr | 0) === 0) k.px('head', 'front', 1, 4, C.white);
   k.fill('head', 'top', C.hair);

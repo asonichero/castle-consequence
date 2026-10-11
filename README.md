@@ -6,13 +6,21 @@ Everything is rendered in the same blocky style (three.js, no build step, proced
 
 ## Status
 
-Built so far: the **opening** (below), the character models and wardrobes, the across-the-lap correction scene, and a test level (the golden hen) that proves the care-and-consequence loop. Next: Chapter One, market day.
+Built so far: the **opening** and **Chapter One, Market Day** (below), the character models and wardrobes, the across-the-lap correction scene, and a test level (the golden hen) that proves the care-and-consequence loop. Next: the road to market.
 
 ### The opening (`game.html`)
 
 1. A content notice and 18+ confirmation (once, remembered), then the **title screen** over a slow aerial drone view of the homestead: a run-down cottage in the hillside, a barren garden, the cowshed with Milky-White, a low stone wall, a gate on a path down the valley.
 2. **New Game** begins the cutscene: the camera tracks slowly down to the cottage window, with the sound of a correction in progress heard through the wall, then fades to the cottage interior (one room: the hearth at its heart with the pot, kettle and fire iron; the chair and the stool; a small table, a cabinet and store cupboards; undusted corners with a birch-bundle broom; bare stairs to an upstairs we never see).
 3. Jack's Mother, by the hearth, finishes lecturing Jack (who stands nursing his bottom) about stretching the truth and shrugging everything off; she softens for a moment, tells him he will sell the cow at market in the morning, and sends him to wash for supper. Fade to black.
+
+### Chapter One: Market Day (`js/market.js`), the first playable sequence: a tutorial in animal care
+
+1. **Outside the cottage**: Mother in the open doorway, Jack facing her in the pale morning light. She sends him to market with the cow, reminds him of the broken compass, doubts him, nods at the cowshed ("Be back before dusk. And mind your manners."), and goes back in; the door closes.
+2. **Play**: fetch the cow's **lead** from its hook at the back of the cowshed, then win Milky-White round enough to put it on her. She trusts Jack **90%** to start with. Quick movement near her frightens her exactly as it did the hen in the test level (she backs away and her trust drops by 14); slow, close company calms her; she won't take the lead until she is at **100%**. Sneak (**C**) when you are near her, and wait.
+3. **Closing scene**: the lead goes on; Jack, "Come on, girl, we've got a long walk ahead."; a **Continue** button; fade to black. The game saves (including how many times Jack startled the cow, the first of the care scores).
+
+Controls: **WASD** move relative to the camera (Jack turns to go where it points, he does not strafe); **drag** turns the camera angle; **V**, the wheel or the Zoom button cycle three zoom levels (Close, Medium, Far); **C** toggles sneaking, **Shift** runs, **E** (or Space) uses and takes. The camera is always centred on Jack, starting slightly above and behind. On a touch screen there is a joystick (walks, camera-relative) and Zoom, Sneak and Use buttons, and any other touch drags the camera.
 
 Dialogue is typed out with a babbling voice; a tap, space or Enter finishes the line and moves on, dialogue also advances itself (a setting), and **Skip scene** jumps to the end. Settings hold the volumes (music defaults to 25%), dialogue speed and the safe-word reminder. The game saves after the opening, and Continue picks it up.
 
@@ -21,6 +29,7 @@ Dialogue is typed out with a babbling voice; a tap, space or Enter finishes the 
 | `game.html`, `js/menus.js` | The shell: notice, title, settings, saves |
 | `js/game.js` | The cutscene toolkit: camera shots, fades, timed waits, typed dialogue, skipping |
 | `js/opening.js` | The opening scene itself, as an async script |
+| `js/market.js` | Chapter One: the doorway scene, the cow-wrangling play, the closing scene |
 | `js/farm.js` | The homestead and the cottage interior, built from textured boxes |
 | `js/audio.js` | Music, ambience, smacks, voices and the speech babble, all synthesised |
 

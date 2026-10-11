@@ -62,6 +62,11 @@ function create(els) {
     advance = () => { if (!typed) { finish(); if (voice) voice.stop(); } else close(); };            // a tap finishes the typing, the next one moves on
     poll = setInterval(() => { if (G.skipping) close(); }, 60);
   });
+  // A "Continue" button for the end of a scene; resolves when it is pressed (or at once if skipping).
+  G.gate = (label = 'Continue') => new Promise(res => {
+    const b = document.getElementById('gate'); if (!b || G.skipping) { res(); return; }
+    b.textContent = label; b.style.display = 'block'; b.onclick = () => { b.style.display = 'none'; res(); };
+  });
   G.hideLine = () => { subs.style.display = 'none'; advance = null; };
 
   // ── The frame loop. ──

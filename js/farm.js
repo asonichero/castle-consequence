@@ -132,7 +132,10 @@ function exterior() {
     else { box(9, 18, 1.6, mat('plankDark'), -15.5, 0, 3, wd); box(9, 18, 1.6, mat('plankDark'), 15.5, 0, 3, wd); }
   }
   const door = new THREE.Group(); door.position.set(34, 0, D / 2 + 1); cottage.add(door);                                          // the door, and its worn step
-  box(20, 32, 3, mat('timber'), 0, 16, 0, door); box(16, 29, 2, mat('plankDark'), 0, 15, 1.2, door); box(2, 2, 2, plain('#b8923a'), 5, 15, 3, door); box(26, 3, 10, mat('stone'), 0, 1.5, 6, door);
+  box(20, 32, 3, mat('timber'), 0, 16, 0, door); box(14, 29, 1.4, unlit('#241408'), 0, 15, 1.2, door); box(12, 27, 0.4, unlit('#4a2c14'), 0, 14, 1.9, door);   // the frame, and the dark doorway behind the door
+  const doorLeaf = new THREE.Group(); doorLeaf.position.set(-7, 0, 2.2); door.add(doorLeaf);                                      // the door itself, hinged on its left edge (closed at rest)
+  box(14, 29, 1.8, mat('plankDark'), 7, 15, 0, doorLeaf); box(2, 2, 2, plain('#b8923a'), 12, 15, 1.4, doorLeaf); box(14, 2.6, 2, mat('timber'), 7, 6, 0.4, doorLeaf); box(14, 2.6, 2, mat('timber'), 7, 24, 0.4, doorLeaf);
+  box(26, 3, 10, mat('stone'), 0, 1.5, 6, door);
   // Odds and ends at the door: a woodpile with a chopping block and an axe, a rain barrel.
   for (let i = 0; i < 10; i++) box(14, 4, 4, mat('bark'), 62 + (i % 2) * 1, 2 + Math.floor(i / 2) * 4, -D / 2 + 8 - 0 + (i % 2) * 5 + 12, cottage);
   box(9, 9, 9, mat('bark'), 52, 4.5, 56, cottage); box(1.4, 12, 1.4, mat('plankDark'), 52, 15, 56, cottage).rotation.z = 0.5; box(4, 3, 1, plain('#6a6a70'), 55, 20, 56, cottage);
@@ -164,9 +167,9 @@ function exterior() {
   box(70, 28, 2.4, mat('plankDark'), 0, 14, -26, shed); box(2.4, 28, 46, mat('plankDark'), -34, 14, -3, shed); box(2.4, 28, 46, mat('plankDark'), 34, 14, -3, shed);
   for (let i = 0; i < 9; i++) { const zz = -26 + i * 6; box(82, 4, 8, mat(i % 3 === 1 ? 'thatchOld' : 'thatch'), 0, 34 - i * 1.2, zz + 4 - 9, shed).rotation.x = -0.12; }
   box(20, 7, 5, mat('plank'), -4, 4, 6, shed); box(16, 2, 3, plain('#3a6a8a'), -4, 7.5, 6, shed); box(22, 8, 12, mat('hay'), 18, 4, -17, shed);
-  for (let i = 0; i < 9; i++) box(2, 14, 2, mat('bark'), 44 + (i < 5 ? 0 : 0) , 7, -26 + i * 12, shed);
-  for (let i = 0; i < 8; i++) box(46 + 20, 2, 2, mat('bark'), 62, 4 + (i % 2) * 6, 22, shed);
-  const cow = Cast.makeCow(); cow.position.set(190, 0, -4); cow.rotation.y = -2.2; farm.add(cow);
+  for (let i = 0; i < 9; i++) box(2, 14, 2, mat('bark'), 52, 7, 12 + i * 11, shed);                                                // the yard's fence posts, with a rail (no gaps to stop Jack: it is for show)
+  box(2, 2, 100, mat('bark'), 52, 11, 62, shed);
+  const cow = Cast.makeCow(); cow.position.set(186, 0, 24); cow.rotation.y = -2.2; farm.add(cow);
   tree(-60, -150, 0, 1.3, farm, r); tree(160, -150, 0, 1.2, farm, r); tree(-250, 40, 6, 1.4, farm, r); tree(260, 10, 12, 1.2, farm, r); tree(250, -90, 18, 1.3, farm, r); tree(-240, -120, 18, 1.2, farm, r);
   for (let i = 0; i < 20; i++) { const x = (r() - 0.5) * 520, z = -170 + r() * 80, y = 24 + r() * 14; if (Math.abs(x) > 230 || z < -150) tree(x, z, y - 8, 0.9 + r() * 0.5, scene, r); }
   // Clouds, drifting slowly.
@@ -174,7 +177,7 @@ function exterior() {
 
   const windowTarget = new V3(-34, 30, cz + D / 2 + 1);
   return {
-    scene, cow, windowTarget, cottage,
+    scene, cow, windowTarget, cottage, doorLeaf,
     update(dt, t) {
       cow.tick(dt);
       for (const s of smoke) { s.t = (s.t + dt * 0.12) % 1; s.m.position.set(Math.sin(s.t * 6 + 1) * 3 + s.t * 14, 80 + s.t * 70, 0); s.m.scale.setScalar(0.5 + s.t * 1.8); s.m.material.opacity = 0.65 * (1 - s.t); }

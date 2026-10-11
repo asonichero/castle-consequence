@@ -276,7 +276,7 @@ function makeCow() {
   add(clothBox(1.2, 3.2, 1.2, col('#d8d0b8')), -3.4, 4.8, 3, head); add(clothBox(1.2, 3.2, 1.2, col('#d8d0b8')), 3.4, 4.8, 3, head);   // horns
   const tail = new THREE.Group(); tail.position.set(0, 24, -15); body.add(tail); add(clothBox(1.4, 12, 1.4, hide), 0, -6, -0.6, tail); add(clothBox(2, 3, 2, patch), 0, -12.5, -0.6, tail);
   g.userData = { head, tail, t: 0 };
-  g.tick = dt => { const u = g.userData; u.t += dt; head.rotation.x = 0.1 + 0.08 * Math.sin(u.t * 1.3); head.rotation.y = 0.12 * Math.sin(u.t * 0.5); tail.rotation.z = 0.25 * Math.sin(u.t * 1.9); };
+  g.tick = dt => { const u = g.userData; u.t += dt; u.hb = (u.hb == null ? 0.1 : u.hb) + ((u.headBase == null ? 0.1 : u.headBase) - (u.hb == null ? 0.1 : u.hb)) * Math.min(1, dt * 3); head.rotation.x = u.hb + 0.08 * Math.sin(u.t * 1.3); head.rotation.y = 0.12 * Math.sin(u.t * 0.5); tail.rotation.z = 0.25 * Math.sin(u.t * 1.9); };
   return g;
 }
 

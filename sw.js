@@ -1,8 +1,8 @@
 // Service worker: caches the game on first load so it installs and plays offline. Bump VERSION whenever the files change, so installed copies refresh.
-const VERSION = 'consequence-v6';
+const VERSION = 'consequence-v7';
 const FILES = [
   'game.html', 'level.html', 'manifest.webmanifest',
-  'js/blocky.js', 'js/cast.js', 'js/audio.js', 'js/farm.js', 'js/game.js', 'js/opening.js', 'js/menus.js', 'js/pain.js', 'js/lap-poses.js', 'js/lap.js', 'js/level.js',
+  'js/blocky.js', 'js/cast.js', 'js/audio.js', 'js/farm.js', 'js/game.js', 'js/opening.js', 'js/market.js', 'js/menus.js', 'js/pain.js', 'js/lap-poses.js', 'js/lap.js', 'js/level.js',
   'vendor/three.min.js', 'vendor/OrbitControls.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png',
 ];

@@ -38,6 +38,20 @@
   #subWho { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 4px; } #subText { min-height: 1.5em; }
   #skip { position: fixed; right: 14px; top: 12px; z-index: 35; display: none; opacity: .75; font-size: 14px; padding: 7px 12px; } body.cutscene #skip { display: block; }
   #tapHint { position: fixed; left: 50%; bottom: 1.6vh; transform: translateX(-50%); font-size: 12px; opacity: .55; z-index: 19; display: none; } body.cutscene #tapHint { display: block; }
+  #gate { position: fixed; left: 50%; bottom: 11vh; transform: translateX(-50%); z-index: 36; display: none; font-size: 18px; padding: 12px 34px; }
+  /* Chapter One's HUD */
+  .mhud { position: fixed; inset: 0; pointer-events: none; z-index: 12; } .mhud button, .mhud .mstick { pointer-events: auto; }
+  .mobj { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(10,12,16,0.78); border: 1px solid #4a4d58; border-radius: 8px; padding: 8px 16px; font-size: clamp(13px, 1.9vw, 17px); max-width: 80vw; text-align: center; }
+  .mpace { position: absolute; top: 56px; left: 50%; transform: translateX(-50%); font-size: 13px; opacity: .85; text-shadow: 0 1px 4px #000; } .mpace.warn { color: #f0a090; opacity: 1; }
+  .mtrust { position: absolute; left: 14px; top: 12px; width: min(230px, 40vw); background: rgba(10,12,16,0.78); border: 1px solid #4a4d58; border-radius: 8px; padding: 6px 10px; font-size: 13px; }
+  .mtb { height: 10px; background: #1c1f27; border: 1px solid #454a58; border-radius: 4px; overflow: hidden; margin-top: 4px; } .mtb i { display: block; height: 100%; width: 90%; background: linear-gradient(90deg, #5a8a4a, #c9a84c); } .mtb i.full { background: #7fd070; }
+  .mhint { position: absolute; left: 50%; bottom: 18vh; transform: translateX(-50%); background: rgba(10,12,16,0.85); border: 1px solid #c9a84c; color: #f0d98a; padding: 6px 14px; border-radius: 6px; font-size: 15px; display: none; }
+  .mtoast { position: absolute; left: 50%; bottom: 7vh; transform: translateX(-50%); background: rgba(10,12,16,0.85); border: 1px solid #4a4d58; padding: 8px 16px; border-radius: 8px; font-size: 14px; max-width: 86vw; text-align: center; opacity: 0; transition: opacity .4s; }
+  .mbtns { position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 6px; align-items: flex-end; } .mbtns button { margin: 0; padding: 9px 14px; font-size: 14px; background: rgba(20,22,30,0.85); } .mbtns button.on { background: #6b5a2a; border-color: #c9a84c; }
+  .mstick { position: absolute; left: 22px; bottom: 26px; width: 130px; height: 130px; border-radius: 50%; background: rgba(20,22,28,0.45); border: 2px solid rgba(230,196,106,0.55); touch-action: none; display: none; }
+  #mKnob { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: rgba(230,196,106,0.75); pointer-events: none; }
+  @media (pointer: coarse) { .mstick { display: block; } }
+  body.playing #tapHint, body.playing #skip, body.playing #ver { display: none; }
 </style>
 </head>
 <body>
@@ -84,8 +98,8 @@
 
 <div id="endcard" class="screen">
   <div class="card" style="text-align:center">
-    <h2>Chapter One &mdash; Market Day</h2>
-    <p>Jack has a cow to sell in the morning.</p>
+    <h2 id="endTitle">Chapter One &mdash; Market Day</h2>
+    <p id="endText">Jack has a cow to sell in the morning.</p>
     <p style="opacity:.7;font-size:14px">To be continued. Your game is saved at this point.</p>
     <button class="primary" id="bTitle">Back to the title</button>
   </div>
@@ -94,6 +108,7 @@
 <div id="subs"><div id="subWho"></div><div id="subText"></div></div>
 <div id="tapHint">tap or press space to move on</div>
 <button id="skip">Skip scene</button>
+<button id="gate" class="primary">Continue</button>
 
 <script src="vendor/three.min.js"></script>
 <script src="js/blocky.js"></script>
@@ -102,6 +117,7 @@
 <script src="js/farm.js"></script>
 <script src="js/game.js"></script>
 <script src="js/opening.js"></script>
+<script src="js/market.js"></script>
 <script src="js/menus.js"></script>
 </body>
 </html>

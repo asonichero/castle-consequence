@@ -149,6 +149,15 @@ A.speak = function (who, text, seconds, opts) {   // opts.muffle: heard through 
   });
   return { stop() { for (const o of nodes) { try { o.stop(); } catch (e) { /* already stopped */ } } } };
 };
+// Milky-White's low: a sawtooth that slides down through two throat formants, with a little shake in it.
+A.moo = function (vol, seconds) {
+  if (!A.init()) return; const ctx = A.ctx, N = A.nodes, t = ctx.currentTime + 0.03, d = seconds || 1.3, k = vol == null ? 1 : vol;
+  const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(95, t); o.frequency.linearRampToValueAtTime(118, t + d * 0.25); o.frequency.linearRampToValueAtTime(78, t + d);
+  const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 5.5; lg.gain.value = 3; lfo.connect(lg); lg.connect(o.frequency);
+  const out = ctx.createGain(); out.gain.setValueAtTime(0.0001, t); out.gain.linearRampToValueAtTime(0.5 * k, t + 0.15); out.gain.setValueAtTime(0.5 * k, t + d * 0.6); out.gain.exponentialRampToValueAtTime(0.0001, t + d);
+  for (const [fc, g] of [[300, 1], [820, 0.55]]) { const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.setValueAtTime(fc * 0.8, t); f.frequency.linearRampToValueAtTime(fc * 1.1, t + d * 0.5); f.Q.value = 4; const gg = ctx.createGain(); gg.gain.value = g; o.connect(f); f.connect(gg); gg.connect(out); }
+  out.connect(N.sfx); o.start(t); lfo.start(t); o.stop(t + d + 0.1); lfo.stop(t + d + 0.1);
+};
 A.blip = function () { if (!A.init()) return; const ctx = A.ctx, t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'triangle'; o.frequency.value = 660; g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.06, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12); o.connect(g); g.connect(A.nodes.sfx); o.start(t); o.stop(t + 0.15); };
 
 root.GameAudio = A;
