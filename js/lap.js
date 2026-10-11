@@ -199,6 +199,7 @@ function create(view, opts) {
     for (const w of WIELD) { e.gerda[w] = e.gerda[w] || {}; for (const b of GERDA_BEATS) e.gerda[w][b] = e.gerda[w][b] || {}; }
     for (const w of WIELD) { e.jack[w] = e.jack[w] || {}; for (const b of GERDA_BEATS) e.jack[w][b] = e.jack[w][b] || {}; }     // (Jack's beats are the giver's: the same moments of the same blow)
   }
+  const LOCK = JSON.parse(JSON.stringify(SETS));            // the poses as loaded: locked. The editor's sliders are offsets from these (0 when it opens); Report writes out the sum.
   const posKey = () => stanceNow() === 'table' ? 'table' : 'lap';           // the poses in force are those of where the scene is
   const EDITS = new Proxy({}, { get: (_, k) => SETS[posKey()][k] });
   let editKey = 100;                          // the set the editor is working on (Jack is held at that size while it is open)
@@ -672,11 +673,16 @@ function create(view, opts) {
     bones: fig => Object.keys(BONES[bodyOf(fig)]).filter(n => (n !== 'paddle' || st.implement === 'paddle') && (n !== 'birch' || st.implement === 'birch')),
     // Can the scene be posed as it is? (the knee or the table, once he is there; the birch is for the table)
     editable() { return st.blend >= 1 && (st.to === 'table' || (st.to === 'lap' && st.implement !== 'birch')); },
-    get(fig, beat, bone) { const e = setFor(fig)[beat][bone] || {}; return { r: (e.r || [0, 0, 0]).slice(), p: (e.p || [0, 0, 0]).slice() }; },
-    set(fig, beat, bone, r, p) { const set = setFor(fig)[beat]; if (r.every(v => !v) && p.every(v => !v)) delete set[bone]; else set[bone] = { r: r.slice(), p: p.slice() }; },
-    resetBone(fig, beat, bone) { delete setFor(fig)[beat][bone]; },
-    resetBeat(fig, beat) { setFor(fig)[beat] = {}; },
-    clear() { for (const f of ['giver', 'jack']) for (const b of GERDA_BEATS) setFor(f)[b] = {}; },
+    // What is locked for a bone at a beat (as loaded), and the sliders' values: the edit relative to it.
+    locked(fig, beat, bone) { const e = (((LOCK[posKey()][editKey][bodyOf(fig)][st.implement] || {})[beat]) || {})[bone] || {}; return { r: (e.r || [0, 0, 0]).slice(), p: (e.p || [0, 0, 0]).slice() }; },
+    get(fig, beat, bone) { const e = setFor(fig)[beat][bone] || {}, l = editor.locked(fig, beat, bone); return { r: [0, 1, 2].map(i => (e.r ? e.r[i] : 0) - l.r[i]), p: [0, 1, 2].map(i => (e.p ? e.p[i] : 0) - l.p[i]) }; },
+    set(fig, beat, bone, r, p) {                      // r and p are offsets from the locked pose
+      const set = setFor(fig)[beat], l = editor.locked(fig, beat, bone), R = r.map((x, i) => x + l.r[i]), P = p.map((x, i) => x + l.p[i]);
+      if (R.every(v => Math.abs(v) < 0.05) && P.every(v => Math.abs(v) < 0.005)) delete set[bone]; else set[bone] = { r: R, p: P };
+    },
+    resetBone(fig, beat, bone) { const set = setFor(fig)[beat], l = editor.locked(fig, beat, bone); if (l.r.some(v => v) || l.p.some(v => v)) set[bone] = l; else delete set[bone]; },
+    resetBeat(fig, beat) { const lk = (((LOCK[posKey()][editKey][bodyOf(fig)][st.implement] || {})[beat]) || {}); setFor(fig)[beat] = JSON.parse(JSON.stringify(lk)); },
+    clear() { for (const f of ['giver', 'jack']) for (const b of GERDA_BEATS) editor.resetBeat(f, b); },
     sizeMin: SIZE_MIN,
     hold(fig, beat) {
       cur.fig = fig; cur.beat = beat; st.runLeft = 0; st.swing = null; st.armed = true; st.holdKick = null;
