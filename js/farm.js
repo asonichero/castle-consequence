@@ -269,5 +269,5 @@ function interior() {
   };
 }
 
-root.Farm = { exterior, interior };
+root.Farm = { exterior, interior, mat, plain, unlit, box, rng, tree, textures };
 })(typeof window !== 'undefined' ? window : globalThis);

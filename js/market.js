@@ -302,5 +302,5 @@ function hud() {
   return HUD;
 }
 
-root.Market = { build, run, ZOOMS };
+root.Market = { build, run, ZOOMS, hud, cowHit, cowGap, COWBOX, SC, WALK, CREEP, RUN, ALARM, CALM, GRAV, JUMP_V };
 })(typeof window !== 'undefined' ? window : globalThis);

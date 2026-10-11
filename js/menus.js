@@ -39,16 +39,24 @@ async function playMarket() {
   $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60));
   const res = await root.Market.run(G, W, W.market);
   G.skipping = false; G.save({ step: 'market-road', care: { cowStartles: res ? res.startles : 0 } });
+  await playRoad();
+}
+// Chapter Two: the winding road, the obstacles, the Peddler's cart and the trade. (It starts from black.)
+async function playRoad() {
+  hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
+  $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60));
+  const res = await root.Road.run(G);
+  G.skipping = false; G.save({ step: 'beans', care: Object.assign((G.loadSave() || {}).care || {}, { runSecs: res.runSecs, soothes: res.soothes, plants: res.plants }), choices: res.choices });
   showEnd();
 }
 function showEnd() {
-  const s = G.loadSave() || {}, road = s.step === 'market-road';
-  $('endTitle').textContent = road ? 'Chapter Two \u2014 The Road to Market' : 'Chapter One \u2014 Market Day';
-  $('endText').textContent = road ? 'Jack and Milky-White set out for market.' : 'Jack has a cow to sell in the morning.';
+  const s = G.loadSave() || {}, beans = s.step === 'beans';
+  $('endTitle').textContent = beans ? 'Chapter Two \u2014 The Market Road' : 'Chapter One \u2014 Market Day';
+  $('endText').textContent = beans ? 'Jack has five beans, and no cow.' : 'Jack has a cow to sell in the morning.';
   show('endcard'); G.mode = 'end'; $('fade').style.transition = 'none'; $('fade').style.opacity = 0; document.body.classList.remove('playing', 'cutscene');
 }
 $('bNew').onclick = () => { if (G.loadSave() && !confirm('Start a new game? Your saved game will be replaced.')) return; G.clearSave(); playOpening(); };
-$('bContinue').onclick = () => { wake(); const sv = G.loadSave() || {}; if (sv.step === 'market-day') playMarket(); else { hideAll(); showEnd(); } };
+$('bContinue').onclick = () => { wake(); const sv = G.loadSave() || {}; if (sv.step === 'market-day') playMarket(); else if (sv.step === 'market-road') playRoad(); else { hideAll(); showEnd(); } };
 $('bSettings').onclick = () => { wake(); show('settings'); };
 $('bBack').onclick = () => { G.saveSettings(); show('title'); };
 $('bTitle').onclick = toTitle;

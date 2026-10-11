@@ -38,6 +38,7 @@
   #subWho { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 4px; } #subText { min-height: 1.5em; }
   #skip { position: fixed; right: 14px; top: 12px; z-index: 35; display: none; opacity: .75; font-size: 14px; padding: 7px 12px; } body.cutscene #skip { display: block; }
   #tapHint { position: fixed; left: 50%; bottom: 1.6vh; transform: translateX(-50%); font-size: 12px; opacity: .55; z-index: 19; display: none; } body.cutscene #tapHint { display: block; }
+  #subChoices { display: none; margin-top: 8px; } #subChoices .choice { display: block; width: 100%; text-align: left; margin: 6px 0 0; padding: 10px 14px; font-size: clamp(14px, 1.9vw, 17px); background: rgba(40,44,56,0.9); }
   #subGate { display: none; margin: 10px 0 0; float: right; font-size: 18px; padding: 10px 30px; }
   /* Chapter One's HUD */
   .mhud { position: fixed; inset: 0; pointer-events: none; z-index: 12; } .mhud button, .mhud .mstick { pointer-events: auto; }
@@ -105,7 +106,7 @@
   </div>
 </div>
 
-<div id="subs"><div id="subWho"></div><div id="subText"></div><button id="subGate" class="primary">Continue</button></div>
+<div id="subs"><div id="subWho"></div><div id="subText"></div><button id="subGate" class="primary">Continue</button><div id="subChoices"></div></div>
 <div id="tapHint">tap or press space to move on</div>
 <button id="skip">Skip scene</button>
 
@@ -117,6 +118,7 @@
 <script src="js/game.js"></script>
 <script src="js/opening.js"></script>
 <script src="js/market.js"></script>
+<script src="js/road.js"></script>
 <script src="js/menus.js"></script>
 </body>
 </html>
