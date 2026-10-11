@@ -699,7 +699,7 @@ function create(view, opts) {
     for (const a of S) if (a.tag[0] === 'g') for (const c of S) if (c.tag[0] === 'j') { const lim = a.r + c.r - 0.8, d = Math.hypot(a.x - c.x, a.y - c.y, a.z - c.z); if (d < lim) t.bodies += lim - d; }
     return t;
   }
-  const worse = (a, b) => { for (const k in a) if (a[k] > b[k] + 0.05) return WHY[k]; return null; };       // did the move make any kind worse than it was?
+  const worse = (a, b) => (a.floor > b.floor + 0.05 ? WHY.floor : null);       // only the floor is a rule: nothing may go through it (bodies and furniture may overlap freely)
   const blocked = { why: null, at: 0 };
   // Run a change to the edits; if it makes the pose collide (more than it already did), put things back and say why.
   function guarded(set, bone, change) {
