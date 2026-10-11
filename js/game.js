@@ -70,6 +70,21 @@ function create(els) {
     advance = () => { if (!typed) { finish(); if (voice) voice.stop(); } else if (!gateLabel) close(); };            // a tap finishes the typing, the next one moves on
     poll = setInterval(() => { if (G.skipping || (G.seekTo != null && typed) || (holdAt != null && G.t >= holdAt) || ep !== G.epoch) close(); }, 60);
   });
+  // A caption: a line spoken over the scene while it goes on (nothing waits for it, though the promise resolves when it has had its time). The next caption replaces it.
+  let capTok = 0; const caps = new Set();
+  G.caption = (who, text, opts) => new Promise(resolve => {
+    const tok = ++capTok, w = WHO[who] || [who, '#e6c46a'], cps = 34 * G.settings.speed, typeSecs = Math.max(0.6, text.length / cps), holdSecs = Math.max(1.1, text.length * 0.048 / G.settings.speed);
+    subWho.textContent = w[0]; subWho.style.color = w[1]; subs.style.display = 'block'; subText.textContent = '';
+    const voice = Audio_ && who !== 'narrator' ? Audio_.speak(who, text, typeSecs, { muffle: opts && opts.muffle }) : null, t0 = G.t, ep = G.epoch;
+    const finish = () => { clearInterval(iv); caps.delete(finish); if (voice && voice.stop) voice.stop(); if (tok === capTok) subs.style.display = 'none'; resolve(); };
+    const iv = setInterval(() => {
+      const el = G.t - t0;
+      if (tok === capTok) subText.textContent = el >= typeSecs ? text : text.slice(0, Math.floor(el * cps));
+      if (el >= typeSecs + holdSecs || tok !== capTok && el >= typeSecs || ep !== G.epoch) finish();
+    }, 30);
+    caps.add(finish);
+  });
+  G.captionOff = () => { capTok++; for (const f of [...caps]) f(); subs.style.display = 'none'; };
   // A choice for the player: buttons inside the dialogue box (or the keys 1 to 9); resolves with the index picked.
   G.choose = (who, options) => new Promise(resolve => {
     const w = WHO[who] || [who, '#e6c46a'], box = document.getElementById('subChoices'); subWho.textContent = w[0]; subWho.style.color = w[1]; subText.textContent = ''; subs.style.display = 'block'; box.innerHTML = ''; box.style.display = 'block'; advance = null;

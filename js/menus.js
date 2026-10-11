@@ -59,13 +59,23 @@ async function playNight(choices) {
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60));
   const res = await root.Night.run(G, choices);
-  G.skipping = false; G.save({ step: 'planted', night: res });
+  G.skipping = false; G.save({ step: 'planted', night: { tier: res.tier, brash: res.brash } });
+  if (root.Correction && res.world) await root.Correction.run(G, res.world, res.tier);
+  showEnd();
+}
+// Debug: the correction on its own, with Jack standing before his Mother as the night scene leaves him.
+async function playCorrection(tier) {
+  hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
+  const W = root.Night.build(G), SEAT = W.SEAT;
+  W.jackIn.root.position.set(SEAT.x + 16 * Math.sin(SEAT.ry), 0, SEAT.z + 16 * Math.cos(SEAT.ry)); W.jackIn.root.rotation.y = SEAT.ry + Math.PI; W.jackIn.root.visible = true;
+  $('fade').style.transition = 'none'; $('fade').style.opacity = 0;
+  await root.Correction.run(G, W, tier);
   showEnd();
 }
 function showEnd() {
   const s = G.loadSave() || {}, beans = s.step === 'beans' || s.step === 'planted';
   $('endTitle').textContent = beans ? 'Chapter Two \u2014 The Market Road' : 'Chapter One \u2014 Market Day';
-  $('endText').textContent = beans ? 'Mother has called Jack to her knee. The correction comes next.' : 'Jack has a cow to sell in the morning.';
+  $('endText').textContent = s.step === 'planted' ? 'Jack goes out into the dark to plant the beans.' : beans ? 'Jack has the beans, and a mother waiting up for him.' : 'Jack has a cow to sell in the morning.';
   show('endcard'); G.mode = 'end'; $('fade').style.transition = 'none'; $('fade').style.opacity = 0; document.body.classList.remove('playing', 'cutscene');
 }
 // Level select (debug): plays from a chapter without touching the saved game.
@@ -79,6 +89,7 @@ $('levelSel').onchange = async () => {
     else if (k === 'nightH') await playNight([2, 1, 2]);
     else if (k === 'nightC') await playNight([1, 0, 1]);
     else if (k === 'nightB') await playNight([0, 2, 0]);
+    else if (k === 'corrH' || k === 'corrC' || k === 'corrB') await playCorrection(k === 'corrH' ? 0 : k === 'corrC' ? 1 : 2);
   } finally { G.noSave = false; G.debugCtl = false; }
 };
 // Debug controls over a cutscene (shown for scenes started from the level select, or with ?debug): pause / play, back to the previous beat, on to the next.

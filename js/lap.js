@@ -743,7 +743,7 @@ function create(view, opts) {
     editor, stage, place, PLACES,
     scene, floor, camera, controls, renderer, gerda, jack, pain, st, IMPL, BANDS, J,
     on: f => events.push(f),
-    update, view: view_, smack,
+    update, view: view_, views: VIEWS, smack,
     // A run: the first smack lifts from rest, each next one comes straight up from contact to raised, and the last one returns to rest.
     run(n) { if (!canStrike()) return; n = Math.max(1, n | 0); if (st.swing) st.runLeft = n; else if (smack()) st.runLeft = n - 1; },
     stop() { st.runLeft = 0; },

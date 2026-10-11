@@ -43,7 +43,7 @@ function build(G) {
   const mk = () => {
     const j = B.makeJack(); j.root.scale.setScalar(SC); paintJack(j); B.setPose(j, 'stand'); for (let i = 0; i < 30; i++) B.step(j, 0.1); return j;
   };
-  const ja = { t: 0, phase: 0, speed: 0, bare: 0, hold: 0, cover: 0, bow: 0, look: 0, fist: 0, shuffle: 0 };
+  const ja = { t: 0, phase: 0, speed: 0, bare: 0, hold: 0, cover: 0, bow: 0, look: 0, fist: 0, shuffle: 0, rub: 0 };
   const hold = (rig, st) => { rig.after = r => st(r); return rig; };
   const jackOut = mk(), jackIn = mk();                       // outside under the stars, and in the room
   const poseJack = (rig, a) => r => {
@@ -53,10 +53,14 @@ function build(G) {
     if (a.fist) { r.armR.rotation.x = -1.0 * a.fist; r.armR.rotation.z = -0.15; }
     if (a.hold) { r.armL.rotation.x = r.armR.rotation.x = -1.25 * a.hold; r.armL.rotation.z = 0.2; r.armR.rotation.z = -0.2; }
     if (a.cover) { r.armL.rotation.x = r.armR.rotation.x = 0.7 * a.cover; r.armL.rotation.z = -0.35 * a.cover; r.armR.rotation.z = 0.35 * a.cover; }
+    if (a.rub) {      // nursing his bottom, as in the opening: both hands back on it, rubbing; his weight shifting from foot to foot, his head down
+      for (const [arm, sg] of [[r.armL, 1], [r.armR, -1]]) { arm.rotation.x = 0.34 + 0.05 * Math.sin(a.t * 5 + sg); arm.rotation.z = -sg * 0.3; }
+      r.legL.thigh.rotation.x = 0.04 * Math.sin(a.t * 1.2); r.legR.thigh.rotation.x = -0.04 * Math.sin(a.t * 1.2); r.hips.position.x = 0.6 * Math.sin(a.t * 0.8);
+    }
     r.neck.rotation.x = 0.28 * a.bow + 0.03 * Math.sin(a.t * 0.9); r.neck.rotation.y = a.look; r.torso.rotation.x = 0.06 * a.bow;
     r.hips.position.y = 12 + Math.abs(Math.sin(a.phase)) * 0.5 * clamp(a.speed / 20, 0, 1);
   };
-  const aOut = { t: 0, phase: 0, speed: 0, bare: 0, hold: 0, cover: 0, bow: 0, look: 0, fist: 0, shuffle: 0 }, aIn = ja;
+  const aOut = { t: 0, phase: 0, speed: 0, bare: 0, hold: 0, cover: 0, bow: 0, look: 0, fist: 0, shuffle: 0, rub: 0 }, aIn = ja;
   hold(jackOut, poseJack(jackOut, aOut)); hold(jackIn, poseJack(jackIn, aIn));
   jackOut.root.visible = false; ext.scene.add(jackOut.root);
   const mother = C.makeMother(); mother.setExpr(1);
@@ -178,12 +182,11 @@ async function run(G, choices, opts) {
   ja.shuffle = 1; ja.bow = 1;
   await walk(jackIn, ja, [cl(16, 0)], 12, SEAT.ry + Math.PI);
   ja.speed = 0;
-  // The scene ends here, as he steps up to her knee: the correction that follows is a scene of its own.
+  // The scene ends here, as he steps up to her knee: the correction follows (js/correction.js), in this same room.
   await G.wait(0.8);
-  A && A.stopMusic(2.5); await G.fade(true, 2.4); A && A.ambience({ wind: 0, birds: 0, fire: 0 });
-  G.hideLine && G.hideLine(); await G.wait(1);
+  G.hideLine && G.hideLine();
   G.mode = 'end'; document.body.classList.remove('cutscene');
-  return { tier, brash: brashness(choices), hits: 0 };
+  return { tier, brash: brashness(choices), hits: 0, world: W };
 }
 
 root.Night = { run, brashness, tierOf, build };
