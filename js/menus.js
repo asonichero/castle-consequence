@@ -65,7 +65,7 @@ async function playNight(choices) {
 function showEnd() {
   const s = G.loadSave() || {}, beans = s.step === 'beans' || s.step === 'planted';
   $('endTitle').textContent = beans ? 'Chapter Two \u2014 The Market Road' : 'Chapter One \u2014 Market Day';
-  $('endText').textContent = beans ? 'Jack goes out into the dark to plant the beans.' : 'Jack has a cow to sell in the morning.';
+  $('endText').textContent = beans ? 'Mother has called Jack to her knee. The correction comes next.' : 'Jack has a cow to sell in the morning.';
   show('endcard'); G.mode = 'end'; $('fade').style.transition = 'none'; $('fade').style.opacity = 0; document.body.classList.remove('playing', 'cutscene');
 }
 // Level select (debug): plays from a chapter without touching the saved game.

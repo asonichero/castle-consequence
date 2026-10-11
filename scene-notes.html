@@ -57,12 +57,9 @@
 <script src="js/farm-layout.js"></script>
 <script src="js/farm.js"></script>
 <script src="js/game.js"></script>
-<script src="js/pain.js"></script>
-<script src="js/lap-poses.js"></script>
-<script src="js/lap.js"></script>
 <script src="js/night.js"></script>
 <script>
-// Scene notes: the night scene with its own camera angles, stepped a beat at a time. A beat is a spoken line (with the angle it is said from) or a camera angle on its own. A beat runs once and
+// Scene notes: the night scene with its own camera angles, stepped a beat at a time. A beat is one camera angle, with whatever is said and done in it. A beat runs once and
 // the scene holds at its end; you move the camera, write a note, and run it again. Camera changes and notes are kept per beat; Copy gives all of them as text to paste back for updates.
 (function () {
 'use strict';
@@ -73,7 +70,7 @@ const G = window.__game = Game.create({ stage: $('stage'), fade: $('fade'), subs
 G.mode = 'free'; G.noSave = true; G.settings.auto = true; G.settings.subtitles = true; G.noFade = true; G.keepLine = true;   // (no fades to black; the line stays up where the scene holds)
 
 // ── What is kept, per beat. ──
-const KEY = 'castle-consequence:scene-notes:night:' + route;
+const KEY = 'castle-consequence:scene-notes:night:v2:' + route;       // (v2: beats are camera angles)
 let kept = { cams: {}, notes: {}, lines: {} };
 try { const k = JSON.parse(localStorage.getItem(KEY)); if (k) kept = Object.assign(kept, k); } catch (e) { /* none yet */ }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(kept)); } catch (e) { /* no storage */ } };
@@ -101,7 +98,7 @@ G.camOverride = beat => kept.cams[beat] ? spec(kept.cams[beat]) : null;
 G.onBeat = e => {
   const i = info[e.beat] || (info[e.beat] = {});
   if (e.name === 'cut' || e.name === 'shot') { if (!i.cam) i.cam = snap(G.specOf(e.args[0])); }
-  else if (e.name === 'say' && !i.text) { i.who = e.args[0]; i.text = e.args[1]; kept.lines[e.beat] = (i.who || '') + ': ' + i.text; save(); }
+  else if (e.name === 'say') { i.lines = i.lines || []; const l = e.args[0] + ': ' + e.args[1]; if (!i.lines.includes(l)) { i.lines.push(l); kept.lines[e.beat] = i.lines.slice(); save(); } }
   if (e.isNew && !i.cam && e.kind === 'say') i.cam = snap(G.shotNow());
 };
 G.beatGate = beat => {
@@ -125,7 +122,7 @@ const vals = c => [...c.pos, ...c.look, c.fov];
 function showCam() { if (document.activeElement && document.activeElement.dataset && document.activeElement.dataset.k) return; const v = vals(nowCam()); keys.forEach((k, i) => { inputs[k].value = r1(v[i]); }); }
 function refresh() {
   const i = info[view] || {}, changed = !!kept.cams[view];
-  $('bnum').textContent = view; $('goto').value = view; $('bwho').textContent = i.text ? (i.who || '') : ''; $('bline').textContent = i.text || '(a camera angle, no line)';
+  $('bnum').textContent = view; $('goto').value = view; $('bwho').textContent = ''; $('bline').innerHTML = ''; (i.lines && i.lines.length ? i.lines : ['(no one speaks in this angle)']).forEach(l => { const d = document.createElement('div'); d.textContent = l; d.style.margin = '3px 0'; $('bline').appendChild(d); });
   const tag = $('btag'); tag.textContent = changed ? 'camera changed' : 'scene’s own angle'; tag.classList.toggle('on', changed);
   $('state').textContent = finished ? 'The scene ends here.' : resume ? 'Stopped at the end of this beat.' : 'Running…';
   $('next').disabled = !resume; $('prev').disabled = view <= 1; $('again').disabled = false;
@@ -148,7 +145,7 @@ $('copy').onclick = () => {
   const beats = [...new Set([...Object.keys(kept.cams), ...Object.keys(kept.notes)])].map(Number).sort((a, b) => a - b), out = [], json = {};
   out.push('SCENE NOTES — Chapter Two, the cottage at night (route ' + route + ': ' + $('route').selectedOptions[0].textContent.toLowerCase() + ')', 'Camera values are world units; "was" is the scene’s own angle for the beat.', '');
   for (const b of beats) {
-    const c = kept.cams[b], was = (info[b] || {}).cam, n = kept.notes[b], line = kept.lines[b] || (info[b] && info[b].text ? (info[b].who || '') + ': ' + info[b].text : '(camera angle, no line)');
+    const c = kept.cams[b], was = (info[b] || {}).cam, n = kept.notes[b], line = (info[b] && info[b].lines && info[b].lines.length ? info[b].lines : kept.lines[b] || ['(no one speaks)']).join(' / ');
     out.push('Beat ' + b + ' · ' + line); if (c) { if (was) out.push('  camera was: ' + f(was)); out.push('  camera now: ' + f(c)); } if (n && n.trim()) out.push('  note: ' + n.trim().replace(/\n/g, '\n        ')); out.push('');
     json[b] = { line, was: was || null, now: c || null, note: (n || '').trim() || null };
   }

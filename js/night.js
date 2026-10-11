@@ -1,15 +1,13 @@
 // Climbing Toward Consequence — the close of Chapter Two: the cottage at night.
 //   Jack comes home through the gate and up to the door under the stars; then, indoors, he tells his Mother what he has done with the cow, in a tone set by the choices he made at the
-//   Peddler's cart; she is furious, sits him down in front of the hearth and takes him over her knee (bared; the lap scene's engine, in this room). If he was at his most brash she is
-//   not finished with the hand: she sends him for the birch that hangs by the hearth and bends him over the kitchen table for a last, sharper round. Then she stands him up and sends him
-//   out to plant the beans, if they are so powerful.
+//   Peddler's cart; she is furious, sits in the chair by the hearth and calls him to her. The scene ends there, as he steps up to her knee: the correction itself is to be a scene of its own.
+//   A beat is one camera angle (see G.cut in game.js): everyone is put where they stand as it begins, and what happens in it happens in view of that one angle.
 (function (root) {
 'use strict';
-const THREE = root.THREE, B = root.Blocky, C = root.Cast, F = root.Farm, Lap = root.Lap, A = root.GameAudio, V3 = THREE.Vector3;
+const THREE = root.THREE, B = root.Blocky, C = root.Cast, F = root.Farm, A = root.GameAudio, V3 = THREE.Vector3;
 const v = (x, y, z) => new V3(x, y, z), clamp = (x, a, b) => Math.max(a, Math.min(b, x)), lerp = (a, b, t) => a + (b - a) * t;
 const turn = (from, to, t) => { const d = ((to - from + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI; return from + d * t; };
 const SC = 0.95, STAGE_Y = 5.7;
-const SEAT = { x: -26, z: -24, ry: Math.PI / 2 }, TABLE = { x: 46, z: 22.4, ry: -Math.PI / 2 };       // where the lap scene's stage stands for each part of it
 
 // How brash Jack was at the cart, from his three choices: 0 (the most humble) to 6.
 function brashness(choices) {
@@ -40,7 +38,7 @@ function nightify(ext) {
 function build(G) {
   const ext = F.exterior(); nightify(ext);
   const int = F.interior(), scene = int.scene;
-  // ── Actors: Jack and his Mother as they stand and walk and talk. (The lap scene brings its own pair, matched to these where it takes over.) ──
+  // ── Actors: Jack and his Mother as they stand and walk and talk. ──
   const paintJack = (rig, o) => { B.paintJackInto(rig.skin, Object.assign({ outfit: 'Outdoor', expr: 0, trousers: 'up', drawers: 'up' }, o || {})); rig.tex.needsUpdate = true; rig.legL.ring.visible = rig.legR.ring.visible = !!(o && o.trousers === 'down'); };
   const mk = () => {
     const j = B.makeJack(); j.root.scale.setScalar(SC); paintJack(j); B.setPose(j, 'stand'); for (let i = 0; i < 30; i++) B.step(j, 0.1); return j;
@@ -72,32 +70,20 @@ function build(G) {
     if (r.elbow) r.elbow.rotation.x = (-0.3 - 0.9 * ma.gesture) * (1 - f) - 0.6 * f;
     r.neck.rotation.y = ma.chin * 0.65; r.neck.rotation.x = 0.05 + 0.04 * Math.sin(t * 0.7); r.neck.rotation.z = ma.tilt * 0.12;
   };
-  const mBirch = B.makeBirch(); mBirch.root.visible = false; mother.wrist.add(mBirch.root); mBirch.root.position.set(0, -6, 0);
-  const jBirch = B.makeBirch(); jBirch.root.visible = false; jackIn.armR.add(jBirch.root); jBirch.root.position.set(0, -11.5, 1.2); jBirch.root.rotation.x = -1.3;
   scene.add(mother.root); scene.add(jackIn.root);
   int.chair.visible = true;
-  // ── The lap scene's stage, in the room. ──
-  const lap = Lap.create(null, { external: { scene, camera: G.camera, renderer: G.renderer }, table: false, jackFull: 1 });
-  lap.giver('mother', 1); lap.stage.scale.setScalar(SC); lap.stage.visible = false; lap.jack.root.visible = true;
-  lap.pain.stats.tolerance = 0; lap.pain.stats.resilience = 0.2; lap.st.noRecovery = true; lap.st.side = 'alt';
-  // The stage stands where the scene needs it: at the chair, or at the table.
-  const placeStage = at => { lap.stage.position.set(at.x, STAGE_Y, at.z); lap.stage.rotation.y = at.ry; lap.stage.updateMatrixWorld(true); };
   const world = { scene: ext.scene, update(dt, t) { ext.update(dt, t); aOut.t += dt; B.step(jackOut, dt); } };
-  const iworld = { scene, update(dt, t) { int.update(dt, t); ja.t += dt; ma.t += dt; B.step(jackIn, dt); B.step(mother, dt); if (lap.stage.visible) lap.update(dt); } };
-  // Where the lap scene's stage stands: at the chair, and at the table (its edge, on the side the room editor leaves the table facing).
-  const ch = int.spots.chair, tb = int.table, SEAT = { x: ch.x, z: ch.z, ry: int.spots.chairRy }, tr = tb.rotation.y, TABLE = { x: tb.position.x - 7.6 * Math.sin(tr), z: tb.position.z - 7.6 * Math.cos(tr), ry: -Math.PI / 2 + tr };
-  return { SEAT, TABLE, ext, int, jackOut, aOut, jackIn, ja, mother, ma, mBirch, jBirch, lap, placeStage, paintJack, world, iworld, scene };
+  const iworld = { scene, update(dt, t) { int.update(dt, t); ja.t += dt; ma.t += dt; B.step(jackIn, dt); B.step(mother, dt); } };
+  // Where the chair stands (the room editor decides), and which way it faces.
+  const ch = int.spots.chair, SEAT = { x: ch.x, z: ch.z, ry: int.spots.chairRy };
+  return { SEAT, ext, int, jackOut, aOut, jackIn, ja, mother, ma, paintJack, world, iworld, scene };
 }
 
-// A point given in the lap stage's own units, in the world as the stage stands now.
-const sp = (W, x, y, z) => W.lap.stage.localToWorld(v(x, y, z));
-function stageShot(W, pos, at, fov) { W.lap.stage.updateMatrixWorld(true); return { pos: sp(W, ...pos), look: sp(W, ...at), fov: fov || 40 }; }
-
-// ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────────────────
 async function run(G, choices, opts) {
   opts = opts || {};
-  const W = build(G), tier = tierOf(choices), say = G.say, who = (w, t, o) => G.say(w, t, o);
-  const { jackOut, aOut, jackIn, ja, mother, ma, mBirch, jBirch, lap, int, ext, SEAT, TABLE } = W;
+  const W = build(G), tier = tierOf(choices), who = (w, t, o) => G.say(w, t, o);
+  const { jackOut, aOut, jackIn, ja, mother, ma, int, SEAT } = W;
   const pick = (a, b, c) => [a, b, c][tier];
   // The indoor staging is laid out from the chair: cl(a, y, b) is a point a units ahead of it (the way it faces) and b to its right, so it follows the chair wherever the room editor puts it.
   const cl = (a, y, b) => v(SEAT.x + a * Math.sin(SEAT.ry) + (b || 0) * Math.cos(SEAT.ry), y, SEAT.z + a * Math.cos(SEAT.ry) - (b || 0) * Math.sin(SEAT.ry));
@@ -113,208 +99,87 @@ async function run(G, choices, opts) {
     }
     a.speed = 0; if (face != null) rig.root.rotation.y = face;
   };
-  // ── 1. Outside: home through the gate, up the path to the door. ──
+
+  // ── 1. Outside: home through the gate, up the path to the door. Three angles; Jack is put where he stands as each begins. ──
   G.setScene(W.world); A && A.ambience({ wind: 0.25, birds: 0, fire: 0 }); A && A.duckMusic(0.5, 2); A && A.startMusic({ dark: true });
-  jackOut.root.visible = true; jackOut.root.position.set(0, 0, 150); jackOut.root.rotation.y = Math.PI; aOut.fist = 1; aOut.bow = 0.2; W.paintJack(jackOut, { expr: pick(1, 5, 5) });
+  const outJack = (x, z) => { jackOut.root.visible = true; jackOut.root.position.set(x, 0, z); jackOut.root.rotation.y = Math.PI; aOut.speed = 0; aOut.fist = 1; aOut.bow = 0.2; W.paintJack(jackOut, { expr: pick(1, 5, 5) }); };
   const outShots = {
     gate: { pos: v(-62, 20, 176), look: v(4, 14, 100), fov: 46 },
     path: { pos: v(-40, 16, 88), look: v(6, 14, 60), fov: 48 },
     door: { pos: v(84, 16, 56), look: v(30, 16, 26), fov: 44 },
   };
-  G.cut(outShots.gate); await G.fade(false, 1.6);
-  const walkOut = walk(jackOut, aOut, [v(0, 0, 128), v(0, 0, 66), v(34, 0, 62), v(34, 0, 29)], 24, Math.PI);
-  await G.wait(3.2); G.cut(outShots.path);
-  await G.wait(3.4); G.cut(outShots.door);
-  await walkOut;
+  G.cut(outShots.gate, () => outJack(0, 150));
+  await G.fade(false, 1.6);
+  await walk(jackOut, aOut, [v(0, 0, 98)], 24, Math.PI);
+  G.cut(outShots.path, () => outJack(0, 98));
+  await walk(jackOut, aOut, [v(0, 0, 66), v(34, 0, 62), v(34, 0, 29)], 24, Math.PI);
+  G.cut(outShots.door, () => outJack(34, 29));
   await G.wait(0.6);
   await who('jack', pick('Perhaps I should have said no.', 'She’ll understand, once she sees them.', 'Home before the lamps burn low. Wait until she sees what I’ve brought.'));
   await G.wait(0.4); A && A.thwack(0.3, true, 0.5);
   await G.fade(true, 1.0);
 
-  // ── 2. Indoors: the telling. ──
-  G.setScene(W.iworld); jackOut.root.visible = false; aOut.fist = 0;
-  A && A.ambience({ wind: 0.1, birds: 0, fire: 0.8 });
-  mother.root.visible = true; jackIn.root.visible = true; lap.stage.visible = false;
-  int.chair.visible = true; mother.setExpr(1); B.setPose(mother, 'stand'); mother.pose = 'stand'; ma.fold = 1; ma.wag = 0; ma.gesture = 0; ma.chin = 0;
-  mother.root.position.copy(cl(5, 0)); mother.root.rotation.y = SEAT.ry; jackIn.root.position.set(34, 0, 50); jackIn.root.rotation.y = Math.PI; W.paintJack(jackIn, { expr: pick(1, 5, 5) }); ja.fist = 1;
-  for (let i = 0; i < 20; i++) { B.step(mother, 0.1); B.step(jackIn, 0.1); }
+  // ── 2. Indoors: the telling. Every beat puts Jack and his Mother where they are as it begins (telling()), then does only what happens within it. ──
   const sh = {
     wide: { pos: cl(64, 36, -44), look: cl(16, 22), fov: 46 },
     mFace: { pos: cl(40, 30, 28), look: cl(5, 25, 2), fov: 36 },
     jFace: { pos: cl(14, 26, -22), look: cl(28, 22), fov: 40 },
   };
-  sh.two = sh.wide;
-
-  G.cut(sh.wide); await G.fade(false, 1.2); await G.wait(0.6);
+  const telling = (o) => {
+    o = Object.assign({ jackAt: cl(28, 0), ry: SEAT.ry + Math.PI, bow: pick(1, 0.4, 0), fist: 1, hold: 0, gesture: 0, wag: 0, fold: 1, chin: 0, seated: false }, o || {});
+    G.setScene(W.iworld); A && A.ambience({ wind: 0.1, birds: 0, fire: 0.8 });
+    jackOut.root.visible = false; mother.root.visible = true; jackIn.root.visible = true; int.chair.visible = true; mother.setExpr(1);
+    jackIn.root.position.copy(o.jackAt); jackIn.root.rotation.y = o.ry; W.paintJack(jackIn, { expr: pick(1, 5, 5) });
+    ja.speed = 0; ja.fist = o.fist; ja.hold = o.hold; ja.bow = o.bow; ja.cover = 0; ja.shuffle = 0;
+    ma.gesture = o.gesture; ma.wag = o.wag; ma.fold = o.fold; ma.chin = o.chin; ma.speed = 0;
+    if (o.seated) { B.setPose(mother, 'sit'); mother.pose = 'sit'; mother.root.position.set(SEAT.x, STAGE_Y, SEAT.z); }
+    else { B.setPose(mother, 'stand'); mother.pose = 'stand'; mother.root.position.copy(cl(5, 0)); }
+    mother.root.rotation.y = SEAT.ry;
+    for (let i = 0; i < 20; i++) { B.step(mother, 0.1); B.step(jackIn, 0.1); }
+  };
+  G.cut(sh.wide, () => telling({ jackAt: v(34, 0, 50), ry: Math.PI, bow: 0 }));        // Jack comes in at the door and crosses the room
+  await G.fade(false, 1.2); await G.wait(0.6);
   await walk(jackIn, ja, [v(30, 0, 0), cl(42, 0), cl(28, 0)], 24, SEAT.ry + Math.PI);
-  ja.speed = 0; ja.bow = pick(1, 0.4, 0);
-  G.cut(sh.mFace);
+  ja.bow = pick(1, 0.4, 0);
+  G.cut(sh.mFace, () => telling());
   await who('mother', 'Where is Milky-White?');
-  G.cut(sh.jFace);
+  G.cut(sh.jFace, () => telling());
   await who('jack', pick('I sold her, Mother. But not for coin. I know how it will sound.', 'I sold her, Mother. Look what I got for her.', 'Gone, Mother. Sold, and for a good deal more than coin.'));
-  G.cut(sh.mFace); ma.chin = 0;
+  G.cut(sh.mFace, () => telling());
   await who('mother', 'What is in your hand, Jack?');
-  G.cut(sh.two); ja.fist = 0; ja.hold = 0.8;
-  await who('jack', pick('Beans. The woman said they grow whatever we need, whether we know it or not. I believed her.', 'Beans, Mother. Magic ones. The woman at the cart said they grow whatever we need.', 'Beans, Mother. Five of them, and every one enchanted. Gold, silver, ember red, moss green, and one the deep blue of a night with no end.'));
-  ja.hold = 0;
-  G.cut(sh.mFace);
+  G.cut(sh.wide, () => telling({ fist: 0, hold: 0.8 }));
+  await who('jack', pick('Beans. The woman said they grow whatever we need, whether we know it or not. I believed her.', 'Beans, Mother. Magic ones. The woman at the cart said they grow whatever we need.', 'Beans, Mother. Five of them, and every one enchanted. Gold, silver, ember red, moss green, and one the deep blue of a night sky.'));
+  G.cut(sh.mFace, () => telling({ fist: 0 }));
   await who('mother', 'Beans.');
   ma.gesture = 1; ma.wag = 0.6; ma.fold = 0;
   await who('mother', 'We had one cow. One. You were to bring home coin for the roof and flour for the winter. And you have brought me five beans.');
-  G.cut(sh.jFace);
+  G.cut(sh.jFace, () => telling({ fist: 0, gesture: 1, wag: 0.6, fold: 0 }));
   await who('jack', pick('I know. I’m sorry. I didn’t think. She spoke so well, and I wanted so badly to bring you something.', 'It was a fair trade, Mother. She said so herself.', 'It was a fair exchange. You’ll see. By spring we’ll have more than a cow’s worth, and you’ll be the first to say so.'));
-  G.cut(sh.mFace); ma.wag = 1;
+  G.cut(sh.mFace, () => telling({ fist: 0, gesture: 1, wag: 1, fold: 0 }));
   await who('mother', 'A fair trade. This is the third time this week you have come home with foolishness in place of sense, and the last of our cow besides. I told you this morning. Not for stories. Not for tricks.');
-  G.cut(sh.jFace);
+  G.cut(sh.jFace, () => telling({ fist: 0, gesture: 1, wag: 1, fold: 0 }));
   await who('jack', pick('Mother, please. I can fix this. I’ll find her, I’ll—', 'I did what I thought was best.', 'You never believe me! One day you’ll see I was right.'));
-  G.cut(sh.mFace); ma.wag = 0.4;
+  G.cut(sh.mFace, () => telling({ fist: 0, gesture: 1, wag: 0.4, fold: 0 }));
   await who('mother', pick('Hush.', 'You did what pleased you.', 'I believe every word you say, Jack. That is the trouble.'));
   // She sits in the chair by the hearth, and calls him to her.
-  G.cut(sh.jFace); ma.gesture = 0; ma.wag = 0; ma.fold = 0;
-  await G.wait(0.4); B.setPose(mother, 'sit'); mother.pose = 'sit'; mother.root.position.set(SEAT.x, STAGE_Y, SEAT.z); mother.root.rotation.y = SEAT.ry; ma.chin = 0;
+  G.cut(sh.jFace, () => telling({ fist: 0 , gesture: 0, wag: 0, fold: 0 }));
+  await G.wait(0.4); B.setPose(mother, 'sit'); mother.pose = 'sit'; mother.root.position.set(SEAT.x, STAGE_Y, SEAT.z); mother.root.rotation.y = SEAT.ry;
   for (let i = 0; i < 12; i++) B.step(mother, 0.1);
-  G.cut(sh.two);
+  await G.wait(0.6);
+  G.cut(sh.wide, () => telling({ fist: 0, gesture: 0, wag: 0, fold: 0, seated: true }));
   await who('mother', 'Come here.');
   await who('jack', 'Mother?');
   await who('mother', 'Come here, Jack.');
-  await walk(jackIn, ja, [cl(26, 0)], 12, SEAT.ry + Math.PI);
+  ja.shuffle = 1; ja.bow = 1;
+  await walk(jackIn, ja, [cl(16, 0)], 12, SEAT.ry + Math.PI);
   ja.speed = 0;
-
-  // ── 3. Across her knee. ──
-  W.placeStage(SEAT);
-  const cams = {
-    seat: stageShot(W, [-60, 20, 16], [0, 12, 6], 38),
-    seatClose: stageShot(W, [-44, 16, 12], [0, 12, 6], 32),
-    lap: stageShot(W, [-44, 52, 46], [-3, 9, 4], 38),
-    lapBehind: stageShot(W, [-30, 16, 10], [-6, 8, 5], 36),
-    lapFace: stageShot(W, [6, 14, 60], [6, 6, 4], 36),
-  };
-  jackIn.root.visible = false; mother.root.visible = false; lap.stage.visible = true; int.chair.visible = false;
-  lap.reset(); lap.layers({ trousers: 'up', drawers: 'up' }); lap.armed(false); lap.place('seat', 0); lap.giver('mother', 1);
-  lap.st.sound = true; lap.st.strength = 1.1; lap.st.pace = 1;
-  G.cut(cams.seat); await G.wait(0.4);
-  await who('jack', pick('Mother, please. I’ve learned, I swear it.', 'Mother, you can’t mean it.', 'You can’t be serious.'));
-  lap.fumble(1); await G.wait(0.4);
-  await who('mother', 'Dead serious. You were told, plain and clear.');
-  G.cut(cams.seatClose);
-  await who('jack', pick('I’m too old for this—', 'I’m twenty-one! You can’t treat me like a boy!', 'I’m twenty-one, Mother! You can’t just—'));
-  await who('mother', 'Then stop behaving like one.');
-  lap.layers({ trousers: 'down' }); A && A.blip && A.blip(); await G.wait(0.5);
-  await who('jack', 'Mother!');
-  lap.layers({ drawers: 'down' }); lap.fumble(0); lap.cover(1); await G.wait(0.5);
-  await who('mother', 'No more clever excuses. No more compasses and lucky finds and magic anything. I am tired, Jack. Tired of clearing up after your choices.');
-  lap.cover(0); lap.place('lap', 1.4); G.cut(cams.lap); await G.wait(1.7);
-  // The hand.
-  lap.implement('hand'); lap.st.strength = 1.1;
-  const smacks = async n => {
-    if (G.skipping) { lap.st.pace = 8; } else lap.st.pace = 1;
-    lap.run(n); await G.wait(0.4);
-    for (let i = 0; i < 400 && (lap.info().busy || lap.info().running); i++) await G.wait(0.1);
-    lap.st.pace = 1;
-  };
-  const P_ = (hu, mi, br) => pick(hu, mi, br);
-  await who('mother', 'You were trusted with a simple task.');
-  await smacks(P_(5, 6, 6));
-  G.cut(cams.lapBehind);
-  await who('jack', pick('Ow! I’m sorry, I’m sorry!', 'Ow! It was a fair trade!', 'It was a fair trade!'));
-  await who('mother', 'You sold our food for a dream, and came home smiling.');
-  await smacks(P_(6, 7, 7));
-  G.cut(cams.lapFace);
-  await who('jack', pick('I won’t do it again, I won’t!', 'Mother, that’s enough!', 'They’re magic, Mother! You’ll see!'));
-  G.cut(cams.lap);
-  await who('mother', 'You think the world owes you wonders. Perhaps it does. But not like this.');
-  await smacks(P_(5, 8, 8));
-  await who('jack', pick('Please, Mother, I understand, I do!', 'Ow! Please!', 'I’d do it again! Ow! I would!'));
-  if (tier >= 1) {
-    G.cut(cams.lapBehind);
-    await who('mother', 'That is for forgetting my voice.'); await smacks(3);
-    await who('mother', 'For forgetting your word.'); await smacks(3);
-    await who('mother', 'And for forgetting your place.'); await smacks(P_(0, 4, 5));
-    G.cut(cams.lapFace);
-    await who('jack', tier === 1 ? 'Yes, Mother! I’m sorry! I’m sorry!' : 'It’s not— it’s not fair! Ow! You’ll see, you’ll all see!');
-  }
-  await G.wait(0.5);
-  lap.st.sound = true;
-  if (tier < 2) {
-    // The end of it: she lets him up and sets him on his feet.
-    G.cut(cams.lap);
-    await who('mother', tier === 0 ? 'There. That will do.' : 'There. Up.');
-    lap.place('seat', 1.4); lap.cover(1); G.cut(cams.seatClose); await G.wait(1.6);
-  } else {
-    // He has not had enough: the birch.
-    G.cut(cams.lap);
-    await who('mother', 'You still think this a joke.');
-    await who('jack', 'It isn’t— Mother, I— the beans—');
-    await who('mother', 'Up.');
-    lap.place('seat', 1.2); lap.cover(1); G.cut(cams.seatClose); await G.wait(1.4);
-    await who('mother', 'Fetch me the birch.');
-    await who('jack', 'The birch? Mother, no—');
-    await who('mother', 'It hangs on its nail by the hearth. Fetch it. Now.');
-    await who('jack', 'I’ve had enough! I’ve— I’ve had enough!');
-    await who('mother', 'Not by half. Go.');
-    // He goes, bare below the waist, with his trousers about his knees.
-    lap.stage.visible = false; mother.root.visible = true; jackIn.root.visible = true; int.chair.visible = false; int.chair.visible = true;
-    B.setPose(mother, 'sit'); mother.pose = 'sit'; mother.root.position.set(SEAT.x, STAGE_Y, SEAT.z); mother.root.rotation.y = SEAT.ry; ma.fold = 0; ma.gesture = 0.3;
-    W.paintJack(jackIn, { expr: 3, trousers: 'down', drawers: 'down', marks: lap.st.marks }); ja.cover = 0; ja.shuffle = 1; ja.bow = 1;
-    jackIn.root.position.copy(cl(26, 0)); jackIn.root.rotation.y = SEAT.ry + Math.PI;
-    const hook = int.spots.birch;
-    const walkCams = { wide: { pos: v(-22, 44, 30), look: v(30, 14, 0), fov: 62 }, hook: { pos: v(34, 30, 40), look: v(66, 24, 58), fov: 48 } };
-    G.cut(walkCams.wide);
-    await walk(jackIn, ja, [v(30, 0, 0), v(hook.x, 0, hook.z)], 9, Math.PI / 2);
-    G.cut(walkCams.hook); int.birchProp.root.visible = false; jBirch.root.visible = true; ja.hold = 0.7; await G.wait(0.8);
-    await who('jack', 'Mother, please. I’ll plant them, I’ll do anything—');
-    G.cut(walkCams.wide);
-    await walk(jackIn, ja, [v(30, 0, 0), cl(26, 0)], 9, SEAT.ry + Math.PI);
-    await who('mother', 'You will. After.');
-    jBirch.root.visible = false; mBirch.root.visible = true; ja.hold = 0; ma.birch = 1;
-    G.cut(sh.mFace); await who('mother', 'Over the table.');
-    await who('jack', 'Mother—');
-    await who('mother', 'Now, Jack.');
-    // To the table: she stands, he takes his place at its edge, and bends.
-    mother.root.visible = false; jackIn.root.visible = false; lap.stage.visible = true; int.chair.visible = true;
-    W.placeStage(TABLE);
-    int.tableClutter.visible = false; lap.layers({ trousers: 'down', drawers: 'down' }); lap.armed(true); lap.implement('birch'); lap.place('after', 0); lap.giver('mother', 1); lap.st.strength = 1.35;
-    const tcams = {
-      behind: stageShot(W, [-46, 22, 30], [-4, 9, -2], 40),
-      above: stageShot(W, [-20, 46, 40], [-4, 9, -2], 40),
-      side: stageShot(W, [-46, 22, 30], [-4, 9, -2], 40),
-      face: stageShot(W, [14, 24, 46], [-4, 10, -2], 40),
-    };
-    G.cut(tcams.side); await G.wait(0.5);
-    lap.place('table', 1.6); await G.wait(1.9);
-    G.cut(tcams.behind);
-    await who('mother', 'Hands flat on the table.');
-    await who('jack', 'Mother, I’ve learned, I swear—');
-    lap.st.pace = 1; await smacks(4);
-    G.cut(tcams.face);
-    await who('jack', 'Ow! Ow! Mother!');
-    G.cut(tcams.above);
-    await who('mother', 'Is it a fair trade now?');
-    await smacks(4);
-    G.cut(tcams.behind);
-    await who('jack', 'No! No, it isn’t! I’m sorry, I’m sorry!');
-    await who('mother', 'Every one of those beans goes into the ground tonight, and every one of them is yours to answer for.');
-    await smacks(3);
-    G.cut(tcams.face);
-    await who('jack', 'Yes, Mother! Yes!');
-    await G.wait(0.5);
-    G.cut(tcams.side);
-    await who('mother', 'Up.');
-    lap.place('after', 1.6); lap.cover(1); await G.wait(1.8);
-  }
-  // ── 4. Up again; out to the garden. ──
-  const endCam = tier === 2 ? stageShot(W, [-30, 24, 32], [-5, 14, -5], 42) : cams.seatClose;
-  G.cut(endCam);
-  await who('mother', tier === 0 ? 'Pull your trousers up.' : 'Pull your trousers up, and wipe your face.');
-  lap.layers({ trousers: 'up', drawers: 'up' }); lap.cover(0); await G.wait(0.8);
-  await who('jack', 'Yes, Mother.');
-  await who('mother', 'Go and plant them, then. If they’re so powerful. We will see what comes up.');
-  await G.wait(0.5);
+  // The scene ends here, as he steps up to her knee: the correction that follows is a scene of its own.
+  await G.wait(0.8);
   A && A.stopMusic(2.5); await G.fade(true, 2.4); A && A.ambience({ wind: 0, birds: 0, fire: 0 });
-  lap.stage.visible = false; G.hideLine && G.hideLine(); await G.wait(1);
+  G.hideLine && G.hideLine(); await G.wait(1);
   G.mode = 'end'; document.body.classList.remove('cutscene');
-  return { tier, brash: brashness(choices), hits: lap.st.hits };
+  return { tier, brash: brashness(choices), hits: 0 };
 }
 
-root.Night = { run, brashness, tierOf, build, SEAT, TABLE };
+root.Night = { run, brashness, tierOf, build };
 })(typeof window !== 'undefined' ? window : globalThis);

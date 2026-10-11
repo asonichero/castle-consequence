@@ -116,14 +116,16 @@ function create(els) {
   // A scene is a chain of awaited calls, so going forward just runs it fast (silently) up to the next beat, and going back runs the scene again from its start the same way, up to the
   // wanted beat (G.rerun, set by the screen code, starts the current scene afresh). A run that has been left behind is cut off: its calls never come back.
   G.epoch = 0; G.beat = 0; G.beatT = 0; G.seekTo = null; G.paused = false; G.rerun = null; G.debugCtl = false;
-  let lastKind = null, muted = false;
+  let muted = false;
   const setMuted = m => { muted = m; const A = Audio_; if (A && A.nodes && A.nodes.master && A.ctx) { if (m) A.nodes.master.gain.value = 0; else A.setVol(); } };
   // Hooks for tools that work on the beats (scene-notes.html): onBeat(info) at every beat call; beatGate(n) may return a promise that holds the scene at the start of beat n;
   // camOverride(n) may return a camera { pos, look, fov } to use for beat n in place of the scene's own.
   G.onBeat = null; G.beatGate = null; G.camOverride = null; G.specOf = specOf; G.cutNow = cutNow;
   let stall = null, deferred = null;
+  // A beat is one camera angle: it begins when the scene cuts (or moves) to a new angle and runs until the next one, whatever is said and done in between. (Lines said before any angle
+  // has been set open beat 1.) G.cut(shot, setup): `setup` runs as the cut happens, to put everyone where they stand as the beat begins.
   const mark = kind => {
-    const merge = kind === 'say' && lastKind === 'cut'; lastKind = kind === 'cut' ? 'cut' : 'other'; if (merge) return false;     // (an angle cut straight to a line is one beat with it)
+    if (kind === 'say' && G.beat > 0) return false;
     G.beat++; G.beatT = G.t; if (G.seekTo != null && G.beat >= G.seekTo) { G.seekTo = null; G.skipping = false; }
     return true;
   };
@@ -136,6 +138,7 @@ function create(els) {
       const run = () => {
         if (kind === 'cut') { const ov = G.camOverride && G.camOverride(G.beat); if (ov) a = [ov, ...a.slice(1)]; }
         else if (isNew && G.camOverride) { const ov = G.camOverride(G.beat); if (ov) cutNow(ov); }
+        if (name === 'cut') { f(a[0]); if (typeof a[1] === 'function') a[1](); return undefined; }
         return f(...a);
       };
       const gate = isNew && G.beatGate ? G.beatGate(G.beat) : null;
@@ -144,7 +147,6 @@ function create(els) {
     };
   };
   wrapBeat('cut', 'cut'); wrapBeat('shot', 'cut'); wrapBeat('say', 'say'); wrapBeat('choose', 'say');
-  for (const n of ['wait', 'fade']) { const f = G[n]; G[n] = (...a) => { lastKind = 'other'; return f(...a); }; }
   const stalled = fn => (...a) => { if (stall) { const g = stall, d = deferred; stall = deferred = null; return g.then(() => { if (d) d(); return fn(...a); }); } return fn(...a); };
   for (const n of ['shot', 'say', 'choose', 'wait', 'fade']) G[n] = guard(stalled(G[n]));
   G.pause = on => { G.paused = on === undefined ? !G.paused : !!on; const A = Audio_; if (A && A.ctx) { try { G.paused ? A.ctx.suspend() : A.ctx.resume(); } catch (e) { /* no audio */ } } return G.paused; };
@@ -152,7 +154,7 @@ function create(els) {
   // Run the current scene again from its start, fast and silent, up to the start of beat `target` (then it plays normally).
   G.restartAt = target => {
     if (!G.rerun) return false;
-    G.pause(false); G.epoch++; G.beat = 0; lastKind = null; stall = deferred = null; waiters.length = 0; move.active = null; G.skipping = false; G.seekTo = Math.max(1, target); G.hideLine();
+    G.pause(false); G.epoch++; G.beat = 0; stall = deferred = null; waiters.length = 0; move.active = null; G.skipping = false; G.seekTo = Math.max(1, target); G.hideLine();
     fadeEl.style.transition = 'none'; G.rerun(); return true;
   };
   G.rewind = () => G.mode === 'cutscene' && G.restartAt(G.t - G.beatT > 1.5 || G.beat <= 1 ? Math.max(1, G.beat) : G.beat - 1);      // (well into a beat, back goes to its own start)
