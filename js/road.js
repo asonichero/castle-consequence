@@ -229,7 +229,7 @@ function build(G) {
       if (!c.p) { c.p = new V3(); c.m.getWorldPosition(c.p); } wp.copy(c.p); const t = clamp(((wp.x - ax) * ex + (wp.y - ay) * ey + (wp.z - az) * ez) / l2, 0, 1), dx = wp.x - (ax + ex * t), dy = wp.y - (ay + ey * t), dz = wp.z - (az + ez * t);
       c.m.visible = (dx * dx + dy * dy + dz * dz) > (c.r + 14) ** 2 && (wp.x - ax) ** 2 + (wp.y - ay) ** 2 + (wp.z - az) ** 2 > (30 + c.r) ** 2;
     }
-    for (const tr of trunks) { let vis = true; for (const q of tr.pts) { const t = clamp(((q.x - ax) * ex + (q.y - ay) * ey + (q.z - az) * ez) / l2, 0, 1), dx = q.x - (ax + ex * t), dy = q.y - (ay + ey * t), dz = q.z - (az + ez * t); if (dx * dx + dy * dy + dz * dz < 12 * 12 || (q.x - ax) ** 2 + (q.y - ay) ** 2 + (q.z - az) ** 2 < 20 * 20) { vis = false; break; } } tr.m.visible = vis; }
+    for (const tr of trunks) { let vis = true; for (const q of tr.pts) { const t = clamp(((q.x - ax) * ex + (q.y - ay) * ey + (q.z - az) * ez) / l2, 0, 1), dx = q.x - (ax + ex * t), dy = q.y - (ay + ey * t), dz = q.z - (az + ez * t); if (dx * dx + dy * dy + dz * dz < 16 * 16 || (q.x - ax) ** 2 + (q.y - ay) ** 2 + (q.z - az) ** 2 < 46 * 46) { vis = false; break; } } tr.m.visible = vis; }
     for (const g of forest) g.visible = (g.position.x - around.x) ** 2 + (g.position.z - around.z) ** 2 < 520 * 520;
   };
   return { hitch, cull, cart, R, scene, world, items, ties, canopy, trunks, forest, jack, peddler, cowM, ja, pa, paintJack, cord, halter, heldGroup, beans, end, cartPos, trailDir, trailStart};
