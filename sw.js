@@ -1,5 +1,5 @@
 // Service worker: caches the game on first load so it installs and plays offline. Bump VERSION whenever the files change, so installed copies refresh.
-const VERSION = 'consequence-v22';
+const VERSION = 'consequence-v23';
 const FILES = [
   'game.html', 'level.html', 'manifest.webmanifest',
   'js/blocky.js', 'js/cast.js', 'js/audio.js', 'js/farm.js', 'js/game.js', 'js/opening.js', 'js/market.js', 'js/road.js', 'js/night.js', 'js/menus.js', 'js/pain.js', 'js/lap-poses.js', 'js/lap.js', 'js/level.js',

@@ -218,6 +218,7 @@ function create(view, opts) {
       if (b.userData.proc) { b.quaternion.copy(b.userData.proc); b.userData.proc = null; b.position.copy(basePos.get(b)); }
     }
     frame.quaternion.copy(frameBase); glutesTilt.quaternion.copy(glutesBase);
+    gerda.pelvis.position.set(0, 1.5, 0); jack.pelvis.position.set(0, 1.5, 0);
   }
   // The offsets one bone takes at the given beat weights: a rotation (quaternion) and a position shift, or null if it has none.
   function editFor(who, n, weights) {
@@ -241,6 +242,7 @@ function create(view, opts) {
       bone.position.x += e.p[0]; bone.position.y += e.p[1]; bone.position.z += e.p[2];
       if (n === 'torso' && (e.p[0] || e.p[1] || e.p[2])) {            // moving the torso carries the legs with it (they hang from the same hips)
         for (const leg of ['thighL', 'thighR']) { const lb = BONES[who][leg]; if (!lb.userData.proc) lb.userData.proc = lb.quaternion.clone(); lb.position.x += e.p[0]; lb.position.y += e.p[1]; lb.position.z += e.p[2]; }
+        const pv = (who === 'gerda' ? gerda : jack).pelvis; pv.position.x += e.p[0]; pv.position.y += e.p[1]; pv.position.z += e.p[2];       // (and the pelvis, which is the legs' top)
       }
     }
   }
