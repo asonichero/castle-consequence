@@ -48,7 +48,8 @@ function create(els) {
   const subs = els.subs, subWho = els.subWho, subText = els.subText;
   let advance = null;
   const tap = () => { if (advance) advance(); };
-  root.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { if (G.mode === 'cutscene') { e.preventDefault(); tap(); } } });
+  const typing_ = e => e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT' || e.target.isContentEditable);   // (keys typed into a field are not the story's)
+  root.addEventListener('keydown', e => { if (typing_(e)) return; if (e.key === ' ' || e.key === 'Enter') { if (G.mode === 'cutscene') { e.preventDefault(); tap(); } } });
   els.stage.addEventListener('pointerdown', () => { if (G.mode === 'cutscene') tap(); });
   subs.addEventListener('pointerdown', e => { e.stopPropagation(); if (G.mode === 'cutscene') tap(); });
   const WHO = { mother: ['Mother', '#e6b8a0'], jack: ['Jack', '#a8d8a0'], gerda: ['Gerda', '#e6a0c0'], peddler: ['Peddler', '#c8c090'], merchant: ['Merchant', '#a0c8f0'], narrator: ['', '#e6c46a'] };
@@ -156,7 +157,7 @@ function create(els) {
   };
   G.rewind = () => G.mode === 'cutscene' && G.restartAt(G.t - G.beatT > 1.5 || G.beat <= 1 ? Math.max(1, G.beat) : G.beat - 1);      // (well into a beat, back goes to its own start)
   root.addEventListener('keydown', e => {
-    if (!G.debugCtl || G.mode !== 'cutscene') return;
+    if (!G.debugCtl || G.mode !== 'cutscene' || typing_(e)) return;
     if (e.key === 'p' || e.key === 'P') G.pause(); else if (e.key === ',' || e.key === '[') G.rewind(); else if (e.key === '.' || e.key === ']') G.forward(); else return; e.preventDefault();
   });
 
