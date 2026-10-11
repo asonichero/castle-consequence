@@ -54,16 +54,21 @@ async function run(G, W) {
   A && A.ambience({ wind: 0.8, birds: 0.6, fire: 0 }); A && A.duckMusic(0.35, 4);
   G.drone = null;
   const from = G.shotNow();
-  const sounds = (async () => {
-    await G.wait(14.5); if (G.skipping) return; A && A.duckMusic(0.12, 2);
-    const plan = [[0.9, 0.7, 1], [1.0, 0.8, 1], [0.95, 0.85, 2], [0.9, 0.9, 2], [1.0, 1.0, 3], [1.0, 1.1, 3], [0.9, 1.2, 4]];
-    for (let i = 0; i < plan.length; i++) { if (G.skipping) return; const k = 0.55 + 0.1 * i; A && A.thwack(plan[i][1], 520, k); A && A.voice(plan[i][1], plan[i][2], true, k); await G.wait(1.15); }
-  })();
-  const murmur = (async () => { await G.wait(15.5); if (G.skipping) return; A && A.speak('mother', 'And that is what comes of telling tales to me, Jack, mind you remember it, because I will not do this again', 6.5, { muffle: true, vol: 0.9 }); })();
+  // The correction, heard from the end of the first camera move: nine smacks of a hand on bare skin through the wall, Jack's cries and his Mother's scolding with them.
+  // They start dull and far off and grow more distinct (the wall's low-pass opens, the volume rises) as the camera nears the glass.
+  const sounds = async () => {
+    const gaps = [1.25, 1.2, 1.35, 1.15, 1.25, 1.15, 1.05, 1.2, 1.0], n = gaps.length; A && A.duckMusic(0.1, 2.5);
+    for (let i = 0; i < n; i++) {
+      if (G.skipping) return; const f = i / (n - 1), cut = 420 * Math.pow(13, f), vol = 0.5 + 0.55 * f;
+      if (A) { A.thwack(0.85 + 0.15 * f, cut, vol); A.voice(0.7 + 0.4 * f, Math.min(4, 1 + Math.floor(f * 3.5)), cut * 0.9, vol * 0.9); if (i === 2) A.speak('mother', 'And that is what comes of telling tales to me, Jack, mind you remember it', 4.5, { muffle: true, cutoff: cut * 1.4, vol: 0.9 }); if (i === 6) A.speak('mother', 'I will not do this again', 2, { muffle: true, cutoff: cut * 1.4, vol: 1.1 }); }
+      await G.wait(gaps[i]);
+    }
+  };
   await G.shot({ pos: v(-76, 130, 200), look: v(-34, 24, 18), fov: 44 }, 8.5, 'inOut');
+  const heard = sounds();
   await G.shot({ pos: v(-34, 38, 74), look: v(-34, 30, 18), fov: 40 }, 7, 'inOut');
   await G.shot({ pos: v(-34, 31, 40), look: v(-34, 30, 18), fov: 38 }, 5, 'in');
-  await Promise.all([sounds, murmur]);
+  await heard;
   await G.wait(0.6);
   await G.fade(true, 1.2);
   // 2. The room.

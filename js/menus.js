@@ -43,7 +43,7 @@ $('bReset').onclick = () => { if (confirm('Delete your saved game?')) { G.clearS
 
 // Settings controls.
 const vol = [['vMaster', 'master'], ['vMusic', 'music'], ['vSfx', 'sfx'], ['vVoice', 'voice']];
-vol.forEach(([id, k]) => { const el = $(id); el.value = Math.round(A.vols[k] * 100); el.oninput = () => { A.init(); A.setVol(k, el.value / 100); if (k === 'sfx') A.thwack(0.4, 900); if (k === 'voice') A.speak('mother', 'Stand still, Jack.', 1); }; });
+vol.forEach(([id, k]) => { const el = $(id); el.value = Math.round(A.vols[k] * 100); el.oninput = () => { A.init(); A.setVol(k, el.value / 100); if (k === 'sfx') A.thwack(0.7); if (k === 'voice') A.speak('mother', 'Stand still, Jack.', 1); }; });
 $('vSpeed').value = Math.round(G.settings.speed * 100); $('vSpeed').oninput = () => { G.settings.speed = $('vSpeed').value / 100; G.saveSettings(); };
 $('cAuto').checked = G.settings.auto; $('cAuto').onchange = () => { G.settings.auto = $('cAuto').checked; G.saveSettings(); };
 $('cSubs').checked = G.settings.subtitles; $('cSubs').onchange = () => { G.settings.subtitles = $('cSubs').checked; G.saveSettings(); };

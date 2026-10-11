@@ -31,7 +31,9 @@
   #dev { position: fixed; left: 12px; bottom: 10px; font-size: 12px; opacity: .65; z-index: 31; } #dev a { color: #c9b87a; margin-right: 12px; }
   #ver { position: fixed; right: 12px; bottom: 10px; font-size: 12px; opacity: .55; z-index: 31; }
   #settings, #endcard { background: rgba(8,10,14,0.78); align-items: center; justify-content: center; }
-  .row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 9px 0; font-size: 15px; } .row input[type=range] { width: 54%; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 9px 0; font-size: 15px; }
+  .row.stack { flex-direction: column; align-items: stretch; gap: 2px; margin: 12px 0; } .row.stack input[type=range] { width: 100%; margin: 0; }
+  .card.narrow { max-width: 340px; width: min(340px, 90vw); max-height: 92vh; overflow-y: auto; }
   #subs { position: fixed; left: 50%; bottom: 5vh; transform: translateX(-50%); width: min(780px, 92vw); display: none; z-index: 20; background: rgba(8,8,12,0.78); border: 1px solid #4a4d58; border-radius: 8px; padding: 12px 18px 14px; font-size: clamp(15px, 2.2vw, 20px); line-height: 1.5; }
   #subWho { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 4px; } #subText { min-height: 1.5em; }
   #skip { position: fixed; right: 14px; top: 12px; z-index: 35; display: none; opacity: .75; font-size: 14px; padding: 7px 12px; } body.cutscene #skip { display: block; }
@@ -66,13 +68,13 @@
 <div id="ver">v0.3 &middot; the opening</div>
 
 <div id="settings" class="screen">
-  <div class="card">
+  <div class="card narrow">
     <h2>Settings</h2>
-    <div class="row"><span>Master volume</span><input type="range" id="vMaster" min="0" max="100"></div>
-    <div class="row"><span>Music</span><input type="range" id="vMusic" min="0" max="100"></div>
-    <div class="row"><span>Sound effects</span><input type="range" id="vSfx" min="0" max="100"></div>
-    <div class="row"><span>Voices</span><input type="range" id="vVoice" min="0" max="100"></div>
-    <div class="row"><span>Dialogue speed</span><input type="range" id="vSpeed" min="50" max="200"></div>
+    <div class="row stack"><span>Master volume</span><input type="range" id="vMaster" min="0" max="100"></div>
+    <div class="row stack"><span>Music</span><input type="range" id="vMusic" min="0" max="100"></div>
+    <div class="row stack"><span>Sound effects</span><input type="range" id="vSfx" min="0" max="100"></div>
+    <div class="row stack"><span>Voices</span><input type="range" id="vVoice" min="0" max="100"></div>
+    <div class="row stack"><span>Dialogue speed</span><input type="range" id="vSpeed" min="50" max="200"></div>
     <div class="row"><span>Advance dialogue automatically</span><input type="checkbox" id="cAuto"></div>
     <div class="row"><span>Subtitles</span><input type="checkbox" id="cSubs"></div>
     <p style="font-size:13px;opacity:.8">Safe word: <b>Red</b>. In any correction scene the Red button ends it at once, with nothing held against you.</p>
