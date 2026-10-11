@@ -260,8 +260,9 @@ function interior() {
   for (const x of [-7.2, 7.2]) { const st = new THREE.Group(); st.position.set(x, 0, 0); stairs.add(st); for (let i = 0; i < 12; i++) box(1.6, 4.6 * (i + 1), 3.6, mat('timber'), 0, 2.3 * (i + 1), -i * 3.6, st); }
   movable('stairs', 'Stairs (and the hole above)', stairs, { x: -W / 2 + 17, z: 22, ry: 0 });
   // The birch: a bundle of twigs hung on a nail by the hearth, on the wall to its left. (Not the broom in the corner: that one is for sweeping.)
-  box(1.4, 1.4, 4, plain('#2a2622'), -36, 27, -D / 2 + 2, room);
-  const birchHook = new THREE.Group(); birchHook.position.set(-36, 26.5, -D / 2 + 3.4); room.add(birchHook);
+  // (it hangs on the east wall beside the broom, from a nail at the height the broom's handle reaches)
+  box(4, 1.4, 1.4, plain('#2a2622'), W / 2 - 2, 34, 56, room);
+  const birchHook = new THREE.Group(); birchHook.position.set(W / 2 - 3.4, 33.5, 56); birchHook.rotation.y = -Math.PI / 2; room.add(birchHook);
   const birchProp = B.makeBirch(); birchProp.root.rotation.z = 0.05; birchHook.add(birchProp.root);
   // The corners nobody has dusted in a long time: cobwebs, grey drifts, mouse droppings; and in one, the birch bundle that does for a broom.
   const web = new THREE.MeshLambertMaterial({ color: 0xd8d8d0, transparent: true, opacity: 0.55 });
@@ -271,13 +272,19 @@ function interior() {
   }
   const broomAt = new THREE.Group(); room.add(broomAt); const broom = new THREE.Group(); broom.rotation.z = -0.1; broomAt.add(broom);
   box(1.2, 28, 1.2, mat('bark'), 0, 20, 0, broom); box(7, 12, 7, plain('#cbbfa0'), 0, 6, 0, broom); for (let i = 0; i < 6; i++) box(0.6, 12, 0.6, plain(i % 2 ? '#f0ecdd' : '#8a7a58'), (i % 3 - 1) * 2.4, 6, (i % 2 - 0.5) * 4.4, broom); box(8, 1.2, 8, plain('#4a3a28'), 0, 12, 0, broom); movable('broom', 'Broom', broomAt, { x: W / 2 - 8, z: D / 2 - 8, ry: 0 });
+  // Jack's pallet bed: a low frame with a straw tick, a blanket and a flat pillow; it goes under the window, its long edge to the front (south) wall.
+  const bed = new THREE.Group(); room.add(bed);
+  box(44, 3, 21, mat('plankDark'), 0, 1.5, 0, bed); for (const x of [-21, 21]) box(2, 6, 21, mat('plank'), x, 3, 0, bed); box(44, 6, 1.6, mat('plank'), 0, 3, -10.2, bed); box(44, 6, 1.6, mat('plank'), 0, 3, 10.2, bed);
+  box(40, 3, 18.4, plain('#c4ac6a'), 0, 4.5, 0, bed); for (let i = 0; i < 7; i++) box(40.2, 0.4, 0.6, plain('#a8904e'), 0, 6.1, -7.5 + i * 2.5, bed);
+  box(24, 1.2, 18.6, plain('#6a4a3a'), 7, 6.6, 0, bed); box(24.2, 1.3, 3, plain('#8a6a4a'), 7, 6.7, -6, bed); box(9, 2, 13, plain('#d8d0b8'), -15, 7, 0, bed);
+  movable('bed', 'Jack\'s pallet bed', bed, { x: -34, z: D / 2 - 3 - 10.7, ry: 0 });
   // A window in the south wall, and the door.
   const win = new THREE.Group(); win.position.set(-34, 30, D / 2 - 1); room.add(win); box(22, 20, 3, mat('timber'), 0, 0, 0, win); box(16, 14, 1.2, unlit('#6a7a8a'), 0, 0, -0.6, win); box(1.6, 14, 1.6, mat('timber'), 0, 0, -1, win); box(16, 1.6, 1.6, mat('timber'), 0, 0, -1, win);
-  const dr = new THREE.Group(); dr.position.set(34, 0, D / 2 - 1.5); room.add(dr); box(20, 32, 3, mat('timber'), 0, 16, 0, dr); box(16, 29, 2, mat('plankDark'), 0, 15, -0.8, dr); box(2, 2, 2, plain('#b8923a'), 5, 15, -2, dr);
+  const dr = new THREE.Group(); dr.position.set(34, 0, D / 2 - 1.5); room.add(dr); box(22, 42, 3, mat('timber'), 0, 21, 0, dr); box(15, 38, 1.8, mat('plankDark'), 0, 19.5, -0.8, dr); box(15, 2.6, 1.2, mat('timber'), 0, 8, -1.6, dr); box(15, 2.6, 1.2, mat('timber'), 0, 30, -1.6, dr); box(2, 2, 2, plain('#b8923a'), 5, 19, -2, dr);   // (the same size as the door outside)
   return {
     scene, room, ceiling: ceil, items, place, layout: () => { const o = {}; for (const k in items) { const g = items[k].g; o[k] = { x: +g.position.x.toFixed(1), z: +g.position.z.toFixed(1), ry: +g.rotation.y.toFixed(3) }; } return o; },
     W, D, H, chair, table, tableClutter, birchHook, birchProp,
-    spots: { birch: P(-36, 0, -D / 2 + 12), chair: P(chair.position.x, 0, chair.position.z), chairRy: chair.rotation.y, stool: P(stool.position.x, 0, stool.position.z), jack: P(-6, 0, -24), table: P(table.position.x, 0, table.position.z), tableRy: table.rotation.y, hearth: P(0, 0, -D / 2 + 14) },
+    spots: { birch: P(W / 2 - 13, 0, 56), chair: P(chair.position.x, 0, chair.position.z), chairRy: chair.rotation.y, stool: P(stool.position.x, 0, stool.position.z), jack: P(-6, 0, -24), table: P(table.position.x, 0, table.position.z), tableRy: table.rotation.y, hearth: P(0, 0, -D / 2 + 14) },
     update(dt, t) {
       for (const f of flames) { const s = f.base * (0.8 + 0.55 * Math.sin(t * 9 + f.ph) * Math.sin(t * 5.3 + f.ph * 2)); f.m.scale.y = Math.max(0.3, s / 5); f.m.position.y = 6 + s * 0.8 * 0.5; f.m.rotation.z = 0.12 * Math.sin(t * 7 + f.ph); }
       fire.intensity = 1.5 + 0.35 * Math.sin(t * 11) * Math.sin(t * 6.1) + 0.15 * Math.sin(t * 23); embers.scale.x = 0.9 + 0.1 * Math.sin(t * 3);

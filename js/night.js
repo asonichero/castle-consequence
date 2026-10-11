@@ -99,6 +99,8 @@ async function run(G, choices, opts) {
   const W = build(G), tier = tierOf(choices), say = G.say, who = (w, t, o) => G.say(w, t, o);
   const { jackOut, aOut, jackIn, ja, mother, ma, mBirch, jBirch, lap, int, ext, SEAT, TABLE } = W;
   const pick = (a, b, c) => [a, b, c][tier];
+  // The indoor staging is laid out from the chair: cl(a, y, b) is a point a units ahead of it (the way it faces) and b to its right, so it follows the chair wherever the room editor puts it.
+  const cl = (a, y, b) => v(SEAT.x + a * Math.sin(SEAT.ry) + (b || 0) * Math.cos(SEAT.ry), y, SEAT.z + a * Math.cos(SEAT.ry) - (b || 0) * Math.sin(SEAT.ry));
   G.mode = 'cutscene'; document.body.classList.add('cutscene'); G.drone = null;
   const walk = async (rig, a, pts, speed, face) => {                    // walk a rig through points, its feet going
     for (const q of pts) {
@@ -134,17 +136,17 @@ async function run(G, choices, opts) {
   A && A.ambience({ wind: 0.1, birds: 0, fire: 0.8 });
   mother.root.visible = true; jackIn.root.visible = true; lap.stage.visible = false;
   int.chair.visible = true; mother.setExpr(1); B.setPose(mother, 'stand'); mother.pose = 'stand'; ma.fold = 1; ma.wag = 0; ma.gesture = 0; ma.chin = 0;
-  mother.root.position.set(-22, 0, -27); mother.root.rotation.y = Math.PI / 2; jackIn.root.position.set(34, 0, 50); jackIn.root.rotation.y = Math.PI; W.paintJack(jackIn, { expr: pick(1, 5, 5) }); ja.fist = 1;
+  mother.root.position.copy(cl(5, 0)); mother.root.rotation.y = SEAT.ry; jackIn.root.position.set(34, 0, 50); jackIn.root.rotation.y = Math.PI; W.paintJack(jackIn, { expr: pick(1, 5, 5) }); ja.fist = 1;
   for (let i = 0; i < 20; i++) { B.step(mother, 0.1); B.step(jackIn, 0.1); }
   const sh = {
-    wide: { pos: v(-14, 24, 38), look: v(-12, 19, -27), fov: 42 },
-    door: { pos: v(-10, 26, -34), look: v(30, 16, 46), fov: 50 },
-    mFace: { pos: v(-10, 24, 18), look: v(-24, 21, -26), fov: 34 },
-    jFace: { pos: v(-34, 22, 8), look: v(-4, 17, -26), fov: 40 },
-    two: { pos: v(-14, 24, 38), look: v(-12, 19, -27), fov: 42 },
+    wide: { pos: cl(64, 36, -44), look: cl(16, 22), fov: 46 },
+    mFace: { pos: cl(40, 30, 28), look: cl(5, 25, 2), fov: 36 },
+    jFace: { pos: cl(14, 26, -22), look: cl(28, 22), fov: 40 },
   };
+  sh.two = sh.wide;
+
   G.cut(sh.wide); await G.fade(false, 1.2); await G.wait(0.6);
-  await walk(jackIn, ja, [v(34, 0, 30), v(12, 0, 26), v(12, 0, -26), v(-2, 0, -26)], 24, -Math.PI / 2);
+  await walk(jackIn, ja, [v(30, 0, 0), cl(42, 0), cl(28, 0)], 24, SEAT.ry + Math.PI);
   ja.speed = 0; ja.bow = pick(1, 0.4, 0);
   G.cut(sh.mFace);
   await who('mother', 'Where is Milky-White?');
@@ -175,7 +177,7 @@ async function run(G, choices, opts) {
   await who('mother', 'Come here.');
   await who('jack', 'Mother?');
   await who('mother', 'Come here, Jack.');
-  await walk(jackIn, ja, [v(-17, 0, -24)], 12, -Math.PI / 2);
+  await walk(jackIn, ja, [cl(26, 0)], 12, SEAT.ry + Math.PI);
   ja.speed = 0;
 
   // ── 3. Across her knee. ──
@@ -254,15 +256,15 @@ async function run(G, choices, opts) {
     lap.stage.visible = false; mother.root.visible = true; jackIn.root.visible = true; int.chair.visible = false; int.chair.visible = true;
     B.setPose(mother, 'sit'); mother.pose = 'sit'; mother.root.position.set(SEAT.x, STAGE_Y, SEAT.z); mother.root.rotation.y = SEAT.ry; ma.fold = 0; ma.gesture = 0.3;
     W.paintJack(jackIn, { expr: 3, trousers: 'down', drawers: 'down', marks: lap.st.marks }); ja.cover = 0; ja.shuffle = 1; ja.bow = 1;
-    jackIn.root.position.set(-17, 0, -24); jackIn.root.rotation.y = -Math.PI / 2;
+    jackIn.root.position.copy(cl(26, 0)); jackIn.root.rotation.y = SEAT.ry + Math.PI;
     const hook = int.spots.birch;
-    const walkCams = { wide: { pos: v(14, 34, -2), look: v(-26, 16, -36), fov: 56 }, hook: { pos: v(-52, 26, -18), look: v(-34, 18, -50), fov: 44 } };
+    const walkCams = { wide: { pos: v(-22, 44, 30), look: v(30, 14, 0), fov: 62 }, hook: { pos: v(34, 30, 40), look: v(66, 24, 58), fov: 48 } };
     G.cut(walkCams.wide);
-    await walk(jackIn, ja, [v(-30, 0, -40), v(hook.x + 3, 0, hook.z + 1)], 9, -Math.PI * 0.95);
+    await walk(jackIn, ja, [v(30, 0, 0), v(hook.x, 0, hook.z)], 9, Math.PI / 2);
     G.cut(walkCams.hook); int.birchProp.root.visible = false; jBirch.root.visible = true; ja.hold = 0.7; await G.wait(0.8);
     await who('jack', 'Mother, please. I’ll plant them, I’ll do anything—');
     G.cut(walkCams.wide);
-    await walk(jackIn, ja, [v(-30, 0, -36), v(-18, 0, -25)], 9, -Math.PI / 2);
+    await walk(jackIn, ja, [v(30, 0, 0), cl(26, 0)], 9, SEAT.ry + Math.PI);
     await who('mother', 'You will. After.');
     jBirch.root.visible = false; mBirch.root.visible = true; ja.hold = 0; ma.birch = 1;
     G.cut(sh.mFace); await who('mother', 'Over the table.');
