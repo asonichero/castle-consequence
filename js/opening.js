@@ -11,12 +11,15 @@ const DRONE = t => ({ pos: v(250 + 46 * Math.sin(t * 0.045), 270 + 8 * Math.sin(
 
 function build(G) {
   const ext = F.exterior(), int = F.interior(), S = int.spots;
+  // The staging follows the chair (the room editor places it): cl(a, y, b) is a point a units ahead of it, the way it faces, and b to its right.
+  const cl = (a, y, b) => v(S.chair.x + a * Math.sin(S.chairRy) + (b || 0) * Math.cos(S.chairRy), y, S.chair.z + a * Math.cos(S.chairRy) - (b || 0) * Math.sin(S.chairRy));
   // The cast: Jack in his own clothes, hurting; his Mother seated by the hearth.
   const jack = B.makeJack(), mother = C.makeMother(), acts = { t: 0, rub: 1, flinch: 0, avert: 0, wag: 0, gesture: 0, sigh: 0, look: 0, nod: 0 };
   const paintJack = e => { B.paintJackInto(jack.skin, { outfit: 'Outdoor', expr: e, trousers: 'up', drawers: 'up' }); jack.tex.needsUpdate = true; };
-  paintJack(1); jack.root.scale.setScalar(0.95); jack.root.position.copy(S.jack); jack.root.rotation.y = -Math.PI / 2; int.scene.add(jack.root);
+  paintJack(1); jack.root.scale.setScalar(0.95); jack.root.position.copy(cl(20, 0)); jack.root.rotation.y = S.chairRy + Math.PI; int.scene.add(jack.root);
   mother.root.position.set(S.chair.x, 6, S.chair.z); mother.root.rotation.y = S.chairRy; int.scene.add(mother.root);
   B.setPose(jack, 'stand'); B.setPose(mother, 'sit'); for (let i = 0; i < 40; i++) { B.step(jack, 0.1); B.step(mother, 0.1); }
+  B.seatFeet(mother, 0);                                                                                       // (her feet reach the floor from the chair)
   // Jack: nursing his bottom: both hands back on it, rubbing; his weight shifting from foot to foot, his head down; a flinch when he moves wrong.
   jack.after = r => {
     const t = acts.t, rub = acts.rub, f = acts.flinch;
@@ -34,8 +37,8 @@ function build(G) {
   G.updaters.push(dt => { acts.t += dt; B.step(jack, dt); B.step(mother, dt); acts.flinch = Math.max(0, acts.flinch - dt * 2.2); });
 
   // The shots, in the cottage: wide (the whole room), two (Jack and his Mother), mother and jack (close), hearth (the fire), roof (the hanging herbs, the stairs).
-  G.shots.wide = { pos: v(58, 36, 36), look: v(-4, 18, -26), fov: 56 };
-  G.shots.wideIn = { pos: v(44, 31, 30), look: v(-6, 17, -26), fov: 50 };
+  G.shots.wide = { pos: cl(78, 40, -52), look: cl(12, 20), fov: 56 };
+  G.shots.wideIn = { pos: cl(62, 34, -42), look: cl(12, 21), fov: 50 };       // (the camera for the whole of the talk: the push-in comes to rest here and stays)
   G.shots.two = { pos: v(-14, 24, 38), look: v(-16, 15, -24), fov: 40 };
   G.shots.mother = { pos: v(-12, 22, 12), look: v(-25, 20, -24), fov: 30 };
   G.shots.motherSoft = { pos: v(-14, 21, 0), look: v(-25, 21, -24), fov: 24 };
@@ -77,43 +80,36 @@ async function run(G, W) {
   G.shot('wideIn', 14, 'soft');
   await G.fade(false, 1.6);
   await G.wait(1.4);
-  await G.shot('two', 2.2); acts.gesture = 1; acts.wag = 1;
+  await G.wait(1.6); acts.gesture = 1; acts.wag = 1;
   await G.say('mother', 'Stand still, Jack. Rubbing it will not make it any less deserved.');
   acts.flinch = 1; paintJack(2); acts.rub = 0.4;
   await G.say('jack', '...Yes, Mother.');
-  await G.shot('mother', 1.6);
   await G.say('mother', 'Three times this week you have come through that door with a tale grown taller than the barn. A wolf at the wall. A fox in a henhouse we have not had a hen in for a year. The neighbour’s boy who owes you a shilling.');
   await G.say('mother', 'A little stretched, and a little more each day. That is how milk turns, Jack. Nobody can stomach it by the end.');
-  acts.avert = 1; await G.shot('jack', 1.6); paintJack(2);
+  acts.avert = 1; paintJack(2);
   await G.say('jack', 'It was only a story...');
   await G.say('mother', 'It is always only a story.');
-  await G.shot('hearth', 3, 'inOut'); acts.wag = 0.5;
+  acts.wag = 0.5;
   await G.say('mother', 'And that shrug. “It will all come right, Mother.” Will it? Look about you. The roof does not come right by itself. The garden has not come right in two summers; there is nothing in it but stones.');
-  await G.shot('roof', 3.5, 'inOut');
   await G.say('mother', 'There are only the two of us, and the little we have is going. I wish — I do wish — you would take it seriously. Just once.');
   // She softens.
   acts.wag = 0; acts.gesture = 0; acts.look = 1; acts.sigh = 1; mother.setExpr(2); acts.avert = 0.3; paintJack(1);
-  await G.shot('motherSoft', 3.2, 'inOut');
   await G.wait(1.4);
   await G.say('mother', '...I wish I did not have to do this, you know. I would sooner never lay a hand on you.');
   await G.say('mother', 'But there is a good heart under all that nonsense, and I would rather see it grow into something than go to waste.');
-  await G.shot('jack', 2.2); acts.rub = 0.2; acts.avert = 0;
+  acts.rub = 0.2; acts.avert = 0;
   await G.say('jack', 'I know, Mother. I am sorry.');
   // Back to business.
   acts.look = 0; acts.sigh = 0; mother.setExpr(0); acts.gesture = 1; acts.wag = 0.3;
-  await G.shot('two', 2.4);
+  await G.wait(0.6);
   await G.say('mother', 'Good. Now. Tomorrow morning you will take Milky-White to market and sell her.');
   acts.flinch = 0.6; paintJack(1);
   await G.say('jack', 'Sell her? But Mother —');
-  await G.shot('mother', 1.8);
   await G.say('mother', 'She gives barely a cupful these days. What she will fetch will do us more good than her milk ever did. Get a fair price, and do not let any silver-tongued fellow talk you out of it.');
-  await G.shot('jack', 1.8);
   await G.say('jack', 'A fair price. I will, Mother. I promise.');
-  await G.shot('two', 2);
   acts.wag = 0; mother.setExpr(1);
   await G.say('mother', 'Mm. We shall see. Now go and wash up for supper. Properly — behind the ears.');
-  await G.shot('end', 3, 'inOut');
-  await G.wait(1.2);
+  await G.wait(2.4);
   A && A.stopMusic(2.5); await G.fade(true, 2.2);
   A && A.ambience({ wind: 0, birds: 0, fire: 0 });
   await G.wait(1);

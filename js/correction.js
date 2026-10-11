@@ -90,10 +90,11 @@ async function run(G, W, tier, opts) {
   const standBefore = (faceBirch) => {
     lap.stage.visible = false; placeStage(SEAT); int.chair.visible = true; mother.root.visible = jackIn.root.visible = true; mother.setExpr(1);
     B.setPose(mother, 'sit'); mother.pose = 'sit'; mother.root.position.set(SEAT.x, STAGE_Y, SEAT.z); mother.root.rotation.y = SEAT.ry; ma.fold = 0; ma.gesture = 0; ma.wag = 0; ma.side = 0; ma.chin = 0; ma.speed = 0;
-    jackIn.root.position.copy(cl(16, 0)); jackIn.root.rotation.y = faceBirch ? Math.atan2(71.6 - SEAT.x, 56 - SEAT.z) : SEAT.ry + Math.PI;
+    jackIn.root.position.copy(cl(20, 0));       // (as far from her as he stands in the opening, rubbing) jackIn.root.rotation.y = faceBirch ? Math.atan2(71.6 - SEAT.x, 56 - SEAT.z) : SEAT.ry + Math.PI;
     ja.speed = 0; ja.rub = 1; ja.shuffle = 0; ja.bow = 0.5; ja.look = 0; ja.cover = 0; ja.fist = 0; ja.hold = 0;
     W.paintJack(jackIn, { expr: 3, trousers: 'down', drawers: tier >= 1 ? 'down' : 'up', marks: lap.st.marks });
     for (let i = 0; i < 12; i++) { B.step(mother, 0.1); B.step(jackIn, 0.1); }
+    B.seatFeet(mother, 0);
   };
   const closing = async () => {
     await say('mother', tier === 0 ? 'Pull your trousers up.' : 'Pull your trousers up, and wipe your face.');
@@ -159,7 +160,7 @@ async function run(G, W, tier, opts) {
     ]);
     cam.enable(false); showUI(false);
     cam.go(v(26, 34, 72), v(72, 27, 56), 40, 0); await wait(2.2);                                         // the birch, hanging on its nail
-    standBefore(true); cam.go(cl(16, 0).add(v(Math.sin(jackIn.root.rotation.y) * 46, 30, Math.cos(jackIn.root.rotation.y) * 46)), cl(16, 25), 34, 0); ja.bow = 0.1; await wait(2.4);   // Jack, his face turned to it
+    standBefore(true); cam.go(cl(20, 0).add(v(Math.sin(jackIn.root.rotation.y) * 46, 30, Math.cos(jackIn.root.rotation.y) * 46)), cl(20, 25), 34, 0); ja.bow = 0.1; await wait(2.4);   // Jack, his face turned to it
   };
   // (the first part of an aftermath: the actors, and what is said over them)
   const aftermath0 = async lines => {

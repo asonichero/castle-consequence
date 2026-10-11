@@ -132,28 +132,35 @@ async function run(G, choices, opts) {
   await G.fade(true, 0.8);
 
   // ── 2. Indoors: the telling. Every beat puts Jack and his Mother where they are as it begins (telling()), then does only what happens within it. ──
+  // Mother stands in the middle of the hearth rug to receive him, and Jack comes to stand 23 units from her, along the line he crosses the room on. The angles for the talk were
+  // framed on heads (Mother and Jack 23 apart, the line between them running as the chair faces); they are carried to wherever the two now stand.
+  const rugC = int.items.rug.g.position, M1 = v(rugC.x, 0, rugC.z), HEAD = 0.66;
+  const fwd = v(Math.sin(HEAD), 0, Math.cos(HEAD)), J1 = M1.clone().addScaledVector(fwd, 23), W1 = M1.clone().addScaledVector(fwd, 70);
+  const Mold = v(-31.46, 0, -31.46), dA = HEAD - 0.785, cA = Math.cos(dA), sA = Math.sin(dA);
+  const carry = q => v(M1.x + (q.x - Mold.x) * cA + (q.z - Mold.z) * sA, q.y, M1.z - (q.x - Mold.x) * sA + (q.z - Mold.z) * cA);
+  const shot = (pos, look, fov) => ({ pos: carry(pos), look: carry(look), fov });
   const sh = {
-    wide: { pos: v(-32, 30, -63), look: v(-19, 22, -24), fov: 42 },
-    mother: { pos: v(-21, 25, 10), look: v(-30, 25, -32), fov: 40 },
-    jack: { pos: v(-46, 28, -25), look: v(-23, 22, -23), fov: 50 },
-    two: { pos: v(-55, 28, 18), look: v(-15, 19, -24), fov: 47 },
+    wide: shot(v(-32, 30, -63), v(-19, 22, -24), 42),
+    mother: shot(v(-21, 25, 10), v(-30, 25, -32), 40),
+    jack: shot(v(-46, 28, -25), v(-23, 22, -23), 50),
+    two: { pos: v(-55, 28, 18), look: v(-15, 19, -24), fov: 47 },       // the wide shot, for her to cross to the chair and sit
   };
   const telling = (o) => {
-    o = Object.assign({ jackAt: cl(28, 0), ry: SEAT.ry + Math.PI, bow: pick(1, 0.4, 0), fist: 1, hold: 0, gesture: 0, wag: 0, fold: 1, chin: 0, side: 0, seated: false }, o || {});
+    o = Object.assign({ jackAt: J1, ry: HEAD + Math.PI, bow: pick(1, 0.4, 0), fist: 1, hold: 0, gesture: 0, wag: 0, fold: 1, chin: 0, side: 0, seated: false }, o || {});
     G.setScene(W.iworld); A && A.ambience({ wind: 0.1, birds: 0, fire: 0.8 });
     jackOut.root.visible = false; mother.root.visible = true; jackIn.root.visible = true; int.chair.visible = true; mother.setExpr(1);
     jackIn.root.position.copy(o.jackAt); jackIn.root.rotation.y = o.ry; W.paintJack(jackIn, { expr: pick(1, 5, 5) });
     ja.speed = 0; ja.fist = o.fist; ja.hold = o.hold; ja.bow = o.bow; ja.cover = 0; ja.shuffle = 0;
     ma.gesture = o.gesture; ma.wag = o.wag; ma.fold = o.fold; ma.chin = o.chin; ma.side = o.side; ma.speed = 0;
-    if (o.seated) { B.setPose(mother, 'sit'); mother.pose = 'sit'; mother.root.position.set(SEAT.x, STAGE_Y, SEAT.z); }
-    else { B.setPose(mother, 'stand'); mother.pose = 'stand'; mother.root.position.copy(cl(5, 0)); }
-    mother.root.rotation.y = SEAT.ry;
+    if (o.seated) { B.setPose(mother, 'sit'); mother.pose = 'sit'; mother.root.position.set(SEAT.x, STAGE_Y, SEAT.z); mother.root.rotation.y = SEAT.ry; }
+    else { B.setPose(mother, 'stand'); mother.pose = 'stand'; mother.root.position.copy(M1); mother.root.rotation.y = HEAD; }
     for (let i = 0; i < 20; i++) { B.step(mother, 0.1); B.step(jackIn, 0.1); }
+    if (o.seated) B.seatFeet(mother, 0);
   };
   // Jack comes in at the door already walking, past the table and straight to where he stands before her; they speak as he crosses.
   G.cut(sh.wide, () => { telling({ jackAt: v(34, 0, 66), ry: Math.PI, bow: 0 }); ja.speed = 23; });
   G.fade(false, 0.8);
-  const crossing = walk(jackIn, ja, [cl(80, 0), cl(28, 0)], 24, SEAT.ry + Math.PI);      // past the table, then straight along the line to her
+  const crossing = walk(jackIn, ja, [W1, J1], 24, HEAD + Math.PI);      // past the table, then straight along the line to her
   await who('mother', 'Where is Milky-White?');
   await who('jack', pick('I sold her, Mother. But not for coin. I know how it will sound.', 'I sold her, Mother. Look what I got for her.', 'Gone, Mother. Sold, and for a good deal more than coin.'));
   await crossing;
@@ -175,7 +182,13 @@ async function run(G, choices, opts) {
   G.cut(sh.mother, () => telling({ fist: 0, gesture: 0, wag: 0, fold: 0, side: 1 }));
   await who('mother', pick('Hush.', 'You did what pleased you.', 'I believe every word you say, Jack. That is the trouble.'));
   // She is in the chair by the hearth when the next angle opens, and calls him to her.
-  G.cut(sh.two, () => telling({ fist: 0, gesture: 0, wag: 0, fold: 0, seated: true }));
+  G.cut(sh.two, () => telling({ fist: 0, gesture: 0, wag: 0, fold: 0 }));
+  // She crosses to the chair by the hearth, turns, and sits before she says it.
+  await walk(mother, ma, [cl(4, 0)], 20, SEAT.ry);
+  B.setPose(mother, 'sit'); mother.pose = 'sit'; mother.root.position.set(SEAT.x, STAGE_Y, SEAT.z); mother.root.rotation.y = SEAT.ry; ma.fold = 0;
+  for (let i = 0; i < 12; i++) B.step(mother, 0.1);
+  B.seatFeet(mother, 0);
+  await G.wait(0.4);
   await who('mother', 'Come here.');
   await who('jack', 'Mother?');
   await who('mother', 'Come here, Jack.');

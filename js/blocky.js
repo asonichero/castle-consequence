@@ -544,7 +544,19 @@ function apply() {
   if (this.after) this.after(this);   // a scene's own additions to the pose (the lap scene's swing and kicks)
 }
 
-function setPose(rig, name) { rig.target = Object.assign({}, POSES[name]); rig.pose = name; }
+function setPose(rig, name) {
+  rig.target = Object.assign({}, POSES[name]); rig.pose = name;
+  if (name !== 'sit' && rig.legL && rig.legL.knee.children[0] && rig.legL.knee.children[0].scale.y !== 1) for (const l of [rig.legL, rig.legR]) { const sm = l.knee.children[0]; sm.scale.y = 1; sm.position.y = -3; }   // (standing again: the shins are their own length)
+}
+// A grown-up sitting in a chair: the knee-to-foot blocks lengthen so that the feet reach the floor (floorY, in the world) from wherever the seat holds the knees. Call it once the pose has settled and the rig is in place.
+function seatFeet(rig, floorY) {
+  floorY = floorY || 0; const legs = [rig.legL, rig.legR], set = (l, k) => { const sm = l.knee.children[0]; sm.scale.y = k; sm.position.y = -3 * k; };
+  legs.forEach(l => set(l, 1)); rig.root.updateMatrixWorld(true);
+  for (const l of legs) {
+    const kneeY = l.knee.getWorldPosition(new THREE.Vector3()).y, footY = l.knee.localToWorld(new THREE.Vector3(0, -6, 0)).y;
+    if (kneeY - footY > 0.3 && footY > floorY + 0.05) set(l, (kneeY - floorY) / (kneeY - footY));
+  }
+}
 function step(rig, dt) {
   const k = Math.min(1, dt * 9);
   for (const key in rig.target) rig.state[key] += (rig.target[key] - rig.state[key]) * k;
@@ -586,5 +598,5 @@ function makeBirch() {
   }
   return { root, twigs, tips };
 }
-root.Blocky = { BIRCH, makeBirch, buildCharacter, sideOuter, SIDES, FACES, CHAIR, makeChair, makeJack, makeGerda, setPose, step, POSES, Skin, OUTFITS, paintGerdaInto, paintJackInto, paintGlutesInto, makeGlutes, boxGeo, faceRect };
+root.Blocky = { seatFeet, BIRCH, makeBirch, buildCharacter, sideOuter, SIDES, FACES, CHAIR, makeChair, makeJack, makeGerda, setPose, step, POSES, Skin, OUTFITS, paintGerdaInto, paintJackInto, paintGlutesInto, makeGlutes, boxGeo, faceRect };
 })(typeof window !== 'undefined' ? window : globalThis);

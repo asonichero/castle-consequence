@@ -84,7 +84,7 @@ async function run(G, W, M) {
   jack.root.visible = true; jack.root.position.set(DOOR.x, 0, DOOR.z + 32); jack.root.rotation.y = Math.PI; paintJack(4); ja.lead = false; ja.speed = 0; ja.look = 0; hanging.visible = true; held.visible = false;
   A_ && A_.ambience({ wind: 0.4, birds: 0.7, fire: 0 }); A_ && A_.duckMusic(0.6, 2);
   const shots = {
-    side: { pos: v(112, 24, 40), look: v(34, 20, 36), fov: 42 }, motherFace: { pos: v(54, 23, 62), look: v(35, 23, 22), fov: 32 }, jackFace: { pos: v(52, 21, 31), look: v(34, 20, 50), fov: 34 },
+    side: { pos: v(112, 24, 40), look: v(34, 20, 36), fov: 42 }, motherFace: { pos: v(54, 23, 62), look: v(35, 23, 22), fov: 32 }, jackFace: { pos: v(70, 34, 30), look: v(34, 22, 56), fov: 52 },
     wide: { pos: v(78, 34, 80), look: v(36, 17, 36), fov: 50 },
   };
   G.cut(shots.wide); await G.fade(false, 1.6); await G.wait(1.0);
@@ -102,8 +102,8 @@ async function run(G, W, M) {
   ma.wag = 0; paintJack(0); G.cut(shots.jackFace);
   await G.say('jack', 'I won\u2019t, I swear it.');
   G.cut(shots.side); ma.gesture = 0; ma.tilt = 1;
-  await G.say('narrator', 'She studies him for a long moment, her mouth set in a line that says she wants to believe him, but doesn\u2019t dare.');
-  G.cut(shots.motherFace); ma.chin = 1; ma.tilt = 0; await G.wait(0.5);
+  await G.say('mother', 'Hmm...');
+  G.cut(shots.motherFace); ma.chin = 0; ma.tilt = 0; await G.wait(0.5);              // (she looks at him as she says it)
   await G.say('mother', 'Be back before dusk. And mind your manners.');
   // She turns into the doorway and goes in, the door closing behind her.
   G.cut(shots.side); ma.chin = 0; await G.wait(0.4);
