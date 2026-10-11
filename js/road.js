@@ -527,10 +527,12 @@ async function trade(G, W, res) {
   holder.who = 'peddler'; ja.hand = 0; ja.lead = false;
   G.cut(shots.cart); W.beans.visible = false; pa.offer = 0; await G.wait(0.6);
   await say('There. Strong in the shoulder, and a gentle eye. She will take to the shafts as if she were born to them.');
-  // The Peddler walks her to the front of the cart and puts her into the harness.
-  G.cut(shots.cart);
+  // The Peddler walks her to the front of the cart and puts her into the harness (a three-quarter view from the road, the whole cart in it).
+  const spot = (a, l) => v(end.x + t.x * a + n.x * l, 0, end.z + t.z * a + n.z * l);                     // a point by its distance along the road's end and across it
+  const hitchShot = { pos: (q => v(q.x, 30, q.z))(spot(-76, 46)), look: (q => v(q.x, 18, q.z))(spot(-6, 0)), fov: 50 };
+  G.cut(hitchShot);
   W.cart.updateMatrixWorld(true);
-  const slot = W.cart.localToWorld(v(0, 0, 47)), ca = Math.atan2(-t.x, -t.z), p0 = P.clone(), beside = v(slot.x + n.x * 20, 0, slot.z + n.z * 20);
+  const slot = W.cart.localToWorld(v(0, 0, 47)), ca = Math.atan2(-t.x, -t.z), beside = v(slot.x + n.x * 20, 0, slot.z + n.z * 20);
   pa.speed = 12;
   for (let i = 0; i < 110; i++) {
     P.x += (beside.x - P.x) * 0.05; P.z += (beside.z - P.z) * 0.05; pa.phase += 0.3; peddler.root.rotation.y = turn(peddler.root.rotation.y, Math.atan2(slot.x - P.x, slot.z - P.z), 0.15);
@@ -544,18 +546,30 @@ async function trade(G, W, res) {
     cowM.updateMatrixWorld(true); W.cart.updateMatrixWorld(true);
     for (const sx of [-1, 1]) { const a = cowM.children[0].localToWorld(v(sx * 7.6, 20, 12)), bb = W.cart.localToWorld(v(sx * 8, 11, 52)), m = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 1), leather); m.position.copy(a).add(bb).multiplyScalar(0.5); m.scale.set(1, 1, a.distanceTo(bb)); W.scene.add(m); m.lookAt(bb); W.hitch.push(m); }
     W.hitch.push(collar); }
-  pa.point = 0.5; pa.lean = 1; A && A.thwack(0.2, true, 0.35); await G.wait(1.4); pa.point = 0; pa.lean = 0;
-  pa.speed = 12;
-  for (let i = 0; i < 70; i++) { P.x += (p0.x - P.x) * 0.07; P.z += (p0.z - P.z) * 0.07; pa.phase += 0.3; peddler.root.rotation.y = turn(peddler.root.rotation.y, Math.atan2(J0.x - P.x, J0.z - P.z), 0.15); await G.wait(0.04); }
-  pa.speed = 0; peddler.root.rotation.y = Math.atan2(J0.x - P.x, J0.z - P.z);
-  // Dusk, and Jack, eager to be home.
-  G.cut(shots.peddler); pa.lean = 1;
+  pa.point = 0.5; pa.lean = 1; A && A.thwack(0.2, true, 0.35); await G.wait(1.6); pa.point = 0; pa.lean = 0;
+  // The two of them take up places clear of the cow, in front of the cart: she by the cow's head, Jack back along the road, facing her.
+  const PP = spot(-50, 14), JJ = spot(-76, -2), jw = [v(J0.x, 0, J0.z), spot(-30, 34), JJ], jstart = v(P.x, 0, P.z), pstart = v(P.x, 0, P.z);
+  pa.speed = 12; ja.speed = 22;
+  for (let i = 0; i < 90; i++) {
+    const u = (i + 1) / 90, k = u * 2, seg = Math.min(1, Math.floor(k)), f = k - seg, q = jw[seg].clone().lerp(jw[seg + 1], f);
+    const ang = Math.atan2(jw[seg + 1].x - jw[seg].x, jw[seg + 1].z - jw[seg].z); jack.root.position.set(q.x, 0, q.z); jack.root.rotation.y = turn(jack.root.rotation.y, ang, 0.3); ja.phase += 0.4;
+    P.x = pstart.x + (PP.x - pstart.x) * smooth(u); P.z = pstart.z + (PP.z - pstart.z) * smooth(u); pa.phase += 0.3; peddler.root.rotation.y = turn(peddler.root.rotation.y, Math.atan2(JJ.x - P.x, JJ.z - P.z), 0.15);
+    await G.wait(0.04);
+  }
+  pa.speed = 0; ja.speed = 0; jack.root.rotation.y = Math.atan2(PP.x - JJ.x, PP.z - JJ.z); peddler.root.rotation.y = Math.atan2(JJ.x - P.x, JJ.z - P.z);
+  // The last exchange, shot clear of the cow: over Jack's shoulder at the Peddler, over hers at Jack.
+  const after = {
+    peddler: { pos: (q => v(q.x, 30, q.z))(spot(-90, -20)), look: (q => v(q.x, 26.5, q.z))(PP), fov: 32 },
+    jack: { pos: (q => v(q.x, 31, q.z))(spot(-30, 32)), look: (q => v(q.x, 24.5, q.z))(JJ), fov: 32 },
+    wide: { pos: (q => v(q.x, 42, q.z))(spot(-60, 108)), look: (q => v(q.x, 16, q.z))(spot(-52, 0)), fov: 50 },
+  };
+  G.cut(after.peddler); pa.lean = 1;
   await say('Dusk is coming in, boy. Best you were home before the dark settles on this road.');
-  G.cut(shots.jack); await J(5, 'Dusk! Then I haven’t a moment to lose.');
+  G.cut(after.jack); await J(5, 'Dusk! Then I haven’t a moment to lose.');
   await J(5, close);
   await J(5, 'Home, and into the garden. Tonight!');
   // He sets off for home at a run, the beans clutched in his fist.
-  G.cut(shots.wide); pa.lean = 0;
+  G.cut(after.wide); pa.lean = 0;
   { const away = v(-t.x, 0, -t.z), ang = Math.atan2(away.x, away.z); ja.lead = false; ja.hand = 0;
     for (let i = 0; i < 12; i++) { jack.root.rotation.y = turn(jack.root.rotation.y, ang, 0.35); await G.wait(0.04); }
     ja.speed = 40; for (let i = 0; i < 90; i++) { jack.root.position.addScaledVector(away, 1.1); ja.phase += 0.55; await G.wait(0.04); } ja.speed = 0; }
