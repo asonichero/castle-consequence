@@ -15,7 +15,7 @@ function build(G) {
   const jack = B.makeJack(), mother = C.makeMother(), acts = { t: 0, rub: 1, flinch: 0, avert: 0, wag: 0, gesture: 0, sigh: 0, look: 0, nod: 0 };
   const paintJack = e => { B.paintJackInto(jack.skin, { outfit: 'Outdoor', expr: e, trousers: 'up', drawers: 'up' }); jack.tex.needsUpdate = true; };
   paintJack(1); jack.root.scale.setScalar(0.95); jack.root.position.copy(S.jack); jack.root.rotation.y = -Math.PI / 2; int.scene.add(jack.root);
-  mother.root.position.set(S.chair.x, 6, S.chair.z); mother.root.rotation.y = Math.PI / 2; int.scene.add(mother.root);
+  mother.root.position.set(S.chair.x, 6, S.chair.z); mother.root.rotation.y = S.chairRy; int.scene.add(mother.root);
   B.setPose(jack, 'stand'); B.setPose(mother, 'sit'); for (let i = 0; i < 40; i++) { B.step(jack, 0.1); B.step(mother, 0.1); }
   // Jack: nursing his bottom: both hands back on it, rubbing; his weight shifting from foot to foot, his head down; a flinch when he moves wrong.
   jack.after = r => {

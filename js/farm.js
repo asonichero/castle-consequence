@@ -185,30 +185,38 @@ function exterior() {
 }
 
 // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-// The interior: one room, 150 wide (x) and 108 deep (z), the hearth in the middle of the north wall, the ceiling 62 up.
+// The interior: one room, 150 wide (x) and 150 deep (z), square, the hearth in the middle of the north wall, the ceiling 62 up.
 // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 function interior() {
   textures();
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0x120d09); scene.fog = new THREE.Fog(0x120d09, 140, 330);
   scene.add(new THREE.HemisphereLight(0xffe2b8, 0x20140c, 0.42));
   const dim = new THREE.DirectionalLight(0xc8d8f0, 0.22); dim.position.set(-40, 60, 120); scene.add(dim);                  // a little grey daylight from the south window
-  const W = 150, D = 108, H = 62, r = rng(31), room = new THREE.Group(); scene.add(room);
+  const W = 150, D = 150, H = 62, r = rng(31), room = new THREE.Group(); scene.add(room);        // (square: every side is the length of the hearth wall)
+  // Free-standing things (the chair, the stool, the rug, the table with what stands on it, the stairs with the hole above them, the sacks, the barrel, the crate, the broom) are placed by
+  // FarmLayout (js/farm-layout.js, written by room-editor.html): each is { x, z, ry } on the floor. Whatever is missing there stays where it is below.
+  let LAY = root.FarmLayout || {};
+  try { if (root.location && /[?&]layout=draft/.test(root.location.search)) LAY = JSON.parse(root.localStorage.getItem('castle-consequence:layout:draft')) || LAY; } catch (e) { /* no draft */ }
+  const items = {}, ceil = new THREE.Group(); room.add(ceil);                                                                     // (the ceiling is one group, so the editor can lift it away)
+  const movable = (key, label, g, def) => { items[key] = { g, label, def, y: g.position.y }; g.userData.movable = key; place(key, LAY[key] || def); return g; };
+  const place = (key, o) => { const it = items[key], g = it.g; g.position.set(o.x, it.y, o.z); g.rotation.y = o.ry || 0; if (key === 'stairs' && holeBox) syncHole(); };
+  let holeBox = null; const syncHole = () => { const g = items.stairs.g, c = Math.cos(g.rotation.y), sn = Math.sin(g.rotation.y); holeBox.position.set(g.position.x + sn * -24, H + 1.7, g.position.z + c * -24); holeBox.rotation.y = g.rotation.y; };
   // Floor, walls, ceiling.
   box(W + 8, 4, D + 8, mat('plank'), 0, -2, 0, room);
-  for (let i = 0; i < 6; i++) box(W, 0.3, 0.8, plain('#4a3624'), 0, 0.2, -36 + i * 14, room);
+  for (let i = 0; i < 9; i++) box(W, 0.3, 0.8, plain('#4a3624'), 0, 0.2, -56 + i * 14, room);
   const wallM = mat('plasterOld');
   box(W + 8, H, 4, wallM, 0, H / 2, -D / 2 - 2, room); box(W + 8, H, 4, wallM, 0, H / 2, D / 2 + 2, room); box(4, H, D, wallM, -W / 2 - 2, H / 2, 0, room); box(4, H, D, wallM, W / 2 + 2, H / 2, 0, room);
   box(W + 8, 12, D + 8, mat('stone'), 0, -10, 0, room);
   for (const x of [-W / 2, -W / 6, W / 6, W / 2]) { box(5, H, 3, mat('timber'), x, H / 2, -D / 2 + 1.5, room); box(5, H, 3, mat('timber'), x, H / 2, D / 2 - 1.5, room); }   // the timber frame, over the plaster
-  for (const z of [-D / 2, 0, D / 2]) { box(3, H, 5, mat('timber'), -W / 2 + 1.5, H / 2, z, room); box(3, H, 5, mat('timber'), W / 2 - 1.5, H / 2, z, room); }
+  for (const z of [-D / 2, -D / 6, D / 6, D / 2]) { box(3, H, 5, mat('timber'), -W / 2 + 1.5, H / 2, z, room); box(3, H, 5, mat('timber'), W / 2 - 1.5, H / 2, z, room); }
   for (const y of [3, H - 3]) { box(W, 4, 3, mat('timber'), 0, y, -D / 2 + 1.5, room); box(W, 4, 3, mat('timber'), 0, y, D / 2 - 1.5, room); box(3, 4, D, mat('timber'), -W / 2 + 1.5, y, 0, room); box(3, 4, D, mat('timber'), W / 2 - 1.5, y, 0, room); }
   for (let i = 0; i < 18; i++) { const wallpick = [[0, -D / 2 + 0.4, 0], [0, D / 2 - 0.4, 0]][i % 2]; box(4 + r() * 8, 3 + r() * 6, 0.5, mat('plaster', 0x6a5a40), (r() - 0.5) * (W - 20), 10 + r() * 34, wallpick[1], room); }   // flaked plaster
   // Ceiling: planks on dark beams, with a square hole where the stairs go up (the room above is never seen).
   const hole = { x0: -W / 2 + 6, x1: -W / 2 + 28, z0: -26, z1: 22 };
-  for (let i = 0; i < 8; i++) box(W + 6, 3, 14.4, mat('plankDark'), 0, H + 1.5, -D / 2 + 7 + i * 14, room);
-  box(hole.x1 - hole.x0, 3.2, hole.z1 - hole.z0, plain('#000000'), (hole.x0 + hole.x1) / 2, H + 1.7, (hole.z0 + hole.z1) / 2, room).material = unlit('#020202');
-  for (let i = 0; i < 6; i++) box(W + 6, 5, 6, mat('timber'), 0, H - 2.5, -D / 2 + 9 + i * 18, room);
-  for (const [x, z] of [[-40, 34], [-10, -4], [28, 40], [44, -20]]) { const hg = new THREE.Group(); hg.position.set(x, H - 5, z); room.add(hg); box(0.6, 8, 0.6, plain('#8a7a5a'), 0, 0, 0, hg); for (let k = 0; k < 4; k++) box(1.4, 1.4, 1.4, plain(['#c9ad5a', '#a8442a', '#5a7a34', '#c9ad5a'][k]), (k % 2 - 0.5) * 2, -5 - k, (k - 1.5) * 0.6, hg); }   // bundles of herbs and onions hung to dry
+  for (let i = 0; i < 11; i++) box(W + 6, 3, 14.4, mat('plankDark'), 0, H + 1.5, -D / 2 + 7 + i * 14, ceil);
+  holeBox = box(hole.x1 - hole.x0, 3.2, hole.z1 - hole.z0, plain('#000000'), (hole.x0 + hole.x1) / 2, H + 1.7, (hole.z0 + hole.z1) / 2, ceil); holeBox.material = unlit('#020202');
+  for (let i = 0; i < 9; i++) box(W + 6, 5, 6, mat('timber'), 0, H - 2.5, -D / 2 + 9 + i * (D - 18) / 8, ceil);
+  for (const [x, z] of [[-40, 34], [-10, -4], [28, 40], [44, -20]]) { const hg = new THREE.Group(); hg.position.set(x, H - 5, z); ceil.add(hg); box(0.6, 8, 0.6, plain('#8a7a5a'), 0, 0, 0, hg); for (let k = 0; k < 4; k++) box(1.4, 1.4, 1.4, plain(['#c9ad5a', '#a8442a', '#5a7a34', '#c9ad5a'][k]), (k % 2 - 0.5) * 2, -5 - k, (k - 1.5) * 0.6, hg); }   // bundles of herbs and onions hung to dry
   // The hearth, the middle of the house: a stone breast against the north wall, a hearthstone, the firebox, the chimney narrowing to the ceiling.
   const hearth = new THREE.Group(); hearth.position.set(0, 0, -D / 2); room.add(hearth);
   box(54, 3, 20, mat('stone'), 0, 1.5, 11, hearth);                                                                                // the hearthstone
@@ -227,12 +235,12 @@ function interior() {
   const kettle = new THREE.Group(); kettle.position.set(-20, 3, 14); hearth.add(kettle); box(9, 7, 9, plain('#6a4a2a'), 0, 3.5, 0, kettle); box(8, 2, 8, plain('#8a6234'), 0, 7.6, 0, kettle); box(2.4, 2.4, 6, plain('#6a4a2a'), 5.6, 5.4, 0, kettle).rotation.y = 1.5708; box(1.2, 8, 1.2, plain('#26221e'), -2, 10, 0, kettle).rotation.z = 0.6; box(1, 1.6, 1, plain('#26221e'), 0, 11, 0, kettle);
   const iron = new THREE.Group(); iron.position.set(28, 0, 8); hearth.add(iron); iron.rotation.z = -0.16; box(0.9, 34, 0.9, plain('#2a2622'), 0, 17, 0, iron); box(3.4, 0.9, 0.9, plain('#2a2622'), 1.2, 34, 0, iron); box(0.9, 4, 0.9, plain('#2a2622'), 2.6, 32, 0, iron);
   // Chair by the hearth (the same chair as in the correction scene), the stool opposite it, a worn rag rug between them.
-  const chair = B.makeChair(); chair.position.set(-26, 6, -24); chair.rotation.y = Math.PI / 2; room.add(chair);
+  const chair = B.makeChair(); chair.position.set(-26, 6, -24); room.add(chair); movable('chair', 'Chair', chair, { x: -26, z: -24, ry: Math.PI / 2 });
   const stool = new THREE.Group(); stool.position.set(26, 0, -24); room.add(stool);
-  box(11, 2, 11, mat('plankDark'), 0, 9, 0, stool); for (const [x, z] of [[-4, -4], [4, -4], [0, 4.4]]) box(1.8, 9, 1.8, mat('bark'), x, 4.5, z, stool);
-  box(40, 0.5, 30, mat('rug'), 0, 0.25, -24, room);
+  box(11, 2, 11, mat('plankDark'), 0, 9, 0, stool); for (const [x, z] of [[-4, -4], [4, -4], [0, 4.4]]) box(1.8, 9, 1.8, mat('bark'), x, 4.5, z, stool); movable('stool', 'Stool', stool, { x: 26, z: -24, ry: 0 });
+  const rug = new THREE.Group(); room.add(rug); box(40, 0.5, 30, mat('rug'), 0, 0.25, 0, rug); movable('rug', 'Rug', rug, { x: 0, z: -24, ry: 0 });
   // Table (small), a cabinet, store cupboards, shelves and sacks.
-  const table = new THREE.Group(); table.position.set(46, -5.7, 30); room.add(table);          // (a kitchen table: its top 13.5 from the floor, the right height to bend over)
+  const table = new THREE.Group(); table.position.set(46, -5.7, 30); room.add(table); movable('table', 'Table (and what is on it)', table, { x: 46, z: 30, ry: 0 });          // (a kitchen table: its top 13.5 from the floor, the right height to bend over)
   box(30, 2.4, 20, mat('plank'), 0, 18, 0, table); for (const [x, z] of [[-12, -7], [12, -7], [-12, 7], [12, 7]]) box(2.6, 17, 2.6, mat('bark'), x, 8.5, z, table);
   const tableClutter = new THREE.Group(); table.add(tableClutter);                                                                                     // (what stands on it: lifted off when someone is to be bent over it)
   box(8, 2.6, 8, plain('#6a5a48'), -7, 20.5, 2, tableClutter); box(8, 2.6, 8, plain('#6a5a48'), 6, 20.5, -3, tableClutter); box(7, 3.4, 4, plain('#b48a50'), 8, 20.8, 5, tableClutter); box(1.4, 6, 1.4, plain('#e8dcc0'), -11, 22, -5, tableClutter); box(2.2, 0.6, 2.2, unlit('#ffd870'), -11, 25.3, -5, tableClutter);
@@ -243,12 +251,14 @@ function interior() {
   box(5, 5, 5, plain('#a8442a'), 0, 27, -8, cup); box(4, 7, 4, plain('#8a8060'), 0, 28.5, 0, cup); box(6, 4, 6, plain('#6a5a48'), 0, 26, 9, cup);
   const shelf = new THREE.Group(); shelf.position.set(W / 2 - 4, 0, 36); room.add(shelf);
   for (const y of [30, 40]) box(8, 1.6, 24, mat('plank'), 0, y, -2, shelf); for (let i = 0; i < 5; i++) box(3.6, 5 + (i % 2) * 2, 3.6, plain(['#8a6234', '#6a7a5a', '#a8845a', '#7a6a58', '#5a6a7a'][i]), 0, 33.2 + (i % 2) + 0 , -10 + i * 4.6, shelf);
-  for (let i = 0; i < 3; i++) box(12, 10 - i, 9, plain(['#b8a47a', '#a89464', '#c8b488'][i]), -W / 2 + 40 + i * 14, 5, D / 2 - 12 + (i % 2), room);                       // sacks of not much
-  box(14, 14, 14, mat('plankDark'), -W / 2 + 44, 7, D / 2 - 30, room); box(12, 8, 12, mat('plank'), 18, 4, D / 2 - 12, room);                                                   // a barrel and a crate
+  for (let i = 0; i < 3; i++) { const sk = new THREE.Group(); room.add(sk); box(12, 10 - i, 9, plain(['#b8a47a', '#a89464', '#c8b488'][i]), 0, 5, 0, sk); movable('sack' + (i + 1), 'Sack ' + (i + 1), sk, { x: -W / 2 + 40 + i * 14, z: D / 2 - 12 + (i % 2), ry: 0 }); }   // sacks of not much
+  const barrel = new THREE.Group(); room.add(barrel); box(14, 14, 14, mat('plankDark'), 0, 7, 0, barrel); movable('barrel', 'Barrel', barrel, { x: -W / 2 + 44, z: D / 2 - 30, ry: 0 });
+  const crate = new THREE.Group(); room.add(crate); box(12, 8, 12, mat('plank'), 0, 4, 0, crate); movable('crate', 'Crate', crate, { x: 18, z: D / 2 - 12, ry: 0 });   // a barrel and a crate
   // The stairs: bare treads climbing along the west wall into the ceiling, no bannister, the open side to the room.
   const stairs = new THREE.Group(); stairs.position.set(-W / 2 + 17, 0, 22); room.add(stairs);
   for (let i = 0; i < 12; i++) { const y = 4.6 * (i + 1); box(16, 1.6, 6.4, mat('plank'), 0, y - 0.8, -i * 3.6, stairs); box(16, 4.4, 1, mat('plankDark'), 0, y - 3, -i * 3.6 + 3, stairs); }
   for (const x of [-7.2, 7.2]) { const st = new THREE.Group(); st.position.set(x, 0, 0); stairs.add(st); for (let i = 0; i < 12; i++) box(1.6, 4.6 * (i + 1), 3.6, mat('timber'), 0, 2.3 * (i + 1), -i * 3.6, st); }
+  movable('stairs', 'Stairs (and the hole above)', stairs, { x: -W / 2 + 17, z: 22, ry: 0 });
   // The birch: a bundle of twigs hung on a nail by the hearth, on the wall to its left. (Not the broom in the corner: that one is for sweeping.)
   box(1.4, 1.4, 4, plain('#2a2622'), -36, 27, -D / 2 + 2, room);
   const birchHook = new THREE.Group(); birchHook.position.set(-36, 26.5, -D / 2 + 3.4); room.add(birchHook);
@@ -259,14 +269,15 @@ function interior() {
     for (let i = 0; i < 6; i++) { const s = 5 + i * 3; box(s, 0.5, 0.5, web, cx + sx * s / 2, H - 2 - i * 0.6, cz, room); box(0.5, 0.5, s, web, cx, H - 2 - i * 0.6, cz + sz * s / 2, room); box(0.5, s, 0.5, web, cx, H - 2 - s / 2, cz, room); }
     box(14, 0.6, 14, new THREE.MeshLambertMaterial({ color: 0x7a736a }), cx + sx * 6, 0.3, cz + sz * 6, room);
   }
-  const broom = new THREE.Group(); broom.position.set(W / 2 - 8, 0, D / 2 - 8); broom.rotation.z = -0.1; room.add(broom);
-  box(1.2, 28, 1.2, mat('bark'), 0, 20, 0, broom); box(7, 12, 7, plain('#cbbfa0'), 0, 6, 0, broom); for (let i = 0; i < 6; i++) box(0.6, 12, 0.6, plain(i % 2 ? '#f0ecdd' : '#8a7a58'), (i % 3 - 1) * 2.4, 6, (i % 2 - 0.5) * 4.4, broom); box(8, 1.2, 8, plain('#4a3a28'), 0, 12, 0, broom);
+  const broomAt = new THREE.Group(); room.add(broomAt); const broom = new THREE.Group(); broom.rotation.z = -0.1; broomAt.add(broom);
+  box(1.2, 28, 1.2, mat('bark'), 0, 20, 0, broom); box(7, 12, 7, plain('#cbbfa0'), 0, 6, 0, broom); for (let i = 0; i < 6; i++) box(0.6, 12, 0.6, plain(i % 2 ? '#f0ecdd' : '#8a7a58'), (i % 3 - 1) * 2.4, 6, (i % 2 - 0.5) * 4.4, broom); box(8, 1.2, 8, plain('#4a3a28'), 0, 12, 0, broom); movable('broom', 'Broom', broomAt, { x: W / 2 - 8, z: D / 2 - 8, ry: 0 });
   // A window in the south wall, and the door.
   const win = new THREE.Group(); win.position.set(-34, 30, D / 2 - 1); room.add(win); box(22, 20, 3, mat('timber'), 0, 0, 0, win); box(16, 14, 1.2, unlit('#6a7a8a'), 0, 0, -0.6, win); box(1.6, 14, 1.6, mat('timber'), 0, 0, -1, win); box(16, 1.6, 1.6, mat('timber'), 0, 0, -1, win);
   const dr = new THREE.Group(); dr.position.set(34, 0, D / 2 - 1.5); room.add(dr); box(20, 32, 3, mat('timber'), 0, 16, 0, dr); box(16, 29, 2, mat('plankDark'), 0, 15, -0.8, dr); box(2, 2, 2, plain('#b8923a'), 5, 15, -2, dr);
   return {
-    scene, room, dim, fire, W, D, H, chair, table, tableClutter, birchHook, birchProp,
-    spots: { birch: P(-36, 0, -D / 2 + 12), chair: P(-26, 0, -24), stool: P(26, 0, -24), jack: P(-6, 0, -24), table: P(46, 0, 30), hearth: P(0, 0, -D / 2 + 14) },
+    scene, room, ceiling: ceil, items, place, layout: () => { const o = {}; for (const k in items) { const g = items[k].g; o[k] = { x: +g.position.x.toFixed(1), z: +g.position.z.toFixed(1), ry: +g.rotation.y.toFixed(3) }; } return o; },
+    W, D, H, chair, table, tableClutter, birchHook, birchProp,
+    spots: { birch: P(-36, 0, -D / 2 + 12), chair: P(chair.position.x, 0, chair.position.z), chairRy: chair.rotation.y, stool: P(stool.position.x, 0, stool.position.z), jack: P(-6, 0, -24), table: P(table.position.x, 0, table.position.z), tableRy: table.rotation.y, hearth: P(0, 0, -D / 2 + 14) },
     update(dt, t) {
       for (const f of flames) { const s = f.base * (0.8 + 0.55 * Math.sin(t * 9 + f.ph) * Math.sin(t * 5.3 + f.ph * 2)); f.m.scale.y = Math.max(0.3, s / 5); f.m.position.y = 6 + s * 0.8 * 0.5; f.m.rotation.z = 0.12 * Math.sin(t * 7 + f.ph); }
       fire.intensity = 1.5 + 0.35 * Math.sin(t * 11) * Math.sin(t * 6.1) + 0.15 * Math.sin(t * 23); embers.scale.x = 0.9 + 0.1 * Math.sin(t * 3);

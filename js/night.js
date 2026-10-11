@@ -84,7 +84,9 @@ function build(G) {
   const placeStage = at => { lap.stage.position.set(at.x, STAGE_Y, at.z); lap.stage.rotation.y = at.ry; lap.stage.updateMatrixWorld(true); };
   const world = { scene: ext.scene, update(dt, t) { ext.update(dt, t); aOut.t += dt; B.step(jackOut, dt); } };
   const iworld = { scene, update(dt, t) { int.update(dt, t); ja.t += dt; ma.t += dt; B.step(jackIn, dt); B.step(mother, dt); if (lap.stage.visible) lap.update(dt); } };
-  return { ext, int, jackOut, aOut, jackIn, ja, mother, ma, mBirch, jBirch, lap, placeStage, paintJack, world, iworld, scene };
+  // Where the lap scene's stage stands: at the chair, and at the table (its edge, on the side the room editor leaves the table facing).
+  const ch = int.spots.chair, tb = int.table, SEAT = { x: ch.x, z: ch.z, ry: int.spots.chairRy }, tr = tb.rotation.y, TABLE = { x: tb.position.x - 7.6 * Math.sin(tr), z: tb.position.z - 7.6 * Math.cos(tr), ry: -Math.PI / 2 + tr };
+  return { SEAT, TABLE, ext, int, jackOut, aOut, jackIn, ja, mother, ma, mBirch, jBirch, lap, placeStage, paintJack, world, iworld, scene };
 }
 
 // A point given in the lap stage's own units, in the world as the stage stands now.
@@ -95,7 +97,7 @@ function stageShot(W, pos, at, fov) { W.lap.stage.updateMatrixWorld(true); retur
 async function run(G, choices, opts) {
   opts = opts || {};
   const W = build(G), tier = tierOf(choices), say = G.say, who = (w, t, o) => G.say(w, t, o);
-  const { jackOut, aOut, jackIn, ja, mother, ma, mBirch, jBirch, lap, int, ext } = W;
+  const { jackOut, aOut, jackIn, ja, mother, ma, mBirch, jBirch, lap, int, ext, SEAT, TABLE } = W;
   const pick = (a, b, c) => [a, b, c][tier];
   G.mode = 'cutscene'; document.body.classList.add('cutscene'); G.drone = null;
   const walk = async (rig, a, pts, speed, face) => {                    // walk a rig through points, its feet going
@@ -167,7 +169,7 @@ async function run(G, choices, opts) {
   await who('mother', pick('Hush.', 'You did what pleased you.', 'I believe every word you say, Jack. That is the trouble.'));
   // She sits in the chair by the hearth, and calls him to her.
   G.cut(sh.jFace); ma.gesture = 0; ma.wag = 0; ma.fold = 0;
-  await G.wait(0.4); B.setPose(mother, 'sit'); mother.pose = 'sit'; mother.root.position.set(SEAT.x, STAGE_Y, SEAT.z); mother.root.rotation.y = Math.PI / 2; ma.chin = 0;
+  await G.wait(0.4); B.setPose(mother, 'sit'); mother.pose = 'sit'; mother.root.position.set(SEAT.x, STAGE_Y, SEAT.z); mother.root.rotation.y = SEAT.ry; ma.chin = 0;
   for (let i = 0; i < 12; i++) B.step(mother, 0.1);
   G.cut(sh.two);
   await who('mother', 'Come here.');
@@ -250,7 +252,7 @@ async function run(G, choices, opts) {
     await who('mother', 'Not by half. Go.');
     // He goes, bare below the waist, with his trousers about his knees.
     lap.stage.visible = false; mother.root.visible = true; jackIn.root.visible = true; int.chair.visible = false; int.chair.visible = true;
-    B.setPose(mother, 'sit'); mother.pose = 'sit'; mother.root.position.set(SEAT.x, STAGE_Y, SEAT.z); mother.root.rotation.y = Math.PI / 2; ma.fold = 0; ma.gesture = 0.3;
+    B.setPose(mother, 'sit'); mother.pose = 'sit'; mother.root.position.set(SEAT.x, STAGE_Y, SEAT.z); mother.root.rotation.y = SEAT.ry; ma.fold = 0; ma.gesture = 0.3;
     W.paintJack(jackIn, { expr: 3, trousers: 'down', drawers: 'down', marks: lap.st.marks }); ja.cover = 0; ja.shuffle = 1; ja.bow = 1;
     jackIn.root.position.set(-17, 0, -24); jackIn.root.rotation.y = -Math.PI / 2;
     const hook = int.spots.birch;
