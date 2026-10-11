@@ -220,7 +220,17 @@ function build(G) {
     for (const f of sway) { f.g.rotation.x = f.x + 0.06 * Math.sin(t * 1.4 + f.ph); f.g.rotation.z = f.z + 0.06 * Math.cos(t * 1.1 + f.ph); }
     for (const c of cloths) c.m.rotation.z = c.base + 0.012 * Math.sin(t * 1.1 + c.ph);
   } };
-  return { R, scene, world, items, ties, canopy, trunks, forest, jack, peddler, cowM, ja, pa, paintJack, cord, halter, heldGroup, beans, end, cartPos, trailDir, trailStart};
+  const wp = new V3();
+  const cull = (cam, tgt, around) => {                                                                  // hide what would come between the camera and what it looks at
+    const ax = cam.x, ay = cam.y, az = cam.z, bx = tgt.x, by = tgt.y, bz = tgt.z, ex = bx - ax, ey = by - ay, ez = bz - az, l2 = ex * ex + ey * ey + ez * ez || 1;
+    for (const c of canopy) {
+      if (!c.p) { c.p = new V3(); c.m.getWorldPosition(c.p); } wp.copy(c.p); const t = clamp(((wp.x - ax) * ex + (wp.y - ay) * ey + (wp.z - az) * ez) / l2, 0, 1), dx = wp.x - (ax + ex * t), dy = wp.y - (ay + ey * t), dz = wp.z - (az + ez * t);
+      c.m.visible = (dx * dx + dy * dy + dz * dz) > (c.r + 14) ** 2 && (wp.x - ax) ** 2 + (wp.y - ay) ** 2 + (wp.z - az) ** 2 > (30 + c.r) ** 2;
+    }
+    for (const tr of trunks) { let vis = true; for (const q of tr.pts) { const t = clamp(((q.x - ax) * ex + (q.y - ay) * ey + (q.z - az) * ez) / l2, 0, 1), dx = q.x - (ax + ex * t), dy = q.y - (ay + ey * t), dz = q.z - (az + ez * t); if (dx * dx + dy * dy + dz * dz < 12 * 12 || (q.x - ax) ** 2 + (q.y - ay) ** 2 + (q.z - az) ** 2 < 20 * 20) { vis = false; break; } } tr.m.visible = vis; }
+    for (const g of forest) g.visible = (g.position.x - around.x) ** 2 + (g.position.z - around.z) ** 2 < 520 * 520;
+  };
+  return { cull, R, scene, world, items, ties, canopy, trunks, forest, jack, peddler, cowM, ja, pa, paintJack, cord, halter, heldGroup, beans, end, cartPos, trailDir, trailStart};
 }
 
 // ── The HUD, cord and helpers shared by the play and the scene. ──
@@ -400,15 +410,7 @@ function playLoop(G, W) {
       if (st.speedN > 2 && !drags.size && performance.now() - st.dragAt > 1800) { const nr = R.near(st.pos.x, st.pos.z), c = R.at(nr.s); if (nr.d < 40) st.yaw = turn(st.yaw, Math.atan2(c.tx, c.tz) + Math.PI, Math.min(1, dt * 0.9)); }
       // The camera: always centred on Jack; the canopy that would come between is hidden.
       const goal = camGoal(); camPos.lerp(goal, Math.min(1, dt * 8)); look.set(st.pos.x, st.y + 15 * SC, st.pos.z); G.cut(spec);
-      cullFrame++; if (cullFrame % 2 === 0) {
-        const ax = camPos.x, ay = camPos.y, az = camPos.z, bx = look.x, by = look.y, bz = look.z, ex = bx - ax, ey = by - ay, ez = bz - az, l2 = ex * ex + ey * ey + ez * ez || 1;
-        for (const c of canopy) {
-          if (!c.p) { c.p = new V3(); c.m.getWorldPosition(c.p); } wp.copy(c.p); const t = clamp(((wp.x - ax) * ex + (wp.y - ay) * ey + (wp.z - az) * ez) / l2, 0, 1), dx = wp.x - (ax + ex * t), dy = wp.y - (ay + ey * t), dz = wp.z - (az + ez * t);
-          c.m.visible = (dx * dx + dy * dy + dz * dz) > (c.r + 14) ** 2 && (wp.x - ax) ** 2 + (wp.y - ay) ** 2 + (wp.z - az) ** 2 > (30 + c.r) ** 2;
-        }
-        for (const tr of trunks) { let vis = true; for (const q of tr.pts) { const t = clamp(((q.x - ax) * ex + (q.y - ay) * ey + (q.z - az) * ez) / l2, 0, 1), dx = q.x - (ax + ex * t), dy = q.y - (ay + ey * t), dz = q.z - (az + ez * t); if (dx * dx + dy * dy + dz * dz < 12 * 12 || (q.x - ax) ** 2 + (q.y - ay) ** 2 + (q.z - az) ** 2 < 20 * 20) { vis = false; break; } } tr.m.visible = vis; }
-        for (const g of forest) g.visible = (g.position.x - st.pos.x) ** 2 + (g.position.z - st.pos.z) ** 2 < 520 * 520;
-      }
+      cullFrame++; if (cullFrame % 2 === 0) W.cull(camPos, look, st.pos);
       // The HUD.
       const t = nearTie(16), it = !st.carry && nearestItem(13), pace = st.speedN < 0.5 ? 'Still' : running ? 'Running' : st.sneak ? 'Sneaking' : 'Walking';
       const blockedNow = cow.blockedT > 0.8;
@@ -425,7 +427,7 @@ function playLoop(G, W) {
         else if (st.carry && !st.tips.carryEnd) tip('carryEnd', 'Put that down first.', 3000);
       }
     };
-    const wp = new V3(); let cullFrame = 0;
+    let cullFrame = 0;
     function cleanup() {
       root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu); el.removeEventListener('wheel', wheel);
       G.updaters = G.updaters.filter(u => u !== tick); mark.remove(); ui.show(false); ui.toast.style.opacity = 0;
@@ -457,7 +459,7 @@ async function trade(G, W, res) {
   const hand = v(0, 0, 0), neck = v(0, 0, 0);
   const holder = { who: 'jack' };
   const cordTick = () => { const a = holder.who === 'jack' ? jackHand(W, hand) : (peddler.root.updateMatrixWorld(true), (peddler.wrist || peddler.armL).localToWorld(hand.set(0, -5, 1))), nk = cowNeck(W, neck); cordUpdate(W, a, nk, 4); };
-  G.updaters.push(cordTick);
+  const cullTick = () => { const sn = G.shotNow(); W.cull(sn.pos, sn.look, P); }; G.updaters.push(cordTick, cullTick);
   const eye = (pos, h) => v(pos.x, h, pos.z);
   const side = n.clone(), shots = {
     wide: { pos: v((P.x + J0.x) / 2 + side.x * 92, 40, (P.z + J0.z) / 2 + side.z * 92), look: v((P.x + J0.x) / 2, 18, (P.z + J0.z) / 2), fov: 46 },
@@ -531,7 +533,7 @@ async function trade(G, W, res) {
     await G.wait(0.04);
   }
   pa.speed = 0; peddler.root.visible = false; cowM.visible = false;
-  G.updaters = G.updaters.filter(u => u !== cordTick); hideCord(W);
+  G.updaters = G.updaters.filter(u => u !== cordTick && u !== cullTick); hideCord(W);
   await G.wait(1.2);
   jack.root.rotation.y += 0.6; await G.wait(1.0);
   G.cut(shots.jack); await G.wait(0.2);
