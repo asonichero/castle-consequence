@@ -344,7 +344,9 @@ function create(view, opts) {
   }
   // Free pose (the editor, over the table): nothing is pinned to the skin: no hand is brought to a contact point and no arm or implement aimed at one. She stands as she is, and
   // the offsets ARE the pose.
-  const isFree = () => hs.on && posKey() === 'table';
+  // It also plays, outside the editor, wherever the table has poses made for the implement in hand (unless a scene turns that off with st.usePoses = false).
+  const tableHasPoses = () => { const set = SETS.table[100].gerda[st.implement] || {}, set2 = SETS.table[50].gerda[st.implement] || {}; return GERDA_BEATS.some(b => Object.keys(set[b] || {}).length || Object.keys(set2[b] || {}).length); };
+  const isFree = () => posKey() === 'table' && (hs.on || (st.usePoses !== false && tableHasPoses()));
   function freePose(g) {
     const impl = IMPL[st.implement], gw = gerdaWeights(), sw = st.swing;
     g.torso.rotation.order = 'YXZ'; g.torso.rotation.set(0, 0, 0); g.neck.rotation.set(0.1, 0, 0); g.elbow.rotation.set(0, 0, 0); g.wrist.rotation.set(0, 0, 0);

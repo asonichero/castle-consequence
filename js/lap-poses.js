@@ -142,5 +142,187 @@ root.LapPoses = {
       react: {},
     },
   },
+  table: {
+    100: {
+      gerda: {
+        hand: {
+          rest: {},
+          raised: {},
+          contactL: {},
+          contactR: {},
+        },
+        paddle: {
+          rest: {},
+          raised: {},
+          contactL: {},
+          contactR: {},
+        },
+        birch: {
+          rest: {
+            torso: { r: [7.4, 32.5, 7.6], p: [-13.8, 0, -7.6] },
+            elbowR: { r: [-17.1, -0.7, 0.5] },
+            armR: { r: [-6.5, -2.2, -13.4] },
+            paddle: { r: [0, -14.3, 0] },
+            birch: { r: [-71.5, 32, -42.4] },
+            wristR: { r: [0, -6.5, 0] },
+          },
+          raised: {
+            torso: { r: [7.4, 32.5, 7.6], p: [-13.8, 0, -7.6] },
+            elbowR: { r: [-17.1, -0.7, 0.5] },
+            armR: { r: [-6.5, -2.2, -13.4] },
+            paddle: { r: [0, -14.3, 0] },
+            birch: { r: [-71.5, 32, -42.4] },
+            wristR: { r: [0, -6.5, 0] },
+          },
+          contactL: {
+            torso: { r: [7.4, 32.5, 7.6], p: [-13.8, 0, -7.6] },
+            elbowR: { r: [-17.1, -0.7, 0.5] },
+            armR: { r: [-6.5, -2.2, -13.4] },
+            paddle: { r: [0, -14.3, 0] },
+            birch: { r: [-71.5, 32, -42.4] },
+            wristR: { r: [0, -6.5, 0] },
+          },
+          contactR: {
+            torso: { r: [7.4, 32.5, 7.6], p: [-13.8, 0, -7.6] },
+            elbowR: { r: [-17.1, -0.7, 0.5] },
+            armR: { r: [-6.5, -2.2, -13.4] },
+            paddle: { r: [0, -14.3, 0] },
+            birch: { r: [-71.5, 32, -42.4] },
+            wristR: { r: [0, -6.5, 0] },
+          },
+        },
+      },
+      jack: {
+        hand: {
+          rest: {},
+          raised: {},
+          contactL: {},
+          contactR: {},
+        },
+        paddle: {
+          rest: {},
+          raised: {},
+          contactL: {},
+          contactR: {},
+        },
+        birch: {
+          rest: {
+            frame: { p: [-11.5, 0, 0] },
+            armR: { r: [3.6, -0.7, -24.5] },
+            armL: { r: [3.3, 0.6, 23.6] },
+            neck: { r: [-33, 53, 1] },
+          },
+          raised: {
+            frame: { p: [-11.5, 0, 0] },
+            armR: { r: [3.6, -0.7, -24.5] },
+            armL: { r: [3.3, 0.6, 23.6] },
+            neck: { r: [-33, 53, 1] },
+          },
+          contactL: {
+            frame: { p: [-11.5, 0, 0] },
+            armR: { r: [3.6, -0.7, -24.5] },
+            armL: { r: [3.3, 0.6, 23.6] },
+            neck: { r: [-33, 53, 1] },
+          },
+          contactR: {
+            frame: { p: [-11.5, 0, 0] },
+            armR: { r: [3.6, -0.7, -24.5] },
+            armL: { r: [3.3, 0.6, 23.6] },
+            neck: { r: [-33, 53, 1] },
+          },
+        },
+      },
+    },
+    50: {
+      gerda: {
+        hand: {
+          rest: {},
+          raised: {},
+          contactL: {},
+          contactR: {},
+        },
+        paddle: {
+          rest: {},
+          raised: {},
+          contactL: {},
+          contactR: {},
+        },
+        birch: {
+          rest: {
+            torso: { r: [7.4, 32.5, 7.6], p: [-13.8, 0, -7.6] },
+            elbowR: { r: [-17.1, -0.7, 0.5] },
+            armR: { r: [-6.5, -2.2, -13.4] },
+            paddle: { r: [0, -14.3, 0] },
+            birch: { r: [-71.5, 32, -42.4] },
+            wristR: { r: [0, -6.5, 0] },
+          },
+          raised: {
+            torso: { r: [7.4, 32.5, 7.6], p: [-13.8, 0, -7.6] },
+            elbowR: { r: [-17.1, -0.7, 0.5] },
+            armR: { r: [-6.5, -2.2, -13.4] },
+            paddle: { r: [0, -14.3, 0] },
+            birch: { r: [-71.5, 32, -42.4] },
+            wristR: { r: [0, -6.5, 0] },
+          },
+          contactL: {
+            torso: { r: [7.4, 32.5, 7.6], p: [-13.8, 0, -7.6] },
+            elbowR: { r: [-17.1, -0.7, 0.5] },
+            armR: { r: [-6.5, -2.2, -13.4] },
+            paddle: { r: [0, -14.3, 0] },
+            birch: { r: [-71.5, 32, -42.4] },
+            wristR: { r: [0, -6.5, 0] },
+          },
+          contactR: {
+            torso: { r: [7.4, 32.5, 7.6], p: [-13.8, 0, -7.6] },
+            elbowR: { r: [-17.1, -0.7, 0.5] },
+            armR: { r: [-6.5, -2.2, -13.4] },
+            paddle: { r: [0, -14.3, 0] },
+            birch: { r: [-71.5, 32, -42.4] },
+            wristR: { r: [0, -6.5, 0] },
+          },
+        },
+      },
+      jack: {
+        hand: {
+          rest: {},
+          raised: {},
+          contactL: {},
+          contactR: {},
+        },
+        paddle: {
+          rest: {},
+          raised: {},
+          contactL: {},
+          contactR: {},
+        },
+        birch: {
+          rest: {
+            frame: { p: [-11.5, 0, 0] },
+            armR: { r: [3.6, -0.7, -24.5] },
+            armL: { r: [3.3, 0.6, 23.6] },
+            neck: { r: [-33, 53, 1] },
+          },
+          raised: {
+            frame: { p: [-11.5, 0, 0] },
+            armR: { r: [3.6, -0.7, -24.5] },
+            armL: { r: [3.3, 0.6, 23.6] },
+            neck: { r: [-33, 53, 1] },
+          },
+          contactL: {
+            frame: { p: [-11.5, 0, 0] },
+            armR: { r: [3.6, -0.7, -24.5] },
+            armL: { r: [3.3, 0.6, 23.6] },
+            neck: { r: [-33, 53, 1] },
+          },
+          contactR: {
+            frame: { p: [-11.5, 0, 0] },
+            armR: { r: [3.6, -0.7, -24.5] },
+            armL: { r: [3.3, 0.6, 23.6] },
+            neck: { r: [-33, 53, 1] },
+          },
+        },
+      },
+    },
+  },
 };
 })(typeof window !== 'undefined' ? window : globalThis);
