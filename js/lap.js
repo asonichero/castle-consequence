@@ -346,6 +346,7 @@ function create(view, opts) {
   function freePose(g) {
     const impl = IMPL[st.implement], gw = gerdaWeights(), sw = st.swing;
     g.torso.rotation.order = 'YXZ'; g.torso.rotation.set(0, 0, 0); g.neck.rotation.set(0.1, 0, 0); g.elbow.rotation.set(0, 0, 0); g.wrist.rotation.set(0, 0, 0);
+    for (const key of ['armL', 'armR']) { const a = g[key]; a.rotation.set(gerda.state.armX, 0, -a.userData.sign * gerda.state.armIn); }
     paddle.visible = !!impl.paddle && st.armed; birch.visible = !!impl.birch && st.armed; tool.rotation.set(0, 0, Math.PI / 2); birchTool.quaternion.identity();
     g.root.updateMatrixWorld(true);
     applyEdits('gerda', ['torso', 'neck', 'armL', 'armR', 'elbowR', 'wristR', 'thighL', 'thighR', 'kneeL', 'kneeR'], gw);
@@ -353,6 +354,8 @@ function create(view, opts) {
     if (impl.birch) { birchFlex(sw, sw ? sw.tau : 1); applyEdits('gerda', ['birch'], gw); }
   }
   gerda.after = function (g) {
+    for (const l of [g.legL, g.legR]) { l.thigh.rotation.y = 0; l.knee.rotation.y = 0; l.knee.rotation.z = 0; }      // (see jack.after: no stray turns about the wrong axis)
+    g.neck.rotation.z = 0;
     if (isFree()) { freePose(g); return; }
     const sw0 = st.swing, standing = st.giverStance === 'stand';
     if (!strikeStance()) {
@@ -460,11 +463,12 @@ function create(view, opts) {
   jack.after = function (j) {
     const k = J.kick, d = clamp(pain.distress(), 0, 1.5), w = Math.sin(J.t * 9) * 0.05 * Math.min(1, d) + Math.sin(J.t * 5.3) * 0.03 * Math.min(1, d), sz = st.size * jackFull;
     const e = easeIO(clamp(st.blend, 0, 1)), p = mixPose(limbs(st.from, k, d, w, sz), limbs(st.to, k, d, w, sz), e);
-    j.legL.thigh.rotation.x = p.tL; j.legR.thigh.rotation.x = p.tR; j.legL.thigh.rotation.z = j.legL.sign * p.zL; j.legR.thigh.rotation.z = j.legR.sign * -p.zR;
-    j.legL.knee.rotation.x = p.kL; j.legR.knee.rotation.x = p.kR;
-    j.neck.rotation.x = p.nx; j.neck.rotation.y = p.ny;
-    j.armL.rotation.x = p.aLx; j.armR.rotation.x = p.aRx; j.armL.rotation.z = p.aLz; j.armR.rotation.z = p.aRz;
-    j.torso.rotation.z = p.tz; j.torso.rotation.x = p.tx;
+    // (Every angle is set afresh: a bone put back from its stored quaternion has its Euler angles worked out again, and a leftover turn about the wrong axis would twist the limb.)
+    j.legL.thigh.rotation.set(p.tL, 0, j.legL.sign * p.zL); j.legR.thigh.rotation.set(p.tR, 0, j.legR.sign * -p.zR);
+    j.legL.knee.rotation.set(p.kL, 0, 0); j.legR.knee.rotation.set(p.kR, 0, 0);
+    j.neck.rotation.set(p.nx, p.ny, 0);
+    j.armL.rotation.set(p.aLx, 0, p.aLz); j.armR.rotation.set(p.aRx, 0, p.aRz);
+    j.torso.rotation.set(p.tx, 0, p.tz);
     applyEdits('jack', ['torso', 'neck', 'glutes', 'armL', 'armR', 'thighL', 'thighR', 'kneeL', 'kneeR'], jackWeights());
   };
 
@@ -623,6 +627,7 @@ function create(view, opts) {
       const proc = bone.userData.proc || bone.quaternion;
       const tot = new THREE.Euler().setFromQuaternion(proc.clone().invert().multiply(newLocal), 'YXZ');
       const want = [tot.x / DEG, tot.y / DEG, tot.z / DEG];
+      if (root.__lapDebug) (root.__lapDebug.drag = root.__lapDebug.drag || []).push({ want: want.map(x => +x.toFixed(1)), procQ: proc.toArray().map(x => +x.toFixed(3)), curQ: bone.quaternion.toArray().map(x => +x.toFixed(3)), hasProc: !!bone.userData.proc, t: target.toArray().map(x => +x.toFixed(1)), tip: tip.toArray().map(x => +x.toFixed(1)), piv: pivot.toArray().map(x => +x.toFixed(1)) });
       for (let i = 0; i < 3; i++) {                      // the others' share of the total stays; the held beat's share takes the rest
         let others = 0; for (const b in wts) if (b !== cur.beat && setFor(cur.fig)[b] && setFor(cur.fig)[b][h.bone]) others += wts[b] * ((setFor(cur.fig)[b][h.bone].r || [0, 0, 0])[i]);
         entry.r[i] = (want[i] - others) / wb;
@@ -679,6 +684,7 @@ function create(view, opts) {
     select(bone) { hs.bone = bone; },
     onPick(f) { hs.onPick = f; }, onChange(f) { hs.onChange = f; },
     info: (fig, bone) => BONE_INFO[bone] || '',
+    handlePoints: fig => { const r = renderer.domElement.getBoundingClientRect(); return HANDLE_DEFS[bodyOf(fig)].map(h => { const q = h.mesh.position.clone().project(camera); return { bone: h.bone, kind: h.kind, x: r.left + (q.x + 1) / 2 * r.width, y: r.top + (1 - q.y) / 2 * r.height }; }); },      // (screen places of the handles, for tests)
     handleLabels: fig => HANDLE_DEFS[bodyOf(fig)].map(h => ({ bone: h.bone, kind: h.kind, label: h.label })),
     // Which of the two sets is being edited (100 or 50); Jack is held at that size while the editor is open.
     sizeKey(k) { if (k === undefined) return editKey; editKey = k === 50 ? 50 : 100; if (hs.on) st.size = editKey / 100; return editKey; },
