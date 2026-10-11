@@ -78,6 +78,9 @@
   <div class="btns"><button id="peToggle">Edit poses</button></div>
   <div id="pe">
     <div class="sub" style="margin:6px 0">Offsets are laid on top of the pose and shown live. Nothing is saved: press Report when you are happy and paste it into the chat.</div>
+    <div class="btns" style="margin:6px 0"><button id="peFree" class="on">Pins released (free pose, at the table)</button></div>
+    <div class="sub" id="peMsg" style="color:#f0a090;min-height:1.4em"></div>
+    <div class="sub">At the table nothing is pinned: no hand is brought to the skin, no arm aimed; she stands as she is and your offsets are the pose. Feet and bodies cannot go through the floor, the table or each other: a move that would is refused. (Over the knee keeps its aimed arm.)</div>
     <h4>Position (each has its own poses)</h4><div class="btns" id="pePos"></div>
     <h4>Jack's size (two sets of poses: they blend between)</h4><div class="btns" id="peSize"></div>
     <h4>Whose body</h4><div class="btns" id="peFig"></div>
@@ -168,7 +171,7 @@
     var i = L.info();
     $('fill').style.width = Math.min(100, i.distress / 1.5 * 100) + '%';
     $('band').innerHTML = 'Distress <b>' + i.distress.toFixed(2) + '</b> — ' + i.band + ' · ' + i.hits + ' smack' + (i.hits === 1 ? '' : 's');
-    mark();
+    mark(); var bm = L.editor.blocked(); $('peMsg').textContent = bm ? 'Blocked: ' + bm : '';
     $('smack').disabled = !L.canStrike() || i.busy; $('run').disabled = !L.canStrike(); $('stop').disabled = !i.running;
     $('endBtn').disabled = i.ended; $('red').disabled = i.ended;
     requestAnimationFrame(loop);
@@ -193,7 +196,7 @@
         sl[kind].push({ inp: inp, out: out }); el.appendChild(row);
       });
     }
-    function push() { E.set(S.who, S.beat, S.bone, sl.r.map(function (s) { return +s.inp.value; }), sl.p.map(function (s) { return +s.inp.value; })); }
+    function push() { var ok = E.set(S.who, S.beat, S.bone, sl.r.map(function (s) { return +s.inp.value; }), sl.p.map(function (s) { return +s.inp.value; })); if (ok === false) pull(); }
     function pull() {
       var v = E.get(S.who, S.beat, S.bone);
       ['r', 'p'].forEach(function (k) { sl[k].forEach(function (s, i) { s.inp.value = v[k][i]; s.out.textContent = (+v[k][i]).toFixed(k === 'r' ? 0 : 1); }); });
@@ -217,6 +220,7 @@
     sliders('peR', 'r', -180, 180, 1); sliders('peP', 'p', -10, 10, 0.1);
     $('peToggle').onclick = function () { var on = !$('pe').classList.contains('on'); $('pe').classList.toggle('on', on); $('peToggle').classList.toggle('on', on); $('size').disabled = on;
       if (on) { E.handles(true, S.who); $('size').value = E.sizeKey(); $('sizeV').textContent = E.sizeKey() + '%'; hold(); refresh(); } else { E.release(); E.handles(false); } };
+    $('peFree').onclick = function () { var on = !E.free(); E.free(on); $('peFree').classList.toggle('on', on); };
     $('peResetBone').onclick = function () { E.resetBone(S.who, S.beat, S.bone); pull(); };
     $('peResetBeat').onclick = function () { E.resetBeat(S.who, S.beat); pull(); };
     $('peRelease').onclick = function () { E.release(); };

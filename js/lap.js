@@ -114,7 +114,7 @@ function create(view, opts) {
     outfit: { gerda: 'Work', jack: 'Outdoor' }, lean: LEAN, size: 1, implement: 'hand', pace: 1, strength: 1, side: 'alt', nextSide: 'R',
     trousers: 'up', drawers: 'up', marks: { L: 0, R: 0 }, expr: 0,
     hits: 0, ended: false, red: false, peak: 0, swing: null, runLeft: 0, gap: 0, sound: true, last: null,
-    from: 'lap', to: 'lap', blend: 1, blendSecs: 1, giverStance: 'sit', shinsSeated: true, armed: true, cover: 0, fumble: 0, place: 'lap',
+    from: 'lap', to: 'lap', blend: 1, blendSecs: 1, giverStance: 'sit', shinsSeated: true, armed: true, cover: 0, fumble: 0, place: 'lap', freeOn: true,
   };
   const J = { kick: 0, kickSide: 'R', t: 0 };     // Jack's reaction to the last smack, and a clock for his wriggling
   let dirty = true, repaintAt = 0, fadeAcc = 0;
@@ -338,7 +338,23 @@ function create(view, opts) {
     tb(22, 2.4, 30, 11, TABLE_TOP - 1.2, 0, wood); for (const [x, z] of [[2.4, -12.6], [19.6, -12.6], [2.4, 12.6], [19.6, 12.6]]) tb(2.6, TABLE_H - 2.4, 2.6, x, FLOOR + (TABLE_H - 2.4) / 2, z, legs); table.visible = false;
   }
 
+  function birchFlex(sw, tau) {                      // the twigs trail on the way up, bow forward on the skin, and settle
+    const ph = sw && sw.phase, flex = !sw ? 0.04 : (ph === 'lift' || ph === 'hold' || ph === 'rise') ? -0.25 * (1 - sw.tau) : ph === 'strike' ? -0.25 * (1 - tau) + 0.2 * tau : ph === 'contact' ? 0.2 * Math.max(0.3, 1 - sw.t / TIMES.contact) : ph === 'freeze' ? -0.25 * (1 - tau) + 0.2 * tau : ph === 'back' ? 0.1 * (1 - (sw.hover || 0)) : 0.1;
+    twigs.rotation.x = flex; for (const j of tips) j.rotation.x = flex * 1.3;
+  }
+  // Free pose (the editor, at the table): nothing is pinned: no hand is brought to the skin, no arm aimed. She stands as she is, and the offsets ARE the pose.
+  const isFree = () => hs.on && editPos === 'table' && st.freeOn;
+  function freePose(g) {
+    const impl = IMPL[st.implement], gw = gerdaWeights(), sw = st.swing;
+    g.torso.rotation.order = 'YXZ'; g.torso.rotation.set(0, 0, 0); g.neck.rotation.set(0.1, 0, 0); g.elbow.rotation.set(0, 0, 0); g.wrist.rotation.set(0, 0, 0);
+    paddle.visible = !!impl.paddle && st.armed; birch.visible = !!impl.birch && st.armed; tool.rotation.set(0, 0, Math.PI / 2); birchTool.quaternion.identity();
+    g.root.updateMatrixWorld(true);
+    applyEdits('gerda', ['torso', 'neck', 'armL', 'armR', 'elbowR', 'wristR', 'thighL', 'thighR', 'kneeL', 'kneeR'], gw);
+    if (impl.paddle) applyEdits('gerda', ['paddle'], gw);
+    if (impl.birch) { birchFlex(sw, sw ? sw.tau : 1); applyEdits('gerda', ['birch'], gw); }
+  }
   gerda.after = function (g) {
+    if (isFree()) { freePose(g); return; }
     const sw0 = st.swing, standing = st.giverStance === 'stand';
     if (!strikeStance()) {
       // Hands on him: at his belt (and a little fumbling at it, if `fumble` is up), or on his shoulders once he is upright again.
@@ -426,7 +442,7 @@ function create(view, opts) {
     const birchUraised = impl.birch ? new V3(-ud.x * 0.5, 0, -ud.z * 0.5).addScaledVector(UP, 0.9).normalize() : null;
     g.elbow.rotation.set(lerp(pr.psi, pc.psi, tau), 0, 0); g.wrist.rotation.set(0, lerp(pr.omega, pc.omega, tau), 0);
     paddle.visible = !!impl.paddle && st.armed; birch.visible = !!impl.birch && st.armed;
-    if (impl.birch) { const ph = sw && sw.phase, flex = !sw ? 0.04 : (ph === 'lift' || ph === 'hold' || ph === 'rise') ? -0.25 * (1 - sw.tau) : ph === 'strike' ? -0.25 * (1 - tau) + 0.2 * tau : ph === 'contact' ? 0.2 * Math.max(0.3, 1 - sw.t / TIMES.contact) : ph === 'back' ? 0.1 * (1 - (sw.hover || 0)) : 0.1; twigs.rotation.x = flex; for (const j of tips) j.rotation.x = flex * 1.3; }
+    if (impl.birch) birchFlex(sw, tau);
     const gwArm = Object.assign({}, gw); delete gwArm.rest;      // at rest the right arm is aimed (over the centre of his lower back), not posed by hand
     applyEdits('gerda', ['armR', 'elbowR', 'wristR'], gwArm);
     if (impl.birch) { g.root.updateMatrixWorld(true); aim(birchTool, birchUraised.clone().lerp(birchU, tau).normalize()); applyEdits('gerda', ['birch'], gwArm); }
@@ -582,6 +598,13 @@ function create(view, opts) {
     ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); ray.setFromCamera(ndc, camera);
   }
   function applyDrag(drag, target) {
+    const set0 = setFor(cur.who)[cur.beat], key0 = drag.h.bone;
+    if (!isFree()) return applyDrag_(drag, target);
+    poseNow(); const before = penetration(), old = set0[key0] ? JSON.stringify(set0[key0]) : null;
+    applyDrag_(drag, target); poseNow(); const why = worse(penetration(), before);
+    if (why) { if (old === null) delete set0[key0]; else set0[key0] = JSON.parse(old); poseNow(); blocked.why = why; blocked.at = performance.now(); if (hs.onChange) hs.onChange(key0); }
+  }
+  function applyDrag_(drag, target) {
     const h = drag.h, fig = h.who, bone = BONES[fig][h.bone], set = setFor(cur.who)[cur.beat], wts = weightsNow(), wb = wts[cur.beat] || 1;
     const entry = set[h.bone] || (set[h.bone] = { r: [0, 0, 0], p: [0, 0, 0] }); entry.r = entry.r || [0, 0, 0]; entry.p = entry.p || [0, 0, 0];
     if (h.kind === 'move') {
@@ -638,6 +661,55 @@ function create(view, opts) {
   const endDrag = () => { if (hs.drag) { hs.drag = null; controls.enabled = true; } };
   hostEl.addEventListener('pointerup', endDrag, true); hostEl.addEventListener('pointercancel', endDrag, true);
 
+  // ── Collisions (free-pose editing): feet and the rest of both bodies stay above the floor, the two bodies do not pass through each other, and neither passes through the table. ──
+  // Each body is a string of spheres along its bones; an edit that would make things worse than they already are is refused (the pose stays as it was).
+  const poseNow = () => {                                // pose both figures again from the current edits, without letting any time pass
+    restoreBones(); applyEdits('jack', ['frame'], jackWeights());
+    B.step(jack, 0); scene.updateMatrixWorld(true); B.step(gerda, 0); scene.updateMatrixWorld(true);
+  };
+  const tmpP = new V3();
+  function spheres() {
+    const out = [], add = (obj, x, y, z, r, tag) => { obj.localToWorld(tmpP.set(x, y, z)); out.push({ x: tmpP.x, y: tmpP.y, z: tmpP.z, r, tag }); };
+    for (const [rig, who, k] of [[gerda, 'g', 1], [jack, 'j', frame.scale.x]]) {
+      for (const y of [1, 5, 9]) add(rig.torso, 0, y, 0, (who === 'j' ? 1.9 : 2.6) * k, who + 'torso');
+      add(rig.neck, 0, 4, 0, 3.6 * k, who + 'head');
+      for (const key of ['armL', 'armR']) {
+        const a = rig[key];
+        if (rig.elbow && key === 'armR') { add(a, 0, -1, 0, 1.6 * k, who + 'arm'); add(a, 0, -3.5, 0, 1.6 * k, who + 'arm'); add(rig.wrist, 0, -1.5, 0, 1.4 * k, who + 'hand'); add(rig.wrist, 0, -4.5, 0, 1.4 * k, who + 'hand'); add(rig.wrist, 0, -6.2, 0, 1.4 * k, who + 'hand'); }
+        else for (const y of [-2, -6, -10]) add(a, 0, y, 0, 1.5 * k, who + (y < -8 ? 'hand' : 'arm'));
+      }
+      for (const key of ['legL', 'legR']) { const l = rig[key]; add(l.thigh, 0, -1.5, 0, 2 * k, who + 'leg'); add(l.thigh, 0, -4.5, 0, 2 * k, who + 'leg'); add(l.knee, 0, -1.5, 0, 1.9 * k, who + 'leg'); add(l.knee, 0, -3.8, 0, 1.9 * k, who + 'leg'); add(l.knee, 0, -4.1, 0, 1.9 * k, who + 'foot'); }
+    }
+    add(rear.C.parent, 0, -2.4, 0, 2.4 * frame.scale.x, 'jrear');
+    return out;
+  }
+  const dBox = (s, b) => { const dx = Math.max(b.x0 - s.x, 0, s.x - b.x1), dy = Math.max(b.y0 - s.y, 0, s.y - b.y1), dz = Math.max(b.z0 - s.z, 0, s.z - b.z1); return Math.hypot(dx, dy, dz); };
+  function furniture() {
+    if (!table || st.showTable === false) return [];
+    const x0 = table.position.x, top = TABLE_TOP;
+    const boxes = [{ x0, x1: x0 + 22, y0: top - 2.4, y1: top, z0: -15, z1: 15 }];
+    for (const [x, z] of [[2.4, -12.6], [19.6, -12.6], [2.4, 12.6], [19.6, 12.6]]) boxes.push({ x0: x0 + x - 1.3, x1: x0 + x + 1.3, y0: FLOOR, y1: top - 2.4, z0: z - 1.3, z1: z + 1.3 });
+    return boxes;
+  }
+  const WHY = { floor: 'feet and bodies cannot go through the floor', table: 'bodies cannot go through the table', bodies: 'the two bodies cannot go through each other' };
+  function penetration() {                              // how far things are into one another, by kind
+    const S = spheres(), F = furniture(), t = { floor: 0, table: 0, bodies: 0 };
+    for (const s of S) if (s.y - s.r < FLOOR - 0.05) t.floor += FLOOR - (s.y - s.r);
+    for (const s of S) for (const bx of F) { const d = dBox(s, bx); if (d < s.r - 0.15) t.table += s.r - d; }
+    for (const a of S) if (a.tag[0] === 'g') for (const c of S) if (c.tag[0] === 'j') { const lim = a.r + c.r - 0.8, d = Math.hypot(a.x - c.x, a.y - c.y, a.z - c.z); if (d < lim) t.bodies += lim - d; }
+    return t;
+  }
+  const worse = (a, b) => { for (const k in a) if (a[k] > b[k] + 0.05) return WHY[k]; return null; };       // did the move make any kind worse than it was?
+  const blocked = { why: null, at: 0 };
+  // Run a change to the edits; if it makes the pose collide (more than it already did), put things back and say why.
+  function guarded(set, bone, change) {
+    if (!isFree()) { change(); return true; }
+    poseNow(); const before = penetration(), old = set[bone] ? JSON.stringify(set[bone]) : null;
+    change(); poseNow(); const why = worse(penetration(), before);
+    if (why) { if (old === null) delete set[bone]; else set[bone] = JSON.parse(old); poseNow(); blocked.why = why; blocked.at = performance.now(); return false; }
+    return true;
+  }
+
   // who: 'hand', 'paddle' (Gerda with that implement) or 'jack'.
   const cur = { who: 'paddle', beat: 'contactL' };      // what the editor is holding the scene at
   const figure = who => who === 'jack' ? 'jack' : 'gerda', setFor = who => who === 'jack' ? SETS[editPos][editKey].jack : SETS[editPos][editKey].gerda[who];
@@ -645,8 +717,11 @@ function create(view, opts) {
     beats: BEATS, bones: who => Object.keys(BONES[figure(who)]).filter(n => (n !== 'paddle' || who === 'paddle') && (n !== 'birch' || who === 'birch')),
     get(who, beat, bone) { const e = setFor(who)[beat][bone] || {}; return { r: (e.r || [0, 0, 0]).slice(), p: (e.p || [0, 0, 0]).slice() }; },
     set(who, beat, bone, r, p) {
-      if (r.every(v => !v) && p.every(v => !v)) delete setFor(who)[beat][bone]; else setFor(who)[beat][bone] = { r: r.slice(), p: p.slice() };
+      const set = setFor(who)[beat];
+      return guarded(set, bone, () => { if (r.every(v => !v) && p.every(v => !v)) delete set[bone]; else set[bone] = { r: r.slice(), p: p.slice() }; });
     },
+    free(on) { if (on === undefined) return st.freeOn; st.freeOn = !!on; return st.freeOn; },
+    blocked() { return performance.now() - blocked.at < 2500 ? blocked.why : null; },
     resetBone(who, beat, bone) { delete setFor(who)[beat][bone]; },
     resetBeat(who, beat) { setFor(who)[beat] = {}; },
     clear() { for (const w in BEATS) for (const b of BEATS[w]) setFor(w)[b] = {}; },
