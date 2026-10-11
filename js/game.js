@@ -49,8 +49,8 @@ function create(els) {
   let advance = null;
   const tap = () => { if (advance) advance(); };
   const typing_ = e => e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT' || e.target.isContentEditable);   // (keys typed into a field are not the story's)
-  root.addEventListener('keydown', e => { if (typing_(e)) return; if (e.key === ' ' || e.key === 'Enter') { if (G.mode === 'cutscene') { e.preventDefault(); tap(); } } });
-  els.stage.addEventListener('pointerdown', () => { if (G.mode === 'cutscene') tap(); });
+  root.addEventListener('keydown', e => { if (G.manual || typing_(e)) return; if (e.key === ' ' || e.key === 'Enter') { if (G.mode === 'cutscene') { e.preventDefault(); tap(); } } });
+  els.stage.addEventListener('pointerdown', () => { if (G.mode === 'cutscene' && !G.manual) tap(); });
   subs.addEventListener('pointerdown', e => { e.stopPropagation(); if (G.mode === 'cutscene') tap(); });
   const WHO = { mother: ['Mother', '#e6b8a0'], jack: ['Jack', '#a8d8a0'], gerda: ['Gerda', '#e6a0c0'], peddler: ['Peddler', '#c8c090'], merchant: ['Merchant', '#a0c8f0'], narrator: ['', '#e6c46a'] };
   G.say = (who, text, opts) => new Promise(resolve => {

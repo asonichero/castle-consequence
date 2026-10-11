@@ -33,7 +33,7 @@
   <h3>Beat <span id="bnum">–</span> <span class="tag" id="btag"></span></h3>
   <div id="bwho" class="who"></div><div id="bline" class="line"></div>
   <div id="state"></div>
-  <div><button id="prev" title="Back one beat (←)">⏮ Previous</button><button id="again" title="Run this beat again (R)">↻ Run again</button><button id="next" class="primary" title="On to the next beat (→)">Next ⏭</button></div>
+  <div><button id="prev">⏮ Previous</button><button id="again">↻ Run again</button><button id="next" class="primary">Next ⏭</button></div>
   <div class="row"><label></label>Go to beat <input type="number" id="goto" min="1" step="1" value="1"><button id="go">Go</button></div>
   <h3>Camera for this beat</h3>
   <div class="row"><label>pos</label><input type="number" data-k="px" step="1"><input type="number" data-k="py" step="1"><input type="number" data-k="pz" step="1"></div>
@@ -67,7 +67,7 @@ const $ = id => document.getElementById(id), A = window.GameAudio, THREE = windo
 const params = new URLSearchParams(location.search), route = params.get('c') || '0,2,0', choices = route.split(',').map(Number);
 $('route').value = route; $('route').onchange = () => { params.set('c', $('route').value); location.search = params.toString(); };
 const G = window.__game = Game.create({ stage: $('stage'), fade: $('fade'), subs: $('subs'), subWho: $('subWho'), subText: $('subText') });
-G.mode = 'free'; G.noSave = true; G.settings.auto = true; G.settings.subtitles = true; G.noFade = true; G.keepLine = true;   // (no fades to black; the line stays up where the scene holds)
+G.mode = 'free'; G.noSave = true; G.settings.auto = true; G.settings.subtitles = true; G.noFade = true; G.keepLine = true; G.manual = true;   // (no fades to black; the line stays up where the scene holds; no keys or taps move the story: only this panel and the camera do)
 
 // ── What is kept, per beat. ──
 const KEY = 'castle-consequence:scene-notes:night:v2:' + route;       // (v2: beats are camera angles)
@@ -111,10 +111,6 @@ G.rerun = startRun;
 const goTo = n => { n = Math.max(1, Math.round(n) || 1); stopAfter = n; view = n; lastStory = null; G.restartAt(n); refresh(); };
 $('next').onclick = () => { if (!resume) return; stopAfter = heldAt; const r = resume; resume = null; heldAt = null; r(); refresh(); };
 $('again').onclick = () => goTo(view); $('prev').onclick = () => goTo(view - 1); $('go').onclick = () => goTo(+$('goto').value);
-addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-  if (e.key === 'ArrowRight') $('next').click(); else if (e.key === 'ArrowLeft') $('prev').click(); else if (e.key === 'r' || e.key === 'R') $('again').click(); else return; e.preventDefault();
-});
 
 // ── The panel: only the beat in view. ──
 const keys = ['px', 'py', 'pz', 'lx', 'ly', 'lz', 'fov'], inputs = {}; document.querySelectorAll('[data-k]').forEach(el => { inputs[el.dataset.k] = el; });
