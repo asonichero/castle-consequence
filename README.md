@@ -32,11 +32,11 @@ split at the knee, so the bend only shows when seated. Open it from the same sta
 
 ### The supporting cast (`js/cast.js`, shown in `blocky.html`)
 
-All adults, on the same blocky rig as Jack and Gerda.
+All adults, on the same blocky rig as Jack and Gerda. Sizes: an ordinary adult (Jack at full size, his mother, the merchant, the peddler) is 0.95 of the model's scale; Gerda at full size is 1.0, about 105% of them.
 
-- **Jack's Mother** (late fifties): greying hair in a tight bun, a faded blue-grey shawl drawn tight round her shoulders and knotted at the breast bone, a linen apron, sleeves rolled to the forearm, stout shoes, eyes sharper than frost and thin lips that press thinner when she disapproves (`rig.setExpr(0|1)`: neutral, or pressed lips, pinched corners and a frown). She is a giver like Gerda: the lap viewer's **Who gives** buttons seat her in the chair (`lap.giver('mother', expr)`).
-- **The Peddler** is Gerda in disguise: her own model under a hooded cloak that covers her hair and clothes, a muddy hem, patches, a pedlar's pack, and a shadow across her brow. `rig.unmask()` takes the cloak off to show Gerda in her Work clothes, `rig.mask()` puts it back.
-- **The Merchant** (for later in the story): weather-worn, bright-eyed, tall (10% taller than Gerda), a cloak of indigo wool dusted with stardust that twinkles (call `rig.tick(dt)` each frame), a leather satchel at his hip with golden trinkets showing. Never used in the correction scenes.
+- **Jack's Mother** (close to Gerda in age): lightly greying blonde hair in a tight bun, a faded blue-grey shawl drawn tight round her shoulders and knotted at the breast bone, a linen apron, sleeves rolled to the forearm, stout shoes, eyes sharper than frost and thin lips that press thinner when she disapproves (`rig.setExpr(0|1)`: neutral, or pressed lips, pinched corners and a frown). She is a giver like Gerda: the lap viewer's **Who gives** buttons seat her in the chair (`lap.giver('mother', expr)`).
+- **The Peddler** is Gerda in disguise: her own model under a hooded cloak that covers her hair and clothes, her hair dyed fully grey and her lips left natural, an ordinary adult's size (she grows to her own size when unmasked), a muddy hem, patches, a pedlar's pack, and a shadow across her brow. `rig.unmask()` takes the cloak off to show Gerda in her Work clothes, `rig.mask()` puts it back.
+- **The Merchant** (for later in the story): weather-worn, bright-eyed, as tall as Jack at full size, a cloak of indigo wool dusted with stardust that twinkles (call `rig.tick(dt)` each frame), a leather satchel at his hip with golden trinkets showing. Never used in the correction scenes.
 
 ### Across the lap (`lap.html`, `js/lap.js`, `js/pain.js`)
 

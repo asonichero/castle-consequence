@@ -1,12 +1,16 @@
 // Castle Consequence — the supporting cast, in the blocky style of js/blocky.js (same rig, same 64x64 skins, adults all).
-//   Jack's Mother: greying hair, a shawl drawn tight round her shoulders, a linen apron, sleeves rolled to the forearm, eyes sharper than frost and thin lips that
-//     press thinner when she disapproves (expr 1). A giver like Gerda: she has the same rig, so she can sit in the chair in the lap scene.
-//   The Peddler: Gerda in disguise. Her own model under a hooded cloak that covers her hair and clothes (mask() / unmask() put it on and take it off).
-//   The Merchant: weather-worn, bright-eyed, tall and curious, his cloak dusted with stardust, a satchel of golden trinkets at his hip. Never a giver.
+//   Jack's Mother: a lightly greying blonde, close to Gerda in age; a shawl drawn tight round her shoulders, a linen apron, sleeves rolled to the forearm, eyes sharper
+//     than frost and thin lips that press thinner when she disapproves (expr 1). A giver like Gerda: she has the same rig, so she can sit in the chair in the lap scene.
+//   The Peddler: Gerda in disguise. Her own model under a hooded cloak that covers her hair and clothes (mask() / unmask() put it on and take it off); in disguise her hair
+//     is fully grey and her lips more natural, and she is an ordinary adult's size.
+//   The Merchant: weather-worn, bright-eyed, curious, his cloak dusted with stardust, a satchel of golden trinkets at his hip. Never a giver.
+// Sizes: an ordinary adult (Jack at full size, his mother, the merchant, the peddler) stands at ADULT = 0.95 of the model's own scale; Gerda at full size is 1.0, a little over
+// 105% of them. The lap viewer keeps its giver at 1.0 whoever she is, so the contact poses hold.
 (function (root) {
 'use strict';
 const THREE = root.THREE, B = root.Blocky;
 const { Skin, buildCharacter, SIDES, sideOuter } = B;
+const ADULT = 0.95, GERDA = 1.0;
 
 // A box whose every face shows a repeating 16x16 pixel texture at one skin pixel per unit, so cloth on a cloak matches the cloth on the skins.
 function clothTexture(draw) {
@@ -30,12 +34,13 @@ const col = hex => new THREE.MeshLambertMaterial({ color: new THREE.Color(hex).c
 // ---------------------------------------------------------------------------------------------------------------------------
 // Jack's Mother, late fifties.
 // ---------------------------------------------------------------------------------------------------------------------------
-const MOTHER_BUN = ['#7a726b', '#a8a29b', '#5b534c', '#8f8780', '#d6d2cb'];
+const MOTHER_BUN = ['#c8a96a', '#dcc48a', '#9c7f48', '#b99a5a', '#d8d2c4'];
+const GREY_BUN = ['#8d8983', '#aaa6a0', '#6e6a65', '#98948e', '#d8d4ce'];
 function paintMotherInto(k, st) {
   st = Object.assign({ expr: 0 }, st); const stern = st.expr >= 1;
   k.ctx.clearRect(0, 0, 64, 64);
-  const C = { skin: '#dcb590', skinSh: '#c39c78', skinHi: '#e6c4a0', line: '#b58d6a', brow: '#4d443d', white: '#eef0f0', iris: '#7ea2b8', lip: '#b98a80', lipDk: '#8d5f58',
-    hair: '#6d645c', hairHi: '#8d857d', hairDk: '#4a423b', grey: '#cfcac3',
+  const C = { skin: '#e4bd98', skinSh: '#c9a27e', skinHi: '#eccaa8', line: '#c0987a', brow: '#8c7448', white: '#eef0f0', iris: '#7ea2b8', lip: '#bf8a80', lipDk: '#93625b',
+    hair: '#c8a96a', hairHi: '#dcc48a', hairDk: '#9c7f48', grey: '#d8d2c4',
     dress: '#6e5b48', dressDk: '#57463a', dressHi: '#85705a', shawl: '#6c7b86', shawlDk: '#56646e', shawlHi: '#8797a3', fringe: '#9aa7b0', knot: '#46525b',
     apron: '#cfc4a8', apronSh: '#b3a789', patch: '#bdae8c', stitch: '#8a7b5f', stock: '#8c857b', shoe: '#3d2c20', shoeHi: '#5a4130', sole: '#22160c', hem: '#7a6850' };
   const pal = { H: C.hair, h: C.hairHi, d: C.hairDk, g: C.grey, S: C.skin, s: C.skinSh, t: C.line, b: C.brow, W: C.white, E: C.iris, M: C.lip, m: C.lipDk, n: C.skinSh, k: C.skinHi };
@@ -44,14 +49,14 @@ function paintMotherInto(k, st) {
   k.all('head', C.skin);
   k.grid('head', 'front', [
     'HHHHHHHH',
-    'HgHHHHgH',
+    'HHHHHHHH',
     'HSSSSSSH',
     'HbbSSbbH',
     'HWESSEWH',
-    'HtSnnStH',
+    'HSSnnSSH',
     'SSMMMMSS',
     'SSSsSSSS' ], pal);
-  k.px('head', 'front', 1, 5, C.line); k.px('head', 'front', 6, 5, C.line);                  // crow's feet
+  k.px('head', 'front', 1, 5, C.skinSh); k.px('head', 'front', 6, 5, C.skinSh);              // the faintest crow's feet
   if (stern) {
     k.grid('head', 'front', ['SSSmmSSS'], pal, 0, 6);                                       // the lips pressed thin
     k.px('head', 'front', 2, 6, C.line); k.px('head', 'front', 5, 6, C.line);               // pinched corners
@@ -67,12 +72,12 @@ function paintMotherInto(k, st) {
   k.fill('head', 'right', C.hair, 7, 3, 1, 3); k.fill('head', 'left', C.hair, 0, 3, 1, 3);
   k.fill('head', 'right', C.skinSh, 4, 4, 1, 2); k.fill('head', 'left', C.skinSh, 3, 4, 1, 2);
   k.fill('head', 'bottom', C.skinSh);
-  // Hair layer: swept back, mostly grey now, with what is left of the brown at the crown; pinned in a tight bun.
-  k.fill('hat', 'top', C.hairHi); k.grid('hat', 'top', ['.g..g.g.', 'g..g..g.', '..g.hh.g', 'g.g..g..', '.g..g..g', 'g...g.g.'], { g: '#b4afa8', h: C.hair }, 0, 1);
-  k.fill('hat', 'back', C.hairHi, 0, 0, undefined, 7); k.fill('hat', 'back', C.hairDk, 0, 6, undefined, 1); k.px('hat', 'back', 2, 2, C.grey); k.px('hat', 'back', 5, 3, C.grey); k.px('hat', 'back', 3, 5, C.grey);
-  for (const f of ['right', 'left']) k.fill('hat', f, C.hairHi, 0, 0, undefined, 3);
-  k.fill('hat', 'right', C.hairHi, 0, 3, 3, 4); k.fill('hat', 'left', C.hairHi, 5, 3, 3, 4); k.px('hat', 'right', 1, 4, C.grey); k.px('hat', 'left', 6, 4, C.grey);
-  k.grid('hat', 'front', ['HHHHHHHH', 'HggHHgHH', 'g......g'], { H: C.hairHi, g: C.grey });
+  // Hair layer: swept back and pinned in a tight bun, a blonde just starting to grey at the temples and along the parting.
+  k.fill('hat', 'top', C.hair); k.grid('hat', 'top', ['.h..h.h.', 'h..h..h.', '..h.h..h', 'h.h..h..', '.h..h..h', 'h...h.h.'], { h: C.hairHi }, 0, 1); k.px('hat', 'top', 3, 1, C.grey); k.px('hat', 'top', 4, 2, C.grey); k.px('hat', 'top', 2, 3, C.grey);
+  k.fill('hat', 'back', C.hair, 0, 0, undefined, 7); k.fill('hat', 'back', C.hairDk, 0, 6, undefined, 1); k.px('hat', 'back', 2, 2, C.hairHi); k.px('hat', 'back', 5, 3, C.grey); k.px('hat', 'back', 3, 5, C.hairHi);
+  for (const f of ['right', 'left']) k.fill('hat', f, C.hair, 0, 0, undefined, 3);
+  k.fill('hat', 'right', C.hair, 0, 3, 3, 4); k.fill('hat', 'left', C.hair, 5, 3, 3, 4); k.px('hat', 'right', 1, 4, C.grey); k.px('hat', 'left', 6, 4, C.grey);
+  k.grid('hat', 'front', ['HHHHHHHH', 'HgHHHgHH', 'g......g'], { H: C.hair, g: C.grey });
 
   // Torso: the dress, a faded shawl drawn tight across the shoulders and crossed over the chest (knotted at the breast bone, fringed ends), then a linen apron.
   k.all('body', C.dress);
@@ -113,7 +118,7 @@ function paintMotherInto(k, st) {
 }
 function makeMother() {
   const rig = buildCharacter(paintMotherInto(new Skin(3, 3), { expr: 0 }), { armWidth: 3, bun: true, skirt: true, elbow: 'armR', bust: true, bunCols: MOTHER_BUN });
-  rig.root.scale.setScalar(0.97);                                       // a little shorter than Gerda
+  rig.root.scale.setScalar(ADULT);                                      // an ordinary adult, a little smaller than Gerda
   rig.expr = 0;
   rig.setExpr = e => { rig.expr = e; paintMotherInto(rig.skin, { expr: e }); rig.tex.needsUpdate = true; };
   return rig;
@@ -122,8 +127,9 @@ function makeMother() {
 // ---------------------------------------------------------------------------------------------------------------------------
 // The Peddler: Gerda under a hooded travelling cloak. The cloak, hood and pack are plain 3D pieces over her ordinary model.
 // ---------------------------------------------------------------------------------------------------------------------------
+const DISGUISE = { hair: '#9a958f', hairHi: '#b8b3ad', hairDk: '#77726c', grey: '#d3cfc9', lip: '#c8877e', lipDk: '#a8625c' };   // fully grey hair, natural lips
 function paintPeddlerInto(k) {
-  B.paintGerdaInto(k, 'Work');                                          // her own face (and, under the hood, her hair)
+  B.paintGerdaInto(k, 'Work', DISGUISE);                                // her own face, her hair dyed grey and her lips left natural
   const cl = '#58553f', clDk = '#403e2e', boot = '#3a2a1e';
   for (const p of ['body', 'jacket', 'rArm', 'rArmO', 'lArm', 'lArmO', 'rLeg', 'rLegO', 'lLeg', 'lLegO']) { for (const f of ['right', 'front', 'left', 'back', 'top', 'bottom']) k.fill(p, f, f === 'bottom' ? clDk : cl); }
   for (const p of ['jacket', 'rArmO', 'lArmO', 'rLegO', 'lLegO']) for (const f of ['right', 'front', 'left', 'back', 'top', 'bottom']) { const r = B.faceRect(k.A[p], f); k.ctx.clearRect(r.x, r.y, r.w, r.h); }
@@ -156,8 +162,13 @@ function makePeddler() {
   const shade = new THREE.Mesh(new THREE.PlaneGeometry(8.6, 3), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.38, depthWrite: false })); add(shade, 0, 2.4, 4.3, hood);   // the shadow the hood throws across her brow
   rig.cloakParts = [g, hood];
   rig.disguised = true;
-  rig.mask = () => { rig.disguised = true; paintPeddlerInto(rig.skin); rig.tex.needsUpdate = true; rig.cloakParts.forEach(p => { p.visible = true; }); };
-  rig.unmask = () => { rig.disguised = false; B.paintGerdaInto(rig.skin, 'Work'); rig.tex.needsUpdate = true; rig.cloakParts.forEach(p => { p.visible = false; }); };
+  const GERDA_BUN = ['#4b3022', '#67432f', '#33201a', '#4b3022', '#b9b0a6'];
+  const apply = on => {                                                    // the disguise: cloak, hood and pack, grey hair, an ordinary adult's size
+    rig.disguised = on; if (on) paintPeddlerInto(rig.skin); else B.paintGerdaInto(rig.skin, 'Work'); rig.tex.needsUpdate = true;
+    rig.cloakParts.forEach(p => { p.visible = on; }); rig.paintBun(on ? GREY_BUN : GERDA_BUN); rig.bun.visible = rig.pin.visible = !on;   // (the bun is tucked under the hood)
+    rig.root.scale.setScalar(on ? ADULT : GERDA);
+  };
+  rig.mask = () => apply(true); rig.unmask = () => apply(false); apply(true);
   return rig;
 }
 
@@ -212,7 +223,7 @@ function paintMerchantInto(k) {
 }
 function makeMerchant() {
   const rig = buildCharacter(paintMerchantInto(new Skin(3, 3)), { armWidth: 3 });
-  rig.root.scale.setScalar(1.1);                                          // tall
+  rig.root.scale.setScalar(ADULT);                                        // as tall as Jack at full size
   // The cloak: indigo wool, its stardust a handful of sparkles that twinkle (rig.tick(dt)).
   const dust = clothTexture(() => {}), ctx = dust.image.getContext('2d'); let phase = 0;
   const SPARK = [], rs = (() => { let s = 91; return () => { s = (s * 1103515245 + 12345) >>> 0; return (s >> 8) / 16777216; }; })();
@@ -241,5 +252,5 @@ function makeMerchant() {
   return rig;
 }
 
-root.Cast = { paintMotherInto, makeMother, paintPeddlerInto, makePeddler, paintMerchantInto, makeMerchant, MOTHER_BUN };
+root.Cast = { ADULT, GERDA, paintMotherInto, makeMother, paintPeddlerInto, makePeddler, paintMerchantInto, makeMerchant, MOTHER_BUN };
 })(typeof window !== 'undefined' ? window : globalThis);

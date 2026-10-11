@@ -278,13 +278,14 @@ const sideOuter = s => s + 'O';
 // ---------------------------------------------------------------------------------------------------------------------------
 // Gerda's skin, painted from scratch for an outfit: 'Work' (the plum bodice, apron and ankle-length skirt, bare feet) or 'Fine' (a lavender
 // embroidered gown to mid-calf, 3/4 sleeves, gold bracelets and anklets hung with small bells and moonstones, bare feet).
-function paintGerdaInto(k, outfit) {
+function paintGerdaInto(k, outfit, over) {
   outfit = outfit === 'Fine' ? 'Fine' : 'Work';
   k.ctx.clearRect(0, 0, 64, 64);
   const C = { skin: '#ecc3a0', skinSh: '#d3a584', skinHi: '#f3d0b0', line: '#dcae8c',
     hair: '#4b3022', hairHi: '#67432f', hairDk: '#33201a', grey: '#a39a90', brow: '#3a2418', white: '#f2f0ea', iris: '#5f7f95', lid: '#c79876', lip: '#a8525a', lipDk: '#8a3038', teeth: '#f6f2ea',
     blouse: '#ece6d6', blouseSh: '#cfc7b4', plum: '#7a2a3a', plumDk: '#5c1e2c', plumHi: '#923a4c', lace: '#e6d7b0', belt: '#4a3220', apron: '#e9dfc8', apronSh: '#cdc2a8', pocket: '#d8ccb0',
     stocking: '#d8cdb4', stockingSh: '#bfb398', boot: '#4a2f1c', bootHi: '#6a4528', sole: '#22160c', ring: '#e6c24a', trim: '#c9a84c' };
+  if (over) Object.assign(C, over);                                       // (the peddler's disguise recolours her hair and lips)
   const pal = { H: C.hair, h: C.hairHi, d: C.hairDk, g: C.grey, S: C.skin, s: C.skinSh, t: C.line, b: C.brow, W: C.white, E: C.iris, M: C.lip, m: C.lipDk, n: C.skinSh, k: C.skinHi };
 
   k.all('head', C.skin);
