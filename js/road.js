@@ -207,6 +207,7 @@ function build(G) {
   };
   B.setPose(jack, 'stand'); B.setPose(peddler, 'stand'); for (let i = 0; i < 30; i++) { B.step(jack, 0.1); B.step(peddler, 0.1); }
   // The five beans, in her palm: gold, silver, ember-red, moss-green and a deep, endless blue.
+  const hitch = [];
   const beans = new THREE.Group(), BEAN = [0xe8b830, 0xd0d6e0, 0xd8402a, 0x4f9a3a, 0x2a3ec8];
   BEAN.forEach((c, i) => { const m = new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.2, 1.2), new THREE.MeshBasicMaterial({ color: c })); m.position.set((i - 2) * 1.5, 0, (i % 2) * 1.2 - 0.6); m.rotation.y = i; beans.add(m); });
   beans.visible = false; (peddler.wrist || peddler.armR).add(beans); beans.position.set(0, -5, 1.2);
@@ -231,7 +232,7 @@ function build(G) {
     for (const tr of trunks) { let vis = true; for (const q of tr.pts) { const t = clamp(((q.x - ax) * ex + (q.y - ay) * ey + (q.z - az) * ez) / l2, 0, 1), dx = q.x - (ax + ex * t), dy = q.y - (ay + ey * t), dz = q.z - (az + ez * t); if (dx * dx + dy * dy + dz * dz < 12 * 12 || (q.x - ax) ** 2 + (q.y - ay) ** 2 + (q.z - az) ** 2 < 20 * 20) { vis = false; break; } } tr.m.visible = vis; }
     for (const g of forest) g.visible = (g.position.x - around.x) ** 2 + (g.position.z - around.z) ** 2 < 520 * 520;
   };
-  return { cull, R, scene, world, items, ties, canopy, trunks, forest, jack, peddler, cowM, ja, pa, paintJack, cord, halter, heldGroup, beans, end, cartPos, trailDir, trailStart};
+  return { hitch, cull, cart, R, scene, world, items, ties, canopy, trunks, forest, jack, peddler, cowM, ja, pa, paintJack, cord, halter, heldGroup, beans, end, cartPos, trailDir, trailStart};
 }
 
 // ── The HUD, cord and helpers shared by the play and the scene. ──
@@ -517,31 +518,50 @@ async function trade(G, W, res) {
     G.cut(shots.peddler); await say('Your mother wanted a roof that doesn’t leak and a table that’s never bare. What if I told you that is exactly what these are for?');
     G.cut(shots.jack); await J(5, '...Well. When you put it like that.'); close = 'A roof that doesn’t leak. Mother will thank me for this.';
   }
-  // 4. The trade.
+  // 4. The trade: she takes the lead, and the cow goes between the shafts of her cart.
   G.cut(shots.wide); ja.hand = 1; await G.wait(0.5);
   await G.say('jack', 'Be good, Milky-White.');
   A && A.moo(0.5, 0.9);
   holder.who = 'peddler'; ja.hand = 0; ja.lead = false;
   G.cut(shots.cart); W.beans.visible = false; pa.offer = 0; await G.wait(0.6);
-  await say('She will be better looked after than you could imagine.');
-  // She leads the cow away into the trees; Jack watches them go.
-  G.cut(shots.wide);
-  const away = v(W.trailDir.x, 0, W.trailDir.z), dirAng = Math.atan2(away.x, away.z); peddler.root.rotation.y = dirAng; pa.speed = 12;
-  for (let i = 0; i < 150; i++) {
-    P.x += away.x * 0.55; P.z += away.z * 0.55; pa.phase += 0.35;
-    const tx_ = P.x - away.x * 38, tz_ = P.z - away.z * 38; cow.pos.x += (tx_ - cow.pos.x) * 0.06; cow.pos.z += (tz_ - cow.pos.z) * 0.06; cow.heading = turn(cow.heading, dirAng, 0.08); cowM.position.set(cow.pos.x, 0, cow.pos.z); cowM.rotation.y = cow.heading;
-    if (i === 70) { cowM.userData.headBase = 0.1; }
+  await say('There. Strong in the shoulder, and a gentle eye. She will take to the shafts as if she were born to them.');
+  // The Peddler walks her to the front of the cart and puts her into the harness.
+  G.cut(shots.cart);
+  W.cart.updateMatrixWorld(true);
+  const slot = W.cart.localToWorld(v(0, 0, 47)), ca = Math.atan2(-t.x, -t.z), p0 = P.clone(), beside = v(slot.x + n.x * 20, 0, slot.z + n.z * 20);
+  pa.speed = 12;
+  for (let i = 0; i < 110; i++) {
+    P.x += (beside.x - P.x) * 0.05; P.z += (beside.z - P.z) * 0.05; pa.phase += 0.3; peddler.root.rotation.y = turn(peddler.root.rotation.y, Math.atan2(slot.x - P.x, slot.z - P.z), 0.15);
+    cow.pos.x += (slot.x - cow.pos.x) * 0.05; cow.pos.z += (slot.z - cow.pos.z) * 0.05; cow.heading = turn(cow.heading, ca, 0.07); cowM.position.set(cow.pos.x, 0, cow.pos.z); cowM.rotation.y = cow.heading;
     await G.wait(0.04);
   }
-  pa.speed = 0; peddler.root.visible = false; cowM.visible = false;
-  G.updaters = G.updaters.filter(u => u !== cordTick && u !== cullTick); hideCord(W);
-  await G.wait(1.2);
-  jack.root.rotation.y += 0.6; await G.wait(1.0);
-  G.cut(shots.jack); await G.wait(0.2);
+  pa.speed = 0; cowM.position.set(slot.x, 0, slot.z); cowM.rotation.y = ca; cow.pos.set(slot.x, 0, slot.z);
+  G.updaters = G.updaters.filter(u => u !== cordTick); hideCord(W);
+  // The harness: a collar, and traces to the tips of the shafts.
+  { const leather = C.col('#4a2e1a'), collar = new THREE.Mesh(new THREE.BoxGeometry(15, 15, 4), leather); collar.position.set(0, 19, 13.5); cowM.children[0].add(collar);
+    cowM.updateMatrixWorld(true); W.cart.updateMatrixWorld(true);
+    for (const sx of [-1, 1]) { const a = cowM.children[0].localToWorld(v(sx * 7.6, 20, 12)), bb = W.cart.localToWorld(v(sx * 8, 11, 52)), m = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 1), leather); m.position.copy(a).add(bb).multiplyScalar(0.5); m.scale.set(1, 1, a.distanceTo(bb)); W.scene.add(m); m.lookAt(bb); W.hitch.push(m); }
+    W.hitch.push(collar); }
+  pa.point = 0.5; pa.lean = 1; A && A.thwack(0.2, true, 0.35); await G.wait(1.4); pa.point = 0; pa.lean = 0;
+  pa.speed = 12;
+  for (let i = 0; i < 70; i++) { P.x += (p0.x - P.x) * 0.07; P.z += (p0.z - P.z) * 0.07; pa.phase += 0.3; peddler.root.rotation.y = turn(peddler.root.rotation.y, Math.atan2(J0.x - P.x, J0.z - P.z), 0.15); await G.wait(0.04); }
+  pa.speed = 0; peddler.root.rotation.y = Math.atan2(J0.x - P.x, J0.z - P.z);
+  // Dusk, and Jack, eager to be home.
+  G.cut(shots.peddler); pa.lean = 1;
+  await say('Dusk is coming in, boy. Best you were home before the dark settles on this road.');
+  G.cut(shots.jack); await J(5, 'Dusk! Then I haven’t a moment to lose.');
   await J(5, close);
-  W.paintJack(0);
+  await J(5, 'Home, and into the garden. Tonight!');
+  // He sets off for home at a run, the beans clutched in his fist.
+  G.cut(shots.wide); pa.lean = 0;
+  { const away = v(-t.x, 0, -t.z), ang = Math.atan2(away.x, away.z); ja.lead = false; ja.hand = 0;
+    for (let i = 0; i < 12; i++) { jack.root.rotation.y = turn(jack.root.rotation.y, ang, 0.35); await G.wait(0.04); }
+    ja.speed = 40; for (let i = 0; i < 90; i++) { jack.root.position.addScaledVector(away, 1.1); ja.phase += 0.55; await G.wait(0.04); } ja.speed = 0; }
+  await G.wait(0.6);
   A && A.stopMusic(2.5); await G.fade(true, 2.2); A && A.ambience({ wind: 0, birds: 0, fire: 0 });
+  G.updaters = G.updaters.filter(u => u !== cullTick);
   await G.wait(0.8);
+  W.paintJack(0);
   res.choices = choices; G.mode = 'end'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine();
 }
 function paintAll(W, e) { W.paintJack(e); }
