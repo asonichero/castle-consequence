@@ -4,7 +4,8 @@
 const $ = id => document.getElementById(id), A = root.GameAudio;
 const G = root.Game.create({ stage: $('stage'), fade: $('fade'), subs: $('subs'), subWho: $('subWho'), subText: $('subText') });
 root.__game = G;
-const W = G.worlds = root.Opening.build(G); W.market = root.Market.build(G, W);
+let W = G.worlds = root.Opening.build(G); W.market = root.Market.build(G, W);
+const rebuildWorlds = () => { W = G.worlds = root.Opening.build(G); W.market = root.Market.build(G, W); };
 const show = id => document.querySelectorAll('.screen').forEach(s => { if (s.id === id) s.classList.add('on'); else if (s.id !== 'dev') s.classList.remove('on'); });
 const hideAll = () => document.querySelectorAll('.screen').forEach(s => { if (s.id !== 'dev') s.classList.remove('on'); });
 $('dev').style.display = 'block';
@@ -28,6 +29,7 @@ $('noticeNo').onclick = () => { location.href = 'about:blank'; };
 // Menu. (A tap here is also what lets the browser start the sound.)
 const wake = () => { if (A) { A.init(); A.startMusic(); A.ambience({ wind: 0.5, birds: 0.5 }); } };
 async function playOpening() {
+  G.rerun = () => { rebuildWorlds(); return playOpening(); };       // (debug rewind: the opening runs again on fresh worlds)
   hideAll(); $('dev').style.display = 'none'; wake();
   await root.Opening.run(G, W);
   G.skipping = false; G.save({ step: 'market-day', opening: true, size: 0.8 });
@@ -35,6 +37,7 @@ async function playOpening() {
 }
 // Chapter One: the dialogue at the cottage door, the cow to wrangle, the closing scene. (It starts from black.)
 async function playMarket() {
+  G.rerun = null;
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60));
   const res = await root.Market.run(G, W, W.market);
@@ -43,6 +46,7 @@ async function playMarket() {
 }
 // Chapter Two: the winding road, the obstacles, the Peddler's cart and the trade. (It starts from black.)
 async function playRoad(opts) {
+  G.rerun = null;
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60));
   const res = await root.Road.run(G, opts);
@@ -51,6 +55,7 @@ async function playRoad(opts) {
 }
 // The close of Chapter Two: the cottage at night (Jack's account, his Mother's reply). The choices he made at the cart set how it goes.
 async function playNight(choices) {
+  G.rerun = () => playNight(choices);
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60));
   const res = await root.Night.run(G, choices);
@@ -65,7 +70,7 @@ function showEnd() {
 }
 // Level select (debug): plays from a chapter without touching the saved game.
 $('levelSel').onchange = async () => {
-  const k = $('levelSel').value; $('levelSel').value = ''; if (!k) return; G.noSave = true;
+  const k = $('levelSel').value; $('levelSel').value = ''; if (!k) return; G.noSave = true; G.debugCtl = true;
   try {
     if (k === 'opening') await playOpening();
     else if (k === 'market') await playMarket();
@@ -74,8 +79,12 @@ $('levelSel').onchange = async () => {
     else if (k === 'nightH') await playNight([2, 1, 2]);
     else if (k === 'nightC') await playNight([1, 0, 1]);
     else if (k === 'nightB') await playNight([0, 2, 0]);
-  } finally { G.noSave = false; }
+  } finally { G.noSave = false; G.debugCtl = false; }
 };
+// Debug controls over a cutscene (shown for scenes started from the level select, or with ?debug): pause / play, back to the previous beat, on to the next.
+if (/[?&]debug\b/.test(location.search)) G.debugCtl = true;
+$('dbgBack').onclick = () => G.rewind(); $('dbgPlay').onclick = () => G.pause(); $('dbgFwd').onclick = () => G.forward();
+setInterval(() => { const on = G.debugCtl && G.mode === 'cutscene'; document.body.classList.toggle('dbg', on); if (on) { $('dbgPlay').textContent = G.paused ? '\u25B6' : '\u275A\u275A'; $('dbgBack').disabled = !G.rerun; $('dbgInfo').textContent = 'beat ' + G.beat + (G.seekTo != null ? ' \u2192 ' + G.seekTo : ''); } }, 150);
 $('bNew').onclick = () => { G.noSave = false; if (G.loadSave() && !confirm('Start a new game? Your saved game will be replaced.')) return; G.clearSave(); playOpening(); };
 $('bContinue').onclick = () => { G.noSave = false; wake(); const sv = G.loadSave() || {}; if (sv.step === 'market-day') playMarket(); else if (sv.step === 'market-road') playRoad(); else if (sv.step === 'beans') playNight((sv.choices) || []); else { hideAll(); showEnd(); } };
 $('bSettings').onclick = () => { wake(); show('settings'); };

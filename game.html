@@ -52,6 +52,8 @@
   .mstick { position: absolute; left: 22px; bottom: 26px; width: 130px; height: 130px; border-radius: 50%; background: rgba(20,22,28,0.45); border: 2px solid rgba(230,196,106,0.55); touch-action: none; display: none; }
   #mKnob { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: rgba(230,196,106,0.75); pointer-events: none; }
   .touchonly { display: none; } @media (pointer: coarse) { .mstick { display: block; } .touchonly { display: block; } }
+  #dbgBar { position: fixed; left: 50%; top: 10px; transform: translateX(-50%); z-index: 36; display: none; align-items: center; gap: 4px; background: rgba(10,12,16,.82); border: 1px solid #4a4d58; border-radius: 8px; padding: 3px 8px; font-size: 12px; } body.dbg #dbgBar { display: flex; }
+  #dbgBar button { margin: 0; padding: 4px 11px; font-size: 14px; } #dbgInfo { opacity: .7; margin-left: 6px; min-width: 64px; }
   body.playing #tapHint, body.playing #skip, body.playing #ver { display: none; }
 </style>
 </head>
@@ -109,6 +111,7 @@
 <div id="subs"><div id="subWho"></div><div id="subText"></div><button id="subGate" class="primary">Continue</button><div id="subChoices"></div></div>
 <div id="tapHint">tap or press space to move on</div>
 <button id="skip">Skip scene</button>
+<div id="dbgBar"><button id="dbgBack" title="Back to the start of the previous beat (,)">⏮</button><button id="dbgPlay" title="Pause / play (P)">❚❚</button><button id="dbgFwd" title="On to the next beat (.)">⏭</button><span id="dbgInfo"></span></div>
 
 <script src="vendor/three.min.js"></script>
 <script src="js/blocky.js"></script>
