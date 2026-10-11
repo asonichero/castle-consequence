@@ -77,7 +77,7 @@
   <div id="pe">
     <div class="sub" style="margin:6px 0">Offsets are laid on top of the pose and shown live. The position and implement are the ones chosen above. Nothing is saved: press Report when you are happy and paste it into the chat.</div>
     <div class="sub" id="peWhere" style="margin:4px 0;color:#c9a84c"></div>
-    <div class="sub" style="margin:4px 0">Braced: nothing is pinned: no hand, arm or implement is aimed at a contact point; she stands as she is and your offsets are the pose. (Over the knee keeps its aimed arm.)</div>
+    <div class="sub" style="margin:4px 0">Over the table nothing is pinned: no hand, arm or implement is aimed at a contact point; she stands as she is and your offsets are the pose. (Over the knee keeps its aimed arm.)</div>
     <h4>Jack's size (two sets of poses: they blend between)</h4><div class="btns" id="peSize"></div>
     <h4>Body</h4><div class="btns" id="peFig"></div>
     <h4>Beat (the scene is held there; the same for both bodies)</h4><div class="btns" id="peBeat"></div>
@@ -125,7 +125,7 @@
     $('trousers').textContent = 'Trousers: ' + st.trousers; $('drawers').textContent = 'Drawers: ' + st.drawers;
     $('drawers').disabled = st.trousers === 'up';
   }
-  [['lap', 'Over the knee'], ['table', 'Braced']].forEach(function (p) { btn('places', p[1], function () {
+  [['lap', 'Over the knee'], ['table', 'Over the table']].forEach(function (p) { btn('places', p[1], function () {
     if (p[0] === 'lap' && st.implement === 'birch') L.implement('hand');          // (the birch is for the table)
     L.place(p[0], 1.2); L.view(p[0] === 'table' ? 'tableBehind' : 'overview'); markP(); if (window.__peSync) window.__peSync(); }, p[0]); });
   function markP() { document.querySelectorAll('#places button').forEach(function (b) { b.classList.toggle('on', b.dataset.k === st.place); }); }
@@ -198,7 +198,7 @@
     function refresh() {
       if (!open) return;
       var ok = E.editable();
-      $('peWhere').textContent = (st.to === 'table' ? 'Braced' : 'Over the knee') + ' · ' + L.IMPL[st.implement].name + (ok ? '' : ' — not poseable (wait for him to settle, or pick a position and implement that strike)');
+      $('peWhere').textContent = (st.to === 'table' ? 'Over the table' : 'Over the knee') + ' · ' + L.IMPL[st.implement].name + (ok ? '' : ' — not poseable (wait for him to settle, or pick a position and implement that strike)');
       var sb = $('peSize'); sb.innerHTML = '';
       [100, 50].forEach(function (k) { var b = document.createElement('button'); b.textContent = k + '%'; b.className = E.sizeKey() === k ? 'on' : ''; b.onclick = function () { E.sizeKey(k); $('size').value = k; $('sizeV').textContent = k + '%'; refresh(); }; sb.appendChild(b); });
       if (!ok) { E.release(); E.handles(false); return; }
