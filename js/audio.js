@@ -176,6 +176,20 @@ A.moo = function (vol, seconds) {
   for (const [fc, g] of [[300, 1], [820, 0.55]]) { const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.setValueAtTime(fc * 0.8, t); f.frequency.linearRampToValueAtTime(fc * 1.1, t + d * 0.5); f.Q.value = 4; const gg = ctx.createGain(); gg.gain.value = g; o.connect(f); f.connect(gg); gg.connect(out); }
   out.connect(N.sfx); o.start(t); lfo.start(t); o.stop(t + d + 0.1); lfo.stop(t + d + 0.1);
 };
+// A door latch: the bar lifts with a tick, drops back with a clack, and the door gives a short creak.
+A.latch = function (vol) {
+  if (!A.init()) return; const ctx = A.ctx, N = A.nodes, t = ctx.currentTime + 0.02, k = vol == null ? 0.7 : vol;
+  const burst = (start, len, peak, type, f, q) => {
+    const src = ctx.createBufferSource(); src.buffer = N.noise; const flt = ctx.createBiquadFilter(); flt.type = type; flt.frequency.value = f; flt.Q.value = q;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, start); g.gain.linearRampToValueAtTime(peak * k, start + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, start + len);
+    src.connect(flt); flt.connect(g); g.connect(N.sfx); src.start(start, Math.random() * 2); src.stop(start + len + 0.02);
+  };
+  burst(t, 0.03, 0.5, 'bandpass', 2600, 3); burst(t + 0.015, 0.05, 0.25, 'highpass', 4200, 0.7);       // the tick of the lifted bar
+  burst(t + 0.22, 0.05, 0.7, 'bandpass', 1400, 2.2); burst(t + 0.225, 0.09, 0.4, 'lowpass', 500, 0.6);  // the clack of it falling clear
+  const creak = ctx.createOscillator(), cg = ctx.createGain(), cf = ctx.createBiquadFilter(); creak.type = 'sawtooth'; creak.frequency.setValueAtTime(95, t + 0.45); creak.frequency.linearRampToValueAtTime(140, t + 0.95);
+  cf.type = 'bandpass'; cf.frequency.value = 520; cf.Q.value = 6; cg.gain.setValueAtTime(0.0001, t + 0.45); cg.gain.linearRampToValueAtTime(0.08 * k, t + 0.6); cg.gain.exponentialRampToValueAtTime(0.0001, t + 1.0);
+  creak.connect(cf); cf.connect(cg); cg.connect(N.sfx); creak.start(t + 0.45); creak.stop(t + 1.05);
+};
 A.blip = function () { if (!A.init()) return; const ctx = A.ctx, t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'triangle'; o.frequency.value = 660; g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.06, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12); o.connect(g); g.connect(A.nodes.sfx); o.start(t); o.stop(t + 0.15); };
 
 root.GameAudio = A;

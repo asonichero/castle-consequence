@@ -108,22 +108,24 @@ async function run(G, choices, opts) {
     path: { pos: v(-40, 16, 88), look: v(6, 14, 60), fov: 48 },
     door: { pos: v(84, 16, 56), look: v(30, 16, 26), fov: 44 },
   };
-  G.cut(outShots.gate, () => outJack(0, 150));
+  G.cut(outShots.gate, () => outJack(0, 120));                           // just inside the gate
   await G.fade(false, 1.6);
-  await walk(jackOut, aOut, [v(0, 0, 98)], 24, Math.PI);
-  G.cut(outShots.path, () => outJack(0, 98));
-  await walk(jackOut, aOut, [v(0, 0, 66), v(34, 0, 62), v(34, 0, 29)], 24, Math.PI);
-  G.cut(outShots.door, () => outJack(34, 29));
-  await G.wait(0.6);
+  await walk(jackOut, aOut, [v(0, 0, 84)], 24, Math.PI);
+  G.cut(outShots.path, () => outJack(0, 84));                            // straight across to the door, saying his piece as he goes
+  const toDoor = walk(jackOut, aOut, [v(34, 0, 29)], 16, Math.PI);
   await who('jack', pick('Perhaps I should have said no.', 'She’ll understand, once she sees them.', 'Home before the lamps burn low. Wait until she sees what I’ve brought.'));
-  await G.wait(0.4); A && A.thwack(0.3, true, 0.5);
-  await G.fade(true, 1.0);
+  await toDoor;
+  G.cut(outShots.door, () => outJack(34, 29));                           // he stands at the door; the latch lifts
+  await G.wait(0.6); A && A.latch && A.latch();
+  await G.wait(1.4);
+  await G.fade(true, 0.8);
 
   // ── 2. Indoors: the telling. Every beat puts Jack and his Mother where they are as it begins (telling()), then does only what happens within it. ──
   const sh = {
-    wide: { pos: cl(64, 36, -44), look: cl(16, 22), fov: 46 },
-    mFace: { pos: cl(40, 30, 28), look: cl(5, 25, 2), fov: 36 },
-    jFace: { pos: cl(14, 26, -22), look: cl(28, 22), fov: 40 },
+    wide: { pos: v(-40.39, 29.64, -69.07), look: v(-23.69, 22, -23.68), fov: 46 },
+    mother: { pos: v(-21, 25, 10), look: v(-30, 25, -32), fov: 40 },
+    jack: { pos: v(-46, 28, -25), look: v(-23, 22, -23), fov: 50 },
+    two: { pos: cl(64, 36, -44), look: cl(16, 22), fov: 46 },
   };
   const telling = (o) => {
     o = Object.assign({ jackAt: cl(28, 0), ry: SEAT.ry + Math.PI, bow: pick(1, 0.4, 0), fist: 1, hold: 0, gesture: 0, wag: 0, fold: 1, chin: 0, seated: false }, o || {});
@@ -137,36 +139,32 @@ async function run(G, choices, opts) {
     mother.root.rotation.y = SEAT.ry;
     for (let i = 0; i < 20; i++) { B.step(mother, 0.1); B.step(jackIn, 0.1); }
   };
-  G.cut(sh.wide, () => telling({ jackAt: v(34, 0, 50), ry: Math.PI, bow: 0 }));        // Jack comes in at the door and crosses the room
-  await G.fade(false, 1.2); await G.wait(0.6);
-  await walk(jackIn, ja, [v(30, 0, 0), cl(42, 0), cl(28, 0)], 24, SEAT.ry + Math.PI);
-  ja.bow = pick(1, 0.4, 0);
-  G.cut(sh.mFace, () => telling());
+  // Jack comes in at the door already walking, past the table and straight to where he stands before her; they speak as he crosses.
+  G.cut(sh.wide, () => { telling({ jackAt: v(34, 0, 66), ry: Math.PI, bow: 0 }); ja.speed = 23; });
+  G.fade(false, 0.8);
+  const crossing = walk(jackIn, ja, [v(30, 0, 0), cl(28, 0)], 24, SEAT.ry + Math.PI);
   await who('mother', 'Where is Milky-White?');
-  G.cut(sh.jFace, () => telling());
   await who('jack', pick('I sold her, Mother. But not for coin. I know how it will sound.', 'I sold her, Mother. Look what I got for her.', 'Gone, Mother. Sold, and for a good deal more than coin.'));
-  G.cut(sh.mFace, () => telling());
+  await crossing;
+  ja.bow = pick(1, 0.4, 0);
+  G.cut(sh.mother, () => telling());
   await who('mother', 'What is in your hand, Jack?');
-  G.cut(sh.wide, () => telling({ fist: 0, hold: 0.8 }));
+  G.cut(sh.jack, () => telling({ fist: 0, hold: 0.8 }));
   await who('jack', pick('Beans. The woman said they grow whatever we need, whether we know it or not. I believed her.', 'Beans, Mother. Magic ones. The woman at the cart said they grow whatever we need.', 'Beans, Mother. Five of them, and every one enchanted. Gold, silver, ember red, moss green, and one the deep blue of a night sky.'));
-  G.cut(sh.mFace, () => telling({ fist: 0 }));
+  G.cut(sh.mother, () => telling({ fist: 0 }));
   await who('mother', 'Beans.');
   ma.gesture = 1; ma.wag = 0.6; ma.fold = 0;
   await who('mother', 'We had one cow. One. You were to bring home coin for the roof and flour for the winter. And you have brought me five beans.');
-  G.cut(sh.jFace, () => telling({ fist: 0, gesture: 1, wag: 0.6, fold: 0 }));
+  G.cut(sh.jack, () => telling({ fist: 0, gesture: 1, wag: 0.6, fold: 0 }));
   await who('jack', pick('I know. I’m sorry. I didn’t think. She spoke so well, and I wanted so badly to bring you something.', 'It was a fair trade, Mother. She said so herself.', 'It was a fair exchange. You’ll see. By spring we’ll have more than a cow’s worth, and you’ll be the first to say so.'));
-  G.cut(sh.mFace, () => telling({ fist: 0, gesture: 1, wag: 1, fold: 0 }));
+  G.cut(sh.mother, () => telling({ fist: 0, gesture: 1, wag: 1, fold: 0 }));
   await who('mother', 'A fair trade. This is the third time this week you have come home with foolishness in place of sense, and the last of our cow besides. I told you this morning. Not for stories. Not for tricks.');
-  G.cut(sh.jFace, () => telling({ fist: 0, gesture: 1, wag: 1, fold: 0 }));
+  G.cut(sh.jack, () => telling({ fist: 0, gesture: 1, wag: 1, fold: 0 }));
   await who('jack', pick('Mother, please. I can fix this. I’ll find her, I’ll—', 'I did what I thought was best.', 'You never believe me! One day you’ll see I was right.'));
-  G.cut(sh.mFace, () => telling({ fist: 0, gesture: 1, wag: 0.4, fold: 0 }));
+  G.cut(sh.mother, () => telling({ fist: 0, gesture: 1, wag: 0.4, fold: 0 }));
   await who('mother', pick('Hush.', 'You did what pleased you.', 'I believe every word you say, Jack. That is the trouble.'));
-  // She sits in the chair by the hearth, and calls him to her.
-  G.cut(sh.jFace, () => telling({ fist: 0 , gesture: 0, wag: 0, fold: 0 }));
-  await G.wait(0.4); B.setPose(mother, 'sit'); mother.pose = 'sit'; mother.root.position.set(SEAT.x, STAGE_Y, SEAT.z); mother.root.rotation.y = SEAT.ry;
-  for (let i = 0; i < 12; i++) B.step(mother, 0.1);
-  await G.wait(0.6);
-  G.cut(sh.wide, () => telling({ fist: 0, gesture: 0, wag: 0, fold: 0, seated: true }));
+  // She is in the chair by the hearth when the next angle opens, and calls him to her.
+  G.cut(sh.two, () => telling({ fist: 0, gesture: 0, wag: 0, fold: 0, seated: true }));
   await who('mother', 'Come here.');
   await who('jack', 'Mother?');
   await who('mother', 'Come here, Jack.');
