@@ -103,7 +103,7 @@ function create(els) {
   G.setScene = world => { G.scene = world.scene; G.world = world; G.updaters = G.updaters.filter(u => !u.isWorld); const u = (dt, t) => world.update && world.update(dt, t); u.isWorld = true; G.updaters.push(u); };
 
   G.store = store; G.SAVE_KEY = SAVE_KEY; G.NOTICE_KEY = NOTICE_KEY; G.saveSettings = () => store.set(SET_KEY, G.settings);
-  G.save = data => store.set(SAVE_KEY, Object.assign(store.get(SAVE_KEY, {}), data, { savedAt: Date.now() }));
+  G.save = data => G.noSave || store.set(SAVE_KEY, Object.assign(store.get(SAVE_KEY, {}), data, { savedAt: Date.now() }));
   G.loadSave = () => store.get(SAVE_KEY, null); G.clearSave = () => store.del(SAVE_KEY);
   return G;
 }

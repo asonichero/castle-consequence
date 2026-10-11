@@ -249,23 +249,25 @@ const cowNeck = (W, out) => { W.cowM.updateMatrixWorld(true); return W.cowM.user
 
 // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 let WORLD = null;
-async function run(G) {
+async function run(G, opts) {
   const W = WORLD || (WORLD = build(G));
   G.mode = 'cutscene'; document.body.classList.add('cutscene');
   G.setScene(W.world); G.drone = null; A && A.ambience({ wind: 0.35, birds: 0.9, fire: 0 }); A && A.duckMusic(0.5, 3); A && A.startMusic();
-  const res = await playLoop(G, W);
+  const res = await playLoop(G, W, opts || {});
   await trade(G, W, res);
   WORLD = null;                                                                                       // (rebuilt fresh if the chapter is played again)
   return res;
 }
 
-function playLoop(G, W) {
+function playLoop(G, W, opts) {
   const { R, items, ties, canopy, trunks, forest, jack, cowM, ja, cord } = W, ui = Mk.hud(), scene = W.scene, el = G.renderer.domElement;
   return new Promise(resolve => {
     const c0 = R.at(14), h0 = Math.atan2(c0.tx, c0.tz);
     const st = { y: 0, vy: 0, grounded: true, pos: v(c0.x, 0, c0.z), heading: h0, speedN: 0, sneak: false, yaw: h0 + Math.PI, pitch: 0.8, zoom: 1, boost: 0, jumpReq: false, stick: { x: 0, y: 0 }, toastAt: 0, carry: null, soothes: 0, plants: 0, runSecs: 0, soothedAt: 0, tips: {}, soothN: 0, done: false, dragAt: 0 };
+    if (opts.cart) { const c1 = R.at(R.len - 140); st.pos.set(c1.x, 0, c1.z); st.heading = Math.atan2(c1.tx, c1.tz); st.yaw = st.heading + Math.PI; }
     const cow = { pos: v(c0.x - c0.tx * 34, 0, c0.z - c0.tz * 34), heading: h0, trust: 100, mode: 'follow', tree: null, blockedT: 0, planted: false, moved: false };
-    jack.root.position.copy(st.pos); jack.root.rotation.y = h0; jack.root.visible = true; W.paintJack(0); ja.lead = true; ja.carry = 0; ja.hand = 0; ja.speed = 0; ja.air = false;
+    if (opts.cart) { cow.pos.set(st.pos.x - Math.sin(st.heading) * 34, 0, st.pos.z - Math.cos(st.heading) * 34); cow.heading = st.heading; }
+    jack.root.position.copy(st.pos); jack.root.rotation.y = st.heading; jack.root.visible = true; W.paintJack(0); ja.lead = true; ja.carry = 0; ja.hand = 0; ja.speed = 0; ja.air = false;
     W.peddler.root.visible = true; W.beans.visible = false; W.cowM.visible = true; W.halter.visible = true;
     const camPos = new V3(), look = new V3(), spec = { pos: camPos, look, fov: 48 };
     const camGoal = () => { const d = ZOOMS[st.zoom].d, p = st.pitch; look.set(st.pos.x, st.y + 15 * SC, st.pos.z); return new V3(look.x + Math.sin(st.yaw) * Math.cos(p) * d, Math.max(3, look.y + Math.sin(p) * d), look.z + Math.cos(st.yaw) * Math.cos(p) * d); };
