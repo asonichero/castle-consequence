@@ -7,14 +7,14 @@ test('every game script parses', () => {
 });
 
 test('pages only load scripts that exist', () => {
-  for (const page of ['index.html', 'level.html', 'lap.html', 'blocky.html'])
+  for (const page of ['index.html', 'game.html', 'level.html', 'lap.html', 'blocky.html'])
     for (const m of read(page).matchAll(/<script src="([^"]+)"/g)) assert.ok(fs.existsSync(path.join(root, m[1])), `${page} loads ${m[1]}`);
 });
 
 test('the service worker caches only files that exist, and covers every script the level loads', () => {
   const sw = read('sw.js'), files = [...sw.match(/const FILES = \[([\s\S]*?)\];/)[1].matchAll(/'([^']+)'/g)].map(m => m[1]);
   for (const f of files) assert.ok(fs.existsSync(path.join(root, f)), `sw.js lists ${f}`);
-  for (const m of read('level.html').matchAll(/<script src="([^"]+)"/g)) assert.ok(files.includes(m[1]), `sw.js caches ${m[1]}`);
+  for (const page of ['game.html', 'level.html']) for (const m of read(page).matchAll(/<script src="([^"]+)"/g)) assert.ok(files.includes(m[1]), `sw.js caches ${m[1]} (${page})`);
 });
 
 test('the manifest is installable', () => {

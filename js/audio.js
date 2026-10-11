@@ -1,0 +1,139 @@
+// Climbing Toward Consequence — sound, all synthesised (no audio files): a soft pastoral score, ambience (wind, birds, a fire), the correction's smacks and Jack's cries (also used by
+// the lap scene), and a speech babble for the cutscenes (a short vowel burst per word, higher for the mother, lower for Jack and the merchant).
+// Browsers only start audio after a tap or key press: call GameAudio.init() from one (the title screen's buttons do).
+(function (root) {
+'use strict';
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const A = { ctx: null, vols: { master: 0.8, music: 0.5, sfx: 0.8, voice: 0.7 }, nodes: {} };
+try { const v = JSON.parse(localStorage.getItem('castle-consequence:volumes') || 'null'); if (v) Object.assign(A.vols, v); } catch (e) { /* no storage */ }
+
+function noiseBuffer(ctx, seconds) {
+  const n = Math.floor(ctx.sampleRate * seconds), b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+  return b;
+}
+
+A.init = function () {
+  if (A.ctx) { if (A.ctx.state === 'suspended') A.ctx.resume(); return A.ctx; }
+  const Ctx = root.AudioContext || root.webkitAudioContext; if (!Ctx) return null;
+  const ctx = A.ctx = new Ctx(), N = A.nodes;
+  N.master = ctx.createGain(); N.master.connect(ctx.destination);
+  N.music = ctx.createGain(); N.sfx = ctx.createGain(); N.voice = ctx.createGain(); N.amb = ctx.createGain();
+  for (const g of [N.music, N.sfx, N.voice, N.amb]) g.connect(N.master);
+  // A little room for the music and the voices: one soft feedback echo.
+  N.echo = ctx.createDelay(1); N.echo.delayTime.value = 0.32; const fb = ctx.createGain(); fb.gain.value = 0.34; const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1800;
+  N.echo.connect(lp); lp.connect(fb); fb.connect(N.echo); lp.connect(N.master);
+  N.noise = noiseBuffer(ctx, 3);
+  A.setVol();
+  return ctx;
+};
+A.setVol = function (k, v) {
+  if (k) { A.vols[k] = clamp(v, 0, 1); try { localStorage.setItem('castle-consequence:volumes', JSON.stringify(A.vols)); } catch (e) { /* no storage */ } }
+  const N = A.nodes; if (!A.ctx) return;
+  N.master.gain.value = A.vols.master; N.music.gain.value = A.vols.music * 0.5; N.sfx.gain.value = A.vols.sfx; N.voice.gain.value = A.vols.voice * 0.6; N.amb.gain.value = A.vols.sfx * 0.6;
+};
+
+// ── Music: four slow chords on a warm triangle pad, with a soft plucked line over them. ──────────────────────────────────────────────────────────────
+const CHORDS = [[57, 60, 64], [53, 57, 60], [60, 64, 67], [55, 59, 62]];             // Am, F, C, G
+const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+A.startMusic = function (opts) {
+  if (!A.ctx || A.musicOn) return; A.musicOn = true; const ctx = A.ctx, N = A.nodes; let step = 0, next = ctx.currentTime + 0.1;
+  const filt = ctx.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = (opts && opts.dark) ? 700 : 1500; filt.connect(N.music); filt.connect(N.echo);
+  N.musicFilter = filt;
+  const tone = (f, t, dur, type, peak) => {
+    const o = ctx.createOscillator(), g = ctx.createGain(); o.type = type; o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(peak, t + Math.min(0.6, dur * 0.3)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(filt); o.start(t); o.stop(t + dur + 0.05);
+  };
+  const tick = () => {
+    if (!A.musicOn) return;
+    while (next < ctx.currentTime + 1.5) {
+      const bar = Math.floor(step / 8) % 4, chord = CHORDS[bar], beat = step % 8;
+      if (beat === 0) { for (const m of chord) tone(hz(m - 12), next, 6.2, 'triangle', 0.1); tone(hz(chord[0] - 24), next, 6.4, 'sine', 0.12); }
+      if (beat % 2 === 0 || beat === 5) { const m = chord[[0, 1, 2, 1, 2, 0, 1, 2][beat]] + 12 + ((beat === 6) ? 12 : 0); tone(hz(m), next, 1.6, 'sine', 0.07); }
+      next += 0.75; step++;
+    }
+    A.musicTimer = setTimeout(tick, 400);
+  };
+  tick();
+};
+A.stopMusic = function (fade = 1.5) {
+  A.musicOn = false; clearTimeout(A.musicTimer); if (!A.ctx || !A.nodes.musicFilter) return;
+  const g = A.nodes.music, t = A.ctx.currentTime; g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0.0001, t + fade);
+  setTimeout(() => { A.setVol(); }, fade * 1000 + 100);
+};
+A.duckMusic = function (to, secs = 1) { if (!A.ctx) return; const g = A.nodes.music, t = A.ctx.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(Math.max(0.0001, A.vols.music * 0.5 * to), t + secs); };
+
+// ── Ambience: wind (always, level 0..1), birds, a crackling fire. ─────────────────────────────────────────────────────────────────────────────────────
+A.ambience = function (levels) {
+  if (!A.ctx) return; const ctx = A.ctx, N = A.nodes; A.amb = Object.assign(A.amb || { wind: 0, birds: 0, fire: 0 }, levels);
+  if (!N.windGain) {
+    const src = ctx.createBufferSource(); src.buffer = N.noise; src.loop = true; const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 500; bp.Q.value = 0.7;
+    N.windGain = ctx.createGain(); N.windGain.gain.value = 0; src.connect(bp); bp.connect(N.windGain); N.windGain.connect(N.amb); src.start();
+    const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 0.12; lg.gain.value = 260; lfo.connect(lg); lg.connect(bp.frequency); lfo.start();
+    const fsrc = ctx.createBufferSource(); fsrc.buffer = N.noise; fsrc.loop = true; const flp = ctx.createBiquadFilter(); flp.type = 'lowpass'; flp.frequency.value = 220;
+    N.fireGain = ctx.createGain(); N.fireGain.gain.value = 0; fsrc.connect(flp); flp.connect(N.fireGain); N.fireGain.connect(N.amb); fsrc.start();
+    const chirp = () => {                                                         // birds and the fire's crackle: random little events
+      const a = A.amb, t = ctx.currentTime;
+      if (a.birds > 0.02 && Math.random() < 0.55) {
+        const n = 1 + Math.floor(Math.random() * 3), f0 = 2200 + Math.random() * 1600;
+        for (let i = 0; i < n; i++) { const o = ctx.createOscillator(), g = ctx.createGain(), s = t + i * 0.13; o.type = 'sine'; o.frequency.setValueAtTime(f0, s); o.frequency.exponentialRampToValueAtTime(f0 * 1.35, s + 0.08);
+          g.gain.setValueAtTime(0.0001, s); g.gain.linearRampToValueAtTime(0.05 * a.birds, s + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, s + 0.1); o.connect(g); g.connect(N.amb); o.start(s); o.stop(s + 0.12); }
+      }
+      if (a.fire > 0.02) {
+        const n = 1 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < n; i++) { const s = t + Math.random() * 0.4, src2 = ctx.createBufferSource(); src2.buffer = N.noise; const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1500 + Math.random() * 2500;
+          const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, s); g.gain.linearRampToValueAtTime(0.12 * a.fire * Math.random(), s + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, s + 0.04 + Math.random() * 0.05);
+          src2.connect(hp); hp.connect(g); g.connect(N.amb); src2.start(s, Math.random()); src2.stop(s + 0.12); }
+      }
+      N.ambTimer = setTimeout(chirp, 220 + Math.random() * 700);
+    };
+    chirp();
+  }
+  const t = ctx.currentTime; N.windGain.gain.linearRampToValueAtTime(0.35 * A.amb.wind, t + 1.5); N.fireGain.gain.linearRampToValueAtTime(0.5 * A.amb.fire, t + 1.5);
+};
+
+// ── Effects: a smack (muffled through a wall when `muffle` is set) and Jack's voice. ──────────────────────────────────────────────────────────────────
+A.thwack = function (power, muffle) {
+  if (!A.init()) return; const ctx = A.ctx, N = A.nodes, t = ctx.currentTime;
+  const n = Math.floor(ctx.sampleRate * 0.09), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (n * 0.18));
+  const src = ctx.createBufferSource(); src.buffer = buf; const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = muffle === true ? 900 : typeof muffle === 'number' ? muffle : 1800;
+  const g = ctx.createGain(); g.gain.value = clamp(0.25 + 0.35 * power, 0.1, 0.9); src.connect(f); f.connect(g); g.connect(N.sfx); src.start(t);
+};
+A.voice = function (power, band, muffle) {
+  if (!A.init()) return; const ctx = A.ctx, N = A.nodes;
+  const t0 = ctx.currentTime + 0.05 + Math.random() * 0.05, dur = [0.12, 0.2, 0.3, 0.42, 0.6, 0.6][band] || 0.3;
+  const f0 = 125 + 70 * clamp(power, 0, 1.5) + 22 * band + Math.random() * 14;
+  const vowel = [[420, 800], [760, 1150], [620, 1000], [700, 1100], [520, 920], [480, 880]][band] || [650, 1000];
+  const osc = ctx.createOscillator(); osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(f0, t0); osc.frequency.linearRampToValueAtTime(f0 * (band >= 3 ? 1.35 : band === 2 ? 1.12 : 0.9), t0 + dur);
+  const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = band >= 4 ? 7 : 5; lg.gain.value = band >= 4 ? f0 * 0.06 : f0 * 0.015; lfo.connect(lg); lg.connect(osc.frequency);
+  const out = ctx.createGain(), peak = clamp(0.07 + 0.08 * power + 0.02 * band, 0.06, 0.28);
+  out.gain.setValueAtTime(0.0001, t0); out.gain.linearRampToValueAtTime(peak, t0 + 0.025); out.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  for (const fc of vowel) { const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = fc; f.Q.value = 5; const g = ctx.createGain(); g.gain.value = fc === vowel[0] ? 1 : 0.6; osc.connect(f); f.connect(g); g.connect(out); }
+  let dest = N.sfx; if (muffle) { const m = ctx.createBiquadFilter(); m.type = 'lowpass'; m.frequency.value = 650; m.connect(N.sfx); dest = m; }
+  out.connect(dest); osc.start(t0); lfo.start(t0); osc.stop(t0 + dur + 0.05); lfo.stop(t0 + dur + 0.05);
+};
+
+// ── Speech babble: a vowel burst per word, so a line of dialogue is "spoken" over the length of its typing. who: 'mother' | 'jack' | 'gerda' | 'merchant' ──
+const PITCH = { mother: 205, gerda: 190, jack: 135, merchant: 118, narrator: 150 };
+A.speak = function (who, text, seconds, opts) {
+  if (!A.init()) return { stop() {} }; const ctx = A.ctx, N = A.nodes, base = PITCH[who] || 160, muffle = opts && opts.muffle;
+  const words = text.split(/\s+/).filter(Boolean); let t = ctx.currentTime + 0.05; const step = seconds / Math.max(1, words.length), stopAt = t + seconds + 0.3, nodes = [];
+  let dest = N.voice; if (muffle) { const m = ctx.createBiquadFilter(); m.type = 'lowpass'; m.frequency.value = 520; m.connect(N.sfx); dest = m; }
+  const vowels = [[700, 1100], [500, 1700], [350, 2300], [450, 800], [320, 900]];
+  words.forEach((w, i) => {
+    const s = t + i * step, len = clamp(0.05 + w.length * 0.018, 0.07, 0.2), v = vowels[(w.charCodeAt(0) + w.length) % vowels.length], q = /[?]$/.test(w) ? 1.18 : /[.!]$/.test(w) ? 0.88 : 1;
+    const f0 = base * (0.92 + 0.16 * ((w.charCodeAt(w.length - 1) % 7) / 6)) * q;
+    const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(f0, s); o.frequency.linearRampToValueAtTime(f0 * (q === 0.88 ? 0.9 : 1.05), s + len);
+    g.gain.setValueAtTime(0.0001, s); g.gain.linearRampToValueAtTime(0.13, s + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, s + len);
+    for (const fc of v) { const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = fc; f.Q.value = 4; const gg = ctx.createGain(); gg.gain.value = fc === v[0] ? 1 : 0.5; o.connect(f); f.connect(gg); gg.connect(g); }
+    g.connect(dest); o.start(s); o.stop(s + len + 0.05); nodes.push(o);
+  });
+  return { stop() { for (const o of nodes) { try { o.stop(); } catch (e) { /* already stopped */ } } } };
+};
+A.blip = function () { if (!A.init()) return; const ctx = A.ctx, t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'triangle'; o.frequency.value = 660; g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.06, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12); o.connect(g); g.connect(A.nodes.sfx); o.start(t); o.stop(t + 0.15); };
+
+root.GameAudio = A;
+})(typeof window !== 'undefined' ? window : globalThis);

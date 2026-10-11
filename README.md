@@ -1,8 +1,28 @@
-# Castle Consequence
+# Climbing Toward Consequence
 
-A blocky, Minecraft-style adult game based on *Jack and the Beanstalk*. Jack is 21 and fully adult; Gerda, the "Giantess", is in her late thirties. Rather than the giant and her castle being oversized, **Jack shrinks on arrival** and must regain his size, level by level. Gerda sets him tasks, judges the state he leaves things in, and corrects him across her lap.
+A blocky, Minecraft-style adult adventure based on *Jack and the Beanstalk*. Jack is 21 and fully adult; Gerda, the "Giantess", is in her late thirties. Rather than the giant and her castle being oversized, **Jack shrinks on arrival** and is measured by how he behaves in her castle: theft, carelessness and lies shrink him; honesty, care and effort restore him. A third-person adventure of climbing, stealth, task-based puzzles and dialogue choices, planned as 10 levels and 4 short playable beats with cutscenes between them, ending with Jack carrying the golden hen home as a gift rather than a theft.
 
-It is a static web app (three.js, no build step) that installs as a mobile web app. Nothing from the older Birchwood House game is used here: no Starlight engine bodies, poses or management mechanics. The characters are the blocky models in `js/blocky.js`, and the pain model (`js/pain.js`) is a small standalone module.
+Everything is rendered in the same blocky style (three.js, no build step, procedural pixel textures and synthesised sound, no asset files). It installs as a mobile web app. Nothing from the older Birchwood House game is used here.
+
+## Status
+
+Built so far: the **opening** (below), the character models and wardrobes, the across-the-lap correction scene, and a test level (the golden hen) that proves the care-and-consequence loop. Next: Chapter One, market day.
+
+### The opening (`game.html`)
+
+1. A content notice and 18+ confirmation (once, remembered), then the **title screen** over a slow aerial drone view of the homestead: a run-down cottage in the hillside, a barren garden, the cowshed with Milky-White, a low stone wall, a gate on a path down the valley.
+2. **New Game** begins the cutscene: the camera tracks slowly down to the cottage window, with the sound of a correction in progress heard through the wall, then fades to the cottage interior (one room: the hearth at its heart with the pot, kettle and fire iron; the chair and the stool; a small table, a cabinet and store cupboards; undusted corners with a birch-bundle broom; bare stairs to an upstairs we never see).
+3. Jack's Mother, by the hearth, finishes lecturing Jack (who stands nursing his bottom) about stretching the truth and shrugging everything off; she softens for a moment, tells him he will sell the cow at market in the morning, and sends him to wash for supper. Fade to black.
+
+Dialogue is typed out with a babbling voice; a tap, space or Enter finishes the line and moves on, dialogue also advances itself (a setting), and **Skip scene** jumps to the end. Settings hold the volumes, dialogue speed and the safe-word reminder. The game saves after the opening, and Continue picks it up.
+
+| File | What it is |
+|---|---|
+| `game.html`, `js/menus.js` | The shell: notice, title, settings, saves |
+| `js/game.js` | The cutscene toolkit: camera shots, fades, timed waits, typed dialogue, skipping |
+| `js/opening.js` | The opening scene itself, as an async script |
+| `js/farm.js` | The homestead and the cottage interior, built from textured boxes |
+| `js/audio.js` | Music, ambience, smacks, voices and the speech babble, all synthesised |
 
 ## Run it
 
@@ -15,7 +35,7 @@ npm test             # pain model and file checks
 
 | File | What it is |
 |---|---|
-| `level.html`, `js/level.js` | The game's first level, "The Golden Hen" (below) |
+| `level.html`, `js/level.js` | The test level, "The Golden Hen" (below) |
 | `lap.html`, `js/lap.js`, `js/lap-poses.js` | The across-the-lap correction scene and its pose editor |
 | `blocky.html`, `js/blocky.js` | The two character models (Jack, Gerda), their skins and wardrobes |
 | `js/cast.js` | The supporting cast: Jack's mother, the peddler (Gerda in disguise) and the merchant |

@@ -1,4 +1,4 @@
-// Castle Consequence — the supporting cast, in the blocky style of js/blocky.js (same rig, same 64x64 skins, adults all).
+// Climbing Toward Consequence — the supporting cast, in the blocky style of js/blocky.js (same rig, same 64x64 skins, adults all).
 //   Jack's Mother: a lightly greying blonde, close to Gerda in age; a shawl drawn tight round her shoulders, a linen apron, sleeves rolled to the forearm, eyes sharper
 //     than frost and thin lips that press thinner when she disapproves (expr 1). A giver like Gerda: she has the same rig, so she can sit in the chair in the lap scene.
 //   The Peddler: Gerda in disguise. Her own model under a hooded cloak that covers her hair and clothes (mask() / unmask() put it on and take it off); in disguise her hair
@@ -37,7 +37,7 @@ const col = hex => new THREE.MeshLambertMaterial({ color: new THREE.Color(hex).c
 const MOTHER_BUN = ['#c8a96a', '#dcc48a', '#9c7f48', '#b99a5a', '#d8d2c4'];
 const GREY_BUN = ['#8d8983', '#aaa6a0', '#6e6a65', '#98948e', '#d8d4ce'];
 function paintMotherInto(k, st) {
-  st = Object.assign({ expr: 0 }, st); const stern = st.expr >= 1;
+  st = Object.assign({ expr: 0 }, st); const stern = st.expr === 1, soft = st.expr === 2;   // 0 composed, 1 disapproving, 2 softened
   k.ctx.clearRect(0, 0, 64, 64);
   const C = { skin: '#e4bd98', skinSh: '#c9a27e', skinHi: '#eccaa8', line: '#c0987a', brow: '#8c7448', white: '#eef0f0', iris: '#7ea2b8', lip: '#bf8a80', lipDk: '#93625b',
     hair: '#c8a96a', hairHi: '#dcc48a', hairDk: '#9c7f48', grey: '#d8d2c4',
@@ -62,6 +62,10 @@ function paintMotherInto(k, st) {
     k.px('head', 'front', 2, 6, C.line); k.px('head', 'front', 5, 6, C.line);               // pinched corners
     k.px('head', 'front', 2, 7, C.line); k.px('head', 'front', 5, 7, C.line);               // and drawn down
     k.px('head', 'front', 3, 3, C.brow); k.px('head', 'front', 4, 3, C.brow); k.px('head', 'front', 3, 2, C.line); k.px('head', 'front', 4, 2, C.line);   // a frown between the brows
+  } else if (soft) {
+    k.grid('head', 'front', ['SSMMMMSS'], pal, 0, 6); k.px('head', 'front', 2, 6, C.skinHi); k.px('head', 'front', 5, 6, C.skinHi);   // the lips a little fuller, the corners easing
+    k.px('head', 'front', 3, 3, C.skin); k.px('head', 'front', 4, 3, C.skin); k.px('head', 'front', 1, 3, C.skin); k.px('head', 'front', 6, 3, C.skin);   // the brows lifting at the ends
+    k.px('head', 'front', 2, 5, C.skinHi); k.px('head', 'front', 5, 5, C.skinHi);
   } else {
     k.grid('head', 'front', ['SSSMMSSS'], pal, 0, 6);                                       // thin even lips
     k.px('head', 'front', 2, 7, C.skinSh); k.px('head', 'front', 5, 7, C.skinSh);
@@ -252,5 +256,29 @@ function makeMerchant() {
   return rig;
 }
 
-root.Cast = { ADULT, GERDA, paintMotherInto, makeMother, paintPeddlerInto, makePeddler, paintMerchantInto, makeMerchant, MOTHER_BUN };
+// ---------------------------------------------------------------------------------------------------------------------------
+// Milky-White, the family's last cow: a white cow with a few brown patches, thin from a dry season. Built of plain boxes; cow.tick(dt) lets her chew and flick her tail.
+// ---------------------------------------------------------------------------------------------------------------------------
+function makeCow() {
+  const hide = lam(clothTexture(x => { noise(x, '#eae6dc', ['#d8d3c6', '#f4f1ea'], 3, 0.3); }));
+  const patch = lam(clothTexture(x => { noise(x, '#7a5a3a', ['#6a4c30', '#8a6844'], 8, 0.3); }));
+  const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
+  const add = (m, x, y, z, par) => { m.position.set(x, y, z); (par || body).add(m); return m; };
+  add(clothBox(14, 14, 30, hide), 0, 19, 0);                                          // the body
+  add(clothBox(14.2, 8, 9, patch), 0, 22.5, 6); add(clothBox(14.2, 6, 7, patch), 0, 17, -9);   // brown patches
+  add(clothBox(8, 3.4, 6, col('#d9a0a0')), 0, 10.4, -8);                                // the udder
+  for (const [x, z] of [[-4.6, -11], [4.6, -11], [-4.6, 11], [4.6, 11]]) add(clothBox(4, 12.5, 4, hide), x, 6.25, z, g);   // legs
+  for (const [x, z] of [[-4.6, -11], [4.6, -11], [-4.6, 11], [4.6, 11]]) add(clothBox(4.1, 2.2, 4.1, col('#3a2c20')), x, 1.1, z, g);   // hooves
+  const head = new THREE.Group(); head.position.set(0, 24, 15); body.add(head);
+  add(clothBox(9, 9, 10, hide), 0, -1, 4, head); add(clothBox(7, 5, 3.4, col('#d9a0a0')), 0, -3, 9.6, head);   // the head and her nose
+  add(clothBox(1.6, 1.6, 1.6, col('#1b1410')), -3.2, 1.6, 8.6, head); add(clothBox(1.6, 1.6, 1.6, col('#1b1410')), 3.2, 1.6, 8.6, head);   // eyes
+  add(clothBox(2.4, 1.2, 4, hide), -6, 2, 3, head); add(clothBox(2.4, 1.2, 4, hide), 6, 2, 3, head);                      // ears
+  add(clothBox(1.2, 3.2, 1.2, col('#d8d0b8')), -3.4, 4.8, 3, head); add(clothBox(1.2, 3.2, 1.2, col('#d8d0b8')), 3.4, 4.8, 3, head);   // horns
+  const tail = new THREE.Group(); tail.position.set(0, 24, -15); body.add(tail); add(clothBox(1.4, 12, 1.4, hide), 0, -6, -0.6, tail); add(clothBox(2, 3, 2, patch), 0, -12.5, -0.6, tail);
+  g.userData = { head, tail, t: 0 };
+  g.tick = dt => { const u = g.userData; u.t += dt; head.rotation.x = 0.1 + 0.08 * Math.sin(u.t * 1.3); head.rotation.y = 0.12 * Math.sin(u.t * 0.5); tail.rotation.z = 0.25 * Math.sin(u.t * 1.9); };
+  return g;
+}
+
+root.Cast = { clothBox, clothTexture, noise, lam, col, makeCow, ADULT, GERDA, paintMotherInto, makeMother, paintPeddlerInto, makePeddler, paintMerchantInto, makeMerchant, MOTHER_BUN };
 })(typeof window !== 'undefined' ? window : globalThis);

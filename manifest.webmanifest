@@ -1,8 +1,8 @@
 {
-  "name": "Castle Consequence — The Golden Hen",
-  "short_name": "Golden Hen",
-  "description": "A blocky Jack and the Beanstalk game: look after Gerda's golden hen, and answer for how you left the room.",
-  "start_url": "level.html",
+  "name": "Climbing Toward Consequence",
+  "short_name": "Consequence",
+  "description": "A blocky, adult Jack and the Beanstalk adventure: climb into Gerda's castle and be measured by how you behave there.",
+  "start_url": "game.html",
   "scope": "./",
   "display": "fullscreen",
   "display_override": ["fullscreen", "standalone"],
