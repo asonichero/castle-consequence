@@ -259,8 +259,8 @@ function paintGlutesInto(g, st) {
   if (what === 'trousers' && (!st.outfit || st.outfit === 'Outdoor')) { g.fill('glutes', 'back', '#8b7048', 0, 1, 2, 2); g.px('glutes', 'back', 0, 1, '#4a3820'); }   // the patch
   g.grain(5031, 5);
   if (what === 'skin') {
-    // Every side of the block takes the colour: the back, front, bottom and top by cheek (left half, right half), the ends each their own cheek.
-    for (const f of ['back', 'front', 'bottom', 'top']) { markRect(g, 'glutes', f, 0, 0, 4, f === 'back' || f === 'front' ? 4 : 4, 'L', st.marks); markRect(g, 'glutes', f, 4, 0, 4, 4, 'R', st.marks); }
+    // Only the back face takes the colour (by cheek, left half and right half), and the one row of each end that meets it.
+    markRect(g, 'glutes', 'back', 0, 0, 4, 4, 'L', st.marks); markRect(g, 'glutes', 'back', 4, 0, 4, 4, 'R', st.marks);
     markRect(g, 'glutes', 'left', 3, 0, 1, 4, 'L', st.marks); markRect(g, 'glutes', 'right', 0, 0, 1, 4, 'R', st.marks);   // only the edge that meets the back face
   }
   return g;

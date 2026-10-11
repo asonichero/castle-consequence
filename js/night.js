@@ -79,7 +79,6 @@ function build(G) {
   // ── The lap scene's stage, in the room. ──
   const lap = Lap.create(null, { external: { scene, camera: G.camera, renderer: G.renderer }, table: false, jackFull: 1 });
   lap.giver('mother', 1); lap.stage.scale.setScalar(SC); lap.stage.visible = false; lap.jack.root.visible = true;
-  lap.st.usePoses = false;                                    // (the game's table round is still aimed at the skin; the made poses are for the test page until they are finished)
   lap.pain.stats.tolerance = 0; lap.pain.stats.resilience = 0.2; lap.st.noRecovery = true; lap.st.side = 'alt';
   // The stage stands where the scene needs it: at the chair, or at the table.
   const placeStage = at => { lap.stage.position.set(at.x, STAGE_Y, at.z); lap.stage.rotation.y = at.ry; lap.stage.updateMatrixWorld(true); };

@@ -318,9 +318,10 @@ function create(view, opts) {
     if (name === 'table') {
       // Bent over the table's edge: legs straight down to the floor (shifting from foot to foot, rising onto the toes at a bad one), arms out along the top, cheek on it.
       const phi = tablePitch(sz), leg = -Math.PI / 2 + phi;
-      return { tL: leg + 0.45 * k * mL + 0.6 * w, tR: leg + 0.45 * k * mR - 0.6 * w, zL: 0.1 + 0.1 * k * mL, zR: -(0.1 + 0.1 * k * mR), kL: 0.1 * dd + 0.9 * k * mL + 0.4 * Math.max(0, w), kR: 0.1 * dd + 0.9 * k * mR + 0.4 * Math.max(0, -w),
-        nx: -0.1 - 0.4 * k + 0.05 * dd * Math.sin(t * 4), ny: -0.95 + 0.12 * Math.sin(t * 3) * dd, aLx: phi - Math.PI - 0.12 * k + Math.sin(t * 6) * 0.05 * dd, aRx: phi - Math.PI - 0.12 * k + Math.sin(t * 6 + 1.7) * 0.05 * dd,
-        aLz: 0.26 + 0.12 * k, aRz: -(0.26 + 0.12 * k), tz: 0.05 * dd * Math.sin(t * 6), tx: -0.12 * k };
+      // (Over the table his hands and feet stay where the pose puts them: only his head and torso react.)
+      return { tL: leg, tR: leg, zL: 0.1, zR: -0.1, kL: 0.1 * dd, kR: 0.1 * dd,
+        nx: -0.1 - 0.25 * k + 0.04 * dd * Math.sin(t * 4), ny: -0.95 + 0.08 * Math.sin(t * 3) * dd, aLx: phi - Math.PI, aRx: phi - Math.PI,
+        aLz: 0.26, aRz: -0.26, tz: 0.02 * dd * Math.sin(t * 6), tx: -0.05 * k };
     }
     // Standing: weight shifting, head bowed, hands at his sides (or, as he comes to it, swung back to cover himself).
     const sh = Math.sin(t * 2.1) * dd;
@@ -358,6 +359,25 @@ function create(view, opts) {
     applyEdits('gerda', ['torso', 'neck', 'armL', 'armR', 'elbowR', 'wristR', 'thighL', 'thighR', 'kneeL', 'kneeR'], gw);
     if (impl.paddle) applyEdits('gerda', ['paddle'], gw);
     if (impl.birch) { birchFlex(sw, sw ? sw.tau : 1); applyEdits('gerda', ['birch'], gw); }
+    // Playing (not editing): as the stroke lands, the arm is aimed so that the birch lies across both cheeks, its length along the line from the near cheek to the far one and its middle
+    // on the centre of the glutes. The hold is the authored one (the same fist, the same birch); only the hand is brought to where the birch has to be.
+    const wc = (gw.contactL || 0) + (gw.contactR || 0);
+    if (impl.birch && !hs.on && wc > 0.001) {
+      const q0 = g.armR.quaternion.clone(), e0 = g.elbow.rotation.x, wy0 = g.wrist.rotation.y, b0 = birchTool.quaternion.clone();
+      g.root.updateMatrixWorld(true);
+      const rc = world(rear.C), rl = world(rear.L), rr = world(rear.R), u = rr.clone().sub(rl).normalize(), Hh = rc.clone(); Hh.y += 0.5; Hh.addScaledVector(u, -BIRCH_AT);
+      armTo(g, Hh); g.root.updateMatrixWorld(true); aim(birchTool, u);
+      const q1 = g.armR.quaternion.clone(), e1 = g.elbow.rotation.x, b1 = birchTool.quaternion.clone(), k = clamp(wc, 0, 1);
+      g.armR.quaternion.copy(q0).slerp(q1, k); g.elbow.rotation.set(lerp(e0, e1, k), 0, 0); g.wrist.rotation.set(0, lerp(wy0, 0, k), 0); birchTool.quaternion.copy(b0).slerp(b1, k);
+    }
+  }
+  function armTo(g, tR) {                                   // set her right arm (shoulder and elbow) so that the end of the forearm reaches tR
+    const sh = world(g.armR), ik = twoBone(sh, tR, LF);
+    aim(g.armR, ik.u1); const h = new V3().crossVectors(ik.u1, ik.f); let psi = Math.acos(clamp(ik.u1.dot(ik.f), -1, 1));
+    if (h.lengthSq() > 1e-6) { h.normalize(); g.armR.updateMatrixWorld(true); const xw = new V3(1, 0, 0).applyQuaternion(g.armR.getWorldQuaternion(tmpQ2)); const ang = Math.atan2(xw.clone().cross(h).dot(ik.u1), xw.dot(h)); g.armR.parent.getWorldQuaternion(tmpQ).invert(); g.armR.quaternion.premultiply(tmpQ2.setFromAxisAngle(ik.u1.clone().applyQuaternion(tmpQ), ang)); } else psi = 0;
+    g.elbow.rotation.set(psi, 0, 0); g.wrist.rotation.set(0, 0, 0); g.root.updateMatrixWorld(true);
+    const fw = new V3(0, -1, 0).applyQuaternion(g.wrist.getWorldQuaternion(tmpQ2)); if (fw.dot(ik.f) < 0.999) g.elbow.rotation.x = -psi;
+    return ik;
   }
   gerda.after = function (g) {
     for (const l of [g.legL, g.legR]) { l.thigh.rotation.y = 0; l.knee.rotation.y = 0; l.knee.rotation.z = 0; }      // (see jack.after: no stray turns about the wrong axis)
@@ -503,7 +523,7 @@ function create(view, opts) {
     // Jack's size (the premise: he shrinks on arrival): his frame is scaled about his hip joint, which is re-placed for the stance: across her knee his torso's centre is over
     // the centre of her thighs and his belly rests on them (their tops are at y = 8, 8.75 under the skirt; his body is 4 deep); at the table his chest is on its top.
     frame.scale.setScalar(sz);    // (his full size, 100%, is 95% of the model's own scale)
-    const hop = (st.to === 'lap' || st.from === 'lap' ? 0.7 : st.to === 'table' ? 0.35 : 0) * J.kick * sz;
+    const hop = (st.to === 'lap' || st.from === 'lap' ? 0.7 : st.to === 'table' ? 0 : 0) * J.kick * sz;
     frame.position.copy(fa.p).lerp(fb.p, eb); frame.position.y += hop;
     applyEdits('jack', ['frame'], jackWeights());
     // The giver's place: seated in the chair (her shins long enough to reach its floor), or standing at the table's side.
