@@ -25,6 +25,11 @@ const DOOR = v(34, 0, 22), LEADSPOT = v(122, 0, -52);
 
 // The cow is a solid thing: a box about her body and head (in her own frame), which Jack cannot walk through and she cannot walk into him.
 const COWBOX = { hw: 9, z0: -17, z1: 26 };
+function cowGap(px, pz, cow) {                                                                                  // distance from a point to the edge of her body box (so her head and tail count, not just her middle)
+  const f = v(Math.sin(cow.heading), 0, Math.cos(cow.heading)), r = v(Math.cos(cow.heading), 0, -Math.sin(cow.heading)), dx = px - cow.pos.x, dz = pz - cow.pos.z;
+  const lx = dx * r.x + dz * r.z, lz = dx * f.x + dz * f.z, cz = (COWBOX.z0 + COWBOX.z1) / 2, hl = (COWBOX.z1 - COWBOX.z0) / 2;
+  return Math.hypot(Math.max(0, Math.abs(lx) - COWBOX.hw), Math.max(0, Math.abs(lz - cz) - hl));
+}
 function cowHit(px, pz, cow, rad) {
   const f = v(Math.sin(cow.heading), 0, Math.cos(cow.heading)), r = v(Math.cos(cow.heading), 0, -Math.sin(cow.heading)), dx = px - cow.pos.x, dz = pz - cow.pos.z;
   const lx = dx * r.x + dz * r.z, lz = dx * f.x + dz * f.z, cz = (COWBOX.z0 + COWBOX.z1) / 2, hl = (COWBOX.z1 - COWBOX.z0) / 2, ox = COWBOX.hw + rad - Math.abs(lx), oz = hl + rad - Math.abs(lz - cz);
@@ -147,8 +152,8 @@ function playLoop(G, W, M) {
       if (st.attached) return;
       if (!st.hasLead && hanging.visible && near(LEADSPOT, 20)) { st.hasLead = true; ja.lead = true; held.visible = true; hanging.visible = false; toast('You take the lead off its hook.'); return; }
       if (!st.hasLead && st.leadDropped && Math.hypot(st.pos.x - dropped.position.x, st.pos.z - dropped.position.z) < 18) { st.hasLead = true; st.leadDropped = false; ja.lead = true; held.visible = true; dropped.visible = false; toast('You pick the lead up.'); return; }
-      const d = Math.hypot(st.pos.x - cow.pos.x, st.pos.z - cow.pos.z);
-      if (st.hasLead && d < 26) {
+      const d = cowGap(st.pos.x, st.pos.z, cow);
+      if (st.hasLead && d < 16) {
         if (cow.trust >= 99.5 && cow.mode !== 'flee') attach();
         else { toast(cow.mode === 'flee' ? 'She is too startled. Keep your distance and let her settle.' : 'She tosses her head. She is not ready yet: stay close, stay slow, and wait.'); A && A.moo(0.4, 0.7); }
       } else if (!st.hasLead && !st.leadDropped) toast('Nothing to take here.');
@@ -219,7 +224,7 @@ function playLoop(G, W, M) {
       st.speedN = vel.length() / SC; ja.speed = st.speedN * 0.8; ja.phase += dt * st.speedN * 0.42;
       jack.root.position.set(st.pos.x, st.y, st.pos.z); jack.root.rotation.y = turn(jack.root.rotation.y, st.heading, Math.min(1, dt * 12));
       // Milky-White: grazes about her yard; frightened by quick movement near her (as the hen was), calmed by slow, close company.
-      cow.t += dt; cow.cool -= dt; const d = Math.hypot(st.pos.x - cow.pos.x, st.pos.z - cow.pos.z), before = cow.pos.clone();
+      cow.t += dt; cow.cool -= dt; const d = Math.hypot(st.pos.x - cow.pos.x, st.pos.z - cow.pos.z), before = cow.pos.clone(), gap = cowGap(st.pos.x, st.pos.z, cow);
       if (cow.mode !== 'calm') {
         if (d < 44 && (st.speedN > ALARM || st.boost > 0) && cow.mode !== 'flee' && cow.cool <= 0) {
           cow.mode = 'flee'; cow.flee = 2.6; cow.cool = 1.4; cow.trust = Math.max(0, cow.trust - 14); st.startled++; A && A.moo(0.55, 0.8);
@@ -227,7 +232,7 @@ function playLoop(G, W, M) {
           cow.target.x = clamp(cow.target.x, COWB.x0, COWB.x1); cow.target.z = clamp(cow.target.z, COWB.z0, COWB.z1);
           if (!st.shownTip) { st.shownTip = true; toast('You startled her. Quick movement frightens animals: sneak (C) when you are near her, and give her time.', 6000); }
         }
-        if (d < 28 && st.speedN < CALM && cow.mode !== 'flee') cow.trust = Math.min(100, cow.trust + (st.speedN < 1 ? 7 : 4) * dt);
+        if (gap < 18 && st.speedN < CALM && cow.mode !== 'flee') cow.trust = Math.min(100, cow.trust + (st.speedN < 1 ? 7 : 4) * dt);
         if (cow.mode === 'flee') { cow.flee -= dt; const dd = cow.target.distanceTo(cow.pos); if (cow.flee <= 0 || dd < 1) { cow.mode = 'graze'; cow.timer = 2; cow.target = cow.pos.clone(); } else cow.pos.addScaledVector(cow.target.clone().sub(cow.pos).normalize(), Math.min(dd, 22 * dt)); }
         else { cow.timer -= dt; const dd = cow.target.distanceTo(cow.pos); if (dd > 1) cow.pos.addScaledVector(cow.target.clone().sub(cow.pos).normalize(), Math.min(dd, 5 * dt));
           if (cow.timer <= 0) { cow.timer = 3 + Math.random() * 4; cow.target = v(lerp(COWB.x0 + 6, COWB.x1 - 6, Math.random()), 0, lerp(COWB.z0 + 6, COWB.z1 - 6, Math.random())); } }
@@ -244,7 +249,7 @@ function playLoop(G, W, M) {
       ui.obj.textContent = !st.hasLead ? 'Fetch the cow’s lead from the cowshed.' : cow.trust >= 99.5 ? 'Put the lead on Milky-White (E).' : 'Win Milky-White’s trust, gently: sneak (C) up and wait beside her.';
       ui.trustWrap.style.display = near_ ? 'block' : 'none'; ui.trustBar.style.width = cow.trust + '%'; ui.trustVal.textContent = Math.round(cow.trust) + '%'; ui.trustBar.classList.toggle('full', cow.trust >= 99.5);
       ui.pace.textContent = pace + (st.speedN > ALARM && d < 44 && cow.mode !== 'calm' ? ' — too fast near her!' : ''); ui.pace.classList.toggle('warn', st.speedN > ALARM && d < 44);
-      const h = !st.hasLead && (hanging.visible && near(LEADSPOT, 20) || st.leadDropped && Math.hypot(st.pos.x - dropped.position.x, st.pos.z - dropped.position.z) < 18) ? 'E: take the lead' : st.hasLead && d < 26 ? (cow.trust >= 99.5 ? 'E: put the lead on her' : 'She is still jumpy. Stay slow, stay close.') : '';
+      const h = !st.hasLead && (hanging.visible && near(LEADSPOT, 20) || st.leadDropped && Math.hypot(st.pos.x - dropped.position.x, st.pos.z - dropped.position.z) < 18) ? 'E: take the lead' : st.hasLead && gap < 16 ? (cow.trust >= 99.5 ? 'E: put the lead on her' : 'She is still jumpy. Stay slow, stay close.') : '';
       ui.hint.textContent = h; ui.hint.style.display = h ? 'block' : 'none';
       if (st.toastAt && performance.now() > st.toastAt) { ui.toast.style.opacity = 0; st.toastAt = 0; }
     };
