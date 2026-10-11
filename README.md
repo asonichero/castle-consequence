@@ -18,6 +18,7 @@ npm test             # pain model and file checks
 | `level.html`, `js/level.js` | The game's first level, "The Golden Hen" (below) |
 | `lap.html`, `js/lap.js`, `js/lap-poses.js` | The across-the-lap correction scene and its pose editor |
 | `blocky.html`, `js/blocky.js` | The two character models (Jack, Gerda), their skins and wardrobes |
+| `js/cast.js` | The supporting cast: Jack's mother, the peddler (Gerda in disguise) and the merchant |
 | `js/pain.js` | The pain model behind the correction |
 | `manifest.webmanifest`, `sw.js`, `icons/` | The installable web app |
 | `vendor/` | three.js r128 and OrbitControls |
@@ -28,6 +29,14 @@ npm test             # pain model and file checks
 `blocky.html` (script: `js/blocky.js`) is a separate prototype for a new, Minecraft-style direction: Jack (21) and Gerda, the Giantess
 (late 30s), as box-built characters with hand-painted 64×64 skins (base + outer layer; arms are 3×3 pixels, a little thinner than Minecraft's). Legs are
 split at the knee, so the bend only shows when seated. Open it from the same static server, `http://localhost:8765/blocky.html`.
+
+### The supporting cast (`js/cast.js`, shown in `blocky.html`)
+
+All adults, on the same blocky rig as Jack and Gerda.
+
+- **Jack's Mother** (late fifties): greying hair in a tight bun, a faded blue-grey shawl drawn tight round her shoulders and knotted at the breast bone, a linen apron, sleeves rolled to the forearm, stout shoes, eyes sharper than frost and thin lips that press thinner when she disapproves (`rig.setExpr(0|1)`: neutral, or pressed lips, pinched corners and a frown). She is a giver like Gerda: the lap viewer's **Who gives** buttons seat her in the chair (`lap.giver('mother', expr)`).
+- **The Peddler** is Gerda in disguise: her own model under a hooded cloak that covers her hair and clothes, a muddy hem, patches, a pedlar's pack, and a shadow across her brow. `rig.unmask()` takes the cloak off to show Gerda in her Work clothes, `rig.mask()` puts it back.
+- **The Merchant** (for later in the story): weather-worn, bright-eyed, tall (10% taller than Gerda), a cloak of indigo wool dusted with stardust that twinkles (call `rig.tick(dt)` each frame), a leather satchel at his hip with golden trinkets showing. Never used in the correction scenes.
 
 ### Across the lap (`lap.html`, `js/lap.js`, `js/pain.js`)
 

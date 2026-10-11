@@ -607,8 +607,15 @@ function create(view, opts) {
     reset() { pain.reset(); Object.assign(st, { hits: 0, ended: false, red: false, peak: 0, swing: null, runLeft: 0, marks: { L: 0, R: 0 }, last: null }); J.kick = 0; dirty = true; say('reset', {}); },
     size(v) { if (!hs.on) st.size = clamp(v, SIZE_MIN, 1); },
     // Wardrobe: Jack has 'Outdoor'; Gerda 'Work' or 'Fine'.
+    // Who gives: Gerda, or Jack's mother (js/cast.js), on the same rig. expr 1 is her disapproving face.
+    giver(name, expr) {
+      st.giver = name === 'mother' && root.Cast ? 'mother' : 'gerda';
+      if (st.giver === 'mother') { root.Cast.paintMotherInto(gerda.skin, { expr: expr || 0 }); gerda.paintBun(root.Cast.MOTHER_BUN); }
+      else { B.paintGerdaInto(gerda.skin, st.outfit.gerda); gerda.paintBun(['#4b3022', '#67432f', '#33201a', '#4b3022', '#b9b0a6']); }
+      gerda.tex.needsUpdate = true;
+    },
     outfit(who, name) {
-      if (who === 'gerda' && B.OUTFITS.gerda.indexOf(name) >= 0) { st.outfit.gerda = name; B.paintGerdaInto(gerda.skin, name); gerda.tex.needsUpdate = true; }
+      if (who === 'gerda' && B.OUTFITS.gerda.indexOf(name) >= 0) { st.outfit.gerda = name; if (st.giver !== 'mother') { B.paintGerdaInto(gerda.skin, name); gerda.tex.needsUpdate = true; } }
       if (who === 'jack' && B.OUTFITS.jack.indexOf(name) >= 0) { st.outfit.jack = name; dirty = true; }
     },
     outfits: B.OUTFITS,

@@ -476,14 +476,18 @@ function buildCharacter(skin, opts) {
   rig.neck = new THREE.Group(); rig.neck.position.y = 12; rig.torso.add(rig.neck);
   const headMesh = mesh('head', 'hat', 1); headMesh.position.y = 4; rig.neck.add(headMesh);
   if (opts.bun) {
+    // The bun: a 16x16 noise texture in five colours (three base tones, then a streak colour on every fourth row). paintBun(cols) re-dyes it (grey for the mother).
     const c = document.createElement('canvas'); c.width = c.height = 16; const x = c.getContext('2d');
-    const cols = ['#4b3022', '#67432f', '#33201a', '#4b3022', '#b9b0a6'];
-    let s = 7; for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) { s = (s * 1103515245 + 12345) >>> 0; const r = (s >> 16) % 12; x.fillStyle = r < 6 ? cols[0] : r < 9 ? cols[1] : r < 11 ? cols[2] : (j % 4 === 0 ? cols[4] : cols[3]); x.fillRect(i, j, 1, 1); }
     const bt = new THREE.CanvasTexture(c); bt.magFilter = bt.minFilter = THREE.NearestFilter; bt.generateMipmaps = false; bt.encoding = THREE.sRGBEncoding;
+    rig.paintBun = cols => {
+      let s = 7; for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) { s = (s * 1103515245 + 12345) >>> 0; const r = (s >> 16) % 12; x.fillStyle = r < 6 ? cols[0] : r < 9 ? cols[1] : r < 11 ? cols[2] : (j % 4 === 0 ? cols[4] : cols[3]); x.fillRect(i, j, 1, 1); }
+      bt.needsUpdate = true;
+    };
+    rig.paintBun(opts.bunCols || ['#4b3022', '#67432f', '#33201a', '#4b3022', '#b9b0a6']);
     const bun = new THREE.Mesh(new THREE.BoxGeometry(5, 4, 4), new THREE.MeshLambertMaterial({ map: bt }));
-    bun.position.set(0, 5.5, -5.6); rig.neck.add(bun);
+    bun.position.set(0, 5.5, -5.6); rig.neck.add(bun); rig.bun = bun;
     const pin = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 5), new THREE.MeshLambertMaterial({ color: 0xc9a84c }));
-    pin.position.set(2.2, 5.8, -5.6); pin.rotation.z = 0.3; rig.neck.add(pin);
+    pin.position.set(2.2, 5.8, -5.6); pin.rotation.z = 0.3; rig.neck.add(pin); rig.pin = pin;
   }
 
   // Arms: one box each, hung from the shoulder, as in the stock rig.
@@ -557,5 +561,5 @@ function makeChair() {
   for (const x of [-6, 6]) add(1.5, 16, 1.5, x, 8, -6.4);
   return g;
 }
-root.Blocky = { CHAIR, makeChair, makeJack, makeGerda, setPose, step, POSES, Skin, OUTFITS, paintGerdaInto, paintJackInto, paintGlutesInto, makeGlutes, boxGeo, faceRect };
+root.Blocky = { buildCharacter, sideOuter, SIDES, FACES, CHAIR, makeChair, makeJack, makeGerda, setPose, step, POSES, Skin, OUTFITS, paintGerdaInto, paintJackInto, paintGlutesInto, makeGlutes, boxGeo, faceRect };
 })(typeof window !== 'undefined' ? window : globalThis);
