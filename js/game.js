@@ -39,7 +39,7 @@ function create(els) {
   const waiters = [];
   G.wait = secs => new Promise(res => { if (G.skipping) { res(); return; } waiters.push({ t: secs, res }); });
   const fadeEl = els.fade;
-  G.fade = (toBlack, secs = 1) => new Promise(res => {
+  G.fade = (toBlack, secs = 1) => G.noFade ? G.wait(secs) : new Promise(res => {
     if (G.skipping) { fadeEl.style.transition = 'none'; fadeEl.style.opacity = toBlack ? 1 : 0; res(); return; }
     fadeEl.style.transition = G.seekTo != null ? 'none' : `opacity ${secs}s ease`; fadeEl.style.opacity = toBlack ? 1 : 0; G.wait(secs).then(res);
   });
@@ -58,7 +58,7 @@ function create(els) {
     const w = WHO[who] || [who, '#e6c46a']; subWho.textContent = w[0]; subWho.style.color = w[1]; subs.style.display = 'block'; subText.textContent = '';
     const cps = 34 * G.settings.speed, typeSecs = Math.max(0.6, text.length / cps), voice = Audio_ && who !== 'narrator' ? Audio_.speak(who, text, typeSecs, { muffle: opts && opts.muffle }) : null;
     const t0 = G.t; let typed = false, holdAt = null, poll = null, typing = null; const gateBtn = document.getElementById('subGate');
-    const close = () => { clearInterval(typing); clearInterval(poll); if (voice) voice.stop(); if (ep !== G.epoch) return; advance = null; if (gateBtn) gateBtn.style.display = 'none'; subs.style.display = 'none'; resolve(); };
+    const close = () => { clearInterval(typing); clearInterval(poll); if (voice) voice.stop(); if (ep !== G.epoch) return; advance = null; if (gateBtn) gateBtn.style.display = 'none'; if (!G.keepLine) subs.style.display = 'none'; resolve(); };
     const gateLabel = opts && opts.gate;
     const finish = () => {
       if (typed) return; typed = true; clearInterval(typing); subText.textContent = text;
@@ -117,23 +117,44 @@ function create(els) {
   G.epoch = 0; G.beat = 0; G.beatT = 0; G.seekTo = null; G.paused = false; G.rerun = null; G.debugCtl = false;
   let lastKind = null, muted = false;
   const setMuted = m => { muted = m; const A = Audio_; if (A && A.nodes && A.nodes.master && A.ctx) { if (m) A.nodes.master.gain.value = 0; else A.setVol(); } };
+  // Hooks for tools that work on the beats (scene-notes.html): onBeat(info) at every beat call; beatGate(n) may return a promise that holds the scene at the start of beat n;
+  // camOverride(n) may return a camera { pos, look, fov } to use for beat n in place of the scene's own.
+  G.onBeat = null; G.beatGate = null; G.camOverride = null; G.specOf = specOf; G.cutNow = cutNow;
+  let stall = null, deferred = null;
   const mark = kind => {
-    const merge = kind === 'say' && lastKind === 'cut'; lastKind = kind === 'cut' ? 'cut' : 'other'; if (merge) return;     // (an angle cut straight to a line is one beat with it)
+    const merge = kind === 'say' && lastKind === 'cut'; lastKind = kind === 'cut' ? 'cut' : 'other'; if (merge) return false;     // (an angle cut straight to a line is one beat with it)
     G.beat++; G.beatT = G.t; if (G.seekTo != null && G.beat >= G.seekTo) { G.seekTo = null; G.skipping = false; }
+    return true;
   };
   const guard = fn => (...a) => { const ep = G.epoch, r = fn(...a); return r && r.then ? r.then(x => ep === G.epoch ? x : new Promise(() => {})) : r; };
-  const wrapBeat = (name, kind) => { const f = G[name]; G[name] = (...a) => { mark(kind); return f(...a); }; };
+  const wrapBeat = (name, kind) => {
+    const f = G[name];
+    G[name] = (...a) => {
+      const isNew = mark(kind);
+      if (G.onBeat) G.onBeat({ beat: G.beat, kind, name, args: a, isNew });
+      const run = () => {
+        if (kind === 'cut') { const ov = G.camOverride && G.camOverride(G.beat); if (ov) a = [ov, ...a.slice(1)]; }
+        else if (isNew && G.camOverride) { const ov = G.camOverride(G.beat); if (ov) cutNow(ov); }
+        return f(...a);
+      };
+      const gate = isNew && G.beatGate ? G.beatGate(G.beat) : null;
+      if (gate) { if (name === 'cut') { stall = gate; deferred = run; return undefined; } return gate.then(run); }   // (a cut is not awaited, so the hold comes at the next awaited call)
+      return run();
+    };
+  };
   wrapBeat('cut', 'cut'); wrapBeat('shot', 'cut'); wrapBeat('say', 'say'); wrapBeat('choose', 'say');
   for (const n of ['wait', 'fade']) { const f = G[n]; G[n] = (...a) => { lastKind = 'other'; return f(...a); }; }
-  for (const n of ['shot', 'say', 'choose', 'wait', 'fade']) G[n] = guard(G[n]);
+  const stalled = fn => (...a) => { if (stall) { const g = stall, d = deferred; stall = deferred = null; return g.then(() => { if (d) d(); return fn(...a); }); } return fn(...a); };
+  for (const n of ['shot', 'say', 'choose', 'wait', 'fade']) G[n] = guard(stalled(G[n]));
   G.pause = on => { G.paused = on === undefined ? !G.paused : !!on; const A = Audio_; if (A && A.ctx) { try { G.paused ? A.ctx.suspend() : A.ctx.resume(); } catch (e) { /* no audio */ } } return G.paused; };
   G.forward = () => { if (G.mode !== 'cutscene') return; G.pause(false); G.seekTo = G.beat + 1; };
-  G.rewind = () => {
-    if (G.mode !== 'cutscene' || !G.rerun) return false;
-    const target = G.t - G.beatT > 1.5 || G.beat <= 1 ? Math.max(1, G.beat) : G.beat - 1;      // (well into a beat, back goes to its own start)
-    G.pause(false); G.epoch++; G.beat = 0; lastKind = null; waiters.length = 0; move.active = null; G.skipping = false; G.seekTo = target; G.hideLine();
+  // Run the current scene again from its start, fast and silent, up to the start of beat `target` (then it plays normally).
+  G.restartAt = target => {
+    if (!G.rerun) return false;
+    G.pause(false); G.epoch++; G.beat = 0; lastKind = null; stall = deferred = null; waiters.length = 0; move.active = null; G.skipping = false; G.seekTo = Math.max(1, target); G.hideLine();
     fadeEl.style.transition = 'none'; G.rerun(); return true;
   };
+  G.rewind = () => G.mode === 'cutscene' && G.restartAt(G.t - G.beatT > 1.5 || G.beat <= 1 ? Math.max(1, G.beat) : G.beat - 1);      // (well into a beat, back goes to its own start)
   root.addEventListener('keydown', e => {
     if (!G.debugCtl || G.mode !== 'cutscene') return;
     if (e.key === 'p' || e.key === 'P') G.pause(); else if (e.key === ',' || e.key === '[') G.rewind(); else if (e.key === '.' || e.key === ']') G.forward(); else return; e.preventDefault();

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scene notes</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0e13; color: #ece8df; font: 13px Georgia, 'Times New Roman', serif; }
+  #stage { position: fixed; left: 0; top: 0; bottom: 0; right: 340px; } #stage canvas { display: block; }
+  #fade { display: none; }
+  #subs { position: fixed; left: calc(50% - 170px); bottom: 4vh; transform: translateX(-50%); width: min(720px, calc(92vw - 340px)); display: none; z-index: 20; background: rgba(8,8,12,0.78); border: 1px solid #4a4d58; border-radius: 8px; padding: 10px 16px 12px; font-size: 17px; line-height: 1.5; pointer-events: none; }
+  #subWho { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 4px; } #subText { min-height: 1.5em; }
+  #subGate, #subChoices { display: none; }
+  #panel { position: fixed; right: 0; top: 0; bottom: 0; width: 340px; box-sizing: border-box; padding: 10px 12px; overflow-y: auto; background: #151822; border-left: 1px solid #333846; }
+  h3 { margin: 12px 0 5px; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: #e6c46a; font-weight: normal; }
+  button, select { font: inherit; background: #242838; color: #ece8df; border: 1px solid #4a4f63; border-radius: 4px; padding: 4px 9px; margin: 2px 3px 2px 0; cursor: pointer; } button:hover:not(:disabled) { background: #343a50; } button:disabled { opacity: .4; cursor: default; } button.primary { background: #6b5a2a; border-color: #c9a84c; }
+  input[type=number] { width: 66px; background: #0d1018; color: #ece8df; border: 1px solid #3a3f52; border-radius: 3px; padding: 2px 4px; font: inherit; }
+  .sub { opacity: .65; font-size: 12px; line-height: 1.45; } .line { font-size: 14px; line-height: 1.45; margin: 4px 0; } .who { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #a8d8a0; }
+  .row { display: flex; align-items: center; gap: 4px; margin: 3px 0; } .row label { width: 38px; opacity: .7; } .was { font-size: 11px; opacity: .55; margin: 0 0 4px 42px; font-family: monospace; }
+  .tag { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 8px; border: 1px solid #4a4f63; } .tag.on { background: #6b5a2a; border-color: #c9a84c; }
+  textarea { width: 100%; box-sizing: border-box; background: #0d1018; color: #ece8df; border: 1px solid #3a3f52; border-radius: 4px; font: 13px Georgia, serif; padding: 6px; }
+  #state { font-size: 12px; margin: 4px 0; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="fade"></div>
+<div id="subs"><div id="subWho"></div><div id="subText"></div><button id="subGate">Continue</button><div id="subChoices"></div></div>
+<div id="panel">
+  <div class="sub">Each beat plays once and stops at its end. Move the camera (drag to orbit, right-drag to pan, wheel to zoom) or type numbers; the change is kept for that beat and used the next time it runs.</div>
+  <h3>Scene</h3>
+  <div><select id="route"><option value="0,2,0">Brash</option><option value="1,0,1">Cheeky</option><option value="2,1,2">Humble</option></select> <span class="sub">night scene</span></div>
+  <h3>Beat <span id="bnum">–</span> <span class="tag" id="btag"></span></h3>
+  <div id="bwho" class="who"></div><div id="bline" class="line"></div>
+  <div id="state"></div>
+  <div><button id="prev" title="Back one beat (←)">⏮ Previous</button><button id="again" title="Run this beat again (R)">↻ Run again</button><button id="next" class="primary" title="On to the next beat (→)">Next ⏭</button></div>
+  <div class="row"><label></label>Go to beat <input type="number" id="goto" min="1" step="1" value="1"><button id="go">Go</button></div>
+  <h3>Camera for this beat</h3>
+  <div class="row"><label>pos</label><input type="number" data-k="px" step="1"><input type="number" data-k="py" step="1"><input type="number" data-k="pz" step="1"></div>
+  <div class="was" id="wasPos"></div>
+  <div class="row"><label>look</label><input type="number" data-k="lx" step="1"><input type="number" data-k="ly" step="1"><input type="number" data-k="lz" step="1"></div>
+  <div class="was" id="wasLook"></div>
+  <div class="row"><label>fov</label><input type="number" data-k="fov" step="1" min="10" max="110"></div>
+  <div class="was" id="wasFov"></div>
+  <div><button id="resetCam">Back to the scene's angle</button></div>
+  <h3>Notes for this beat</h3>
+  <textarea id="note" rows="6" placeholder="What is wrong, what you want…"></textarea>
+  <h3>All changes</h3>
+  <div><button id="copy" class="primary">Copy all changes and notes</button><button id="clear">Clear everything</button></div>
+  <div class="sub" id="count"></div>
+</div>
+<script src="vendor/three.min.js"></script>
+<script src="vendor/OrbitControls.js"></script>
+<script src="js/blocky.js"></script>
+<script src="js/cast.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/farm-layout.js"></script>
+<script src="js/farm.js"></script>
+<script src="js/game.js"></script>
+<script src="js/pain.js"></script>
+<script src="js/lap-poses.js"></script>
+<script src="js/lap.js"></script>
+<script src="js/night.js"></script>
+<script>
+// Scene notes: the night scene with its own camera angles, stepped a beat at a time. A beat is a spoken line (with the angle it is said from) or a camera angle on its own. A beat runs once and
+// the scene holds at its end; you move the camera, write a note, and run it again. Camera changes and notes are kept per beat; Copy gives all of them as text to paste back for updates.
+(function () {
+'use strict';
+const $ = id => document.getElementById(id), A = window.GameAudio, THREE = window.THREE;
+const params = new URLSearchParams(location.search), route = params.get('c') || '0,2,0', choices = route.split(',').map(Number);
+$('route').value = route; $('route').onchange = () => { params.set('c', $('route').value); location.search = params.toString(); };
+const G = window.__game = Game.create({ stage: $('stage'), fade: $('fade'), subs: $('subs'), subWho: $('subWho'), subText: $('subText') });
+G.mode = 'free'; G.noSave = true; G.settings.auto = true; G.settings.subtitles = true; G.noFade = true; G.keepLine = true;   // (no fades to black; the line stays up where the scene holds)
+
+// ── What is kept, per beat. ──
+const KEY = 'castle-consequence:scene-notes:night:' + route;
+let kept = { cams: {}, notes: {}, lines: {} };
+try { const k = JSON.parse(localStorage.getItem(KEY)); if (k) kept = Object.assign(kept, k); } catch (e) { /* none yet */ }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(kept)); } catch (e) { /* no storage */ } };
+const info = {};                                           // what each beat is, learnt as the scene runs: { who, text, cam (the scene's own angle) }
+const snap = s => ({ pos: [s.pos.x, s.pos.y, s.pos.z], look: [s.look.x, s.look.y, s.look.z], fov: s.fov });
+const spec = c => ({ pos: { x: c.pos[0], y: c.pos[1], z: c.pos[2] }, look: { x: c.look[0], y: c.look[1], z: c.look[2] }, fov: c.fov });
+const r1 = x => Math.round(x * 10) / 10, same = (a, b) => a.pos.every((v, i) => Math.abs(v - b.pos[i]) < 0.05) && a.look.every((v, i) => Math.abs(v - b.look[i]) < 0.05) && Math.abs(a.fov - b.fov) < 0.05;
+
+// ── The free camera: the renderer is handed this one, which follows the scene's cuts and moves, and stays where you put it. ──
+const fc = new THREE.PerspectiveCamera(50, 1, 0.5, 4000), controls = new THREE.OrbitControls(fc, G.renderer.domElement);
+controls.enableDamping = false;
+const render = G.renderer.render.bind(G.renderer); let lastStory = null;
+G.renderer.render = (scene) => {
+  const w = G.renderer.domElement.clientWidth || innerWidth, h = G.renderer.domElement.clientHeight || innerHeight;
+  if (Math.abs(fc.aspect - w / h) > 1e-3) { fc.aspect = w / h; fc.updateProjectionMatrix(); }
+  const s = snap(G.shotNow());
+  if (!lastStory || !same(lastStory, s)) { lastStory = s; fc.position.set(...s.pos); controls.target.set(...s.look); fc.fov = s.fov; fc.updateProjectionMatrix(); controls.update(); showCam(); }
+  render(scene, fc);
+};
+const q2 = x => Math.round(x * 100) / 100, nowCam = () => ({ pos: [fc.position.x, fc.position.y, fc.position.z].map(q2), look: [controls.target.x, controls.target.y, controls.target.z].map(q2), fov: q2(fc.fov) });
+
+// ── Running the scene one beat at a time. ──
+let stopAfter = 1, resume = null, heldAt = null, finished = false, view = 1;
+G.camOverride = beat => kept.cams[beat] ? spec(kept.cams[beat]) : null;
+G.onBeat = e => {
+  const i = info[e.beat] || (info[e.beat] = {});
+  if (e.name === 'cut' || e.name === 'shot') { if (!i.cam) i.cam = snap(G.specOf(e.args[0])); }
+  else if (e.name === 'say' && !i.text) { i.who = e.args[0]; i.text = e.args[1]; kept.lines[e.beat] = (i.who || '') + ': ' + i.text; save(); }
+  if (e.isNew && !i.cam && e.kind === 'say') i.cam = snap(G.shotNow());
+};
+G.beatGate = beat => {
+  if (beat <= stopAfter) { view = beat; return null; }
+  heldAt = beat; view = beat - 1; setTimeout(refresh, 0);
+  return new Promise(res => { resume = () => { view = beat; res(); }; });
+};
+const startRun = () => { finished = false; resume = null; heldAt = null; Night.run(G, choices).then(() => { finished = true; refresh(); }); };
+G.rerun = startRun;
+const goTo = n => { n = Math.max(1, Math.round(n) || 1); stopAfter = n; view = n; lastStory = null; G.restartAt(n); refresh(); };
+$('next').onclick = () => { if (!resume) return; stopAfter = heldAt; const r = resume; resume = null; heldAt = null; r(); refresh(); };
+$('again').onclick = () => goTo(view); $('prev').onclick = () => goTo(view - 1); $('go').onclick = () => goTo(+$('goto').value);
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'ArrowRight') $('next').click(); else if (e.key === 'ArrowLeft') $('prev').click(); else if (e.key === 'r' || e.key === 'R') $('again').click(); else return; e.preventDefault();
+});
+
+// ── The panel: only the beat in view. ──
+const keys = ['px', 'py', 'pz', 'lx', 'ly', 'lz', 'fov'], inputs = {}; document.querySelectorAll('[data-k]').forEach(el => { inputs[el.dataset.k] = el; });
+const vals = c => [...c.pos, ...c.look, c.fov];
+function showCam() { if (document.activeElement && document.activeElement.dataset && document.activeElement.dataset.k) return; const v = vals(nowCam()); keys.forEach((k, i) => { inputs[k].value = r1(v[i]); }); }
+function refresh() {
+  const i = info[view] || {}, changed = !!kept.cams[view];
+  $('bnum').textContent = view; $('goto').value = view; $('bwho').textContent = i.text ? (i.who || '') : ''; $('bline').textContent = i.text || '(a camera angle, no line)';
+  const tag = $('btag'); tag.textContent = changed ? 'camera changed' : 'scene’s own angle'; tag.classList.toggle('on', changed);
+  $('state').textContent = finished ? 'The scene ends here.' : resume ? 'Stopped at the end of this beat.' : 'Running…';
+  $('next').disabled = !resume; $('prev').disabled = view <= 1; $('again').disabled = false;
+  if (i.cam) { const c = i.cam; $('wasPos').textContent = 'was ' + c.pos.map(r1).join(', '); $('wasLook').textContent = 'was ' + c.look.map(r1).join(', '); $('wasFov').textContent = 'was ' + r1(c.fov); } else { $('wasPos').textContent = $('wasLook').textContent = $('wasFov').textContent = ''; }
+  $('resetCam').disabled = !changed; if (document.activeElement !== $('note')) $('note').value = kept.notes[view] || '';
+  $('count').textContent = Object.keys(kept.cams).length + ' camera change(s), ' + Object.keys(kept.notes).filter(k => kept.notes[k]).length + ' note(s) kept';
+  showCam();
+}
+function userEdited() {                                    // the camera was moved: keep where it is for this beat (or drop it if it is back where the scene has it)
+  const c = nowCam(), o = (info[view] || {}).cam;
+  if (o && same(c, o)) delete kept.cams[view]; else kept.cams[view] = c; save(); refresh();
+}
+controls.addEventListener('end', userEdited);
+for (const k of keys) inputs[k].onchange = () => { const v = keys.map(q => +inputs[q].value); fc.position.set(v[0], v[1], v[2]); controls.target.set(v[3], v[4], v[5]); fc.fov = v[6]; fc.updateProjectionMatrix(); controls.update(); userEdited(); };
+$('resetCam').onclick = () => { delete kept.cams[view]; save(); const o = (info[view] || {}).cam; if (o) { fc.position.set(...o.pos); controls.target.set(...o.look); fc.fov = o.fov; fc.updateProjectionMatrix(); controls.update(); } refresh(); };
+$('note').oninput = () => { if ($('note').value.trim()) kept.notes[view] = $('note').value; else delete kept.notes[view]; save(); refresh(); };
+$('clear').onclick = () => { if (confirm('Forget every camera change and note kept for this route?')) { kept.cams = {}; kept.notes = {}; save(); refresh(); } };
+$('copy').onclick = () => {
+  const f = c => 'pos (' + c.pos.map(r1).join(', ') + ')  look (' + c.look.map(r1).join(', ') + ')  fov ' + r1(c.fov);
+  const beats = [...new Set([...Object.keys(kept.cams), ...Object.keys(kept.notes)])].map(Number).sort((a, b) => a - b), out = [], json = {};
+  out.push('SCENE NOTES — Chapter Two, the cottage at night (route ' + route + ': ' + $('route').selectedOptions[0].textContent.toLowerCase() + ')', 'Camera values are world units; "was" is the scene’s own angle for the beat.', '');
+  for (const b of beats) {
+    const c = kept.cams[b], was = (info[b] || {}).cam, n = kept.notes[b], line = kept.lines[b] || (info[b] && info[b].text ? (info[b].who || '') + ': ' + info[b].text : '(camera angle, no line)');
+    out.push('Beat ' + b + ' · ' + line); if (c) { if (was) out.push('  camera was: ' + f(was)); out.push('  camera now: ' + f(c)); } if (n && n.trim()) out.push('  note: ' + n.trim().replace(/\n/g, '\n        ')); out.push('');
+    json[b] = { line, was: was || null, now: c || null, note: (n || '').trim() || null };
+  }
+  if (!beats.length) out.push('(no changes or notes yet)');
+  else out.push('JSON: ' + JSON.stringify({ scene: 'night', route, beats: json }));
+  const text = out.join('\n'); try { navigator.clipboard.writeText(text).then(() => done(), () => fallback(text)); } catch (e) { fallback(text); }
+  function fallback(t) { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { /* none */ } ta.remove(); }
+  function done() { $('copy').textContent = 'Copied ✓'; setTimeout(() => { $('copy').textContent = 'Copy all changes and notes'; }, 1400); }
+};
+
+if (A) A.init();
+refresh(); goTo(1);
+})();
+</script>
+</body>
+</html>
