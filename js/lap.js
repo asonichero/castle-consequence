@@ -1,5 +1,5 @@
-// Beanstalk — Across the Lap. Gerda (the Giantess) is the giver and Jack the subject, in the blocky style of js/blocky.js; this is the one
-// discipline scene kept from Birchwood House, with its mechanics: the engine's pain model (Starlight.createPain) turns each smack
+// Beanstalk — Across the Lap. Gerda (the Giantess) is the giver and Jack the subject, in the blocky style of js/blocky.js; this is the
+// game's correction scene, driven by the pain model (js/pain.js), which turns each smack
 // (implement, strength, pace, the wait with the hand raised, the clothing over the skin, how tender the skin already is) into Jack's
 // distress, whose bands drive his reaction and face; the rear colours up with the smacks; trousers and drawers come up and down; and the
 // safe word ("Red") stops everything at once.
@@ -7,7 +7,7 @@
 // across her lap, hips over her right knee, head hanging off her left side, hands toward the floor.
 (function (root) {
 'use strict';
-const THREE = root.THREE, B = root.Blocky, S = root.Starlight;
+const THREE = root.THREE, B = root.Blocky, S = root.Pain;
 const V3 = THREE.Vector3, UP = new V3(0, 1, 0), DOWN = new V3(0, -1, 0);
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const lerp = (a, b, t) => a + (b - a) * t;
