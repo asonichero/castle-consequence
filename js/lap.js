@@ -293,13 +293,16 @@ function create(view, opts) {
   const GIVER_AT = { sit: new V3(0, 0, 0), stand: new V3(-3, FLOOR, -10) };
   const AXX = new V3(1, 0, 0), AXY = new V3(0, 1, 0), AXZ = new V3(0, 0, 1), axq = (ax, a) => new THREE.Quaternion().setFromAxisAngle(ax, a);
   const lapQ = pitch => axq(AXZ, pitch).multiply(axq(AXY, Math.PI / 2)).multiply(axq(AXX, Math.PI / 2)), uprightQ = axq(AXY, Math.PI);
-  const tablePitch = sz => clamp(Math.asin(clamp((TABLE_TOP + 2 * sz - (FLOOR + 12 * sz)) / (11 * sz), -1, 1)), 0, 0.8);
-  const tableEdgeX = sz => -6 * sz + 3.5 * sz;
+  // Braced: the base of his torso (his hips) stays where it is against the table's edge whatever his size; a smaller Jack just leans up more steeply to reach the top
+  // (and his legs lengthen to reach the floor: see stretchLegs).
+  const tableRef = () => jackFull;
+  const tablePitch = sz => { const r = tableRef(); return clamp(Math.asin(clamp((TABLE_TOP + 2 * sz - (FLOOR + 12 * r)) / (11 * sz), -1, 1)), 0, 1.0); };
+  const tableEdgeX = () => -6 * tableRef() + 3.5 * tableRef();
   function stanceFrame(name, sz) {                    // where his hip joint is, and which way his body faces
     switch (name) {
       case 'standSeat': return { p: new V3(0, FLOOR + 12 * sz, 9.5), q: uprightQ };
       case 'standTable': return { p: new V3(-6 * sz, FLOOR + 12 * sz, 0), q: uprightQ };
-      case 'table': return { p: new V3(-6 * sz, FLOOR + 12 * sz, 0), q: lapQ(tablePitch(sz)) };
+      case 'table': return { p: new V3(-6 * tableRef(), FLOOR + 12 * tableRef(), 0), q: lapQ(tablePitch(sz)) };
       default: return { p: new V3(-6 * sz, 8.75 + 2 * sz, P.z), q: lapQ(PITCH) };
     }
   }
@@ -498,6 +501,21 @@ function create(view, opts) {
     applyEdits('jack', ['torso', 'neck', 'glutes', 'armL', 'armR', 'thighL', 'thighR', 'kneeL', 'kneeR'], jackWeights());
   };
 
+  // Braced: his legs lengthen (thigh and shin together, along their own line) so his feet reach the floor from wherever his hips are held.
+  function stretchLegs() {
+    const w = st.to === 'table' ? st.blend : st.from === 'table' ? 1 - st.blend : 0, legs = [jack.legL, jack.legR];
+    const set = (l, k) => { const th = l.thigh.children[0], sh = l.knee.children[0]; th.scale.y = k; th.position.y = -3 * k; l.knee.position.y = -6 * k; sh.scale.y = k; sh.position.y = -3 * k; };
+    for (const l of legs) set(l, 1);
+    if (w <= 0) return;
+    scene.updateMatrixWorld(true);
+    for (const l of legs) {
+      const hip = stage.worldToLocal(l.thigh.getWorldPosition(new V3())), foot = stage.worldToLocal(l.knee.localToWorld(new V3(0, -6, 0)));
+      const drop = hip.y - foot.y; if (drop < 0.5) continue;
+      const k = clamp((hip.y - FLOOR) / drop, 0.7, 3); set(l, 1 + (k - 1) * w);
+    }
+    scene.updateMatrixWorld(true);
+  }
+
   // ── Frame loop ──────────────────────────────────────────────────────────────────────────────────────────────────────────
   function repaint() {
     st.expr = exprFor();
@@ -529,8 +547,8 @@ function create(view, opts) {
     // The giver's place: seated in the chair (her shins long enough to reach its floor), or standing at the table's side.
     gerda.root.position.copy(GIVER_AT[st.giverStance]); chair.visible = st.giverStance === 'sit' && opts.noChair !== true;
     if (st.shinsSeated !== (st.giverStance === 'sit')) { st.shinsSeated = st.giverStance === 'sit'; setShins(st.shinsSeated); }
-    if (table) { table.visible = st.showTable !== false && (st.to === 'table' || st.from === 'table' || st.showTable === true); table.position.x = tableEdgeX(sz); }
-    B.step(jack, dt); scene.updateMatrixWorld(true);
+    if (table) { table.visible = st.showTable !== false && (st.to === 'table' || st.from === 'table' || st.showTable === true); table.position.x = tableEdgeX(); }
+    B.step(jack, dt); scene.updateMatrixWorld(true); stretchLegs();
     B.step(gerda, dt);
     updateHandles(); if (!ext) { controls.update(); renderer.render(scene, camera); }
   }
