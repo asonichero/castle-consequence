@@ -24,6 +24,7 @@ const TIMES = { lift: 0.45, hold: 0.15, strike: 0.09, contact: 0.32, back: 0.3 }
 const IMPL = {
   hand:   { name: 'Hand',   mark: 1,     paddle: false },
   paddle: { name: 'Paddle', mark: 8 / 3, paddle: true },
+  birch:  { name: 'Birch',  mark: 3.2,   birch: true },
 };
 const LEAN = -0.75;              // how far back she sits (fixed)
 const BANDS = ['composed', 'flinching', 'struggling', 'close to the edge of resistance', 'past the edge of resistance: most receptive', 'too harsh'];
@@ -31,33 +32,46 @@ const BANDS = ['composed', 'flinching', 'struggling', 'close to the edge of resi
 function create(view, opts) {
   opts = opts || {};
   // ── Stage ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-  renderer.outputEncoding = THREE.sRGBEncoding; renderer.setPixelRatio(Math.min(2, root.devicePixelRatio || 1));
-  view.appendChild(renderer.domElement);
-  const scene = new THREE.Scene(); scene.background = new THREE.Color(0x14181f); scene.fog = new THREE.Fog(0x14181f, 140, 300);
-  const camera = new THREE.PerspectiveCamera(36, 1, 1, 600);
-  const controls = new THREE.OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true; controls.minDistance = 12; controls.maxDistance = 160; controls.maxPolarAngle = Math.PI * 0.495;
-  scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x30283a, 0.62));
-  const sun = new THREE.DirectionalLight(0xfff0d8, 0.62); sun.position.set(40, 80, 60); scene.add(sun);
-  const fc = document.createElement('canvas'); fc.width = fc.height = 32; const fx = fc.getContext('2d');
-  fx.fillStyle = '#3a3f4a'; fx.fillRect(0, 0, 32, 32); fx.fillStyle = '#343944'; fx.fillRect(0, 0, 16, 16); fx.fillRect(16, 16, 16, 16);
-  fx.fillStyle = '#2a2e38'; fx.fillRect(0, 15, 32, 1); fx.fillRect(15, 0, 1, 32);
-  const ft = new THREE.CanvasTexture(fc); ft.magFilter = THREE.NearestFilter; ft.wrapS = ft.wrapT = THREE.RepeatWrapping; ft.repeat.set(16, 16); ft.encoding = THREE.sRGBEncoding;
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(256, 256), new THREE.MeshLambertMaterial({ map: ft })); floor.rotation.x = -Math.PI / 2; scene.add(floor);
+  // Standalone (lap.html) it makes its own renderer, camera, orbit controls, floor and lights. Embedded (opts.external = { scene, camera, renderer }) it only adds its
+  // cast to the game's scene, inside one group (api.stage) that the game places and scales, and the game renders.
+  const ext = opts.external || null;
+  let renderer, scene, camera, controls, floor = null;
+  if (ext) {
+    renderer = ext.renderer; scene = ext.scene; camera = ext.camera;
+    controls = { target: new V3(), enabled: true, update() {} };
+  } else {
+    renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+    renderer.outputEncoding = THREE.sRGBEncoding; renderer.setPixelRatio(Math.min(2, root.devicePixelRatio || 1));
+    view.appendChild(renderer.domElement);
+    scene = new THREE.Scene(); scene.background = new THREE.Color(0x14181f); scene.fog = new THREE.Fog(0x14181f, 140, 300);
+    camera = new THREE.PerspectiveCamera(36, 1, 1, 600);
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; controls.minDistance = 12; controls.maxDistance = 160; controls.maxPolarAngle = Math.PI * 0.495;
+    scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x30283a, 0.62));
+    const sun = new THREE.DirectionalLight(0xfff0d8, 0.62); sun.position.set(40, 80, 60); scene.add(sun);
+    const fc = document.createElement('canvas'); fc.width = fc.height = 32; const fx = fc.getContext('2d');
+    fx.fillStyle = '#3a3f4a'; fx.fillRect(0, 0, 32, 32); fx.fillStyle = '#343944'; fx.fillRect(0, 0, 16, 16); fx.fillRect(16, 16, 16, 16);
+    fx.fillStyle = '#2a2e38'; fx.fillRect(0, 15, 32, 1); fx.fillRect(15, 0, 1, 32);
+    const ft = new THREE.CanvasTexture(fc); ft.magFilter = THREE.NearestFilter; ft.wrapS = ft.wrapT = THREE.RepeatWrapping; ft.repeat.set(16, 16); ft.encoding = THREE.sRGBEncoding;
+    floor = new THREE.Mesh(new THREE.PlaneGeometry(256, 256), new THREE.MeshLambertMaterial({ map: ft })); floor.rotation.x = -Math.PI / 2; scene.add(floor);
+  }
+  const stage = new THREE.Group(); scene.add(stage);
   // The chair: a plank seat (top at y = 4, where Gerda's thighs rest) and a straight back.
-  const LEGH = B.CHAIR.legH; scene.add(B.makeChair());   // (the same chair stands in the level's room; a floor lowered to meet its legs, and Gerda's shins lengthened by the same amount)
-  floor.position.y = -LEGH;
+  const LEGH = B.CHAIR.legH, chair = B.makeChair(); if (opts.noChair !== true) stage.add(chair);   // (the same chair stands in the level's room; a floor lowered to meet its legs, and Gerda's shins lengthened by the same amount)
+  if (floor) floor.position.y = -LEGH;
+  let jackFull = opts.jackFull || JACK_FULL;
 
   // ── The cast ────────────────────────────────────────────────────────────────────────────────────────────────────────────
   const gerda = B.makeGerda(), jack = B.makeJack();
-  scene.add(gerda.root);
-  const frame = new THREE.Group(); frame.add(jack.root); scene.add(frame);
+  stage.add(gerda.root);
+  const frame = new THREE.Group(); frame.add(jack.root); stage.add(frame);
   // Jack's frame: local +y (his head) runs along world +x, his front faces down, then the whole body is tipped head-down by PITCH.
   const qx = new THREE.Quaternion().setFromAxisAngle(new V3(1, 0, 0), Math.PI / 2), qy = new THREE.Quaternion().setFromAxisAngle(new V3(0, 1, 0), Math.PI / 2);
   const qz = new THREE.Quaternion().setFromAxisAngle(new V3(0, 0, 1), PITCH);
   frame.quaternion.copy(qz).multiply(qy).multiply(qx);
-  for (const l of [gerda.legL, gerda.legR]) { const sh = l.knee.children[0]; sh.scale.y = (6 + LEGH) / 6; sh.position.y = -3 * sh.scale.y; }
+  const shins = [gerda.legL, gerda.legR].map(l => l.knee.children[0]);
+  const setShins = seated => { for (const sh of shins) { sh.scale.y = seated ? (6 + LEGH) / 6 : 1; sh.position.y = -3 * sh.scale.y; } };   // (seated, her shins reach the lowered floor; standing, they are as they are)
+  setShins(true);
   B.setPose(gerda, 'sit'); Object.assign(gerda.state, B.POSES.sit);
   Object.assign(jack.state, { hipY: 0, lift: 0 }); Object.assign(jack.target, { hipY: 0, lift: 0 });
   // The glutes block hangs from a hinge at its top edge, which lies in the plane of his back (just proud of it) at the bottom edge of the torso, and
@@ -88,12 +102,19 @@ function create(view, opts) {
     g.translate(0, 0, -0.4); paddle.add(new THREE.Mesh(g, woodMat(0x9a6a38)));
   }
 
+  // The birch: a bundle of pale twigs bound with twine at one end, held in the fist at the end of the forearm and running on along it. Each twig is two
+  // segments, so the whole thing can whip: it trails behind on the way up, and bows forward on the skin.
+  const BIRCH_HAND = B.BIRCH.hand, BIRCH_L = B.BIRCH.len, BIRCH_AT = BIRCH_HAND + BIRCH_L * 0.6, BIRCH_FIST = 6;     // the handle in the fist, the twigs beyond it, how far from the hand the twigs meet the skin, and how near the shoulder the fist is brought
+  const birchTool = new THREE.Group(); birchTool.position.set(0, -6, 0); gerda.wrist.add(birchTool);
+  const bModel = B.makeBirch(), birch = bModel.root, twigs = bModel.twigs, tips = bModel.tips; birch.visible = false; birchTool.add(birch);
+
   // ── The session ─────────────────────────────────────────────────────────────────────────────────────────────────────────
   const pain = S.createPain({ tolerance: 0.45, resilience: 0.5 });
   const st = {
     outfit: { gerda: 'Work', jack: 'Outdoor' }, lean: LEAN, size: 1, implement: 'hand', pace: 1, strength: 1, side: 'alt', nextSide: 'R',
     trousers: 'up', drawers: 'up', marks: { L: 0, R: 0 }, expr: 0,
     hits: 0, ended: false, red: false, peak: 0, swing: null, runLeft: 0, gap: 0, sound: true, last: null,
+    from: 'lap', to: 'lap', blend: 1, blendSecs: 1, giverStance: 'sit', shinsSeated: true, armed: true, cover: 0, fumble: 0, place: 'lap',
   };
   const J = { kick: 0, kickSide: 'R', t: 0 };     // Jack's reaction to the last smack, and a clock for his wriggling
   let dirty = true, repaintAt = 0, fadeAcc = 0;
@@ -106,10 +127,10 @@ function create(view, opts) {
   };
   const bandIndex = () => { const d = pain.distress(); return d < 0.3 ? 0 : d < 0.6 ? 1 : d < 0.9 ? 2 : d < 1 ? 3 : d < 1.5 ? 4 : 5; };
   const exprFor = () => Math.min(3, Math.max(0, bandIndex() - (bandIndex() >= 3 ? 1 : 0)));
-  const canStrike = () => !st.ended && !pain.tooHarsh;
+  const canStrike = () => !st.ended && !pain.tooHarsh && st.blend >= 1 && (st.to === 'lap' ? st.implement !== 'birch' : st.to === 'table');   // (the birch is for the table; it is not used across the knee)
 
   // Audio (js/audio.js): the smack is a short noise burst, deeper through clothing, and Jack's voice is a synthesised vowel, higher, longer and more broken the more distressed he is.
-  const thwack = power => { if (st.sound && root.GameAudio) root.GameAudio.thwack(power, st.trousers === 'up'); };
+  const thwack = power => { if (st.sound && root.GameAudio) { if (st.implement === 'birch') root.GameAudio.birch(power, st.trousers === 'up'); else root.GameAudio.thwack(power, st.trousers === 'up'); } };
   const voice = (power, band) => { if (st.sound && root.GameAudio) root.GameAudio.voice(power, band, false); };
 
   // ── Smacks ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -141,7 +162,7 @@ function create(view, opts) {
     const ease = x => x * x * (3 - 2 * x);
     switch (sw.phase) {
       case 'lift': sw.tau = lerp(1, 0, ease(clamp(sw.t / TIMES.lift, 0, 1))); sw.hover = sw.tau; if (sw.t >= TIMES.lift) { sw.phase = 'hold'; sw.t = 0; } break;
-      case 'hold': sw.tau = 0; sw.waited = sw.t; if (sw.t >= TIMES.hold) { sw.phase = 'strike'; sw.t = 0; } break;
+      case 'hold': sw.tau = 0; sw.waited = sw.t; if (sw.t >= TIMES.hold) { sw.phase = 'strike'; sw.t = 0; if (st.implement === 'birch' && st.sound && root.GameAudio) root.GameAudio.swish(st.strength); } break;
       case 'strike': { const x = clamp(sw.t / TIMES.strike, 0, 1); sw.tau = x * x; if (x >= 1) { sw.tau = 1; sw.phase = 'contact'; sw.t = 0; impact(sw); } break; }
       case 'contact': sw.tau = 1; if (sw.t >= TIMES.contact) {
         // In a run the arm goes straight from contact back up to raised for the next smack; only the last one returns to rest.
@@ -167,23 +188,27 @@ function create(view, opts) {
   // Two sets of poses, made at different sizes of Jack, 100% and 50%, which the poses blend between as he scales (so the contact sites always work).
   // The file is { 100: {gerda, jack}, 50: {gerda, jack} } (a file with no sizes is taken for both).
   const LP = root.LapPoses || {};
-  const EDITS = { 100: JSON.parse(JSON.stringify(LP[100] || (LP.gerda ? LP : {}))), 50: JSON.parse(JSON.stringify(LP[50] || (LP.gerda ? LP : {}))) };
+  const mkSet = src => JSON.parse(JSON.stringify(src || {}));
+  // One set of pose edits for each position (over the knee, bent over the table; the table's are optional in the file as LapPoses.table), at each of the two sizes.
+  const SETS = { lap: { 100: mkSet(LP[100] || (LP.gerda ? LP : {})), 50: mkSet(LP[50] || (LP.gerda ? LP : {})) }, table: { 100: mkSet(LP.table && LP.table[100]), 50: mkSet(LP.table && LP.table[50]) } };
   const SIZE_MIN = 0.5;                       // below this the poses do not reach (the lower limit of the position)
-  // Editable poses: Hand { rest, raised, contactL, contactR }, Paddle { rest, raised, contactL, contactR } for Gerda (the contact pose is
-  // per cheek, and per implement), and Jack { base, react }.
-  const GERDA_BEATS = ['rest', 'raised', 'contactL', 'contactR'];
-  const BEATS = { hand: GERDA_BEATS, paddle: GERDA_BEATS, jack: ['base', 'react'] };
-  for (const k of [100, 50]) {
-    const e = EDITS[k]; e.gerda = e.gerda || {}; e.jack = e.jack || {};
-    for (const w of ['hand', 'paddle']) { e.gerda[w] = e.gerda[w] || {}; for (const b of GERDA_BEATS) e.gerda[w][b] = e.gerda[w][b] || {}; }
+  // Editable poses: Hand, Paddle and Birch { rest, raised, contactL, contactR } for Gerda (the contact pose is per cheek, and per implement), and Jack { base, react }.
+  const GERDA_BEATS = ['rest', 'raised', 'contactL', 'contactR'], WIELD = ['hand', 'paddle', 'birch'];
+  const BEATS = { hand: GERDA_BEATS, paddle: GERDA_BEATS, birch: GERDA_BEATS, jack: ['base', 'react'] };
+  for (const pos in SETS) for (const k of [100, 50]) {
+    const e = SETS[pos][k]; e.gerda = e.gerda || {}; e.jack = e.jack || {};
+    for (const w of WIELD) { e.gerda[w] = e.gerda[w] || {}; for (const b of GERDA_BEATS) e.gerda[w][b] = e.gerda[w][b] || {}; }
     for (const b of BEATS.jack) e.jack[b] = e.jack[b] || {};
   }
+  let editPos = 'lap';                        // the position the editor is working on
+  const posKey = () => hs.on ? editPos : (stanceNow() === 'table' ? 'table' : 'lap');
+  const EDITS = new Proxy({}, { get: (_, k) => SETS[posKey()][k] });   // (the set in force: the editor's position while it is open, otherwise where Jack is)
   let editKey = 100;                          // the set the editor is working on (Jack is held at that size while it is open)
   const sizeT = () => clamp((st.size - SIZE_MIN) / (1 - SIZE_MIN), 0, 1);    // 0 at 50%, 1 at 100%
   // The set of edits in force for a figure's bones: Gerda's depend on the implement in hand.
   const setOf = (who, key) => who === 'gerda' ? EDITS[key].gerda[st.implement] : EDITS[key].jack;
   const BONES = {
-    gerda: { torso: gerda.torso, neck: gerda.neck, armL: gerda.armL, armR: gerda.armR, elbowR: gerda.elbow, wristR: gerda.wrist, thighL: gerda.legL.thigh, thighR: gerda.legR.thigh, kneeL: gerda.legL.knee, kneeR: gerda.legR.knee, paddle: tool },
+    gerda: { torso: gerda.torso, neck: gerda.neck, armL: gerda.armL, armR: gerda.armR, elbowR: gerda.elbow, wristR: gerda.wrist, thighL: gerda.legL.thigh, thighR: gerda.legR.thigh, kneeL: gerda.legL.knee, kneeR: gerda.legR.knee, paddle: tool, birch: birchTool },
     jack: { frame, torso: jack.torso, neck: jack.neck, glutes: glutesTilt, armL: jack.armL, armR: jack.armR, thighL: jack.legL.thigh, thighR: jack.legR.thigh, kneeL: jack.legL.knee, kneeR: jack.legR.knee },
   };
   const frameBase = frame.quaternion.clone(), glutesBase = glutesTilt.quaternion.clone(), basePos = new Map();
@@ -254,7 +279,79 @@ function create(view, opts) {
   // The blade's side and the arm's pose for a forearm direction f: the blade lies toward the world's +x as far as the forearm's axis allows.
   const sideOf = f => { const v = new V3(1, 0, 0).addScaledVector(f, -f.x); return v.lengthSq() > 1e-4 ? v.normalize() : new V3(0, 0, 1); };
 
+  // ── Places and stances ──────────────────────────────────────────────────────────────────────────────────────────────────────
+  // A place is where the giver is (seated, or standing at the table) and where Jack is. His stances: 'standSeat' (upright between her knees, facing her), 'lap' (face
+  // down across her right knee), 'table' (bent forward over the table's edge, chest on the top, feet on the floor), 'standTable' (upright beside the table, facing her).
+  // moving between two blends his body (and the hands she lays on him) over a few seconds.
+  const FLOOR = -LEGH, TABLE_H = 14.2, TABLE_TOP = FLOOR + TABLE_H, LEAN_STAND = 0.32;
+  const PLACES = { seat: { giver: 'sit', jack: 'standSeat' }, lap: { giver: 'sit', jack: 'lap' }, table: { giver: 'stand', jack: 'table' }, after: { giver: 'stand', jack: 'standTable' } };
+  const GIVER_AT = { sit: new V3(0, 0, 0), stand: new V3(-3, FLOOR, -10) };
+  const AXX = new V3(1, 0, 0), AXY = new V3(0, 1, 0), AXZ = new V3(0, 0, 1), axq = (ax, a) => new THREE.Quaternion().setFromAxisAngle(ax, a);
+  const lapQ = pitch => axq(AXZ, pitch).multiply(axq(AXY, Math.PI / 2)).multiply(axq(AXX, Math.PI / 2)), uprightQ = axq(AXY, Math.PI);
+  const tablePitch = sz => clamp(Math.asin(clamp((TABLE_TOP + 2 * sz - (FLOOR + 12 * sz)) / (11 * sz), -1, 1)), 0, 0.8);
+  const tableEdgeX = sz => -6 * sz + 3.5 * sz;
+  function stanceFrame(name, sz) {                    // where his hip joint is, and which way his body faces
+    switch (name) {
+      case 'standSeat': return { p: new V3(0, FLOOR + 12 * sz, 9.5), q: uprightQ };
+      case 'standTable': return { p: new V3(-6 * sz, FLOOR + 12 * sz, 0), q: uprightQ };
+      case 'table': return { p: new V3(-6 * sz, FLOOR + 12 * sz, 0), q: lapQ(tablePitch(sz)) };
+      default: return { p: new V3(-6 * sz, 8.75 + 2 * sz, P.z), q: lapQ(PITCH) };
+    }
+  }
+  const stanceNow = () => st.blend < 0.5 ? st.from : st.to;
+  const strikeStance = () => { const n = stanceNow(); return n === 'lap' || n === 'table'; };
+  const strikeReady = () => st.blend >= 1 && (st.to === 'lap' || st.to === 'table');
+  // Jack's limbs for a stance: thighs and shins, head, arms, a little of the torso; the reaction to the last smack (k), his distress (d) and his wriggle (w) work on them.
+  function limbs(name, k, d, w, sz) {
+    const dd = Math.min(1, d), t = J.t, mL = J.kickSide === 'L' ? 1 : 0.45, mR = J.kickSide === 'R' ? 1 : 0.45, cover = st.cover || 0;
+    if (name === 'lap') {
+      // Hanging off the edge of her lap: thighs down and out from the glutes block, knees bent back so the feet clear the floor; arms reaching down past his head to the floor.
+      return { tL: -0.96 + k * 0.9 * mL + w, tR: -0.96 + k * 0.9 * mR - w, zL: 0.12 + 0.2 * k * mL, zR: -(0.12 + 0.2 * k * mR), kL: 0.6 + 0.6 * k * mL + 0.5 * Math.max(0, w), kR: 0.6 + 0.6 * k * mR + 0.5 * Math.max(0, -w),
+        nx: -0.1 - 0.5 * k + 0.1 * dd * Math.sin(t * 4), ny: -0.75 + 0.15 * Math.sin(t * 3) * dd, aLx: -2.14 - 0.25 * k + Math.sin(t * 7) * 0.08 * dd, aRx: -2.14 - 0.25 * k + Math.sin(t * 7 + 1.7) * 0.08 * dd,
+        aLz: 0.12 + 0.1 * k, aRz: -(0.12 + 0.1 * k), tz: 0.06 * dd * Math.sin(t * 6), tx: 0 };
+    }
+    if (name === 'table') {
+      // Bent over the table's edge: legs straight down to the floor (shifting from foot to foot, rising onto the toes at a bad one), arms out along the top, cheek on it.
+      const phi = tablePitch(sz), leg = -Math.PI / 2 + phi;
+      return { tL: leg + 0.45 * k * mL + 0.6 * w, tR: leg + 0.45 * k * mR - 0.6 * w, zL: 0.1 + 0.1 * k * mL, zR: -(0.1 + 0.1 * k * mR), kL: 0.1 * dd + 0.9 * k * mL + 0.4 * Math.max(0, w), kR: 0.1 * dd + 0.9 * k * mR + 0.4 * Math.max(0, -w),
+        nx: -0.1 - 0.4 * k + 0.05 * dd * Math.sin(t * 4), ny: -0.95 + 0.12 * Math.sin(t * 3) * dd, aLx: phi - Math.PI - 0.12 * k + Math.sin(t * 6) * 0.05 * dd, aRx: phi - Math.PI - 0.12 * k + Math.sin(t * 6 + 1.7) * 0.05 * dd,
+        aLz: 0.26 + 0.12 * k, aRz: -(0.26 + 0.12 * k), tz: 0.05 * dd * Math.sin(t * 6), tx: -0.12 * k };
+    }
+    // Standing: weight shifting, head bowed, hands at his sides (or, as he comes to it, swung back to cover himself).
+    const sh = Math.sin(t * 2.1) * dd;
+    return { tL: -0.08 * sh, tR: 0.08 * sh, zL: 0.05, zR: -0.05, kL: 0.04 * Math.max(0, sh), kR: 0.04 * Math.max(0, -sh), nx: 0.28 + 0.12 * dd, ny: 0.15 * Math.sin(t * 0.7) * dd,
+      aLx: 0.05 + 0.65 * cover, aRx: 0.05 + 0.65 * cover, aLz: 0.08 - 0.38 * cover, aRz: -(0.08 - 0.38 * cover), tz: 0, tx: 0.06 * dd };
+  }
+  const mixPose = (a, b, e) => { const o = {}; for (const key in a) o[key] = a[key] + (b[key] - a[key]) * e; return o; };
+  const easeIO = x => x * x * (3 - 2 * x);
+  // Where she lays her hands while he is being brought to her: his belt as he stands, his shoulders once he is up again.
+  const beltL = mk(2.6, 1.2, 3.2, jack.hips), beltR = mk(-2.6, 1.2, 3.2, jack.hips), shoulderL = mk(5.2, 10, 1.5, jack.torso), shoulderR = mk(-5.2, 10, 1.5, jack.torso);
+  const LEAN_SIT_HANDS = 0.1;
+  // The table (standalone; in the game the room's own table is used): a plank top 22 deep from the edge Jack lies over and 30 wide, on four legs.
+  let table = null;
+  if (opts.table !== false) {
+    table = new THREE.Group(); stage.add(table); const wood = new THREE.MeshLambertMaterial({ color: srgb(0x8a6c4a) }), legs = new THREE.MeshLambertMaterial({ color: srgb(0x5a4430) });
+    const tb = (w, h, d, x, y, z, m) => { const q = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); q.position.set(x, y, z); table.add(q); };
+    tb(22, 2.4, 30, 11, TABLE_TOP - 1.2, 0, wood); for (const [x, z] of [[2.4, -12.6], [19.6, -12.6], [2.4, 12.6], [19.6, 12.6]]) tb(2.6, TABLE_H - 2.4, 2.6, x, FLOOR + (TABLE_H - 2.4) / 2, z, legs); table.visible = false;
+  }
+
   gerda.after = function (g) {
+    const sw0 = st.swing, standing = st.giverStance === 'stand';
+    if (!strikeStance()) {
+      // Hands on him: at his belt (and a little fumbling at it, if `fumble` is up), or on his shoulders once he is upright again.
+      g.torso.rotation.order = 'YXZ'; g.torso.rotation.set(standing ? 0.16 : LEAN_SIT_HANDS, 0, 0); g.neck.rotation.set(0.3, 0, 0);
+      paddle.visible = false; birch.visible = !!(IMPL[st.implement].birch && st.armed); if (birch.visible) { twigs.rotation.x = 0.1; for (const j of tips) j.rotation.x = 0.15; }
+      g.root.updateMatrixWorld(true);
+      const up = st.to === 'standTable', tL = world(up ? shoulderL : beltL), tR = world(up ? shoulderR : beltR), fum = (st.fumble || 0) * 0.5 * Math.sin(J.t * 13);
+      tL.y += fum; tR.y -= fum;
+      aim(g.armL, tmpB.copy(tL).sub(world(g.armL)));
+      const sh = world(g.armR), ik = twoBone(sh, tR, LF);
+      aim(g.armR, ik.u1); const h = new V3().crossVectors(ik.u1, ik.f); let psi = Math.acos(clamp(ik.u1.dot(ik.f), -1, 1));
+      if (h.lengthSq() > 1e-6) { h.normalize(); g.armR.updateMatrixWorld(true); const xw = new V3(1, 0, 0).applyQuaternion(g.armR.getWorldQuaternion(tmpQ2)); const ang = Math.atan2(xw.clone().cross(h).dot(ik.u1), xw.dot(h)); g.armR.parent.getWorldQuaternion(tmpQ).invert(); g.armR.quaternion.premultiply(tmpQ2.setFromAxisAngle(ik.u1.clone().applyQuaternion(tmpQ), ang)); } else psi = 0;
+      g.elbow.rotation.set(psi, 0, 0); g.wrist.rotation.set(0, 0, 0); g.root.updateMatrixWorld(true);
+      const fw = new V3(0, -1, 0).applyQuaternion(g.wrist.getWorldQuaternion(tmpQ2)); if (fw.dot(ik.f) < 0.999) { g.elbow.rotation.x = -psi; }
+      return;
+    }
     const gw = gerdaWeights(), sw = st.swing, impl = IMPL[st.implement], tau = sw ? sw.tau : 1, hover = sw ? (sw.hover || 0) : 1;
     // Where she lands, on the cheek being struck (they alternate, or the one chosen). The hand: the end of her forearm on its middle. The paddle: the
     // middle of its blade on it (the blade's middle plane stands a little off his skin).
@@ -267,7 +364,7 @@ function create(view, opts) {
     const T = st.aim.clone();
     // Her torso never twists or leans for a strike (a pose edit of it stays put); the arm and, for the paddle, the blade's angle do the aiming.
     st.yaw = 0;
-    g.torso.rotation.order = 'YXZ'; g.torso.rotation.set(LEAN, st.yaw, 0); g.neck.rotation.x = 0.55 + 0.4 * LEAN; g.neck.rotation.y = -st.yaw * 0.9;
+    g.torso.rotation.order = 'YXZ'; g.torso.rotation.set(standing ? LEAN_STAND : LEAN, st.yaw, 0); g.neck.rotation.x = standing ? 0.3 : 0.55 + 0.4 * LEAN; g.neck.rotation.y = -st.yaw * 0.9;
     applyEdits('gerda', ['torso', 'neck', 'thighL', 'thighR', 'kneeL', 'kneeR'], gw);
     g.root.updateMatrixWorld(true);
     // Left hand rests on Jack's back.
@@ -277,7 +374,19 @@ function create(view, opts) {
     // it lands; the raised pose lifts the elbow up and forward. They blend by how far the swing has come.
     const sh = world(g.armR);
     const reachM = impl.paddle ? PAD_M : LF;
+    // The birch: the fist is brought to a point above the skin, near the shoulder (about BIRCH_FIST from it), so that the twigs, running on from the fist along u, lie on the
+    // skin with their middle (BIRCH_AT from the fist) on T. The forearm and the birch then differ by the bend of the wrist.
+    let birchU = new V3(0, -1, 0);
+    const birchContact = () => {
+      const e = T.clone().sub(sh), Ld = Math.max(0.1, e.length()); e.normalize();
+      const cosT = clamp((Ld * Ld + BIRCH_AT * BIRCH_AT - BIRCH_FIST * BIRCH_FIST) / (2 * Ld * BIRCH_AT), -1, 1), sinT = Math.sqrt(1 - cosT * cosT);
+      let down = DOWN.clone().addScaledVector(e, -DOWN.dot(e)); if (down.lengthSq() < 0.04) down = new V3(1, 0, 0).addScaledVector(e, -e.x); down.normalize();
+      const u = e.clone().multiplyScalar(cosT).addScaledVector(down, sinT).normalize();
+      const H = T.clone().addScaledVector(u, -BIRCH_AT); if (root.__lapDebug) root.__lapDebug.birch = { sh: sh.toArray().map(x => +x.toFixed(1)), T: T.toArray().map(x => +x.toFixed(1)), H: H.toArray().map(x => +x.toFixed(1)), u: u.toArray().map(x => +x.toFixed(2)), Ld: +Ld.toFixed(1), cosT: +cosT.toFixed(2) };
+      return { u, H };
+    };
     const solve = (Mt, withSide) => {        // pose params for the forearm's point m to reach Mt (the paddle: its blade's middle then lands on T)
+      if (impl.birch) { const r = birchContact(); birchU = r.u; return twoBone(sh, r.H, reachM); }
       let M = Mt, ik;
       for (let it = 0; it < (withSide ? 4 : 1); it++) {
         ik = twoBone(sh, M, reachM);
@@ -311,10 +420,13 @@ function create(view, opts) {
     };
     const pc = armPose(contact), pr = armPose(raisedIK);
     g.armR.quaternion.copy(pr.q).slerp(pc.q, tau);
+    const birchUraised = impl.birch ? new V3(-ud.x * 0.5, 0, -ud.z * 0.5).addScaledVector(UP, 0.9).normalize() : null;
     g.elbow.rotation.set(lerp(pr.psi, pc.psi, tau), 0, 0); g.wrist.rotation.set(0, lerp(pr.omega, pc.omega, tau), 0);
-    paddle.visible = impl.paddle;
+    paddle.visible = !!impl.paddle && st.armed; birch.visible = !!impl.birch && st.armed;
+    if (impl.birch) { const ph = sw && sw.phase, flex = !sw ? 0.04 : (ph === 'lift' || ph === 'hold' || ph === 'rise') ? -0.25 * (1 - sw.tau) : ph === 'strike' ? -0.25 * (1 - tau) + 0.2 * tau : ph === 'contact' ? 0.2 * Math.max(0.3, 1 - sw.t / TIMES.contact) : ph === 'back' ? 0.1 * (1 - (sw.hover || 0)) : 0.1; twigs.rotation.x = flex; for (const j of tips) j.rotation.x = flex * 1.3; }
     const gwArm = Object.assign({}, gw); delete gwArm.rest;      // at rest the right arm is aimed (over the centre of his lower back), not posed by hand
     applyEdits('gerda', ['armR', 'elbowR', 'wristR'], gwArm);
+    if (impl.birch) { g.root.updateMatrixWorld(true); aim(birchTool, birchUraised.clone().lerp(birchU, tau).normalize()); applyEdits('gerda', ['birch'], gwArm); }
     if (impl.paddle) {
       // Roll the blade about its own length so that, at contact, its face lies on the angle of his glutes (the block's back face, tipped between his
       // back and his thighs); raised, it is left as the forearm carries it.
@@ -328,23 +440,13 @@ function create(view, opts) {
     if (impl.paddle) applyEdits('gerda', ['paddle'], gwArm);
   };
   jack.after = function (j) {
-    const k = J.kick, d = clamp(pain.distress(), 0, 1.5), w = Math.sin(J.t * 9) * 0.05 * Math.min(1, d) + Math.sin(J.t * 5.3) * 0.03 * Math.min(1, d);
-    for (const key of ['legL', 'legR']) {
-      const l = j[key], mine = (key === 'legL') === (J.kickSide === 'L') ? 1 : 0.45;
-      // Hanging off the edge of her lap: thighs down and out from the glutes block, knees bent back so the feet clear the floor.
-      l.thigh.rotation.x = -0.96 + k * (0.9 * mine) + w * (key === 'legL' ? 1 : -1);
-      l.thigh.rotation.z = l.sign * (0.12 + 0.2 * k * mine);
-      l.knee.rotation.x = 0.6 + 0.6 * k * mine + 0.5 * Math.max(0, w);
-    }
-    j.neck.rotation.x = -0.1 - 0.5 * k + 0.1 * Math.min(1, d) * Math.sin(J.t * 4);   // face toward the floor, lifting as he yelps
-    j.neck.rotation.y = -0.75 + 0.15 * Math.sin(J.t * 3) * Math.min(1, d);              // turned toward the room
-    for (const key of ['armL', 'armR']) {
-      const a = j[key], sg = a.userData.sign;
-      // Arms reach down past his head to the floor (his shoulders are only ten up, so they cannot hang straight).
-      a.rotation.x = -2.14 - 0.25 * k + Math.sin(J.t * 7 + (sg > 0 ? 0 : 1.7)) * 0.08 * Math.min(1, d);
-      a.rotation.z = sg * (0.12 + 0.1 * k);
-    }
-    j.torso.rotation.z = 0.06 * Math.min(1, d) * Math.sin(J.t * 6);
+    const k = J.kick, d = clamp(pain.distress(), 0, 1.5), w = Math.sin(J.t * 9) * 0.05 * Math.min(1, d) + Math.sin(J.t * 5.3) * 0.03 * Math.min(1, d), sz = st.size * jackFull;
+    const e = easeIO(clamp(st.blend, 0, 1)), p = mixPose(limbs(st.from, k, d, w, sz), limbs(st.to, k, d, w, sz), e);
+    j.legL.thigh.rotation.x = p.tL; j.legR.thigh.rotation.x = p.tR; j.legL.thigh.rotation.z = j.legL.sign * p.zL; j.legR.thigh.rotation.z = j.legR.sign * -p.zR;
+    j.legL.knee.rotation.x = p.kL; j.legR.knee.rotation.x = p.kR;
+    j.neck.rotation.x = p.nx; j.neck.rotation.y = p.ny;
+    j.armL.rotation.x = p.aLx; j.armR.rotation.x = p.aRx; j.armL.rotation.z = p.aLz; j.armR.rotation.z = p.aRz;
+    j.torso.rotation.z = p.tz; j.torso.rotation.x = p.tx;
     applyEdits('jack', ['torso', 'neck', 'glutes', 'armL', 'armR', 'thighL', 'thighR', 'kneeL', 'kneeR'], jackWeights());
   };
 
@@ -358,6 +460,10 @@ function create(view, opts) {
     dirty = false;
   }
   function update(dt) {
+    // Moving between places: his stance blends from one to the other.
+    if (st.blend < 1) { st.blend = Math.min(1, st.blend + dt / Math.max(0.05, st.blendSecs)); if (st.blend >= 1) st.from = st.to; }
+    const sz = st.size * jackFull, fa = stanceFrame(st.from, sz), fb = stanceFrame(st.to, sz), eb = easeIO(clamp(st.blend, 0, 1));
+    frameBase.copy(fa.q).slerp(fb.q, eb);
     restoreBones(); st.dt = dt;
     J.t += dt; J.kick *= Math.exp(-dt * 4.5); if (st.holdKick != null) J.kick = st.holdKick;
     if (st.swing) advance(dt);
@@ -366,14 +472,19 @@ function create(view, opts) {
     if (exprFor() !== st.expr) dirty = true;
     // (The colour never fades: it stays until the level resets.)
     repaintAt -= dt; if (dirty && repaintAt <= 0) { repaint(); repaintAt = 0.12; }
-    // Jack's size (the premise: he shrinks on arrival): his frame is scaled about his hip joint, which is re-placed so his torso's centre is still
-    // over the centre of her thighs and his belly still rests on them (their tops are at y = 8, 8.75 under the skirt; his body is 4 deep).
-    const sz = st.size * JACK_FULL; frame.scale.setScalar(sz);    // (his full size, 100%, is 95% of the model's own scale)
-    frame.position.set(-6 * sz, 8.75 + 2 * sz + 0.7 * J.kick * sz, P.z);
+    // Jack's size (the premise: he shrinks on arrival): his frame is scaled about his hip joint, which is re-placed for the stance: across her knee his torso's centre is over
+    // the centre of her thighs and his belly rests on them (their tops are at y = 8, 8.75 under the skirt; his body is 4 deep); at the table his chest is on its top.
+    frame.scale.setScalar(sz);    // (his full size, 100%, is 95% of the model's own scale)
+    const hop = (st.to === 'lap' || st.from === 'lap' ? 0.7 : st.to === 'table' ? 0.35 : 0) * J.kick * sz;
+    frame.position.copy(fa.p).lerp(fb.p, eb); frame.position.y += hop;
     applyEdits('jack', ['frame'], jackWeights());
+    // The giver's place: seated in the chair (her shins long enough to reach its floor), or standing at the table's side.
+    gerda.root.position.copy(GIVER_AT[st.giverStance]); chair.visible = st.giverStance === 'sit' && opts.noChair !== true;
+    if (st.shinsSeated !== (st.giverStance === 'sit')) { st.shinsSeated = st.giverStance === 'sit'; setShins(st.shinsSeated); }
+    if (table) { table.visible = st.showTable !== false && (st.to === 'table' || st.from === 'table' || st.showTable === true); table.position.x = tableEdgeX(sz); }
     B.step(jack, dt); scene.updateMatrixWorld(true);
     B.step(gerda, dt);
-    updateHandles(); controls.update(); renderer.render(scene, camera);
+    updateHandles(); if (!ext) { controls.update(); renderer.render(scene, camera); }
   }
 
   // ── Cameras ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -382,10 +493,15 @@ function create(view, opts) {
     behind: { pos: [-38, 58, 12], at: [-8, 10, 4] },         // down on Jack's rear, from his feet
     shoulder: { pos: [-22, 46, -22], at: [-6, 8, 6] },       // over Gerda's right shoulder: the giver's own view
     face: { pos: [22, 6, 30], at: [6, 5, 3] },               // Jack's face, from the floor side
+    tableSide: { pos: [-62, 24, 34], at: [-3, 8, -4] },      // the table scene from Jack's right: him bent over it, her at his side
+    tableBehind: { pos: [-52, 26, -22], at: [-6, 6, -3] },    // from behind them both, over her shoulder
+    tableAbove: { pos: [-40, 46, 14], at: [-7, 9, -2] },        // from above and behind Jack's feet, a little to his right
+    tableFront: { pos: [38, 22, 24], at: [-4, 8, -4] },       // from beyond the table, looking back along him
+    seat: { pos: [-26, 20, 50], at: [0, 8, 6] },              // standing before her, seen from the side
   };
   function view_(name) { const v = VIEWS[name]; camera.position.set(...v.pos); controls.target.set(...v.at); }
-  view_('overview');
-  function resize() { const w = view.clientWidth || 800, h = view.clientHeight || 600; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+  if (!ext) view_('overview');
+  function resize() { if (ext) return; const w = view.clientWidth || 800, h = view.clientHeight || 600; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); }
   root.addEventListener('resize', resize); resize();
 
   // ── Public ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -408,6 +524,7 @@ function create(view, opts) {
       H('wristR', 'move', 'Right wrist (moves the hand and paddle mount)', hpt(gerda.wrist, 0, -4.5, 0)),
       H('paddle', 'aim', 'Paddle tip (swings the paddle)', hpt(tool, 0, BLADE_END, 0)),
       H('paddle', 'twist', 'Paddle roll (rolls the blade about its length)', hpt(tool, BLADE_W / 2, -(HANDLE + BLADE_L / 2), 0), new V3(0, 1, 0)),
+      H('birch', 'aim', 'Birch tip (swings the birch)', hpt(birchTool, 0, -(BIRCH_HAND + BIRCH_L), 0)),
       H('thighL', 'aim', 'Left knee', hpt(gerda.legL.thigh, 0, -6, 0)), H('kneeL', 'aim', 'Left foot', hpt(gerda.legL.knee, 0, -6, 0)),
       H('thighR', 'aim', 'Right knee', hpt(gerda.legR.thigh, 0, -6, 0)), H('kneeR', 'aim', 'Right foot', hpt(gerda.legR.knee, 0, -6, 0)),
     ],
@@ -430,6 +547,7 @@ function create(view, opts) {
     elbowR: 'Right elbow: bends the right forearm (and hand) at the elbow.',
     wristR: 'Right wrist: the forearm turned about its own length (twist), and the forearm, hand and paddle mount moved as a unit (position). It does not bend the elbow.',
     paddle: 'Paddle: swings the paddle at its mount on the forearm, and rolls the blade.',
+    birch: 'Birch: swings the bundle at the end of the forearm.',
     thighL: 'Left thigh: swings the left leg from the hip.', thighR: 'Right thigh: swings the right leg from the hip.',
     kneeL: 'Left knee: bends the left lower leg.', kneeR: 'Right knee: bends the right lower leg.',
     glutes: 'Glutes block: tilts the block that bridges his back and thighs.',
@@ -519,9 +637,9 @@ function create(view, opts) {
 
   // who: 'hand', 'paddle' (Gerda with that implement) or 'jack'.
   const cur = { who: 'paddle', beat: 'contactL' };      // what the editor is holding the scene at
-  const figure = who => who === 'jack' ? 'jack' : 'gerda', setFor = who => who === 'jack' ? EDITS[editKey].jack : EDITS[editKey].gerda[who];
+  const figure = who => who === 'jack' ? 'jack' : 'gerda', setFor = who => who === 'jack' ? SETS[editPos][editKey].jack : SETS[editPos][editKey].gerda[who];
   const editor = {
-    beats: BEATS, bones: who => Object.keys(BONES[figure(who)]).filter(n => who !== 'hand' || n !== 'paddle'),
+    beats: BEATS, bones: who => Object.keys(BONES[figure(who)]).filter(n => (n !== 'paddle' || who === 'paddle') && (n !== 'birch' || who === 'birch')),
     get(who, beat, bone) { const e = setFor(who)[beat][bone] || {}; return { r: (e.r || [0, 0, 0]).slice(), p: (e.p || [0, 0, 0]).slice() }; },
     set(who, beat, bone, r, p) {
       if (r.every(v => !v) && p.every(v => !v)) delete setFor(who)[beat][bone]; else setFor(who)[beat][bone] = { r: r.slice(), p: p.slice() };
@@ -534,7 +652,7 @@ function create(view, opts) {
     // hand); Jack's base or fully reacting.
     hold(who, beat) {
       cur.who = who; cur.beat = beat;
-      st.runLeft = 0; st.swing = null;
+      st.runLeft = 0; st.swing = null; st.armed = true; if (hs.on || st.place === 'lap' || st.place === 'table') { const pl = editPos === 'table' ? 'table' : 'lap'; if (st.place !== pl || st.blend < 1) place(pl, 0); }
       if (who !== 'jack') {
         st.implement = who; st.holdKick = null;
         if (beat !== 'rest') st.swing = { phase: 'freeze', t: 0, side: beat === 'contactL' ? 'L' : 'R', waited: 0, tau: beat === 'raised' ? 0 : 1 };
@@ -548,6 +666,7 @@ function create(view, opts) {
     info: (who, bone) => BONE_INFO[bone] || '',
     handleLabels: who => HANDLE_DEFS[who === 'jack' ? 'jack' : 'gerda'].map(h => ({ bone: h.bone, kind: h.kind, label: h.label })),
     // Which of the two sets is being edited (100 or 50); Jack is held at that size while the editor is open.
+    position(k) { if (k === undefined) return editPos; editPos = k === 'table' ? 'table' : 'lap'; if (hs.on) place(editPos, 0); return editPos; },
     sizeKey(k) { if (k === undefined) return editKey; editKey = k === 50 ? 50 : 100; if (hs.on) st.size = editKey / 100; return editKey; },
     report() {
       const dump = (set, beats, pad) => beats.map(b => {
@@ -557,15 +676,22 @@ function create(view, opts) {
           return `${n}: { ${parts.join(', ')} }`; });
         return `${pad}${b}: {${bones.length ? '\n' + pad + '  ' + bones.join(',\n' + pad + '  ') + ',\n' + pad : ''}}`;
       }).join(',\n');
-      const one = k => {
-        const e = EDITS[k], gerdaOut = ['hand', 'paddle'].map(w => `      ${w}: {\n${dump(e.gerda[w], GERDA_BEATS, '        ')},\n      }`).join(',\n');
-        return `  ${k}: {\n    gerda: {\n${gerdaOut},\n    },\n    jack: {\n${dump(e.jack, BEATS.jack, '      ')},\n    },\n  },`;
+      const one = (pos, k, ind) => {
+        const e = SETS[pos][k], gerdaOut = WIELD.map(w => `${ind}    ${w}: {\n${dump(e.gerda[w], GERDA_BEATS, ind + '      ')},\n${ind}    }`).join(',\n');
+        return `${ind}${k}: {\n${ind}  gerda: {\n${gerdaOut},\n${ind}  },\n${ind}  jack: {\n${dump(e.jack, BEATS.jack, ind + '    ')},\n${ind}  },\n${ind}},`;
       };
-      return `root.LapPoses = {\n${one(100)}\n${one(50)}\n};`;
+      return `root.LapPoses = {\n${one('lap', 100, '  ')}\n${one('lap', 50, '  ')}\n  table: {\n${one('table', 100, '    ')}\n${one('table', 50, '    ')}\n  },\n};`;
     },
   };
+  // Move the scene to a place ('seat', 'lap', 'table', 'after'), taking `secs` for him to get there (0: at once).
+  function place(name, secs) {
+    const pl = PLACES[name]; if (!pl) return; secs = secs || 0; st.place = name;
+    if (st.giverStance !== pl.giver) { st.giverStance = pl.giver; B.setPose(gerda, pl.giver === 'sit' ? 'sit' : 'stand'); if (!secs) Object.assign(gerda.state, B.POSES[pl.giver === 'sit' ? 'sit' : 'stand']); }
+    if (!secs) { st.from = st.to = pl.jack; st.blend = 1; } else { st.from = stanceNow(); st.to = pl.jack; st.blend = 0; st.blendSecs = secs; }
+    st.swing = null; st.runLeft = 0; dirty = true;
+  }
   const api = {
-    editor,
+    editor, stage, place, PLACES,
     scene, floor, camera, controls, renderer, gerda, jack, pain, st, IMPL, BANDS, J,
     on: f => events.push(f),
     update, view: view_, smack,
@@ -576,6 +702,9 @@ function create(view, opts) {
     red() { if (st.ended) return; st.ended = true; st.red = true; st.runLeft = 0; st.swing = null; say('end', { red: true, hits: st.hits, peak: st.peak }); },
     reset() { pain.reset(); Object.assign(st, { hits: 0, ended: false, red: false, peak: 0, swing: null, runLeft: 0, marks: { L: 0, R: 0 }, last: null }); J.kick = 0; dirty = true; say('reset', {}); },
     size(v) { if (!hs.on) st.size = clamp(v, SIZE_MIN, 1); },
+    jackFull(v) { jackFull = v; },
+    armed(v) { st.armed = !!v; },
+    cover(v) { st.cover = v; }, fumble(v) { st.fumble = v; },
     // Wardrobe: Jack has 'Outdoor'; Gerda 'Work' or 'Fine'.
     // Who gives: Gerda, or Jack's mother (js/cast.js), on the same rig. expr 1 is her disapproving face.
     giver(name, expr) {

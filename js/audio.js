@@ -117,6 +117,24 @@ A.thwack = function (power, muffle, vol) {
   burst(t + 0.011, 0.03, 0.25 * p, 'bandpass', 1200, 0.9);                                  // a second, softer slap as the hand settles
   tone(t, 380, 190, 0.09, 0.45 * p);                                                         // the "pap" of flesh
 };
+// The birch: the swish of the twigs through the air (call it as the arm comes down), and the sharp crack and scatter of them on bare skin.
+A.swish = function (power, vol) {
+  if (!A.init()) return; const ctx = A.ctx, N = A.nodes, t = ctx.currentTime + 0.005, k = vol == null ? 1 : vol, p = clamp(power, 0.3, 1.3);
+  const src = ctx.createBufferSource(); src.buffer = N.noise; const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 1.4; f.frequency.setValueAtTime(1100, t); f.frequency.exponentialRampToValueAtTime(5200, t + 0.11);
+  const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.32 * p * k, t + 0.07); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.13);
+  src.connect(f); f.connect(g); g.connect(N.sfx); src.start(t, Math.random() * 2); src.stop(t + 0.16);
+};
+A.birch = function (power, muffle, vol) {
+  if (!A.init()) return; const ctx = A.ctx, N = A.nodes, t = ctx.currentTime + 0.01, k = vol == null ? 1 : vol, p = clamp(power, 0.2, 1.3), clothed = muffle === true;
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = clothed ? 1500 : 11000; const out = ctx.createGain(); out.gain.value = k; lp.connect(out); out.connect(N.sfx);
+  const burst = (start, len, peak, type, f, q) => { const src = ctx.createBufferSource(); src.buffer = N.noise; const flt = ctx.createBiquadFilter(); flt.type = type; flt.frequency.value = f; flt.Q.value = q;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, start); g.gain.linearRampToValueAtTime(peak, start + 0.001); g.gain.exponentialRampToValueAtTime(0.0001, start + len); src.connect(flt); flt.connect(g); g.connect(lp); src.start(start, Math.random() * 2); src.stop(start + len + 0.02); };
+  burst(t, 0.05, 0.75 * p, 'highpass', 3600, 0.7);                                                  // the crack, high and thin
+  burst(t + 0.001, 0.07, 0.55 * p, 'bandpass', 2300, 0.6);                                          // the sting of it
+  for (let i = 0; i < 5; i++) burst(t + 0.006 + i * 0.006 + Math.random() * 0.004, 0.02, 0.25 * p, 'highpass', 4500 + Math.random() * 2000, 0.8);   // the twigs landing one after another
+  const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(260, t); o.frequency.exponentialRampToValueAtTime(130, t + 0.07);
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.22 * p, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08); o.connect(g); g.connect(lp); o.start(t); o.stop(t + 0.1);
+};
 A.voice = function (power, band, muffle, vol) {
   if (!A.init()) return; const ctx = A.ctx, N = A.nodes, k = (vol == null ? 1 : vol) * (muffle ? 2.2 : 1);
   const t0 = ctx.currentTime + 0.05 + Math.random() * 0.05, dur = [0.12, 0.2, 0.3, 0.42, 0.6, 0.6][band] || 0.3;

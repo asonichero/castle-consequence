@@ -47,12 +47,20 @@ async function playRoad(opts) {
   $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60));
   const res = await root.Road.run(G, opts);
   G.skipping = false; G.save({ step: 'beans', care: Object.assign((G.loadSave() || {}).care || {}, { runSecs: res.runSecs, soothes: res.soothes, plants: res.plants }), choices: res.choices });
+  await playNight(res.choices);
+}
+// The close of Chapter Two: the cottage at night (Jack's account, his Mother's reply). The choices he made at the cart set how it goes.
+async function playNight(choices) {
+  hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
+  $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60));
+  const res = await root.Night.run(G, choices);
+  G.skipping = false; G.save({ step: 'planted', night: res });
   showEnd();
 }
 function showEnd() {
-  const s = G.loadSave() || {}, beans = s.step === 'beans';
+  const s = G.loadSave() || {}, beans = s.step === 'beans' || s.step === 'planted';
   $('endTitle').textContent = beans ? 'Chapter Two \u2014 The Market Road' : 'Chapter One \u2014 Market Day';
-  $('endText').textContent = beans ? 'Jack has five beans, and no cow.' : 'Jack has a cow to sell in the morning.';
+  $('endText').textContent = beans ? 'Jack goes out into the dark to plant the beans.' : 'Jack has a cow to sell in the morning.';
   show('endcard'); G.mode = 'end'; $('fade').style.transition = 'none'; $('fade').style.opacity = 0; document.body.classList.remove('playing', 'cutscene');
 }
 // Level select (debug): plays from a chapter without touching the saved game.
@@ -63,10 +71,13 @@ $('levelSel').onchange = async () => {
     else if (k === 'market') await playMarket();
     else if (k === 'road') await playRoad();
     else if (k === 'cart') await playRoad({ cart: true });
+    else if (k === 'nightH') await playNight([2, 1, 2]);
+    else if (k === 'nightC') await playNight([1, 0, 1]);
+    else if (k === 'nightB') await playNight([0, 2, 0]);
   } finally { G.noSave = false; }
 };
 $('bNew').onclick = () => { G.noSave = false; if (G.loadSave() && !confirm('Start a new game? Your saved game will be replaced.')) return; G.clearSave(); playOpening(); };
-$('bContinue').onclick = () => { G.noSave = false; wake(); const sv = G.loadSave() || {}; if (sv.step === 'market-day') playMarket(); else if (sv.step === 'market-road') playRoad(); else { hideAll(); showEnd(); } };
+$('bContinue').onclick = () => { G.noSave = false; wake(); const sv = G.loadSave() || {}; if (sv.step === 'market-day') playMarket(); else if (sv.step === 'market-road') playRoad(); else if (sv.step === 'beans') playNight((sv.choices) || []); else { hideAll(); showEnd(); } };
 $('bSettings').onclick = () => { wake(); show('settings'); };
 $('bBack').onclick = () => { G.saveSettings(); show('title'); };
 $('bTitle').onclick = toTitle;

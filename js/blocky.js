@@ -564,5 +564,25 @@ function makeChair() {
   for (const x of [-6, 6]) add(1.5, 16, 1.5, x, 8, -6.4);
   return g;
 }
-root.Blocky = { buildCharacter, sideOuter, SIDES, FACES, CHAIR, makeChair, makeJack, makeGerda, setPose, step, POSES, Skin, OUTFITS, paintGerdaInto, paintJackInto, paintGlutesInto, makeGlutes, boxGeo, faceRect };
+// The birch: a bundle of pale twigs bound with twine at one end, to be held in the fist (the handle is at the origin and the whole runs on along -y). Each twig is two
+// segments, so the bundle can whip: twigs.rotation.x bows the lot, and each of tips[] bows the end of one twig. Returns { root, twigs, tips }.
+const BIRCH = { hand: 3.5, len: 15 };
+function makeBirch() {
+  const srgb = hex => new THREE.Color(hex).convertSRGBToLinear(), L = BIRCH.len, H = BIRCH.hand, root = new THREE.Group(), twigs = new THREE.Group(), tips = [];
+  twigs.position.y = -H; root.add(twigs);
+  const bark = [0xd9cfb8, 0xc4b79a, 0xe6dec9, 0xa89878], dark = srgb(0x4a3a2a);
+  const handleM = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, H + 1.5, 10), new THREE.MeshLambertMaterial({ color: srgb(0xb59a68) })); handleM.position.y = -(H - 1.5) / 2 + 0.2; root.add(handleM);
+  const twine = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.05, 0.7, 10), new THREE.MeshLambertMaterial({ color: srgb(0x6a4a2a) })); twine.position.y = -H + 0.4; root.add(twine);
+  const n = 19;
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + (i % 2) * 0.3, r = 0.35 + (i % 3) * 0.22, tw = new THREE.Group(); tw.position.set(Math.cos(a) * r * 0.6, 0, Math.sin(a) * r * 0.6); tw.rotation.set(Math.sin(a) * 0.09, 0, -Math.cos(a) * 0.09); twigs.add(tw);
+    const col = new THREE.MeshLambertMaterial({ color: srgb(bark[i % 4]) });
+    const seg1 = new THREE.Mesh(new THREE.BoxGeometry(0.62, L / 2, 0.62), col); seg1.position.y = -L / 4; tw.add(seg1);
+    const joint = new THREE.Group(); joint.position.y = -L / 2; tw.add(joint); const seg2 = new THREE.Mesh(new THREE.BoxGeometry(0.44, L / 2, 0.44), col); seg2.position.y = -L / 4; joint.add(seg2);
+    if (i % 3 === 0) { const nick = new THREE.Mesh(new THREE.BoxGeometry(0.64, 0.22, 0.64), new THREE.MeshLambertMaterial({ color: dark })); nick.position.y = -L / 4 + 0.4 * (i % 4); tw.add(nick); }
+    tips.push(joint);
+  }
+  return { root, twigs, tips };
+}
+root.Blocky = { BIRCH, makeBirch, buildCharacter, sideOuter, SIDES, FACES, CHAIR, makeChair, makeJack, makeGerda, setPose, step, POSES, Skin, OUTFITS, paintGerdaInto, paintJackInto, paintGlutesInto, makeGlutes, boxGeo, faceRect };
 })(typeof window !== 'undefined' ? window : globalThis);

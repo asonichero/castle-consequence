@@ -232,7 +232,7 @@ function interior() {
   box(11, 2, 11, mat('plankDark'), 0, 9, 0, stool); for (const [x, z] of [[-4, -4], [4, -4], [0, 4.4]]) box(1.8, 9, 1.8, mat('bark'), x, 4.5, z, stool);
   box(40, 0.5, 30, mat('rug'), 0, 0.25, -24, room);
   // Table (small), a cabinet, store cupboards, shelves and sacks.
-  const table = new THREE.Group(); table.position.set(46, 0, 30); room.add(table);
+  const table = new THREE.Group(); table.position.set(46, -5.7, 30); room.add(table);          // (a kitchen table: its top 13.5 from the floor, the right height to bend over)
   box(30, 2.4, 20, mat('plank'), 0, 18, 0, table); for (const [x, z] of [[-12, -7], [12, -7], [-12, 7], [12, 7]]) box(2.6, 17, 2.6, mat('bark'), x, 8.5, z, table);
   box(8, 2.6, 8, plain('#6a5a48'), -7, 20.5, 2, table); box(8, 2.6, 8, plain('#6a5a48'), 6, 20.5, -3, table); box(7, 3.4, 4, plain('#b48a50'), 8, 20.8, 5, table); box(1.4, 6, 1.4, plain('#e8dcc0'), -11, 22, -5, table); box(2.2, 0.6, 2.2, unlit('#ffd870'), -11, 25.3, -5, table);
   const cab = new THREE.Group(); cab.position.set(W / 2 - 8, 0, -34); room.add(cab);
@@ -248,6 +248,10 @@ function interior() {
   const stairs = new THREE.Group(); stairs.position.set(-W / 2 + 17, 0, 22); room.add(stairs);
   for (let i = 0; i < 12; i++) { const y = 4.6 * (i + 1); box(16, 1.6, 6.4, mat('plank'), 0, y - 0.8, -i * 3.6, stairs); box(16, 4.4, 1, mat('plankDark'), 0, y - 3, -i * 3.6 + 3, stairs); }
   for (const x of [-7.2, 7.2]) { const st = new THREE.Group(); st.position.set(x, 0, 0); stairs.add(st); for (let i = 0; i < 12; i++) box(1.6, 4.6 * (i + 1), 3.6, mat('timber'), 0, 2.3 * (i + 1), -i * 3.6, st); }
+  // The birch: a bundle of twigs hung on a nail by the hearth, on the wall to its left. (Not the broom in the corner: that one is for sweeping.)
+  box(1.4, 1.4, 4, plain('#2a2622'), -36, 27, -D / 2 + 2, room);
+  const birchHook = new THREE.Group(); birchHook.position.set(-36, 26.5, -D / 2 + 3.4); room.add(birchHook);
+  const birchProp = B.makeBirch(); birchProp.root.rotation.z = 0.05; birchHook.add(birchProp.root);
   // The corners nobody has dusted in a long time: cobwebs, grey drifts, mouse droppings; and in one, the birch bundle that does for a broom.
   const web = new THREE.MeshLambertMaterial({ color: 0xd8d8d0, transparent: true, opacity: 0.55 });
   for (const [cx, cz, sx, sz] of [[W / 2 - 3, D / 2 - 3, -1, -1], [-W / 2 + 3, D / 2 - 3, 1, -1], [W / 2 - 3, -D / 2 + 3, -1, 1], [-W / 2 + 3, -D / 2 + 3, 1, 1]]) {
@@ -260,8 +264,8 @@ function interior() {
   const win = new THREE.Group(); win.position.set(-34, 30, D / 2 - 1); room.add(win); box(22, 20, 3, mat('timber'), 0, 0, 0, win); box(16, 14, 1.2, unlit('#6a7a8a'), 0, 0, -0.6, win); box(1.6, 14, 1.6, mat('timber'), 0, 0, -1, win); box(16, 1.6, 1.6, mat('timber'), 0, 0, -1, win);
   const dr = new THREE.Group(); dr.position.set(34, 0, D / 2 - 1.5); room.add(dr); box(20, 32, 3, mat('timber'), 0, 16, 0, dr); box(16, 29, 2, mat('plankDark'), 0, 15, -0.8, dr); box(2, 2, 2, plain('#b8923a'), 5, 15, -2, dr);
   return {
-    scene, room, dim, fire, W, D, H,
-    spots: { chair: P(-26, 0, -24), stool: P(26, 0, -24), jack: P(-6, 0, -24), table: P(46, 0, 30), hearth: P(0, 0, -D / 2 + 14) },
+    scene, room, dim, fire, W, D, H, chair, table, birchHook, birchProp,
+    spots: { birch: P(-36, 0, -D / 2 + 12), chair: P(-26, 0, -24), stool: P(26, 0, -24), jack: P(-6, 0, -24), table: P(46, 0, 30), hearth: P(0, 0, -D / 2 + 14) },
     update(dt, t) {
       for (const f of flames) { const s = f.base * (0.8 + 0.55 * Math.sin(t * 9 + f.ph) * Math.sin(t * 5.3 + f.ph * 2)); f.m.scale.y = Math.max(0.3, s / 5); f.m.position.y = 6 + s * 0.8 * 0.5; f.m.rotation.z = 0.12 * Math.sin(t * 7 + f.ph); }
       fire.intensity = 1.5 + 0.35 * Math.sin(t * 11) * Math.sin(t * 6.1) + 0.15 * Math.sin(t * 23); embers.scale.x = 0.9 + 0.1 * Math.sin(t * 3);
