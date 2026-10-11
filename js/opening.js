@@ -59,8 +59,8 @@ async function run(G, W) {
   const sounds = async () => {
     const gaps = [1.25, 1.2, 1.35, 1.15, 1.25, 1.15, 1.05, 1.2, 1.0], n = gaps.length; A && A.duckMusic(0.1, 2.5);
     for (let i = 0; i < n; i++) {
-      if (G.skipping) return; const f = i / (n - 1), cut = 420 * Math.pow(13, f), vol = 0.5 + 0.55 * f;
-      if (A) { A.thwack(0.85 + 0.15 * f, cut, vol); A.voice(0.7 + 0.4 * f, Math.min(4, 1 + Math.floor(f * 3.5)), cut * 0.9, vol * 0.9); if (i === 2) A.speak('mother', 'And that is what comes of telling tales to me, Jack, mind you remember it', 4.5, { muffle: true, cutoff: cut * 1.4, vol: 0.9 }); if (i === 6) A.speak('mother', 'I will not do this again', 2, { muffle: true, cutoff: cut * 1.4, vol: 1.1 }); }
+      if (G.skipping) return; const f = i / (n - 1), cut = 2200 * Math.pow(5.5, f), vol = 0.75 + 0.45 * f;   // (barely dulled by the wall: 2.2 kHz, opening to 12 kHz at the glass)
+      if (A) { A.thwack(0.85 + 0.15 * f, cut, vol); A.voice(0.7 + 0.4 * f, Math.min(4, 1 + Math.floor(f * 3.5)), cut * 0.5, vol * 0.9); if (i === 2) A.speak('mother', 'And that is what comes of telling tales to me, Jack, mind you remember it', 4.5, { muffle: true, cutoff: cut * 0.5, vol: 0.9 }); if (i === 6) A.speak('mother', 'I will not do this again', 2, { muffle: true, cutoff: cut * 0.5, vol: 1.1 }); }
       await G.wait(gaps[i]);
     }
   };

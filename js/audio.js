@@ -101,7 +101,7 @@ A.thwack = function (power, muffle, vol) {
   if (!A.init()) return; const ctx = A.ctx, N = A.nodes, t = ctx.currentTime + 0.01, k = vol == null ? 1 : vol, p = clamp(power, 0.2, 1.3);
   const clothed = muffle === true, cutoff = typeof muffle === 'number' ? muffle : clothed ? 1100 : 9000;
   const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = cutoff; lp.Q.value = 0.6;
-  const out = ctx.createGain(); out.gain.value = k * (1 + 1.6 * clamp(1 - cutoff / 6000, 0, 1)); lp.connect(out); out.connect(N.sfx);
+  const out = ctx.createGain(); out.gain.value = k * (1 + 0.5 * clamp(1 - cutoff / 6000, 0, 1)); lp.connect(out); out.connect(N.sfx);
   const burst = (start, len, peak, type, f, q) => {                                         // a slice of noise with a sharp edge and a quick decay
     const src = ctx.createBufferSource(); src.buffer = N.noise; const flt = ctx.createBiquadFilter(); flt.type = type; flt.frequency.value = f; flt.Q.value = q;
     const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, start); g.gain.linearRampToValueAtTime(peak, start + 0.0015); g.gain.exponentialRampToValueAtTime(0.0001, start + len);
@@ -112,10 +112,10 @@ A.thwack = function (power, muffle, vol) {
     g.gain.setValueAtTime(0.0001, start); g.gain.linearRampToValueAtTime(peak, start + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, start + len); o.connect(g); g.connect(lp); o.start(start); o.stop(start + len + 0.02);
   };
   if (clothed) { burst(t, 0.07, 0.5 * p, 'lowpass', 800, 0.5); tone(t, 170, 85, 0.12, 0.45 * p); return; }
-  burst(t, 0.045, 0.75 * p, 'bandpass', 1900, 0.7);                                        // the flat of the palm
+  burst(t, 0.085, 0.9 * p, 'bandpass', 1500, 0.45);                                        // the flat of the palm, with some body to it
   burst(t + 0.002, 0.016, 0.5 * p, 'highpass', 3400, 0.7);                                  // the crack of the fingers
   burst(t + 0.011, 0.03, 0.25 * p, 'bandpass', 1200, 0.9);                                  // a second, softer slap as the hand settles
-  tone(t, 380, 200, 0.07, 0.3 * p);                                                          // the "pap" of flesh
+  tone(t, 380, 190, 0.09, 0.45 * p);                                                         // the "pap" of flesh
 };
 A.voice = function (power, band, muffle, vol) {
   if (!A.init()) return; const ctx = A.ctx, N = A.nodes, k = (vol == null ? 1 : vol) * (muffle ? 2.2 : 1);
