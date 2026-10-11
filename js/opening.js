@@ -55,11 +55,11 @@ async function run(G, W) {
   G.drone = null;
   const from = G.shotNow();
   const sounds = (async () => {
-    await G.wait(15.5); if (G.skipping) return;
+    await G.wait(14.5); if (G.skipping) return; A && A.duckMusic(0.12, 2);
     const plan = [[0.9, 0.7, 1], [1.0, 0.8, 1], [0.95, 0.85, 2], [0.9, 0.9, 2], [1.0, 1.0, 3], [1.0, 1.1, 3], [0.9, 1.2, 4]];
-    for (let i = 0; i < plan.length; i++) { if (G.skipping) return; A && A.thwack(plan[i][1], 520); A && A.voice(plan[i][1], plan[i][2], true); await G.wait(1.15); }
+    for (let i = 0; i < plan.length; i++) { if (G.skipping) return; const k = 0.55 + 0.1 * i; A && A.thwack(plan[i][1], 520, k); A && A.voice(plan[i][1], plan[i][2], true, k); await G.wait(1.15); }
   })();
-  const murmur = (async () => { await G.wait(16.5); if (G.skipping) return; A && A.speak('mother', 'And that is what comes of telling tales to me, Jack, mind you remember it, because I will not do this again', 6, { muffle: true }); })();
+  const murmur = (async () => { await G.wait(15.5); if (G.skipping) return; A && A.speak('mother', 'And that is what comes of telling tales to me, Jack, mind you remember it, because I will not do this again', 6.5, { muffle: true, vol: 0.9 }); })();
   await G.shot({ pos: v(-76, 130, 200), look: v(-34, 24, 18), fov: 44 }, 8.5, 'inOut');
   await G.shot({ pos: v(-34, 38, 74), look: v(-34, 30, 18), fov: 40 }, 7, 'inOut');
   await G.shot({ pos: v(-34, 31, 40), look: v(-34, 30, 18), fov: 38 }, 5, 'in');

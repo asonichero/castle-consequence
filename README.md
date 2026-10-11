@@ -14,7 +14,7 @@ Built so far: the **opening** (below), the character models and wardrobes, the a
 2. **New Game** begins the cutscene: the camera tracks slowly down to the cottage window, with the sound of a correction in progress heard through the wall, then fades to the cottage interior (one room: the hearth at its heart with the pot, kettle and fire iron; the chair and the stool; a small table, a cabinet and store cupboards; undusted corners with a birch-bundle broom; bare stairs to an upstairs we never see).
 3. Jack's Mother, by the hearth, finishes lecturing Jack (who stands nursing his bottom) about stretching the truth and shrugging everything off; she softens for a moment, tells him he will sell the cow at market in the morning, and sends him to wash for supper. Fade to black.
 
-Dialogue is typed out with a babbling voice; a tap, space or Enter finishes the line and moves on, dialogue also advances itself (a setting), and **Skip scene** jumps to the end. Settings hold the volumes, dialogue speed and the safe-word reminder. The game saves after the opening, and Continue picks it up.
+Dialogue is typed out with a babbling voice; a tap, space or Enter finishes the line and moves on, dialogue also advances itself (a setting), and **Skip scene** jumps to the end. Settings hold the volumes (music defaults to 25%), dialogue speed and the safe-word reminder. The game saves after the opening, and Continue picks it up.
 
 | File | What it is |
 |---|---|
