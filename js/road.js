@@ -10,7 +10,7 @@ const { SC, WALK, CREEP, RUN, GRAV, JUMP_V, ZOOMS } = Mk;
 const { mat, plain, box, rng } = F;
 const v = (x, y, z) => new V3(x, y, z), clamp = (x, a, b) => Math.max(a, Math.min(b, x)), lerp = (a, b, t) => a + (b - a) * t, smooth = t => t * t * (3 - 2 * t);
 const turn = (from, to, t) => { const d = ((to - from + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI; return from + d * t; };
-const CELL = 12, PLANT = 60, LEN = 46, HOLD = 22, COW_V = 30, RUNNING = 36, CORRIDOR = 25;
+const CELL = 12, PLANT = 60, LEN = 46, HOLD = 22, COW_V = 30, RUNNING = 36, CORRIDOR = 38;
 // The road's way-points (x east, z south); it is smoothed into a curve and sampled every few units.
 const WAY = [[0, 0], [0, 70], [50, 140], [130, 190], [200, 270], [190, 360], [110, 430], [20, 470], [-70, 540], [-90, 640], [-30, 720], [60, 760], [150, 820], [170, 920], [110, 1000], [20, 1050], [-50, 1130], [-40, 1230], [40, 1290], [130, 1330], [200, 1400]];
 const OB = { limb: 520, rocks: 1100, crates: 1560 }, TIES = [{ s: 480, side: 1 }, { s: 1060, side: -1 }, { s: 1520, side: 1 }];
@@ -59,7 +59,7 @@ function pushOut(it, x, z, r) {
 
 // ── Building the world (once). ──
 function build(G) {
-  const R = makeRoad(), rand = rng(31415), scene = new THREE.Scene(); scene.background = new THREE.Color(0x9cbf9a); scene.fog = new THREE.Fog(0x9cbf9a, 170, 640);
+  const R = makeRoad(), rand = rng(31415), scene = new THREE.Scene(); scene.background = new THREE.Color(0x86a884); scene.fog = new THREE.Fog(0x86a884, 110, 430);
   scene.add(new THREE.HemisphereLight(0xe4f2dc, 0x4a5a38, 0.95)); const sun = new THREE.DirectionalLight(0xfff0c8, 0.8); sun.position.set(180, 300, 120); scene.add(sun);
   const end = R.at(R.len), cartPos = { x: end.x + end.tx * 34, z: end.z + end.tz * 34 }, trailDir = { x: end.nx, z: end.nz }, trailStart = { x: end.x + end.tx * 10, z: end.z + end.tz * 10 };
   const trailD = (x, z) => { const t = clamp(((x - trailStart.x) * trailDir.x + (z - trailStart.z) * trailDir.z) / 120, 0, 1); return Math.hypot(x - (trailStart.x + trailDir.x * 120 * t), z - (trailStart.z + trailDir.z * 120 * t)); };
@@ -69,9 +69,8 @@ function build(G) {
   {
     const T = F.textures(), xs = R.x, zs = R.z, x0 = Math.min(...xs) - 190, x1 = Math.max(...xs) + 190, z0 = Math.min(...zs) - 190, z1 = Math.max(...zs) + 190, cells = [];
     for (let x = Math.floor(x0 / CELL) * CELL; x < x1; x += CELL) for (let z = Math.floor(z0 / CELL) * CELL; z < z1; z += CELL) {
-      const nr = R.near(x + 6, z + 6); if (nr.d > 170 && trailD(x, z) > 60) continue; const w = R.w(nr.s);
-      let type = 'grass', h = 0; if (nr.d < 11 || clearing(x + 6, z + 6)) type = 'path'; else if (trailD(x + 6, z + 6) < 6) type = 'dirt'; else if (nr.d < 14 && rand() < 0.5) type = 'dirt';
-      if (type === 'grass' && nr.d > w + 28 && trailD(x + 6, z + 6) > 24) h = Math.min(54, 6 * Math.floor((nr.d - w - 28) / 16)) + (rand() < 0.3 ? 6 : 0);
+      const nr = R.near(x + 6, z + 6); if (nr.d > 215 && trailD(x, z) > 60) continue; const w = R.w(nr.s);
+      let type = 'grass', h = 0; if (nr.d < 15 || clearing(x + 6, z + 6)) type = 'path'; else if (trailD(x + 6, z + 6) < 6) type = 'dirt'; else if (nr.d < 19 && rand() < 0.5) type = 'dirt';
       cells.push({ x: x + 6, z: z + 6, type, h });
     }
     const geo = new THREE.BoxGeometry(CELL, 6, CELL), kinds = { grass: [mat('grass'), mat('grassSide')], path: [mat('path'), mat('dirt')], dirt: [mat('dirt'), mat('dirt')] }, m4 = new THREE.Matrix4(), c = new THREE.Color();
@@ -84,21 +83,23 @@ function build(G) {
 
   // Trees leaning in over the road: a trunk tilted toward it, a canopy of leaf blocks at the top (the canopy is hidden where it would stand between the camera and Jack).
   const canopy = [], trunks = [], forest = [], ties = [];
-  function forestTree(x, z, dirx, dirz, lean, H, parent) {
+  function forestTree(x, z, dirx, dirz, lean, H, parent, far) {
     const g = new THREE.Group(); g.position.set(x, 0, z); const ax = v(dirz, 0, -dirx).normalize(); if (lean > 0.001) g.quaternion.setFromAxisAngle(ax, lean);
-    const trunk = box(6, H, 6, mat('bark'), 0, H / 2, 0, g), sl = Math.sin(lean); trunks.push({ m: trunk, pts: [0.15, 0.4, 0.65, 0.9].map(f => v(x + dirx * sl * H * f, H * f * Math.cos(lean), z + dirz * sl * H * f)) }); for (const [w, h, ox, oy, oz, rz] of [[2.4, 16, 5, 0.62, 0, -0.8], [2.4, 14, -4, 0.5, 2, 0.7]]) { const br = box(w, h, w, mat('bark'), ox, H * oy, oz, g); br.rotation.z = rz; canopy.push({ m: br, r: 10 }); }
-    const leaves = [[34, 10, 34, 0, H - 3, 0], [26, 9, 26, 3, H + 5, -2], [38, 8, 30, -6, H - 12, 3], [20, 8, 20, 0, H + 11, 1]];
+    const trunk = box(6, H, 6, mat('bark'), 0, H / 2, 0, g), sl = Math.sin(lean); trunks.push({ m: trunk, pts: (far ? [0.3, 0.7] : [0.15, 0.4, 0.65, 0.9]).map(f => v(x + dirx * sl * H * f, H * f * Math.cos(lean), z + dirz * sl * H * f)) }); if (!far) for (const [w, h, ox, oy, oz, rz] of [[2.4, 16, 5, 0.62, 0, -0.8], [2.4, 14, -4, 0.5, 2, 0.7]]) { const br = box(w, h, w, mat('bark'), ox, H * oy, oz, g); br.rotation.z = rz; canopy.push({ m: br, r: 10 }); }
+    const leaves = far ? [[36, 10, 36, 0, H - 3, 0], [26, 9, 26, 3, H + 5, -2]] : [[34, 10, 34, 0, H - 3, 0], [26, 9, 26, 3, H + 5, -2], [38, 8, 30, -6, H - 12, 3], [20, 8, 20, 0, H + 11, 1]];
     for (const [w, h, d, ox, oy, oz] of leaves) { const m = box(w, h, d, mat('leaf'), ox, oy, oz, g); canopy.push({ m, r: Math.max(w, d) * 0.5 + 5 }); }
     parent.add(g); forest.push(g); return g;
   }
   const L = R.len;
-  for (let s = 6; s < L + 90; s += 11 + rand() * 6) for (const side of [-1, 1]) {
-    const c = R.at(s), clr = smooth(clamp((s - (L - 170)) / 110, 0, 1)), w = R.w(Math.min(s, L)); let off = side * (w + 9 + rand() * 28);
-    if (s > L) { off = (rand() - 0.5) * 2 * (w + 30); if (s < L + 14 || Math.hypot(c.x + c.nx * off - cartPos.x, c.z + c.nz * off - cartPos.z) < 62) continue; }
-    const x = c.x + c.nx * off, z = c.z + c.nz * off; if (trailD(x, z) < 20 || clearing(x, z)) continue;
-    const H = 66 + rand() * 32, shift = clamp(Math.abs(off) - (rand() * 14 - 3), 8, H * 0.55) * (1 - 0.75 * clr), lean = Math.asin(clamp(shift / H, 0, 0.9));
-    forestTree(x, z, -Math.sign(off) * c.nx, -Math.sign(off) * c.nz, s > L ? 0.12 : lean, H, scene);
+  // The forest: straight trunks in rows along the way, and row upon row of wood behind them; the canopy closes over the road in a ceiling of leaves.
+  for (let s = 6; s < L + 100; s += 10 + rand() * 5) for (const side of [-1, 1]) for (let k = 0; k < 4; k++) {
+    const c = R.at(s), w = R.w(Math.min(s, L)); let off = side * (w + 8 + k * 26 + rand() * 16);
+    if (s > L) { off = (rand() - 0.5) * 2 * (w + 60 + k * 20); if (s < L + 14 || Math.hypot(c.x + c.nx * off - cartPos.x, c.z + c.nz * off - cartPos.z) < 62) continue; }
+    const x = c.x + c.nx * off + c.tx * (rand() - 0.5) * 8, z = c.z + c.nz * off + c.tz * (rand() - 0.5) * 8; if (trailD(x, z) < 20 || clearing(x, z)) continue;
+    forestTree(x, z, 0, 0, 0, 70 + rand() * 32, scene, k > 0);
   }
+  { const leaf = mat('leaf'); for (let s = 0; s < L - 90; s += 13) { if (rand() < 0.1) continue; const c = R.at(s), w = R.w(s), cl = smooth(clamp((s - (L - 260)) / 160, 0, 1)); if (cl > 0.9) continue;
+      const wide = 2 * (w + 36), m = box(wide, 7, 15.5, leaf, c.x, 82 + rand() * 12, c.z, scene); m.rotation.y = Math.atan2(-c.tx, -c.tz); canopy.push({ m, r: 52 }); } }
   // Undergrowth along the edges of the way, flowers and stones on the verges.
   for (let s = 0; s < L + 30; s += 7 + rand() * 4) for (const side of [-1, 1]) {
     const c = R.at(s), w = R.w(Math.min(s, L)), off = side * (w + 1 + rand() * 6), x = c.x + c.nx * off, z = c.z + c.nz * off; if (trailD(x, z) < 12) continue;
@@ -116,7 +117,7 @@ function build(G) {
 
   // The tying-off trees: close beside the way, each with a worn loop of rope.
   for (const t of TIES) {
-    const c = R.at(t.s), x = c.x + c.nx * t.side * 19, z = c.z + c.nz * t.side * 19, g = forestTree(x, z, -t.side * c.nx, -t.side * c.nz, 0.1, 96, scene), rope = mat('thatchOld');
+    const c = R.at(t.s), x = c.x + c.nx * t.side * (CORRIDOR - 7), z = c.z + c.nz * t.side * (CORRIDOR - 7), g = forestTree(x, z, 0, 0, 0, 96, scene), rope = mat('thatchOld');
     for (const [w, h, d, ox, oz] of [[7.4, 1.2, 1.2, 0, -3.5], [7.4, 1.2, 1.2, 0, 3.5], [1.2, 1.2, 7.4, -3.5, 0], [1.2, 1.2, 7.4, 3.5, 0]]) box(w, h, d, rope, ox, 14, oz, g);
     box(1.6, 5, 1.6, plain('#b64a3a'), 3.6, 11, 3.6, g); ties.push({ x, z, r: 5, ring: v(x, 14, z), s: t.s });
   }
@@ -125,19 +126,19 @@ function build(G) {
   const items = [], ry0 = s => { const c = R.at(s); return Math.atan2(-c.tx, -c.tz); };
   const mkItem = (kind, x, z, ry, hx, hz, top, mesh) => { mesh.position.set(x, 0, z); mesh.rotation.y = ry; scene.add(mesh); const it = { kind, x, z, ry, hx, hz, top, mesh, carried: false }; items.push(it); return it; };
   { // the fallen limb
-    const c = R.at(OB.limb), g = new THREE.Group(); box(52, 6, 6, mat('bark'), 0, 4, 0, g); box(10, 5, 5, mat('bark'), 28, 4, 0.5, g).rotation.y = 0.2;
-    for (let i = 0; i < 6; i++) box(9 + rand() * 6, 4 + rand() * 4, 8 + rand() * 5, mat('leaf'), -20 + i * 8, 7 + rand() * 3, (rand() - 0.5) * 8, g);
+    const c = R.at(OB.limb), g = new THREE.Group(); box(68, 6, 6, mat('bark'), 0, 4, 0, g); box(10, 5, 5, mat('bark'), 36, 4, 0.5, g).rotation.y = 0.2;
+    for (let i = 0; i < 6; i++) box(9 + rand() * 6, 4 + rand() * 4, 8 + rand() * 5, mat('leaf'), -30 + i * 11, 7 + rand() * 3, (rand() - 0.5) * 8, g);
     box(2, 9, 2, mat('bark'), -10, 8, 3, g).rotation.x = 0.7; box(2, 8, 2, mat('bark'), 12, 8, -3, g).rotation.x = -0.7;
-    mkItem('limb', c.x, c.z, ry0(OB.limb), 26, 3.5, 8, g);
+    mkItem('limb', c.x, c.z, ry0(OB.limb), 34, 3.5, 8, g);
   }
-  for (const [name, s, n] of [['rock', OB.rocks, 3], ['crate', OB.crates, 3]]) {
+  for (const [name, s, n] of [['rock', OB.rocks, 5], ['crate', OB.crates, 5]]) {
     const c = R.at(s), ry = ry0(s);
     for (let i = 0; i < n; i++) {
-      const o = (i - (n - 1) / 2) * 16.5 + (name === 'crate' ? (i % 2 ? 3 : -3) : 0), g = new THREE.Group(), z = name === 'crate' ? (i === 1 ? 5 : -4) : 0;
-      if (name === 'rock') { box(15, 11, 15, mat('stone'), 0, 5.5, 0, g); box(10, 3, 10, mat('stone', 0xc4c2b8), 1, 12, 0.5, g); box(5, 4, 5, plain('#4f7a34'), -5, 12, 4, g); }
-      else { box(15, 13, 15, mat('plank'), 0, 6.5, 0, g); for (const sx of [-6.4, 6.4]) box(2, 13.4, 15.4, mat('timber'), sx, 6.5, 0, g); box(15.4, 2, 15.4, mat('timber'), 0, 12.6, 0, g); }
+      const o = (i - (n - 1) / 2) * (name === 'rock' ? 16 : 15), g = new THREE.Group(), z = name === 'crate' ? (i % 2 ? 5 : -4) : 0;
+      if (name === 'rock') { box(17, 11, 17, mat('stone'), 0, 5.5, 0, g); box(11, 3, 11, mat('stone', 0xc4c2b8), 1, 12, 0.5, g); box(5, 4, 5, plain('#4f7a34'), -5, 12, 4, g); }
+      else { box(16, 13, 16, mat('plank'), 0, 6.5, 0, g); for (const sx of [-6.8, 6.8]) box(2, 13.4, 16.4, mat('timber'), sx, 6.5, 0, g); box(16.4, 2, 16.4, mat('timber'), 0, 12.6, 0, g); }
       const x = c.x + c.nx * o + c.tx * z, zz = c.z + c.nz * o + c.tz * z;
-      mkItem(name, x, zz, ry + (i % 2 ? 0.25 : -0.2), 7.5, 7.5, name === 'rock' ? 11 : 13, g);
+      mkItem(name, x, zz, ry + (i % 2 ? 0.12 : -0.1), name === 'rock' ? 8.5 : 8, name === 'rock' ? 8.5 : 8, name === 'rock' ? 11 : 13, g);
     }
   }
   { const c = R.at(OB.crates + 22), g = new THREE.Group(); for (let i = 0; i < 9; i++) box(2.6, 2.6, 2.6, plain(['#c8402e', '#d86a3a', '#a83a26'][i % 3]), (rand() - 0.5) * 30, 1.4, (rand() - 0.5) * 20, g); g.position.set(c.x + c.nx * 8, 0, c.z + c.nz * 8); scene.add(g);   // spilled apples
@@ -463,8 +464,8 @@ async function trade(G, W, res) {
   const eye = (pos, h) => v(pos.x, h, pos.z);
   const side = n.clone(), shots = {
     wide: { pos: v((P.x + J0.x) / 2 + side.x * 92, 40, (P.z + J0.z) / 2 + side.z * 92), look: v((P.x + J0.x) / 2, 18, (P.z + J0.z) / 2), fov: 46 },
-    peddler: { pos: v(J0.x - t.x * 10 - n.x * 6, 27, J0.z - t.z * 10 - n.z * 6), look: v(P.x, 27.5, P.z), fov: 30 },
-    jack: { pos: v(P.x + t.x * 14 + n.x * 8, 28, P.z + t.z * 14 + n.z * 8), look: v(J0.x, 25.5, J0.z), fov: 30 },
+    peddler: { pos: v(J0.x - t.x * 12 - n.x * 22, 30, J0.z - t.z * 12 - n.z * 22), look: v(P.x, 26.5, P.z), fov: 32 },
+    jack: { pos: v(P.x + t.x * 16 + n.x * 24, 31, P.z + t.z * 16 + n.z * 24), look: v(J0.x, 24.5, J0.z), fov: 32 },
     cart: { pos: v(P.x - t.x * 44 + n.x * 52, 34, P.z - t.z * 44 + n.z * 52), look: v(P.x + t.x * 22, 26, P.z + t.z * 22), fov: 50 },
   };
   G.cut(shots.wide); await G.wait(0.2); G.skipping = false;
