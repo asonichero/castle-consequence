@@ -241,6 +241,9 @@ function create(view, opts) {
       bone.userData.proc = bone.quaternion.clone();
       bone.quaternion.multiply(e.q);
       bone.position.x += e.p[0]; bone.position.y += e.p[1]; bone.position.z += e.p[2];
+      if (n === 'torso' && (e.p[0] || e.p[1] || e.p[2])) {            // moving the torso carries the legs with it (they hang from the same hips)
+        for (const leg of ['thighL', 'thighR']) { const lb = BONES[who][leg]; if (!lb.userData.proc) lb.userData.proc = lb.quaternion.clone(); lb.position.x += e.p[0]; lb.position.y += e.p[1]; lb.position.z += e.p[2]; }
+      }
     }
   }
   // How much of each beat's offsets applies now.

@@ -80,7 +80,8 @@
     <div class="sub" style="margin:6px 0">Offsets are laid on top of the pose and shown live. Nothing is saved: press Report when you are happy and paste it into the chat.</div>
     <h4>Position (each has its own poses)</h4><div class="btns" id="pePos"></div>
     <h4>Jack's size (two sets of poses: they blend between)</h4><div class="btns" id="peSize"></div>
-    <h4>Who</h4><div class="btns" id="peWho"></div>
+    <h4>Whose body</h4><div class="btns" id="peFig"></div>
+    <h4>Implement in her hand (each has its own poses)</h4><div class="btns" id="peWho"></div>
     <h4>Beat (the scene is held there)</h4><div class="btns" id="peBeat"></div>
     <h4>Bone</h4><div class="btns" id="peBone"></div>
     <div class="sub" id="peInfo" style="margin:6px 0"></div>
@@ -175,7 +176,7 @@
 
   // ── Pose editor ──
   (function () {
-    var E = L.editor, S = { who: 'paddle', beat: 'contactL', bone: 'armR' }, sl = { r: [], p: [] };
+    var E = L.editor, S = { who: 'paddle', impl: 'paddle', beat: 'contactL', bone: 'armR' }, sl = { r: [], p: [] };
     E.onPick(function (bone) { S.bone = bone; refresh(); });
     E.onChange(function () { pull(); });
     function chips(box, items, key, on) {
@@ -202,7 +203,10 @@
       [['lap', 'Over the knee'], ['table', 'Bent over the table']].forEach(function (k) { var b = document.createElement('button'); b.textContent = k[1]; b.className = E.position() === k[0] ? 'on' : ''; b.onclick = function () { E.position(k[0]); hold(); refresh(); }; pb.appendChild(b); });
       var sb = $('peSize'); sb.innerHTML = '';
       [100, 50].forEach(function (k) { var b = document.createElement('button'); b.textContent = k + '%'; b.className = E.sizeKey() === k ? 'on' : ''; b.onclick = function () { E.sizeKey(k); $('size').value = k; $('sizeV').textContent = k + '%'; refresh(); }; sb.appendChild(b); });
-      chips('peWho', ['hand', 'paddle', 'birch', 'jack'], 'who', function () { S.beat = E.beats[S.who][S.who === 'jack' ? 1 : 2]; S.bone = E.bones(S.who)[0]; hold(); refresh(); });
+      var fb = $('peFig'); fb.innerHTML = '';
+      [['giver', 'The giver'], ['jack', 'Jack']].forEach(function (f) { var b = document.createElement('button'); b.textContent = f[1]; b.className = (S.who === 'jack') === (f[0] === 'jack') ? 'on' : ''; b.onclick = function () { S.who = f[0] === 'jack' ? 'jack' : (S.impl || 'paddle'); S.beat = E.beats[S.who][S.who === 'jack' ? 1 : 2]; S.bone = E.bones(S.who)[0]; hold(); refresh(); }; fb.appendChild(b); });
+      var ib = $('peWho'); ib.innerHTML = ''; ib.style.display = S.who === 'jack' ? 'none' : '';
+      ['hand', 'paddle', 'birch'].forEach(function (w) { var b = document.createElement('button'); b.textContent = w; b.className = S.who === w ? 'on' : ''; b.onclick = function () { S.who = S.impl = w; S.beat = E.beats[w][2]; if (E.bones(w).indexOf(S.bone) < 0) S.bone = E.bones(w)[0]; hold(); refresh(); }; ib.appendChild(b); });
       chips('peBeat', E.beats[S.who], 'beat', function () { hold(); refresh(); });
       if (E.bones(S.who).indexOf(S.bone) < 0) S.bone = E.bones(S.who)[0];
       chips('peBone', E.bones(S.who), 'bone', function () { refresh(); });
