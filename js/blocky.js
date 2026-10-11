@@ -453,6 +453,8 @@ function buildCharacter(skin, opts) {
   // Torso and head.
   rig.torso = new THREE.Group(); hips.add(rig.torso);
   const torsoMesh = mesh('body', 'jacket', 0.5); torsoMesh.position.y = 6; rig.torso.add(torsoMesh);
+  // The pelvis: the bottom three rows of the torso, left behind with the hips when the torso turns or leans, so its base never comes away from the tops of the legs (a hair smaller than the torso's own, so it hides inside it when upright).
+  const pelvis = mesh('body', 'jacket', 0.5, 9, 12); pelvis.position.y = 1.5; pelvis.scale.setScalar(0.992); hips.add(pelvis); rig.pelvis = pelvis;
   if (opts.bust) {
     // The bust: two blocks standing out from the front of the torso block (about two units, from rows 1 to 5), textured from the torso's own front, so
     // whatever she wears (bodice, apron, gown) carries over them. Their other faces are one flat texel of the same cloth.
