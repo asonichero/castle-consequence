@@ -132,7 +132,7 @@ async function run(G, W, tier, opts) {
     await say('jack', pick('Mother, please. I’ve learned, I swear it.', 'Mother, you can’t mean it.', 'You can’t be serious.'));
     lap.fumble(1); await wait(0.4);
     await say('mother', pick('If you had learned, you’d have listened. You were told, plain and clear.', 'I mean it, Jack. You were told, plain and clear.', 'Dead serious. You were told, plain and clear.'));
-    await say('jack', pick('I’m not old for this—', 'I’m twenty-one! You can’t treat me like a boy!', 'I’m twenty-one, Mother! You can’t just—'));
+    await say('jack', pick('I’m too old for this—', 'I’m twenty-one! You can’t treat me like a boy!', 'I’m twenty-one, Mother! You can’t just—'));
     await say('mother', pick('Then start acting like it.', 'I shall as long as you behave like one.', 'When you behave like a child, you’ll be treated like one.'));
     lap.layers({ trousers: 'down' }); A && A.blip && A.blip(); await wait(0.6);                      // the britches come down
     await say('jack', 'Mother!');
