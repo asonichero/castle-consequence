@@ -86,25 +86,37 @@ async function run(G, W, tier, opts) {
   const step = async (line, n) => { if (red) throw RED; const l = line ? G.caption(line[0], line[1]) : Promise.resolve(); await Promise.all([l, smacks(n)]); if (red) throw RED; };
   const dip = async (fn, a = 0.5, b = 0.6) => { await G.fade(true, a); await fn(); await G.fade(false, b); };
 
-  // Jack standing before her (she is seated), rubbing his seat: the actors take over from the engine's pair.
+  // Jack standing before her, rubbing his seat: the actors take over from the engine's pair. At the chair (she is seated) or, after the birch, at the table (she is on her feet).
+  let where = 'chair';
   const standBefore = (faceBirch) => {
-    lap.stage.visible = false; placeStage(SEAT); int.chair.visible = true; mother.root.visible = jackIn.root.visible = true; mother.setExpr(1);
-    B.setPose(mother, 'sit'); mother.pose = 'sit'; mother.root.position.set(SEAT.x, STAGE_Y, SEAT.z); mother.root.rotation.y = SEAT.ry; ma.fold = 0; ma.gesture = 0; ma.wag = 0; ma.side = 0; ma.chin = 0; ma.speed = 0;
-    jackIn.root.position.copy(cl(20, 0));       // (as far from her as he stands in the opening, rubbing) jackIn.root.rotation.y = faceBirch ? Math.atan2(71.6 - SEAT.x, 56 - SEAT.z) : SEAT.ry + Math.PI;
+    lap.stage.visible = false; int.chair.visible = true; mother.root.visible = jackIn.root.visible = true; mother.setExpr(1);
+    ma.fold = 0; ma.gesture = 0; ma.wag = 0; ma.side = 0; ma.chin = 0; ma.speed = 0;
+    if (where === 'table') {
+      placeStage(TABLE); int.chair.visible = true; int.tableClutter.visible = false;
+      const mp = lap.stage.localToWorld(v(-3, -6, -10)), jp = lap.stage.localToWorld(v(-5.7, -6, 10));      // (as far apart as he stands from her at the chair)
+      B.setPose(mother, 'stand'); mother.pose = 'stand'; mother.root.position.copy(mp); mother.root.position.y = 0; mother.root.rotation.y = TABLE.ry;
+      jackIn.root.position.copy(jp); jackIn.root.position.y = 0; jackIn.root.rotation.y = TABLE.ry + Math.PI;
+    } else {
+      placeStage(SEAT);
+      B.setPose(mother, 'sit'); mother.pose = 'sit'; mother.root.position.set(SEAT.x, STAGE_Y, SEAT.z); mother.root.rotation.y = SEAT.ry;
+      jackIn.root.position.copy(cl(20, 0));       // (as far from her as he stands in the opening, rubbing)
+      jackIn.root.rotation.y = faceBirch ? Math.atan2(71.6 - SEAT.x, 56 - SEAT.z) : SEAT.ry + Math.PI;
+    }
     ja.speed = 0; ja.rub = 1; ja.shuffle = 0; ja.bow = 0.5; ja.look = 0; ja.cover = 0; ja.fist = 0; ja.hold = 0;
     W.paintJack(jackIn, { expr: 3, trousers: 'down', drawers: tier >= 1 ? 'down' : 'up', marks: lap.st.marks });
     for (let i = 0; i < 12; i++) { B.step(mother, 0.1); B.step(jackIn, 0.1); }
-    B.seatFeet(mother, 0);
+    if (where === 'chair') B.seatFeet(mother, 0);
   };
   const closing = async () => {
     await say('mother', tier === 0 ? 'Pull your trousers up.' : 'Pull your trousers up, and wipe your face.');
     await say('jack', 'Yes, Mother.');
+    W.paintJack(jackIn, { expr: 1, trousers: 'up', drawers: 'up' }); ja.rub = 0; ja.bow = 0.3; await wait(0.8);        // his britches go up
     await say('mother', 'Go and plant them, then. If they’re so powerful. We will see what comes up.');
     await wait(0.6);
   };
   const aftermath = async (lines) => {                       // he stands before her; what is said, is said over it
     showUI(false); cam.enable(true);
-    await dip(async () => { standBefore(); stageView('seat', 0); }, 0.5, 0.6);
+    await dip(async () => { standBefore(); stageView(where === 'table' ? 'tableSide' : 'seat', 0); }, 0.5, 0.6);
     for (const l of lines || []) await say(l[0], l[1]);
     await closing();
   };
@@ -119,9 +131,9 @@ async function run(G, W, tier, opts) {
     await wait(0.6);
     await say('jack', pick('Mother, please. I’ve learned, I swear it.', 'Mother, you can’t mean it.', 'You can’t be serious.'));
     lap.fumble(1); await wait(0.4);
-    await say('mother', 'Dead serious. You were told, plain and clear.');
-    await say('jack', pick('I’m too old for this—', 'I’m twenty-one! You can’t treat me like a boy!', 'I’m twenty-one, Mother! You can’t just—'));
-    await say('mother', 'Then stop behaving like one.');
+    await say('mother', pick('If you had learned, you’d have listened. You were told, plain and clear.', 'I mean it, Jack. You were told, plain and clear.', 'Dead serious. You were told, plain and clear.'));
+    await say('jack', pick('I’m not old for this—', 'I’m twenty-one! You can’t treat me like a boy!', 'I’m twenty-one, Mother! You can’t just—'));
+    await say('mother', pick('Then start acting like it.', 'I shall as long as you behave like one.', 'When you behave like a child, you’ll be treated like one.'));
     lap.layers({ trousers: 'down' }); A && A.blip && A.blip(); await wait(0.6);                      // the britches come down
     await say('jack', 'Mother!');
     lap.fumble(0); lap.cover(1); await wait(0.4);
@@ -130,21 +142,24 @@ async function run(G, W, tier, opts) {
     lap.cover(0); lap.place('lap', 1.4); await wait(1.8);                                                // he goes
     lap.implement('hand');
     const P_ = (a, b, c) => pick(a, b, c);
-    await step(['mother', 'You were trusted with a simple task.'], P_(5, 6, 6));
-    await step(['jack', pick('Ow! I’m sorry, I’m sorry!', 'Ow! It was a fair trade!', 'It was a fair trade!')], 3);
-    await step(['mother', 'You sold our food for a dream, and came home smiling.'], P_(6, 7, 7));
+    lap.st.pace = 2;                                                                                  // the first run is twice as many smacks, twice as fast
+    await step(['mother', 'You were trusted with a simple task.'], 2 * P_(5, 6, 6));
+    await step(['jack', pick('Ow! I’m sorry, I’m sorry!', 'Ow! It was a fair trade!', 'It was a fair trade!')], 6);
+    await step(['mother', 'You sold our food for a dream, and came home smiling.'], 2 * P_(6, 7, 7));
     if (tier >= 1) {                                                                                  // partway through, the drawers come down
       await step(['mother', 'And these come down too.'], 0); lap.layers({ drawers: 'down' }); A && A.blip && A.blip(); await wait(0.7);
+      await step(['jack', tier === 1 ? 'Mother, please!' : 'It’s not fair!'], 0);
     }
-    await step(null, 6);                                                                              // a run with nothing said
-    await step(['jack', pick('I won’t do it again, I won’t!', 'Mother, that’s enough!', 'They’re magic, Mother! You’ll see!')], 3);
-    await step(['mother', 'You think the world owes you wonders. Perhaps it does. But not like this.'], P_(5, 8, 8));
-    await step(null, 5);
-    await step(['jack', pick('Please, Mother, I understand, I do!', 'Ow! Please!', 'I’d do it again! Ow! I would!')], 3);
+    await step(null, 12);                                                                             // a run with nothing said
+    await step(['jack', pick('I won’t do it again, I won’t!', 'Mother, that’s enough!', 'They’re magic, Mother! You’ll see!')], 6);
+    await step(['mother', 'You think the world owes you wonders. Perhaps it does. But not like this.'], 2 * P_(5, 8, 8));
+    await step(null, 10);
+    await step(['jack', pick('Please, Mother, I understand, I do!', 'Ow! Please!', 'I’d do it again! Ow! I would!')], 6);
+    lap.st.pace = 1;
     if (tier >= 1) {
       await step(['mother', 'That is for forgetting my voice.'], 3);
       await step(['mother', 'For forgetting your word.'], 3);
-      await step(['mother', 'And for forgetting your place.'], P_(0, 4, 5));
+      await step(['mother', 'And for forgetting your place.'], P_(0, 4, 6));
       await step(['jack', tier === 1 ? 'Yes, Mother! I’m sorry! I’m sorry!' : 'It’s not— it’s not fair! Ow! You’ll see, you’ll all see!'], 0);
     }
     await wait(0.5);
@@ -160,7 +175,10 @@ async function run(G, W, tier, opts) {
     ]);
     cam.enable(false); showUI(false);
     cam.go(v(26, 34, 72), v(72, 27, 56), 40, 0); await wait(2.2);                                         // the birch, hanging on its nail
-    standBefore(true); cam.go(cl(20, 0).add(v(Math.sin(jackIn.root.rotation.y) * 46, 30, Math.cos(jackIn.root.rotation.y) * 46)), cl(20, 25), 34, 0); ja.bow = 0.1; await wait(2.4);   // Jack, his face turned to it
+    standBefore(true); ja.rub = 0; ja.shuffle = 1; ja.bow = 0.3;                                         // Jack, walking to it with his face to us
+    const dir = jackIn.root.rotation.y; cam.go(cl(20, 0).add(v(Math.sin(dir) * 46, 30, Math.cos(dir) * 46)), cl(20, 25).add(v(Math.sin(dir) * 14, 0, Math.cos(dir) * 14)), 34, 0);
+    for (let i = 0; i < 85; i++) { const st = 14 * 0.04; jackIn.root.position.x += Math.sin(dir) * st; jackIn.root.position.z += Math.cos(dir) * st; ja.speed = 13; ja.phase += st * 0.42 * 1.4; await G.wait(0.04); }
+    ja.speed = 0;
   };
   // (the first part of an aftermath: the actors, and what is said over them)
   const aftermath0 = async lines => {
@@ -171,14 +189,10 @@ async function run(G, W, tier, opts) {
   const birchScene = async () => {
     await G.fade(true, 0.8);
     placeStage(TABLE); lap.stage.visible = true; int.chair.visible = false; int.tableClutter.visible = false; jackIn.root.visible = mother.root.visible = false;
-    lap.layers({ trousers: 'down', drawers: 'down' }); lap.armed(true); lap.implement('birch'); lap.place('after', 0); lap.giver('mother', 1); lap.st.strength = 1.35; lap.st.sound = true; lap.st.pace = 1;
+    lap.layers({ trousers: 'down', drawers: 'down' }); lap.armed(true); lap.implement('birch'); lap.place('table', 0); lap.giver('mother', 1); lap.st.strength = 1.35; lap.st.sound = true; lap.st.pace = 1; where = 'table';
     switcher('table'); showUI(true); cam.enable(true); stageView('tableSide', 0);
     await G.fade(false, 0.8);
-    await wait(0.4);
-    await say('mother', 'Over the table.');
-    await say('jack', 'Mother—');
-    await say('mother', 'Now, Jack.');
-    lap.place('table', 1.6); await wait(2.0);
+    await wait(0.8);
     await step(['mother', 'Hands flat on the table.'], 0);
     await step(['jack', 'Mother, I’ve learned, I swear—'], 4);
     await step(null, 4);
@@ -203,7 +217,8 @@ async function run(G, W, tier, opts) {
       if (e !== RED) throw e;
       // Red: the discipline ends here and now, and he is called to stand before her.
       lap.stop(); G.captionOff && G.captionOff(); red = false; showUI(false);
-      await G.caption('mother', 'Red. Stopping at once. Come here.');
+      await G.caption('jack', 'Red! No more, please!');
+      await G.caption('mother', 'Alright, Jack. I hear you. That’s an end to it.');
       await wait(0.4);
       await aftermath();
     }
