@@ -133,10 +133,10 @@ function interior() {
     movable('chandelier' + k, label || 'Chandelier ' + k, g, { x, z, ry: 0 }); anim.push((t) => { g.rotation.z = 0.05 * Math.sin(t * 0.7 + k * 2); g.rotation.x = 0.04 * Math.sin(t * 0.55 + k); });
   };
   chandelier(1, -50, 70, 'Chandelier 1', HH); chandelier(2, 0, 10, 'Chandelier 2', HH); chandelier(3, 40, -50, 'Chandelier 3', HH);
-  // tapestries, stirring as if someone sighed
-  const tapestry = (axis, fixed, c, y, w, h, tex, ph) => { const g = at(axis === 'z' ? c : fixed, y + h, axis === 'z' ? fixed : c); room.add(g); flat(tex, axis === 'z' ? w : 0.8, h, axis === 'z' ? 0.8 : w, 0, -h / 2, 0, g); anim.push((t) => { const s = 0.5 + 0.5 * Math.sin(t * 0.5 + ph); g.rotation[axis === 'z' ? 'x' : 'z'] = 0.05 * s * Math.sin(t * 1.3 + ph); }); return g; };
+  // tapestries, hanging still
+  const tapestry = (axis, fixed, c, y, w, h, tex, ph) => { const g = at(axis === 'z' ? c : fixed, y + h, axis === 'z' ? fixed : c); room.add(g); flat(tex, axis === 'z' ? w : 0.8, h, axis === 'z' ? 0.8 : w, 0, -h / 2, 0, g); return g; };
   const T = [tapTex('#7a1f3a', '#c9a23c', '#3a0f1c'), tapTex('#1f3a7a', '#d8d4c0', '#0f1c3a'), tapTex('#2f6a3a', '#c9a23c', '#173a20'), tapTex('#5a2f78', '#d8b04a', '#2a1238')];
-  tapestry('x', -88, -64, 16, 22, 54, T[0], 0); tapestry('x', -88, 10, 16, 22, 54, T[1], 1.5); tapestry('x', -88, 56, 16, 22, 54, T[3], 3); tapestry('x', 88, -64, 16, 22, 54, T[2], 2); tapestry('x', 88, 10, 16, 22, 54, T[3], 4); tapestry('x', 88, 56, 16, 22, 54, T[0], 5);
+  tapestry('x', -87.5, -64, 16, 22, 54, T[0], 0); tapestry('x', -87.5, 10, 16, 22, 54, T[1], 1.5); tapestry('x', -87.5, 56, 16, 22, 54, T[3], 3); tapestry('x', 87.5, -64, 16, 22, 54, T[2], 2); tapestry('x', 87.5, 10, 16, 22, 54, T[3], 4); tapestry('x', 87.5, 56, 16, 22, 54, T[0], 5);
 
   // ════════ THE WEST WING: the quiet, grander half. Corridor B runs north-south down its west side; the rooms open off it to the east. ════════
   const stone = stoneFloor();
