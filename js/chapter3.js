@@ -137,7 +137,7 @@ async function run(G, W, opts) {
     const $ = id => document.getElementById(id), el = G.renderer.domElement;
     const toast = (t, ms = 3000) => { $('cToast').textContent = t; $('cToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
     const objective = () => { $('cObj').innerHTML = `<span class="${st.dressed ? 'done' : ''}">Dress (the wardrobe)</span> &nbsp;·&nbsp; <span class="${st.knife ? 'done' : ''}">Take Father’s knife (the chest of drawers)</span>`; };
-    const mutter = text => { if (performance.now() < st.capAt) return; st.capAt = performance.now() + 6500; G.caption('jack', text); };
+    const mutter = (text, force) => { if (!force && performance.now() < st.capAt) return; st.capAt = performance.now() + 6500; G.caption('jack', text); };
     const keys = {}, stick = { x: 0, y: 0 }, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right' };
     const typing = e => e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
     const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } if (e.repeat) return; if (e.key === 'e' || e.key === 'E') interact(); else if (e.key === 'v' || e.key === 'V') zoom(); };
@@ -162,6 +162,7 @@ async function run(G, W, opts) {
         act(1.8, () => { st.dressed = true; W.paintJack(jackIn, { outfit: 'Outdoor', expr: 1 }); objective(); toast('Dressed: shirt, jerkin and boots.'); A_ && A_.blip && A_.blip(); });
       } else if (near(DRAW, 20)) {
         if (st.knife) { toast('You have the knife.'); return; }
+        if (!st.dressed) { mutter('I should dress first. I can’t go about in my nightshirt.', true); return; }
         st.heading = Math.atan2(DRAW.x + 8 - st.pos.x, DRAW.z - st.pos.z);
         act(1.6, () => { st.knife = true; knife.visible = true; satchel.visible = true; objective(); toast('Father’s knife on your belt, and a satchel over your shoulder.'); A_ && A_.blip && A_.blip(); });
       }
