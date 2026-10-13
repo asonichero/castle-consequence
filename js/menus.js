@@ -101,6 +101,12 @@ async function playMeadow() {
   await root.Meadow.run(G, W); G.save({ step: 'meadow-done' });
   showEnd();
 }
+// Test level: walk about the castle at any size.
+async function playCastle() {
+  hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
+  const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
+  await root.CastleWalk.run(G, W);
+}
 async function playChapter3(only) {
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
@@ -130,6 +136,7 @@ $('levelSel').onchange = async () => {
     else if (k === 'ch3d') await playChapter3('dress');
     else if (k === 'climb') await playClimb();
     else if (k === 'meadow') await playMeadow();
+    else if (k === 'castle') await playCastle();
     else if (k === 'corrH' || k === 'corrC' || k === 'corrB') await playCorrection(k === 'corrH' ? 0 : k === 'corrC' ? 1 : 2);
   } finally { G.noSave = false; G.debugCtl = false; }
 };

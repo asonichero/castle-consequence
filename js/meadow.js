@@ -237,5 +237,5 @@ function run(G, W) {
   });
 }
 
-root.Meadow = { run };
+root.Meadow = { run, addGear };
 })(typeof window !== 'undefined' ? window : globalThis);
