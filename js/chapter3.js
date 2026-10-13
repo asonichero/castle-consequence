@@ -314,5 +314,5 @@ async function run(G, W, opts) {
   return { stalk };
 }
 
-root.Chapter3 = { run, buildStalk, STALK_VIEW };
+root.Chapter3 = { run, buildStalk, ensureDawn, STALK_VIEW };
 })(typeof window !== 'undefined' ? window : globalThis);
