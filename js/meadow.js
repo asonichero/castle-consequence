@@ -245,7 +245,7 @@ function run(G, W) {
       await walkTo(0, CZW + 8, 1.6, () => ({ pos: v(-5, st.y + 1.5, st.pos.z + 9), look: v(0, st.y + 2.8, CZW), fov: 42 }));
       await walkTo(0, CZW + 0.6, 1.5, () => ({ pos: v(-4, st.y + 1.2, st.pos.z + 7), look: v(0, st.y + 2.8, CZW), fov: 40 }));
       await fadeOut; A && A.ambience({ wind: 0, birds: 0, fire: 0 }); await wait(0.5);
-      jackOut.root.visible = false; G.snapshotFarm(world, () => ({ pos: v(-150, 70, CZW + 330), look: v(0, 120, CZW), fov: 52 })); jackOut.root.visible = true;       // (the title screen, from here on: the castle from the meadow)
+      jackOut.root.visible = false; console.warn('snapshotFarm call', !!world, !!world.scene); G.snapshotFarm(world, () => ({ pos: v(-150, 70, CZW + 330), look: v(0, 120, CZW), fov: 52 })); jackOut.root.visible = true;       // (the title screen, from here on: the castle from the meadow)
       cleanup(); G.mode = 'end'; document.body.classList.remove('cutscene'); resolve({ arrived: true });
     }
   });
