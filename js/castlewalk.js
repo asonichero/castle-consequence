@@ -266,7 +266,7 @@ function run(G, W, opts) {
     }
     async function finish(res) { G.castleResult = res; await G.fade(true, 2.2); await G.wait(0.3); cleanup(); G.mode = 'end'; document.body.classList.remove('cutscene'); resolve({ result: res }); }
     const tick = dt => {
-      if (st.scene) { if (!st.inHand) { jackOut.root.scale.setScalar(SC * st.s); jackOut.root.position.set(st.pos.x, st.y, st.pos.z); jackOut.root.rotation.y = st.heading; } return; }
+      if (st.scene) { st.jumpReq = st.actReq = st.putReq = false; if (!st.inHand) { jackOut.root.scale.setScalar(SC * st.s); jackOut.root.position.set(st.pos.x, st.y, st.pos.z); jackOut.root.rotation.y = st.heading; } return; }
       const s = st.s; if (Math.abs(s - nearS) > 0.02) { nearS = s; camera.near = Math.max(0.1, 0.3 * s); camera.updateProjectionMatrix(); }       // (a nearer near plane only as he is small: the depth buffer keeps its precision, so flat surfaces do not shimmer)
       const f = v(-Math.cos(st.camA), 0, -Math.sin(st.camA)), r = v(Math.sin(st.camA), 0, -Math.cos(st.camA));
       if (st.lockT > 0) { st.lockT -= dt; keys.up = keys.down = keys.left = keys.right = false; stick.x = stick.y = 0; st.heading += angDiff(st.lockH, st.heading) * Math.min(1, dt * 5); st.camA += angDiff(Math.atan2(-Math.cos(st.lockH), -Math.sin(st.lockH)), st.camA) * Math.min(1, dt * 3); }
@@ -338,7 +338,7 @@ function run(G, W, opts) {
     st.pos.set(0, 0, 94); st.heading = Math.PI; G.cut({ pos: v(-3, 1.6, 101), look: v(0, 24, 62), fov: 58 });
     f.style.transition = ''; G.fade(false, 1.6);
     await G.shot({ pos: v(-3, 1.6, 101), look: v(0, 118, 12), fov: 58 }, 6, 'inOut'); await wait(0.5);
-    walkTo(0, 76, 4.2); G.cut({ pos: v(-34, 1.8, 66), look: v(6, 22, 8), fov: 54 }); await G.shot({ pos: v(-26, 2.2, 50), look: v(14, 20, 6), fov: 54 }, 5, 'inOut');
+    const wk = walkTo(0, 76, 4.2); G.cut({ pos: v(-34, 1.8, 66), look: v(6, 22, 8), fov: 54 }); await G.shot({ pos: v(-26, 2.2, 50), look: v(14, 20, 6), fov: 54 }, 5, 'inOut');
     G.cut({ pos: v(4, 2.4, 58), look: v(0, 2.4, 76), fov: 38 }); W.paintJack(jackOut, { expr: 1 }); await wait(1.0);
     await G.say('jack', 'Who lives in a place like this?');
     await G.shot({ pos: v(0, 7, -96), look: v(0, 3, 76), fov: 46 }, 5, 'inOut');
@@ -346,7 +346,7 @@ function run(G, W, opts) {
     G.cut({ pos: v(3, 2.7, 64), look: v(0, 2.7, 76), fov: 32 }); await wait(0.8);
     await G.say('jack', 'There has to be something here I can carry home. Something Mother can’t argue with.');
     await wait(0.4); const kk = st.s, d0 = 92 * kk; await G.shot({ pos: v(0, 15 * SC * kk + Math.sin(0.5) * d0, st.pos.z + d0 * Math.cos(0.5)), look: v(0, 15 * SC * kk, st.pos.z), fov: 48 }, 1.6, 'inOut');
-    G.skipping = false; st.scene = false; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); st.heading = Math.PI; st.camA = Math.PI / 2; camPos.set(0, 0, 0); toast(toastTxt, 6500);
+    await wk; G.skipping = false; st.scene = false; st.jumpReq = st.actReq = st.putReq = false; for (const k in keys) keys[k] = false; stick.x = stick.y = 0; st.walkN = 0; st.vy = 0; st.lockT = 0; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); st.heading = Math.PI; st.camA = Math.PI / 2; camPos.set(0, 0, 0); toast(toastTxt, 6500);
   });
 }
 
