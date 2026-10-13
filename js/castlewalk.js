@@ -186,15 +186,28 @@ function run(G, W, opts) {
     }
     async function caught() {
       if (st.caught) return; st.caught = true; st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwPrompt').style.display = 'none'; $('cwObjt').style.display = 'none'; st.walkN = 0; st.cl = null; st.mant = null; st.vy = 0;
-      const Hj = HEIGHT * SC * st.s, cam = () => { const mx = (gst.x + st.pos.x) / 2, mz = (gst.z + st.pos.z) / 2, px = -(gst.z - st.pos.z), pz = gst.x - st.pos.x, pl = Math.hypot(px, pz) || 1; G.cut({ pos: v(mx + px / pl * 52, 40, mz + pz / pl * 52), look: v(mx, 24, mz), fov: 54 }); };      // (from above the height of the table, so nothing stands between)
-      st.heading = Math.atan2(gst.x - st.pos.x, gst.z - st.pos.z);                                       // he freezes, and turns his face to her
-      for (let i = 0; i < 18; i++) { gst.h += angDiff(Math.atan2(st.pos.x - gst.x, st.pos.z - gst.z), gst.h) * 0.3; placeGerda(); cam(); await G.wait(0.04); }
-      gsay('There you are.'); await G.wait(0.8);
-      for (let g = 0; g < 60; g++) { const dx = st.pos.x - gst.x, dz = st.pos.z - gst.z, d = Math.hypot(dx, dz); if (d <= 15) break; gst.x += dx / d * 1.1; gst.z += dz / d * 1.1; gst.ph += 0.42; gst.walk = 1; gst.h += angDiff(Math.atan2(dx, dz), gst.h) * 0.4; placeGerda(); cam(); await G.wait(0.04); } gst.walk = 0;
-      for (let i = 1; i <= 18; i++) { const k = i / 18; gst.bend = 0.95 * k; gst.reach = 1.5 * k; placeGerda(); cam(); await G.wait(0.04); }
-      const x0 = st.pos.x, z0 = st.pos.z, y0 = st.y;
-      for (let i = 1; i <= 24; i++) { const k = i / 24, hx = gst.x + Math.sin(gst.h) * 13, hz = gst.z + Math.cos(gst.h) * 13; gst.bend = 0.95 - 0.8 * k; gst.reach = 1.5 - 0.6 * k; st.pos.x = x0 + (hx - x0) * k; st.pos.z = z0 + (hz - z0) * k; st.y = y0 + (26 - y0) * k; st.heading = gst.h + Math.PI; placeGerda(); cam(); await G.wait(0.04); }
-      gsay('Well now. Aren’t you a small one?'); for (let i = 0; i < 40; i++) { st.pos.x = gst.x + Math.sin(gst.h) * 13; st.pos.z = gst.z + Math.cos(gst.h) * 13; st.y = 26 + Math.sin(i * 0.2) * 0.3; placeGerda(); cam(); await G.wait(0.04); }
+      const cam = () => { const mx = (gst.x + st.pos.x) / 2, mz = (gst.z + st.pos.z) / 2, px = -(gst.z - st.pos.z), pz = gst.x - st.pos.x, pl = Math.hypot(px, pz) || 1; G.cut({ pos: v(mx + px / pl * 52, 40, mz + pz / pl * 52), look: v(mx, 24, mz), fov: 54 }); };      // (from above the height of the table, so nothing stands between)
+      const jx = st.pos.x, jz = st.pos.z, jy = st.y;
+      st.heading = Math.atan2(gst.x - jx, gst.z - jz);                                                   // he freezes, and turns his face to her
+      // Where she can stand and lean without any of her going into anything: her body on the floor, her torso over what is between, her arm down to him.
+      const hit = (x, z, r, y0, y1, top) => { for (const e of C.near(x, z, r + 1)) { if (e.low || e.y1 <= y0 || e.y0 >= y1 || (top !== undefined && e.y1 <= top + 0.6)) continue; const cx = clamp(x, e.x0, e.x1), cz = clamp(z, e.z0, e.z1); if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r) return true; } return false; };
+      let stance = null;
+      for (const D of [14, 20, 27]) { const cands = []; for (let k = 0; k < 24; k++) { const a = k * Math.PI / 12, sx = jx + Math.cos(a) * D, sz = jz + Math.sin(a) * D; let ok = !hit(sx, sz, 7, 4, 44) && !hit(sx, sz, 7, 4, 44, jy);
+          for (const t of [0.3, 0.6, 0.85]) { const lx = sx + (jx - sx) * t, lz = sz + (jz - sz) * t; if (hit(lx, lz, 3.6, jy + 12, jy + 36, jy)) ok = false; }
+          if (hit(jx, jz, 2.6, jy + 0.9, jy + 12, jy)) ok = false;
+          const n = Math.ceil(Math.hypot(sx - gst.x, sz - gst.z) / 3); for (let i = 1; i <= n && ok; i++) if (hit(gst.x + (sx - gst.x) * i / n, gst.z + (sz - gst.z) * i / n, 7, 4, 44, 0)) ok = false;
+          if (ok) cands.push({ sx, sz, D, d: Math.hypot(sx - gst.x, sz - gst.z) }); }
+        if (cands.length) { cands.sort((p1, p2) => p1.d - p2.d); stance = cands[0]; break; } }
+      if (!stance) { const a = Math.atan2(gst.z - jz, gst.x - jx); stance = { sx: jx + Math.cos(a) * 27, sz: jz + Math.sin(a) * 27, D: 27 }; }
+      const faceJ = Math.atan2(jx - stance.sx, jz - stance.sz), Dh = stance.D - 1, bendTo = clamp(0.55 + (stance.D - 14) / 28, 0.6, 1.15);
+      for (let i = 0; i < 14; i++) { gst.h += angDiff(Math.atan2(jx - gst.x, jz - gst.z), gst.h) * 0.3; placeGerda(); cam(); await G.wait(0.04); }
+      gsay('There you are.'); await G.wait(0.6);
+      { const x0 = gst.x, z0 = gst.z, n = Math.max(2, Math.ceil(Math.hypot(stance.sx - x0, stance.sz - z0) / 1.2)); for (let i = 1; i <= n; i++) { const k = i / n; gst.x = x0 + (stance.sx - x0) * k; gst.z = z0 + (stance.sz - z0) * k; gst.h += angDiff(i < n * 0.7 ? Math.atan2(stance.sx - x0, stance.sz - z0) : faceJ, gst.h) * 0.35; gst.ph += 0.42; gst.walk = 1; placeGerda(); cam(); await G.wait(0.04); } gst.walk = 0; gst.h = faceJ; }
+      for (let i = 1; i <= 18; i++) { const k = i / 18; gst.bend = bendTo * k; gst.reach = 1.5 * k; placeGerda(); cam(); await G.wait(0.04); }
+      const hx = stance.sx + Math.sin(faceJ) * 12, hz = stance.sz + Math.cos(faceJ) * 12;                    // (the hand has him: he slides to it along the ground, then she lifts)
+      for (let i = 1; i <= 8; i++) { const k = i / 8; st.pos.x = jx + (hx - jx) * k; st.pos.z = jz + (hz - jz) * k; st.heading = faceJ + Math.PI; placeGerda(); cam(); await G.wait(0.04); }
+      for (let i = 1; i <= 24; i++) { const k = i / 24; gst.bend = bendTo - (bendTo - 0.12) * k; gst.reach = 1.5 - 0.6 * k; st.y = jy + (26 - jy) * k; placeGerda(); cam(); await G.wait(0.04); }
+      gsay('Well now. Aren’t you a small one?'); for (let i = 0; i < 40; i++) { st.pos.x = hx; st.pos.z = hz; st.y = 26 + Math.sin(i * 0.2) * 0.3; placeGerda(); cam(); await G.wait(0.04); }
       await finish('caught');
     }
     async function finish(res) { G.castleResult = res; await G.fade(true, 2.2); await G.wait(0.3); cleanup(); G.mode = 'end'; document.body.classList.remove('cutscene'); resolve({ result: res }); }
