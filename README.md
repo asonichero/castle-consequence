@@ -6,9 +6,9 @@ Everything is rendered in the same blocky style (three.js, no build step, proced
 
 ## Status
 
-Built so far: the **opening** and **Chapter One, Market Day** (below), the character models and wardrobes, the across-the-lap correction scene, and a test level (the golden hen) that proves the care-and-consequence loop. Next: the beanstalk.
+Built so far, in play order: the **Prologue** (the opening); **Chapter One, "Market Day"** (the cow, the market road and the Peddler's cart, the night scene, the correction in three tones, and planting the beans); and **Chapter Two, "The Climb"** (the waking cutscene, dressing and the knife, and the climb of the beanstalk, to the cloud). Also the character models and wardrobes, the character models and wardrobes, the across-the-lap correction scene, and a test level (the golden hen) that proves the care-and-consequence loop. Next: the beanstalk.
 
-### The opening (`game.html`)
+### Prologue: the opening (`game.html`)
 
 1. A content notice and 18+ confirmation (once, remembered), then the **title screen** over a slow aerial drone view of the homestead: a run-down cottage in the hillside, a barren garden, the cowshed with Milky-White, a low stone wall, a gate on a path down the valley.
 2. **New Game** begins the cutscene: the camera tracks slowly down to the cottage window, with the sound of a correction in progress heard through the wall, then fades to the cottage interior (one room: the hearth at its heart with the pot, kettle and fire iron; the chair and the stool; a small table, a cabinet and store cupboards; undusted corners with a birch-bundle broom; bare stairs to an upstairs we never see).
@@ -29,8 +29,10 @@ Dialogue is typed out with a babbling voice; a tap, space or Enter finishes the 
 | `game.html`, `js/menus.js` | The shell: notice, title, settings, saves |
 | `js/game.js` | The cutscene toolkit: camera shots, fades, timed waits, typed dialogue, skipping |
 | `js/opening.js` | The opening scene itself, as an async script |
-| `js/market.js` | Chapter One: the doorway scene, the cow-wrangling play, the closing scene |
-| `js/road.js` | Chapter Two: the winding market road, the three obstacles, the Peddler's cart and the trade |
+| `js/market.js` | Chapter One (first part): the doorway scene, the cow-wrangling play, the closing scene |
+| `js/night.js`, `js/correction.js`, `js/garden.js` | Chapter One (close): the night scene, the correction (humble / cheeky / brash), and planting the beans |
+| `js/chapter3.js`, `js/climb.js` | Chapter Two: the waking cutscene and the dress-and-knife stretch; the climb of the beanstalk, to the cloud |
+| `js/road.js` | Chapter One: the winding market road, the three obstacles, the Peddler's cart and the trade |
 | `js/farm.js` | The homestead and the cottage interior, built from textured boxes |
 | `js/audio.js` | Music, ambience, smacks, voices and the speech babble, all synthesised |
 
@@ -60,7 +62,7 @@ npm test             # pain model and file checks
 (late 30s), as box-built characters with hand-painted 64×64 skins (base + outer layer; arms are 3×3 pixels, a little thinner than Minecraft's). Legs are
 split at the knee, so the bend only shows when seated. Open it from the same static server, `http://localhost:8765/blocky.html`.
 
-### Chapter Two: The Market Road (`js/road.js`), a tutorial in leading, carrying and tying off
+### Chapter One, continued: the market road (`js/road.js`), a tutorial in leading, carrying and tying off
 
 Jack leads Milky-White (trust starts at 100%) along a long, winding forest road, the trees leaning in overhead. She follows at a walk; **running** costs her trust and she drags on the lead, until at **60%** she plants her hooves. Standing close does **not** win her back here: **E** beside her (and not by a tying-off tree) lets Jack say something soothing, **+15%** (a short cool-down). Three obstacles block the road to *her* but not to Jack, who can hop over (Space): a fallen limb, rocks, crates. Tie her to the marked tree beside the road (**E** at the tree, she must be close to it), pick the obstacle up (**E**; hands must be free, so the lead is off), put it down (**Q** or **E**) somewhere clear of the road, untie her (**E** at the tree) and go on. Carrying slows Jack and stops him running and jumping. At the end, the Peddler's crooked cart (cloth, bottles, strange feathers, spools of silver thread) and a short dialogue tree in Jack's voice (cocky, hopeful, sure his luck is about to turn); the choices are 1 to 3 or a click, and every branch ends with the trade of the cow for five beans. The choices and care figures are saved.
 

@@ -1,4 +1,4 @@
-// Climbing Toward Consequence — the garden, the close of Chapter Two: Jack plants the beans, by night.
+// Climbing Toward Consequence — the garden, the close of Chapter One (planting): Jack plants the beans, by night.
 //   He starts outside the closed cottage door. In the arable land (Farm.PLOT, a 3 x 3 of 15-unit cells) he clears the ground (rocks are carried off the plot; pulled weeds melt away), takes the hoe from
 //   where it leans against the cottage wall and tills the five cells that make the five of a die (the four corners and the middle), then plants the beans one at a time, one in each furrow. He
 //   says what he expects, or hopes, to himself (by the variation of the correction before it), goes back to the door, opens it and steps inside; and the camera lifts to the angle of the title sequence.

@@ -1,4 +1,4 @@
-// Climbing Toward Consequence — Chapter Three, the opening cutscene: the beanstalk.
+// Climbing Toward Consequence — Chapter Two, "The Climb", its opening: the waking cutscene, the beanstalk, and the dress-and-knife stretch.
 //   Jack lies on his pallet bed in his drawers and a white nightshirt, under a blanket, facing the wall. The fire is banked low and it is still dark. He rolls onto his back as he wakes and wonders
 //   that it is still night though he does not feel tired; he throws off the blanket, sits up (and is reminded of last night's ache), rises, walks to the window, gasps, and runs for the door and out.
 //   Cut to outside, on the door as he comes out and turns, agog, to the beans he planted; the camera lifts to show a gigantic beanstalk growing from the 3 x 3 patch. His mother will eat her words

@@ -1,4 +1,4 @@
-// Climbing Toward Consequence — the climb, Chapter Three: Jack goes up the beanstalk.
+// Climbing Toward Consequence — the climb, Chapter Two, "The Climb": Jack goes up the beanstalk.
 //   One path winds up the stalk, of handholds (knots of bark); he moves hand over hand to the next, reading the stalk as he goes; his grip is limited by stamina, and the path rests on the broad leaves it crosses.
 //   Lower stalk: every hold is sound, the reachable ones glow, and the way teaches grip, stamina and rest.
 //   Middle stalk: it resists: some holds are slick with sap (reach through them quickly), leaves curl away when he lingers, and gusts come (shown first by the leaves and a rush at the screen's edge).

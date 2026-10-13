@@ -38,7 +38,7 @@ async function playOpening() {
   G.skipping = false; G.save({ step: 'market-day', opening: true, size: 0.8 }); snap(W.ext);
   await playMarket();
 }
-// Chapter One: the dialogue at the cottage door, the cow to wrangle, the closing scene. (It starts from black.)
+// Chapter One, Market Day (the first part): the dialogue at the cottage door, the cow to wrangle, the closing scene. (It starts from black.)
 async function playMarket() {
   G.rerun = null;
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
@@ -47,7 +47,7 @@ async function playMarket() {
   G.skipping = false; G.save({ step: 'market-road', care: { cowStartles: res ? res.startles : 0 } }); snap(W.ext);
   await playRoad();
 }
-// Chapter Two: the winding road, the obstacles, the Peddler's cart and the trade. (It starts from black.)
+// Chapter One, Market Day (the road): the winding road, the obstacles, the Peddler's cart and the trade. (It starts from black.)
 async function playRoad(opts) {
   G.rerun = null;
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
@@ -56,7 +56,7 @@ async function playRoad(opts) {
   G.skipping = false; G.save({ step: 'beans', care: Object.assign((G.loadSave() || {}).care || {}, { runSecs: res.runSecs, soothes: res.soothes, plants: res.plants }), choices: res.choices }); snap(W.ext);
   await playNight(res.choices);
 }
-// The close of Chapter Two: the cottage at night (Jack's account, his Mother's reply). The choices he made at the cart set how it goes.
+// The close of Chapter One: the cottage at night (Jack's account, his Mother's reply). The choices he made at the cart set how it goes.
 async function playNight(choices) {
   G.rerun = () => playNight(choices);
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
@@ -84,8 +84,8 @@ async function playGarden(tier) {
   await root.Garden.run(G, W, tier);
   showEnd();
 }
-// Chapter Three's opening cutscene, on its own.
-// Chapter Three: the climb, on its own (the stalk at dawn, Jack at its foot).
+// Chapter Two, The Climb: the waking cutscene, the dress-and-knife stretch (and, from here, the climb).
+// Chapter Two: the climb itself, on its own (the stalk at dawn, Jack at its foot).
 async function playClimb() {
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
@@ -102,8 +102,8 @@ async function playChapter3(only) {
   showEnd();
 }
 function showEnd() {
-  const s = G.loadSave() || {}, beans = s.step === 'beans' || s.step === 'planted';
-  $('endTitle').textContent = beans ? 'Chapter Two \u2014 The Market Road' : 'Chapter One \u2014 Market Day';
+  const s = G.loadSave() || {}, two = ['dress', 'beanstalk', 'climb', 'climb-done'].includes(s.step), beans = ['beans', 'planted', 'garden', 'garden-done'].includes(s.step);
+  $('endTitle').textContent = two ? 'Chapter Two \u2014 The Climb' : 'Chapter One \u2014 Market Day';
   $('endText').textContent = s.step === 'climb-done' ? 'Jack has climbed through the clouds.' : s.step === 'dress' ? 'Jack is awake in the dawn, with a beanstalk outside.' : s.step === 'beanstalk' ? 'A beanstalk has grown in the night, and Jack means to climb it.' : s.step === 'garden-done' ? 'The beans are in the ground, and Jack is indoors.' : s.step === 'planted' ? 'Jack goes out into the dark to plant the beans.' : beans ? 'Jack has the beans, and a mother waiting up for him.' : 'Jack has a cow to sell in the morning.';
   show('endcard'); G.mode = 'end'; $('fade').style.transition = 'none'; $('fade').style.opacity = 0; document.body.classList.remove('playing', 'cutscene');
 }

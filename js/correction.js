@@ -1,4 +1,4 @@
-// Climbing Toward Consequence — the correction, at the close of Chapter Two (the cottage at night).
+// Climbing Toward Consequence — the correction, at the close of Chapter One (the cottage at night).
 //   The discipline engine of the hen test (js/lap.js), in the cottage: Jack stands before his Mother in the overview camera, his britches come down, she orders him over her knee and he goes; a
 //   run of the hand with the dialogue laid over it and some breaks of uninterrupted smacks. Whoever saw the cheeky or brash scene has his drawers taken down partway through. Afterwards he stands
 //   before her (she is still seated), rubbing his seat as in the opening, bared to whichever level he was, and the closing words are said over it. At his most brash she sends him for the birch

@@ -1,4 +1,4 @@
-// Climbing Toward Consequence — Chapter One, "Market Day": the first playable sequence, a tutorial in animal care.
+// Climbing Toward Consequence — Chapter One, "Market Day" (its first part): the first playable sequence, a tutorial in animal care.
 //   1. A short dialogue beat outside the cottage: Mother in the doorway, Jack facing her; she sends him to market with the cow, doubts him, and goes back inside.
 //   2. Play: fetch the cow's lead from the cowshed, then win Milky-White round enough to put it on her. She starts out trusting Jack 90%, but quick movement near her frightens her
 //      exactly as it did the hen in the test level (she backs away and her trust drops), and she will not take the lead until her trust is back to 100%. Sneak (C) and wait.

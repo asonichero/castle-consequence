@@ -1,4 +1,4 @@
-// Climbing Toward Consequence — Chapter Two, "The Market Road": a tutorial in leading, carrying and tying off.
+// Climbing Toward Consequence — Chapter One, "Market Day" (the market road): a tutorial in leading, carrying and tying off.
 //   Jack leads Milky-White along a winding forest road, the trees leaning in overhead. She follows fine at a walk; running costs her trust and she drags on the lead, until at 60% she
 //   plants her hooves. Standing close does not win her back in this chapter: E beside her (and not by a tying-off tree) lets Jack talk her round, +15%. Three obstacles block the road
 //   to her but not to Jack (a fallen limb, rocks, crates): tie her to the nearby tree with E, pick the obstacle up with E, put it down with Q or E, untie her and go on.

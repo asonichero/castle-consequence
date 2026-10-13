@@ -1,4 +1,4 @@
-// Climbing Toward Consequence — the close of Chapter Two: the cottage at night.
+// Climbing Toward Consequence — the close of Chapter One: the cottage at night.
 //   Jack comes home through the gate and up to the door under the stars; then, indoors, he tells his Mother what he has done with the cow, in a tone set by the choices he made at the
 //   Peddler's cart; she is furious, sits in the chair by the hearth and calls him to her. The scene ends there, as he steps up to her knee: the correction itself is to be a scene of its own.
 //   A beat is one camera angle (see G.cut in game.js): everyone is put where they stand as it begins, and what happens in it happens in view of that one angle.
