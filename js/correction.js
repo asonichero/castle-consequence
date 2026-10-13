@@ -172,7 +172,7 @@ async function run(G, W, tier, opts) {
   // ── The birch: for the brash, at the end of the first. ──
   const fetchBirch = async () => {
     await aftermath0([
-      ['mother', 'Fetch me the birch.'], ['jack', 'The birch? Mother, no—'], ['mother', 'It hangs on its nail by the hearth. Fetch it. Now.'], ['jack', 'I’ve had enough! I’ve— I’ve had enough!'], ['mother', 'Not by half. Go.'],
+      ['mother', 'Fetch me the birch.'], ['jack', 'The birch? Mother, no—'], ['mother', 'It hangs on its nail by the door. Fetch it. Now.'], ['jack', 'I’ve had enough! I’ve— I’ve had enough!'], ['mother', 'Not by half. Go.'],
     ]);
     cam.enable(false); showUI(false);
     cam.go(v(40, 31, 36), v(72, 27, 56), 40, 0); await wait(2.2);                                         // the birch, hanging on its nail
