@@ -187,7 +187,7 @@ function run(G, W, opts) {
           if (d > R || (d > 0.01 && (dx * fx + dz * fz) / d < 0.2)) continue; if (!best || e.y1 > best.e.y1) best = { e, qx, qz, d }; }
         if (!best) return false; const gap = best.e.y1 - st.y; if (gap <= 0.5 * Hj) return false; if (gap <= 0.75 * Hj) { const to = landingFor(best.e); if (to) { startMantle(best.e, to); return true; } }
         let nx = st.pos.x - best.qx, nz = st.pos.z - best.qz; const nl = Math.hypot(nx, nz); if (nl < 0.01) { nx = -fx; nz = -fz; } else { nx /= nl; nz /= nl; }
-        st.pos.x = best.qx + nx * 6.5 * s; st.pos.z = best.qz + nz * 6.5 * s; st.heading = Math.atan2(-nx, -nz); st.cl = { e: best.e }; st.stam = 1; st.vy = 0; return true; };
+        st.pos.x = best.qx + nx * 6.5 * s; st.pos.z = best.qz + nz * 6.5 * s; st.heading = Math.atan2(-nx, -nz); st.cl = { e: best.e }; st.stam = 1; st.vy = 0; st.perch = null; return true; };
       if (st.jumpReq) { st.jumpReq = false; if (!busy && st.y <= gy + 0.01 && !tryClimb()) { st.vy = 112 * s; st.perch = null; } }
       if (st.mant) { const m = st.mant; m.t += dt; const k = clamp(m.t / m.dur, 0, 1), rise = Math.max(m.from.y, m.to.y + 0.22 * Hj);                // (up the face to above the lip, then over the edge and down onto the top: the edge climbs as the leg did)
         if (k < 0.5) { const q = k / 0.5, e2 = q * q * (3 - 2 * q); st.pos.x = m.from.x; st.pos.z = m.from.z; st.y = m.from.y + (rise - m.from.y) * e2; }
