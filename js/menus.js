@@ -102,10 +102,10 @@ async function playMeadow() {
   showEnd();
 }
 // Test level: walk about the castle at any size.
-async function playCastle(story) {
+async function playCastle(story, extra) {
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
-  await root.CastleWalk.run(G, W, story ? { story: true } : undefined); if (story) showEnd();
+  await root.CastleWalk.run(G, W, story ? Object.assign({ story: true }, extra) : undefined); if (story) showEnd();
 }
 async function playChapter3(only) {
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
@@ -138,6 +138,7 @@ $('levelSel').onchange = async () => {
     else if (k === 'meadow') await playMeadow();
     else if (k === 'castle') await playCastle();
     else if (k === 'castlehall') await playCastle(true);
+    else if (k === 'castlecatch') { G.noSave = true; await playCastle(true, { capture: true }); }
     else if (k === 'corrH' || k === 'corrC' || k === 'corrB') await playCorrection(k === 'corrH' ? 0 : k === 'corrC' ? 1 : 2);
   } finally { G.noSave = false; G.debugCtl = false; }
 };
