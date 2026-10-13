@@ -143,8 +143,8 @@ function exterior() {
   for (let i = 0; i < 10; i++) box(14, 4, 4, mat('bark'), 62 + (i % 2) * 1, 2 + Math.floor(i / 2) * 4, -D / 2 + 8 - 0 + (i % 2) * 5 + 12, cottage);
   box(9, 9, 9, mat('bark'), 52, 4.5, 56, cottage);
   box(12, 18, 12, mat('plankDark'), -60, 9, 60, cottage);
-  // The hoe, leaning against the front wall of the cottage beside the woodpile: the handle's top against the wall, the blade on the ground.
-  const hoe = new THREE.Group(); hoe.position.set(66, 0, 27.5); hoe.rotation.x = -0.2; farm.add(hoe);
+  // The hoe, leaning against the cottage's west wall where it looks over the garden: the handle's top against the wall, the blade on the ground, turned out.
+  const hoe = new THREE.Group(); hoe.position.set(-76.4, 0, PLOT.cz - 12); hoe.rotation.order = 'YXZ'; hoe.rotation.set(-0.2, -Math.PI / 2, 0); farm.add(hoe);       // (against the cottage's west wall, on the garden side)
   box(1.4, 31, 1.4, mat('plankDark'), 0, 15.5, 0, hoe); box(1.2, 5, 1.2, plain('#4a4a50'), 0, 2.2, 1.6, hoe).rotation.x = -0.5; box(8, 0.9, 4.6, plain('#6a6a72'), 0, 0.6, 3.4, hoe);
   // Smoke from the chimney: grey puffs that rise, widen and fade.
   const smoke = []; for (let i = 0; i < 9; i++) { const s = box(7, 7, 7, new THREE.MeshLambertMaterial({ color: 0xcfd2d6, transparent: true, opacity: 0.6 }), 0, 0, 0, chimney); smoke.push({ m: s, t: i / 9 }); }

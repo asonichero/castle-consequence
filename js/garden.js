@@ -127,7 +127,7 @@ function run(G, W, tier) {
     }
     function afterClear() {
       const r = remaining();
-      if (st.phase === 'clear' && r.rocks === 0 && r.weeds === 0) { st.phase = 'till'; pips.forEach(p => { p.m.visible = true; }); toast('Clear. Now the hoe: it leans against the cottage wall, by the door.', 5200); }
+      if (st.phase === 'clear' && r.rocks === 0 && r.weeds === 0) { st.phase = 'till'; pips.forEach(p => { p.m.visible = true; }); toast('Clear. Now the hoe: it leans against the cottage wall, on the garden side.', 5200); }
       setObjective();
     }
     function interact() {
@@ -168,7 +168,7 @@ function run(G, W, tier) {
         if (pip.tilled) { toast('That square is done.'); return; }
         doAct('dig', 1.9, () => { till(pip); setObjective(); if (pips.every(p => p.tilled)) { st.phase = 'plant'; layHoe(); toast('Now the beans, one to a furrow.', 4200); setObjective(); } });
         return;
-      } else if (st.phase === 'till' && st.hold !== 'hoe') { toast('You need the hoe: it leans against the cottage wall.'); return; }
+      } else if (st.phase === 'till' && st.hold !== 'hoe') { toast('You need the hoe: it leans against the cottage wall by the garden.'); return; }
       // Planting.
       if (st.phase === 'plant') {
         const c = cellOf(); const pip = c && pipAt(c[0], c[1]);
