@@ -124,7 +124,7 @@ function run(G, W, opts) {
       const act = st.actReq, put = st.putReq; st.actReq = st.putReq = false;
       if (st.held) {                                                                                       // a crumb in his hand: eat it, or put it back
         text = 'E \u2014 eat it     Q \u2014 put it back';
-        if (act) { st.eaten++; const k = st.held; st.held = null; say(st.eaten === 1 ? 'Mm. Sorry. It was only a crumb.' : 'Mm.'); if (st.eaten >= 4) { st.loafReady = true; later(2600, () => say('That barely touched it... I’m still hungry.')); } }
+        if (act) { st.eaten++; const k = st.held; st.held = null; say(st.eaten === 1 ? 'Mm. Sorry. It was only a crumb.' : 'Mm.'); if (st.eaten >= 4) { later(2600, () => { say('That barely touched it... I’m still hungry.'); st.loafReady = true; }); } }
         else if (put) { st.held.o.visible = true; st.held = null; say('No. Better to leave it where it was.'); }
       } else {
         let best = null, bd = 1e9;
