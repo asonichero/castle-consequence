@@ -100,7 +100,7 @@ function interior() {
       const z_ = axis === 'z', tc = plain('#5a4026'), hh = y1 - y0;
       if (z_) { box(0.9, hh, 1.1, tc, 0, 0, 0, g); box(w, 0.9, 1.1, tc, 0, 0, 0, g); } else { box(1.1, hh, 0.9, tc, 0, 0, 0, g); box(1.1, 0.9, w, tc, 0, 0, 0, g); }
       if (w >= 18 && y0 <= 40 && dirSign) {
-        const col = ['#7a2a3a', '#2a4a6a', '#4a6a3a', '#6a4a2a'][Math.abs(Math.round(fixed + c)) % 4], top = y1 + 5, bot = 10, cy = (top + bot) / 2 - (y0 + y1) / 2, off = dirSign * 4.8;
+        const col = ['#7a2a3a', '#2a4a6a', '#4a6a3a', '#6a4a2a'][Math.abs(Math.round(fixed + c)) % 4], top = y1 + 4, bot = y0 - 3, cy = (top + bot) / 2 - (y0 + y1) / 2, off = dirSign * 4.8;
         for (const sx of [-1, 1]) { const px = sx * (w / 2 + 2.6); if (z_) box(5.2, top - bot, 1.4, plain(col), px, cy, off, g); else box(1.4, top - bot, 5.2, plain(col), off, cy, px, g); }
         if (z_) box(w + 12, 0.9, 0.9, plain('#c9a23c'), 0, top - (y0 + y1) / 2 - 0.5, off, g); else box(0.9, 0.9, w + 12, plain('#c9a23c'), off, top - (y0 + y1) / 2 - 0.5, 0, g);
       }
