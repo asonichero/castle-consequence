@@ -12,7 +12,7 @@ const PLACES = [['Entrance hall', 0, 70, Math.PI], ['Corridor A', -180, -26, Mat
   ['Bathing room', 320, -140, -Math.PI / 2], ['Hen roost', 280, -250, 0], ['Garden', 80, -200, Math.PI]];
 
 // Every opaque box in the room becomes a collision box (floors, rugs and glass excepted), in a grid for quick lookup.
-function collect(room, ceiling) {
+function collect(room, ceiling, pantry) {
   const boxes = [], grid = new Map(), CELL = 24, key = (a, b) => a * 4096 + b; room.updateMatrixWorld(true);
   room.traverse(o => {
     if (!o.isMesh || !o.visible) return; for (let p = o.parent; p; p = p.parent) if (p === ceiling || (p.userData && p.userData.noCollide)) return;
@@ -20,6 +20,7 @@ function collect(room, ceiling) {
     const b = new THREE.Box3().setFromObject(o); if (b.max.x - b.min.x < 0.3 || b.max.z - b.min.z < 0.3) return;
     const low = b.max.y <= 0.7; if (low) { const m = o.matrixWorld.elements; if (b.max.y <= 0.15 || Math.abs(m[0] * m[2]) > 0.01) return; }          // (rugs and mats are floor he stands on, not walls: only the squared-up ones, whose boxes are true)
     const e = { x0: b.min.x, x1: b.max.x, z0: b.min.z, z1: b.max.z, y0: b.min.y, y1: b.max.y, low };
+    if (pantry) for (let q = o.parent; q; q = q.parent) if (q === pantry) { e.pantry = true; break; }
     { const m = o.material, c = m && !m.map && m.color; if (c) { const sc = c.clone().convertLinearToSRGB(), R = Math.round(sc.r * 255), G_ = Math.round(sc.g * 255), B_ = Math.round(sc.b * 255); e.wood = R >= 0x30 && R <= 0xa0 && R > G_ && G_ > B_ && R - B_ >= 14 && R - B_ <= 75; } }      // (brown, unglazed: wood he can get his hands into) boxes.push(e);
     for (let i = Math.floor(e.x0 / CELL); i <= Math.floor(e.x1 / CELL); i++) for (let j = Math.floor(e.z0 / CELL); j <= Math.floor(e.z1 / CELL); j++) { const k = key(i, j); (grid.get(k) || grid.set(k, []).get(k)).push(e); }
   });
@@ -41,7 +42,7 @@ function run(G, W, opts) {
         if (sp || open.some(r => near(d, r))) { d.lg.rotation.y = 0; d.og.userData.noCollide = false; } } for (const h of M.hallLeaves) h.lf.rotation.y = 0; }
     const world = { scene, update(dt, t) { M.update(dt, t); aOut.t += dt; root.Blocky.step(jackOut, dt); } };
     // two more horses' worth of toys are not wanted here: one rocking horse is all the nursery has (see castle.js)
-    const C = collect(M.room, ceiling);
+    const C = collect(M.room, ceiling, M.items.pantry && M.items.pantry.g);
     const things = []; if (story) { M.room.updateMatrixWorld(true); M.room.traverse(o => { if (o.userData && o.userData.item) { const w = new V3(); o.getWorldPosition(w); things.push(Object.assign({ o, pos: w }, o.userData.item)); } }); }
     scene.add(jackOut.root); jackOut.root.visible = true; W.paintJack(jackOut, { expr: 0 }); root.Meadow && root.Meadow.addGear && root.Meadow.addGear(jackOut);
     G.setScene(world); G.drone = null; if (!story) G.noSave = true;
@@ -106,13 +107,14 @@ function run(G, W, opts) {
       for (const e of C.near(x, z, r)) { if (e.low || e.y1 <= up || e.y0 >= top) continue; const cx = clamp(x, e.x0, e.x1), cz = clamp(z, e.z0, e.z1); if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r) return true; } return false; };
     const floorAt = (x, z, y) => { const r = 1.2 * st.s, up = y + step() + 0.5; let g = 0; for (const e of C.near(x, z, r)) { if (e.y1 > up || e.y1 <= g) continue; const cx = clamp(x, e.x0, e.x1), cz = clamp(z, e.z0, e.z1); if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r) g = e.y1; } return g; };
     const ceilAt = p => (Math.abs(p.x) < 92 && Math.abs(p.z) < 112) ? root.Castle.HH : M.H;                     // (the hall's ceiling is higher)
-    const camBlocked = (p, s) => { if (p.y > ceilAt(p) - 9) return true; for (const e of C.near(p.x, p.z, 3)) if (e.y1 - e.y0 > 30 && p.x > e.x0 - 1.5 * s && p.x < e.x1 + 1.5 * s && p.z > e.z0 - 1.5 * s && p.z < e.z1 + 1.5 * s && p.y > e.y0 && p.y < e.y1) return true; return false; };
+    const camBlocked = (p, s) => { if (p.y > ceilAt(p) - 9) return true; for (const e of C.near(p.x, p.z, 3)) if ((e.y1 - e.y0 > 30 || (st.inCup && e.pantry)) && p.x > e.x0 - 1.5 * s && p.x < e.x1 + 1.5 * s && p.z > e.z0 - 1.5 * s && p.z < e.z1 + 1.5 * s && p.y > e.y0 && p.y < e.y1) return true; return false; };
 
     // ── The kitchen table: things to look at, crumbs to take or leave, the loaf that is not his, and then footsteps overhead. ──
     const say = t => G.caption('jack', t), later = (ms, f) => setTimeout(f, ms), tableG = M.items.kitchenTable.g, pantryG = M.items.pantry.g;
     const promptEl = () => $('cwPrompt');
     function storyTick(dt) {
       const Hj = HEIGHT * SC * st.s, pr = promptEl(); let text = '';
+      { const lp = pantryG.worldToLocal(new V3(st.pos.x, st.y, st.pos.z)); st.inCup = Math.abs(lp.x) < 11.6 && lp.z > -6.2 && lp.z < 6.4 && lp.y > -1 && lp.y < 22; }               // (inside the cupboard its walls and doors hold the camera in)
       if (st.hiding) { pr.style.display = 'none'; return; }
       const onTable = st.y >= 25.3 && Math.abs(st.pos.x - tableG.position.x) <= 25 && Math.abs(st.pos.z - tableG.position.z) <= 13;
       if (onTable && !st.tMount) st.tMount = performance.now();
@@ -138,7 +140,7 @@ function run(G, W, opts) {
             }
           }
         }
-        if (st.alarm && !text) { const c = pantryG.localToWorld(new V3(5, 0, 0)); if (Math.hypot(c.x - st.pos.x, c.z - st.pos.z) < 5 * Hj && Math.abs(pantryG.position.y - st.y) < 1.4 * Hj) { text = 'E \u2014 hide in the cupboard'; if (act) hideEnding(c); } }
+        if (st.alarm && !text) { const c = pantryG.localToWorld(new V3(1.6, 0, 10)); if (st.inCup) { text = 'E \u2014 stay hidden'; if (act) hideEnding(); } else if (Math.hypot(c.x - st.pos.x, c.z - st.pos.z) < 3.4 * Hj && Math.abs(pantryG.position.y - st.y) < 1.4 * Hj) { text = 'E \u2014 climb into the cupboard'; if (act) hideEnding(); } }
       }
       pr.textContent = text; pr.style.display = text ? 'block' : 'none';
     }
@@ -146,11 +148,11 @@ function run(G, W, opts) {
       st.alarm = true; st.shakeT = 1.4; A && A.thud && A.thud(0.8); say('What was that? Movement... above me.');
       later(3200, () => { A && A.thud && A.thud(0.9); st.shakeT = 1.0; say('Footsteps. Someone’s coming! I have to hide!'); $('cwObjt').textContent = 'Find somewhere to hide.'; $('cwObjt').style.display = 'block'; });
     }
-    async function hideEnding(c) {
+    async function hideEnding() {
       st.hiding = true; st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwObjt').style.display = 'none'; $('cwPrompt').style.display = 'none';
-      const wait = G.wait, x0 = st.pos.x, z0 = st.pos.z, n = 22; st.heading = Math.atan2(c.x - x0, c.z - z0);
-      for (let i = 1; i <= n; i++) { const k = i / n; st.pos.x = x0 + (c.x - x0) * k; st.pos.z = z0 + (c.z - z0) * k; st.walkN = 1; st.walkPh += 0.55; await wait(0.04); } st.walkN = 0;
-      say('Don’t breathe. Don’t even blink.'); await wait(0.8); await G.fade(true, 2.4); await wait(0.4);
+      const wait = G.wait, way = [pantryG.localToWorld(new V3(1.6, 0, 8)), pantryG.localToWorld(new V3(1.6, 0, 0)), pantryG.localToWorld(new V3(-2, 0, -2))];       // (through the gap, and in)
+      for (const c of way) { const x0 = st.pos.x, z0 = st.pos.z, n = 14; st.heading = Math.atan2(c.x - x0, c.z - z0); for (let i = 1; i <= n; i++) { const k = i / n; st.pos.x = x0 + (c.x - x0) * k; st.pos.z = z0 + (c.z - z0) * k; st.walkN = 1; st.walkPh += 0.55; await wait(0.04); } }
+      st.walkN = 0; st.inCup = true; say('Don’t breathe. Don’t even blink.'); await wait(1.2); await G.fade(true, 2.4); await wait(0.4);
       cleanup(); G.mode = 'end'; document.body.classList.remove('cutscene'); resolve({ hid: true });
     }
     const tick = dt => {
