@@ -201,7 +201,7 @@ function run(G, W, opts) {
       const out = []; let i = 1; while (i > 0) { out.unshift(nodes[i]); i = prev[i]; } return out.length && i === 0 ? out : [T]; }
     async function ending(follow, cam) {
       const jc = () => jackOut.torso.localToWorld(new V3(0, 6, 0)), hd = () => gerda.neck.localToWorld(new V3(0, 4, 0)), face = e => W.paintJack(jackOut, { expr: e });
-      const shotFace = () => { const h = hd(), j = jc(), d = j.clone().sub(h).normalize(); G.cut({ pos: j.clone().add(d.clone().multiplyScalar(3.4)).add(new V3(0, 1.2, 0)), look: h.clone().add(new V3(0, -0.4, 0)), fov: 44 }); };
+      const shotFace = () => { const h = hd(), j = jc(), d = j.clone().sub(h).normalize(), side = new V3(-d.z, 0, d.x).multiplyScalar(3.5); G.cut({ pos: h.clone().add(d.clone().multiplyScalar(17)).add(side).add(new V3(0, 3.5, 0)), look: h.clone().add(new V3(0, -0.6, 0)), fov: 40 }); };       // (across her hand, so that her face fills the frame and his fist is below)
       const shotJack = () => { const h = hd(), j = jc(), d = j.clone().sub(h).normalize(), side = new V3(-d.z, 0, d.x).multiplyScalar(5); G.cut({ pos: h.clone().add(d.clone().multiplyScalar(5.5)).add(side).add(new V3(0, 2.6, 0)), look: j, fov: 26 }); };
       face(1);                                                                                              // wincing, whenever he is not speaking
       shotFace(); await G.say('gerda', 'Well. Not so badly put together. A little wild at the edges. A little soft in the jaw.');
@@ -224,10 +224,10 @@ function run(G, W, opts) {
       // and gives him up to it: he is eased down and laid on the velvet
       for (let i = 1; i <= 18; i++) { gst.give = i / 18; placeGerda(); follow(); cam(); await G.wait(0.04); }
       bx.attach(jackOut.root); st.inHand = true; const p0 = jackOut.root.position.clone(), q0 = jackOut.root.quaternion.clone(), qL = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0)), pIn = new V3(0, 1.45, 1.4), pAbove = new V3(0, 4.2, 0.4);
-      const bs = jackOut.root.scale.x; for (let i = 1; i <= 26; i++) { const k = i / 26, e = k * k * (3 - 2 * k), up = Math.sin(Math.PI * k) * 0.0; const tgtP = k < 0.5 ? p0.clone().lerp(pAbove, k / 0.5) : pAbove.clone().lerp(pIn, (k - 0.5) / 0.5); jackOut.root.position.copy(tgtP); jackOut.root.quaternion.copy(q0).slerp(qL, e); gst.give = 1 - 0.35 * k; placeGerda(); follow(); G.cut({ pos: bx.localToWorld(new V3(10, 14, 14)), look: bx.localToWorld(new V3(0, 3, 0)), fov: 42 }); await G.wait(0.04); }
+      const bs = jackOut.root.scale.x; for (let i = 1; i <= 26; i++) { const k = i / 26, e = k * k * (3 - 2 * k), up = Math.sin(Math.PI * k) * 0.0; const tgtP = k < 0.5 ? p0.clone().lerp(pAbove, k / 0.5) : pAbove.clone().lerp(pIn, (k - 0.5) / 0.5); jackOut.root.position.copy(tgtP); jackOut.root.quaternion.copy(q0).slerp(qL, e); gst.give = 1 - 0.35 * k; placeGerda(); follow(); G.cut({ pos: bx.localToWorld(new V3(-13, 15, 10)), look: bx.localToWorld(new V3(0, 3, 0)), fov: 42 }); await G.wait(0.04); }
       face(3); for (let r = 0; r < 2; r++) { for (let i = 1; i <= 16; i++) { const k = Math.sin(Math.PI * i / 16); jackOut.root.quaternion.copy(qL).slerp(new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.9, 0, 0)), k * 0.8); jackOut.root.position.set(0, 1.45 + 0.5 * k, 1.4 - 0.5 * k); await G.wait(0.04); } await G.wait(0.15); }
       face(1); jackOut.root.quaternion.copy(qL); jackOut.root.position.copy(pIn);
-      G.cut({ pos: bx.localToWorld(new V3(0, 16, 18)), look: bx.localToWorld(new V3(0, 2, 0)), fov: 36 }); await G.say('gerda', 'A magic stalk, a stranger’s house, a plate that was never yours. And you thought no one would notice.');
+      G.cut({ pos: bx.localToWorld(new V3(-14, 14, 13)), look: bx.localToWorld(new V3(0, 2.5, 0)), fov: 38 }); await G.say('gerda', 'A magic stalk, a stranger’s house, a plate that was never yours. And you thought no one would notice.');
       await G.say('gerda', 'That isn’t a man’s doing, little one. That’s mischief. And mischief gets put somewhere safe.');
       face(3); await G.say('jack', 'I’m not—');
       for (let i = 1; i <= 14; i++) { box.lid.rotation.x = -1.95 * (1 - i / 14); gst.lreach = 1.3 * (1 - i / 14); placeGerda(); await G.wait(0.04); } A && A.thud && A.thud(0.4); await G.wait(1.2);
@@ -269,7 +269,7 @@ function run(G, W, opts) {
       if (st.scene) { st.jumpReq = st.actReq = st.putReq = false; if (!st.inHand) { jackOut.root.scale.setScalar(SC * st.s); jackOut.root.position.set(st.pos.x, st.y, st.pos.z); jackOut.root.rotation.y = st.heading; } return; }
       const s = st.s; if (Math.abs(s - nearS) > 0.02) { nearS = s; camera.near = Math.max(0.1, 0.3 * s); camera.updateProjectionMatrix(); }       // (a nearer near plane only as he is small: the depth buffer keeps its precision, so flat surfaces do not shimmer)
       const f = v(-Math.cos(st.camA), 0, -Math.sin(st.camA)), r = v(Math.sin(st.camA), 0, -Math.cos(st.camA));
-      if (st.lockT > 0) { st.lockT -= dt; keys.up = keys.down = keys.left = keys.right = false; stick.x = stick.y = 0; st.heading += angDiff(st.lockH, st.heading) * Math.min(1, dt * 5); st.camA += angDiff(Math.atan2(-Math.cos(st.lockH), -Math.sin(st.lockH)), st.camA) * Math.min(1, dt * 3); }
+      if (st.lockT > 0) { st.lockT -= dt; keys.up = keys.down = keys.left = keys.right = false; stick.x = stick.y = 0; st.heading += angDiff(st.lockH, st.heading) * Math.min(1, dt * 5); st.camA += angDiff(Math.atan2(-Math.cos(st.lockH), -Math.sin(st.lockH)), st.camA) * Math.min(1, dt * 3); st.pitch += (0.1 - st.pitch) * Math.min(1, dt * 3); }       // (the camera settles low behind him, so that what he has noticed is in view)
       const Hj = HEIGHT * SC * s, busy = !!(st.cl || st.mant);
       const dir = v(0, 0, 0).addScaledVector(f, (keys.up ? 1 : 0) - (keys.down ? 1 : 0)).addScaledVector(r, (keys.right ? 1 : 0) - (keys.left ? 1 : 0));
       if (Math.hypot(stick.x, stick.y) > 0.2) dir.addScaledVector(f, -stick.y).addScaledVector(r, stick.x);
@@ -281,7 +281,7 @@ function run(G, W, opts) {
       if (story && !st.loaf && st.pos.x > 96 && st.pos.z > -109 && st.pos.z < 51) { st.loaf = true; st.lockT = 1.8; st.lockH = Math.atan2(175 - st.pos.x, -36 - st.pos.z); G.caption('jack', 'A loaf! A freshly baked loaf, right there on the table.'); setTimeout(() => G.caption('jack', 'It must be miles up... I wonder if I could climb to it.'), 3400); }
       if (story) { const near = st.pos.x < -82.5 && st.pos.z > -43 && st.pos.z < -8;                                   // (right up at the narrow corridor's doors, where the smell of bread comes through the gap)
         if (near && !st.inZone) { st.inZone = true;
-          if (!st.bread) { st.bread = true; st.lockT = 2.2; st.lockH = Math.atan2(90 - st.pos.x, -25 - st.pos.z); G.caption('jack', 'Is that... warm bread?'); setTimeout(() => G.caption('jack', 'I can smell it from here. I haven\u2019t eaten since... I\u2019m starving.'), 3200); }
+          if (!st.bread) { st.bread = true; st.lockT = 3.0; st.lockH = Math.atan2(90 - st.pos.x, -25 - st.pos.z); G.caption('jack', 'Is that... warm bread?'); setTimeout(() => G.caption('jack', 'I can smell it from here. I haven\u2019t eaten since... I\u2019m starving.'), 3200); }
           else { if (performance.now() - (st.remindAt || 0) > 6000) { st.remindAt = performance.now(); G.caption('jack', 'Not that way. I’m starving, and that bread has to be somewhere close.'); } } }
         else if (!near) st.inZone = false; }
       if (story) storyTick(dt);
