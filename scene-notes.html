@@ -79,6 +79,7 @@ G.mode = 'free'; G.noSave = true; G.settings.auto = true; G.settings.subtitles =
 const KEY = 'castle-consequence:scene-notes:' + (SCENE === 'castle' ? 'castle:v1' : 'night:v2:' + route);       // (v2: beats are camera angles)
 let kept = { cams: {}, notes: {}, lines: {} };
 try { const k = JSON.parse(localStorage.getItem(KEY)); if (k) kept = Object.assign(kept, k); } catch (e) { /* none yet */ }
+if (SCENE === 'castle' && !kept.mig) { delete kept.cams[13]; kept.mig = 1; }                 // (beat 13's camera was set again in the code, to the angle wanted: the one kept before that is dropped, once)
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(kept)); } catch (e) { /* no storage */ } };
 const info = {};                                           // what each beat is, learnt as the scene runs: { who, text, cam (the scene's own angle) }
 const snap = s => ({ pos: [s.pos.x, s.pos.y, s.pos.z], look: [s.look.x, s.look.y, s.look.z], fov: s.fov });
