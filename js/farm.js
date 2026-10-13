@@ -57,6 +57,9 @@ function pathCell(x, z) {                                                       
   if (z > 140) { const mx = 40 * Math.sin((z - 140) / 70) - 10 * Math.sin((z - 140) / 31); return Math.abs(x - mx) < 14; }
   return false;
 }
+// The plot to be dug in the arable land (the gardening sequence): a 3 x 3 of cells, 15 units each, centred here.
+const PLOT = { cx: -118, cz: 10, cell: 15, n: 3 };
+const inPlot = (x, z, m) => Math.abs(x - PLOT.cx) < PLOT.cell * PLOT.n / 2 + (m || 0) && Math.abs(z - PLOT.cz) < PLOT.cell * PLOT.n / 2 + (m || 0);
 function gardenCell(x, z) { return x > -190 && x < -78 && z > -50 && z < 70; }
 
 function buildTerrain(scene) {
@@ -138,8 +141,11 @@ function exterior() {
   box(26, 3, 10, mat('stone'), 0, 1.5, 6, door);
   // Odds and ends at the door: a woodpile with a chopping block and an axe, a rain barrel.
   for (let i = 0; i < 10; i++) box(14, 4, 4, mat('bark'), 62 + (i % 2) * 1, 2 + Math.floor(i / 2) * 4, -D / 2 + 8 - 0 + (i % 2) * 5 + 12, cottage);
-  box(9, 9, 9, mat('bark'), 52, 4.5, 56, cottage); box(1.4, 12, 1.4, mat('plankDark'), 52, 15, 56, cottage).rotation.z = 0.5; box(4, 3, 1, plain('#6a6a70'), 55, 20, 56, cottage);
+  box(9, 9, 9, mat('bark'), 52, 4.5, 56, cottage);
   box(12, 18, 12, mat('plankDark'), -60, 9, 60, cottage);
+  // The hoe, leaning against the front wall of the cottage beside the woodpile: the handle's top against the wall, the blade on the ground.
+  const hoe = new THREE.Group(); hoe.position.set(66, 0, 27.5); hoe.rotation.x = -0.2; farm.add(hoe);
+  box(1.4, 31, 1.4, mat('plankDark'), 0, 15.5, 0, hoe); box(1.2, 5, 1.2, plain('#4a4a50'), 0, 2.2, 1.6, hoe).rotation.x = -0.5; box(8, 0.9, 4.6, plain('#6a6a72'), 0, 0.6, 3.4, hoe);
   // Smoke from the chimney: grey puffs that rise, widen and fade.
   const smoke = []; for (let i = 0; i < 9; i++) { const s = box(7, 7, 7, new THREE.MeshLambertMaterial({ color: 0xcfd2d6, transparent: true, opacity: 0.6 }), 0, 0, 0, chimney); smoke.push({ m: s, t: i / 9 }); }
 
@@ -154,9 +160,13 @@ function exterior() {
   box(26, 3, 2, mat('plankDark'), 13, 16, 0, leaf); box(26, 3, 2, mat('plankDark'), 13, 8, 0, leaf); for (let i = 0; i < 5; i++) box(3, 17, 2, mat('plankDark'), 3 + i * 5.5, 12, 0.2, leaf);
   box(24, 2, 2, mat('plankDark'), 14, 13, 0.2, leaf).rotation.z = 0.5;
   // The garden: ridges that grew nothing, dry stalks, stones, a leaning scarecrow, a fallen fence.
-  for (let i = 0; i < 7; i++) box(96, 3, 6, mat('garden'), -134, 1.5, -40 + i * 15, farm);
-  for (let i = 0; i < 40; i++) { const x = -182 + r() * 100, z = -44 + r() * 108; box(1, 3 + r() * 7, 1, plain(['#7a6a3a', '#8a7a4a', '#5a4a2a'][i % 3]), x, 4 + r() * 2, z, farm).rotation.z = (r() - 0.5) * 0.9; }
-  for (let i = 0; i < 14; i++) box(3 + r() * 4, 2 + r() * 3, 3 + r() * 4, mat('stone'), -180 + r() * 100, 1.5, -44 + r() * 108, farm);
+  for (let i = 0; i < 7; i++) {                                                                                                  // (the ridges stop short of the plot)
+    const z = -40 + i * 15;
+    if (Math.abs(z - PLOT.cz) < PLOT.cell * PLOT.n / 2 + 4) { const x1 = PLOT.cx - PLOT.cell * PLOT.n / 2 - 5; box(x1 + 182, 3, 6, mat('garden'), (x1 - 182) / 2, 1.5, z, farm); }
+    else box(96, 3, 6, mat('garden'), -134, 1.5, z, farm);
+  }
+  for (let i = 0; i < 40; i++) { const x = -182 + r() * 100, z = -44 + r() * 108, m = box(1, 3 + r() * 7, 1, plain(['#7a6a3a', '#8a7a4a', '#5a4a2a'][i % 3]), x, 4 + r() * 2, z, farm); m.rotation.z = (r() - 0.5) * 0.9; if (inPlot(x, z, 5)) farm.remove(m); }
+  for (let i = 0; i < 14; i++) { const x = -180 + r() * 100, z = -44 + r() * 108, m = box(3 + r() * 4, 2 + r() * 3, 3 + r() * 4, mat('stone'), x, 1.5, z, farm); if (inPlot(x, z, 6)) farm.remove(m); }
   const sc = new THREE.Group(); sc.position.set(-150, 0, 20); sc.rotation.z = 0.12; farm.add(sc);
   box(2, 34, 2, mat('bark'), 0, 17, 0, sc); box(24, 2, 2, mat('bark'), 0, 26, 0, sc); box(9, 9, 9, mat('hay'), 0, 36, 0, sc); box(12, 3, 12, plain('#4a3a2a'), 0, 41, 0, sc); box(14, 12, 3, plain('#6a5a48'), 0, 22, 0, sc);
   for (let i = 0; i < 6; i++) box(1.6, 10, 1.6, mat('bark'), -86 + i * 11, 5, 80, farm).rotation.z = (i % 3 - 1) * 0.5; box(70, 1.6, 1.6, mat('bark'), -50, 3, 80, farm).rotation.z = 0.1;
@@ -175,7 +185,7 @@ function exterior() {
 
   const windowTarget = new V3(-34, 30, cz + D / 2 + 1);
   return {
-    scene, cow, windowTarget, cottage, doorLeaf,
+    scene, cow, windowTarget, cottage, doorLeaf, hoe,
     update(dt, t) {
       cow.tick(dt);
       for (const s of smoke) { s.t = (s.t + dt * 0.12) % 1; s.m.position.set(Math.sin(s.t * 6 + 1) * 3 + s.t * 14, 80 + s.t * 70, 0); s.m.scale.setScalar(0.5 + s.t * 1.8); s.m.material.opacity = 0.65 * (1 - s.t); }
@@ -292,5 +302,5 @@ function interior() {
   };
 }
 
-root.Farm = { exterior, interior, mat, plain, unlit, box, rng, tree, textures };
+root.Farm = { PLOT, inPlot, exterior, interior, mat, plain, unlit, box, rng, tree, textures };
 })(typeof window !== 'undefined' ? window : globalThis);

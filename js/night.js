@@ -59,8 +59,12 @@ function build(G) {
     }
     r.neck.rotation.x = 0.28 * a.bow + 0.03 * Math.sin(a.t * 0.9); r.neck.rotation.y = a.look; r.torso.rotation.x = 0.06 * a.bow;
     r.hips.position.y = 12 + Math.abs(Math.sin(a.phase)) * 0.5 * clamp(a.speed / 20, 0, 1);
+    // The garden's work: carrying a stone in both arms; crouching to a weed, a furrow, a bean; swinging the hoe overhead and down.
+    if (a.carry) { r.armL.rotation.x = r.armR.rotation.x = -1.15 * a.carry; r.armL.rotation.z = 0.18 * a.carry; r.armR.rotation.z = -0.18 * a.carry; }
+    if (a.crouch) { const c = a.crouch; r.hips.position.y = 12 - 5 * c; r.legL.thigh.rotation.x = r.legR.thigh.rotation.x = -1.1 * c; r.legL.knee.rotation.x = r.legR.knee.rotation.x = 1.5 * c; r.torso.rotation.x = 0.5 * c; r.armL.rotation.x = -1.3 * c + 0.12 * c * Math.sin(a.t * 9); r.armR.rotation.x = -1.3 * c - 0.12 * c * Math.sin(a.t * 9); }
+    if (a.dig) { const k = 0.5 - 0.5 * Math.cos(a.digT * 5.5), sw = -2.5 + 1.9 * k; r.armL.rotation.x = r.armR.rotation.x = sw; r.armL.rotation.z = 0.12; r.armR.rotation.z = -0.12; r.torso.rotation.x = 0.1 + 0.35 * k; }
   };
-  const aOut = { t: 0, phase: 0, speed: 0, bare: 0, hold: 0, cover: 0, bow: 0, look: 0, fist: 0, shuffle: 0, rub: 0 }, aIn = ja;
+  const aOut = { t: 0, phase: 0, speed: 0, bare: 0, hold: 0, cover: 0, bow: 0, look: 0, fist: 0, shuffle: 0, rub: 0, carry: 0, crouch: 0, dig: 0, digT: 0 }, aIn = ja;
   hold(jackOut, poseJack(jackOut, aOut)); hold(jackIn, poseJack(jackIn, aIn));
   jackOut.root.visible = false; ext.scene.add(jackOut.root);
   const mother = C.makeMother(); mother.setExpr(1);

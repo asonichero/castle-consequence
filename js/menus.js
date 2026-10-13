@@ -61,6 +61,7 @@ async function playNight(choices) {
   const res = await root.Night.run(G, choices);
   G.skipping = false; G.save({ step: 'planted', night: { tier: res.tier, brash: res.brash } });
   if (root.Correction && res.world) await root.Correction.run(G, res.world, res.tier);
+  if (root.Garden && res.world) { G.save({ step: 'garden', night: { tier: res.tier, brash: res.brash } }); await root.Garden.run(G, res.world, res.tier); G.save({ step: 'garden-done' }); }
   showEnd();
 }
 // Debug: the correction on its own, with Jack standing before his Mother as the night scene leaves him.
@@ -72,10 +73,17 @@ async function playCorrection(tier) {
   await root.Correction.run(G, W, tier);
   showEnd();
 }
+// Debug: the gardening on its own, by night, with the beans in Jack's pocket.
+async function playGarden(tier) {
+  hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
+  const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
+  await root.Garden.run(G, W, tier);
+  showEnd();
+}
 function showEnd() {
   const s = G.loadSave() || {}, beans = s.step === 'beans' || s.step === 'planted';
   $('endTitle').textContent = beans ? 'Chapter Two \u2014 The Market Road' : 'Chapter One \u2014 Market Day';
-  $('endText').textContent = s.step === 'planted' ? 'Jack goes out into the dark to plant the beans.' : beans ? 'Jack has the beans, and a mother waiting up for him.' : 'Jack has a cow to sell in the morning.';
+  $('endText').textContent = s.step === 'garden-done' ? 'The beans are in the ground, and Jack is indoors.' : s.step === 'planted' ? 'Jack goes out into the dark to plant the beans.' : beans ? 'Jack has the beans, and a mother waiting up for him.' : 'Jack has a cow to sell in the morning.';
   show('endcard'); G.mode = 'end'; $('fade').style.transition = 'none'; $('fade').style.opacity = 0; document.body.classList.remove('playing', 'cutscene');
 }
 // Level select (debug): plays from a chapter without touching the saved game.
@@ -89,6 +97,7 @@ $('levelSel').onchange = async () => {
     else if (k === 'nightH') await playNight([2, 1, 2]);
     else if (k === 'nightC') await playNight([1, 0, 1]);
     else if (k === 'nightB') await playNight([0, 2, 0]);
+    else if (k === 'gardenH' || k === 'gardenC' || k === 'gardenB') await playGarden(k === 'gardenH' ? 0 : k === 'gardenC' ? 1 : 2);
     else if (k === 'corrH' || k === 'corrC' || k === 'corrB') await playCorrection(k === 'corrH' ? 0 : k === 'corrC' ? 1 : 2);
   } finally { G.noSave = false; G.debugCtl = false; }
 };
