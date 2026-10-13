@@ -274,9 +274,9 @@ function run(G, W, opts) {
         for (let i = 1; i <= 30; i++) { const k = i / 30; gst.hold = k; gst.bend *= 0.96; gst.reach *= 0.96; jackOut.root.position.set(lerp(lp.x, PJ.px, k), lerp(lp.y, PJ.py, k), lerp(lp.z, PJ.pz, k)); jackOut.root.rotation.set(lerp(le.x, PJ.rx, k), lerp(le.y, PJ.ry, k), lerp(le.z, PJ.rz, k)); placeGerda(); follow(); cam(); await G.wait(0.04); }
         for (let i = 0; i < 6; i++) { jackOut.root.position.set(PJ.px, PJ.py, PJ.pz); jackOut.root.rotation.set(PJ.rx, PJ.ry, PJ.rz); placeGerda(); follow(); cam(); await G.wait(0.04); }
         // before the scene proper, she steps back into the nearest open space, so that the cameras have room and nothing of hers goes into anything
-        { const clear = (x, z) => !hit(x, z, 17, 4, 60, 0) && !hit(x, z, 11, 60, 90, 0); let sp = null, bd = 1e9;
+        { const clear = (x, z) => !hit(x, z, 15, 4, 50, 0), pathOk = (x, z) => !hit(x, z, 8, 4, 50, 0); let sp = null, bd = 1e9;
           for (let r = 0; r <= 70; r += 5) for (let k = 0; k < 24; k++) { const a2 = k * Math.PI / 12, x = gst.x + Math.cos(a2) * r, z = gst.z + Math.sin(a2) * r; if (!clear(x, z) || x < 100 || x > 236 || z < -100 || z > 44) continue;
-            const n = Math.ceil(r / 3); let ok = true; for (let i = 1; i <= n && ok; i++) if (!clear(gst.x + (x - gst.x) * i / n, gst.z + (z - gst.z) * i / n)) ok = false; if (!ok) continue;
+            const n = Math.ceil(r / 3); let ok = true; for (let i = 1; i <= n && ok; i++) if (!pathOk(gst.x + (x - gst.x) * i / n, gst.z + (z - gst.z) * i / n)) ok = false; if (!ok) continue;
             const back = Math.cos(a2 - (gst.h + Math.PI)), cost = r - back * 6; if (cost < bd) { bd = cost; sp = [x, z]; } if (sp && r >= 15) break; }
           G.castleWalk.back = { from: [gst.x, gst.z], sp, clearHere: clear(gst.x, gst.z) };
           if (sp && Math.hypot(sp[0] - gst.x, sp[1] - gst.z) > 1) { const x0 = gst.x, z0 = gst.z, n = Math.max(2, Math.ceil(Math.hypot(sp[0] - x0, sp[1] - z0) / 0.9)); for (let i = 1; i <= n; i++) { const k = i / n; gst.x = x0 + (sp[0] - x0) * k; gst.z = z0 + (sp[1] - z0) * k; gst.ph -= 0.4; gst.walk = 0.7; placeGerda(); follow(); cam(); await G.wait(0.04); } gst.walk = 0; placeGerda(); follow(); } }
