@@ -65,7 +65,7 @@ async function playNight(choices) {
   G.skipping = false; G.save({ step: 'planted', night: { tier: res.tier, brash: res.brash } }); snap(res.world.world);
   if (root.Correction && res.world) await root.Correction.run(G, res.world, res.tier);
   if (root.Garden && res.world) { G.save({ step: 'garden', night: { tier: res.tier, brash: res.brash } }); await root.Garden.run(G, res.world, res.tier); G.save({ step: 'garden-done' }); snap(res.world.world); }
-  if (root.Chapter3 && res.world) { await root.Chapter3.run(G, res.world); G.save({ step: 'beanstalk' }); snap(res.world.world, STALK_VIEW); if (root.Climb) { await root.Climb.run(G, res.world); G.save({ step: 'climb-done' }); if (root.Meadow) { await root.Meadow.run(G, res.world); G.save({ step: 'meadow-done' }); } } }
+  if (root.Chapter3 && res.world) { await root.Chapter3.run(G, res.world); G.save({ step: 'beanstalk' }); snap(res.world.world, STALK_VIEW); if (root.Climb) { await root.Climb.run(G, res.world); G.save({ step: 'climb-done' }); if (root.Meadow) { await root.Meadow.run(G, res.world); G.save({ step: 'meadow-done' }); if (root.CastleWalk) { G.save({ step: 'castle' }); await root.CastleWalk.run(G, res.world, { story: true }); } } } }
   showEnd();
 }
 // Debug: the correction on its own, with Jack standing before his Mother as the night scene leaves him.
@@ -90,7 +90,7 @@ async function playClimb() {
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
   W.jackOut.root.visible = true; W.jackOut.root.position.set(CLIMB_BASE.x, 0, CLIMB_BASE.z);
-  await root.Climb.run(G, W); G.save({ step: 'climb-done' }); if (root.Meadow) { await root.Meadow.run(G, W); G.save({ step: 'meadow-done' }); }
+  await root.Climb.run(G, W); G.save({ step: 'climb-done' }); if (root.Meadow) { await root.Meadow.run(G, W); G.save({ step: 'meadow-done' }); if (root.CastleWalk) { G.save({ step: 'castle' }); await root.CastleWalk.run(G, W, { story: true }); } }
   showEnd();
 }
 const CLIMB_BASE = { x: 0, z: 0 };
@@ -98,24 +98,24 @@ const CLIMB_BASE = { x: 0, z: 0 };
 async function playMeadow() {
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
-  await root.Meadow.run(G, W); G.save({ step: 'meadow-done' });
+  await root.Meadow.run(G, W); G.save({ step: 'meadow-done' }); if (root.CastleWalk) { G.save({ step: 'castle' }); await root.CastleWalk.run(G, W, { story: true }); }
   showEnd();
 }
 // Test level: walk about the castle at any size.
-async function playCastle() {
+async function playCastle(story) {
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
-  await root.CastleWalk.run(G, W);
+  await root.CastleWalk.run(G, W, story ? { story: true } : undefined); if (story) showEnd();
 }
 async function playChapter3(only) {
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
   await root.Chapter3.run(G, W, only ? { only } : null); G.save({ step: 'beanstalk' }); snap(W.world, STALK_VIEW);
-  if (root.Climb) { await root.Climb.run(G, W); G.save({ step: 'climb-done' }); if (root.Meadow) { await root.Meadow.run(G, W); G.save({ step: 'meadow-done' }); } }
+  if (root.Climb) { await root.Climb.run(G, W); G.save({ step: 'climb-done' }); if (root.Meadow) { await root.Meadow.run(G, W); G.save({ step: 'meadow-done' }); if (root.CastleWalk) { G.save({ step: 'castle' }); await root.CastleWalk.run(G, W, { story: true }); } } }
   showEnd();
 }
 function showEnd() {
-  const s = G.loadSave() || {}, two = ['dress', 'beanstalk', 'climb', 'climb-done', 'meadow', 'meadow-done'].includes(s.step), beans = ['beans', 'planted', 'garden', 'garden-done'].includes(s.step);
+  const s = G.loadSave() || {}, two = ['dress', 'beanstalk', 'climb', 'climb-done', 'meadow', 'meadow-done', 'castle'].includes(s.step), beans = ['beans', 'planted', 'garden', 'garden-done'].includes(s.step);
   $('endTitle').textContent = two ? 'Chapter Two \u2014 The Climb' : 'Chapter One \u2014 Market Day';
   $('endText').textContent = s.step === 'meadow-done' ? 'Jack has stepped through the castle gate, and somewhere inside a bell is tolling.' : s.step === 'climb-done' ? 'Jack has climbed through the clouds.' : s.step === 'dress' ? 'Jack is awake in the dawn, with a beanstalk outside.' : s.step === 'beanstalk' ? 'A beanstalk has grown in the night, and Jack means to climb it.' : s.step === 'garden-done' ? 'The beans are in the ground, and Jack is indoors.' : s.step === 'planted' ? 'Jack goes out into the dark to plant the beans.' : beans ? 'Jack has the beans, and a mother waiting up for him.' : 'Jack has a cow to sell in the morning.';
   show('endcard'); G.mode = 'end'; $('fade').style.transition = 'none'; $('fade').style.opacity = 0; document.body.classList.remove('playing', 'cutscene');
@@ -137,6 +137,7 @@ $('levelSel').onchange = async () => {
     else if (k === 'climb') await playClimb();
     else if (k === 'meadow') await playMeadow();
     else if (k === 'castle') await playCastle();
+    else if (k === 'castlehall') await playCastle(true);
     else if (k === 'corrH' || k === 'corrC' || k === 'corrB') await playCorrection(k === 'corrH' ? 0 : k === 'corrC' ? 1 : 2);
   } finally { G.noSave = false; G.debugCtl = false; }
 };
@@ -145,7 +146,7 @@ if (/[?&]debug\b/.test(location.search)) G.debugCtl = true;
 $('dbgBack').onclick = () => G.rewind(); $('dbgPlay').onclick = () => G.pause(); $('dbgFwd').onclick = () => G.forward();
 setInterval(() => { const on = G.debugCtl && G.mode === 'cutscene'; document.body.classList.toggle('dbg', on); if (on) { $('dbgPlay').textContent = G.paused ? '\u25B6' : '\u275A\u275A'; $('dbgBack').disabled = !G.rerun; $('dbgInfo').textContent = 'beat ' + G.beat + (G.seekTo != null ? ' \u2192 ' + G.seekTo : ''); } }, 150);
 $('bNew').onclick = () => { G.noSave = false; if (G.loadSave() && !confirm('Start a new game? Your saved game will be replaced.')) return; G.clearSave(); playOpening(); };
-$('bContinue').onclick = () => { G.noSave = false; wake(); const sv = G.loadSave() || {}; if (sv.step === 'market-day') playMarket(); else if (sv.step === 'market-road') playRoad(); else if (sv.step === 'garden-done') playChapter3(); else if (sv.step === 'dress') playChapter3('dress'); else if (sv.step === 'beanstalk' || sv.step === 'climb') playClimb(); else if (sv.step === 'climb-done' || sv.step === 'meadow' || sv.step === 'meadow-done') playMeadow(); else if (sv.step === 'beans') playNight((sv.choices) || []); else { hideAll(); showEnd(); } };
+$('bContinue').onclick = () => { G.noSave = false; wake(); const sv = G.loadSave() || {}; if (sv.step === 'market-day') playMarket(); else if (sv.step === 'market-road') playRoad(); else if (sv.step === 'garden-done') playChapter3(); else if (sv.step === 'dress') playChapter3('dress'); else if (sv.step === 'beanstalk' || sv.step === 'climb') playClimb(); else if (sv.step === 'climb-done' || sv.step === 'meadow') playMeadow(); else if (sv.step === 'meadow-done' || sv.step === 'castle') playCastle(true); else if (sv.step === 'beans') playNight((sv.choices) || []); else { hideAll(); showEnd(); } };
 $('bSettings').onclick = () => { wake(); show('settings'); };
 $('bBack').onclick = () => { G.saveSettings(); if (pmOpen()) pmBack(); else show('title'); };
 $('bTitle').onclick = toTitle;

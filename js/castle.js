@@ -51,6 +51,7 @@ function interior() {
   const cloud = box(2600, 4, 2600, plain('#f4f0f4'), -20, -9, -170, scene);
   const slab = (x0, z0, x1, z1, floorM, ceilM, noCeil, ch) => { const Hc = ch || H; box(x1 - x0, 2, z1 - z0, floorM, (x0 + x1) / 2, -1, (z0 + z1) / 2, room); if (!noCeil) { box(x1 - x0 + 4, 3, z1 - z0 + 4, ceilM || boneM, (x0 + x1) / 2, Hc + 1.5, (z0 + z1) / 2, ceil); const n = Math.max(1, Math.round((z1 - z0) / 36)); for (let i = 0; i < n; i++) { const zz = z0 + (i + 0.5) * (z1 - z0) / n; box(x1 - x0, 7, 6.4, plain('#4a3626'), (x0 + x1) / 2, Hc - 3.5, zz, ceil); box(x1 - x0, 2, 9, plain('#3a2a20'), (x0 + x1) / 2, Hc - 7.5, zz, ceil); } } };
   // ops: [from, to, bottom, top] along the wall; the wall is a run along x (axis 'z', at z = fixed) or along z (axis 'x', at x = fixed).
+  const doors = [], hallLeaves = [];
   const R2 = F.rng(909);                                                             // (its own dice, so the detail never shifts the rest)
   const wall = (axis, fixed, a0, a1, m, ops, h, th) => {
     h = h || H; th = th || 4; const seg = (c0, c1, y0, y1) => { if (c1 - c0 < 0.05 || y1 - y0 < 0.05) return; if (axis === 'z') box(c1 - c0, y1 - y0, th, m, (c0 + c1) / 2, (y0 + y1) / 2, fixed, room); else box(th, y1 - y0, c1 - c0, m, fixed, (y0 + y1) / 2, (c0 + c1) / 2, room); };
@@ -69,7 +70,7 @@ function interior() {
     sorted.forEach((o, i) => {                                                            // a door in every doorway (ajar, and no hindrance), double where wide
       if (o[2] > 0.5 || o[3] < 20 || (axis === 'z' && fixed === 110)) return; const w = o[1] - o[0], dbl = w > 30, hh = o[3] - 0.6, par = Math.abs(Math.round(fixed + o[0])) % 2, ang = 1.75 + (Math.abs(Math.round(o[0] * 3)) % 5) * 0.06;
       const leaf = (hx, sgn, lw, push) => { const og = new THREE.Group(); og.position.set(axis === 'z' ? hx : fixed, 0, axis === 'z' ? fixed : hx); og.rotation.y = axis === 'z' ? 0 : -Math.PI / 2; og.userData.noCollide = true; room.add(og);
-        const lg = new THREE.Group(); lg.rotation.y = sgn * push * ang; og.add(lg); const cx = sgn * lw / 2;
+        const lg = new THREE.Group(); lg.rotation.y = sgn * push * ang; og.add(lg); doors.push({ og, lg, axis, fixed, c: (o[0] + o[1]) / 2 }); const cx = sgn * lw / 2;
         box(lw - 0.4, hh, 1.8, plain('#6a4a2e'), cx, hh / 2, 0, lg); box(lw - 3, hh - 6, 0.5, plain('#7e5a38'), cx, hh / 2, 1.0, lg); box(lw - 3, hh - 6, 0.5, plain('#7e5a38'), cx, hh / 2, -1.0, lg);
         for (const y of [0.22, 0.5, 0.78]) box(lw - 0.2, 2.2, 2.4, plain('#2b2d36'), cx, hh * y, 0, lg); box(1.6, 1.6, 4, plain('#c9a23c'), sgn * (lw - 3), hh * 0.45, 0, lg); };
       if (dbl) { leaf(o[0], 1, w / 2, par ? 1 : -1); leaf(o[1], -1, w / 2, par ? 1 : -1); } else if (par) leaf(o[0], 1, w, 1); else leaf(o[1], -1, w, -1);
@@ -112,7 +113,7 @@ function interior() {
   window_('z', 110, -61, 24, 50, 76, -1, true); window_('z', 110, 61, 24, 50, 76, -1, true);
   window_('z', -110, -68, 24, 50, 76, 1, true); window_('z', -110, 68, 24, 50, 76, 1, true);
   // the grand doors, standing open
-  for (const sx of [-1, 1]) { const lf = at(sx * 35, 0, 110); lf.rotation.y = sx * -1.3; room.add(lf); B(35, 75, 2.6, '#3a2a20', -sx * 17.5, 37.5, 0, lf); for (const y of [18, 37, 56]) B(35, 3, 3.2, '#2b2d36', -sx * 17.5, y, 0, lf); B(2.4, 75, 3.4, '#2b2d36', -sx * 3, 37.5, 0, lf); }
+  for (const sx of [-1, 1]) { const lf = at(sx * 35, 0, 110); lf.rotation.y = sx * -1.3; room.add(lf); hallLeaves.push({ lf, sx }); B(35, 75, 2.6, '#3a2a20', -sx * 17.5, 37.5, 0, lf); for (const y of [18, 37, 56]) B(35, 3, 3.2, '#2b2d36', -sx * 17.5, y, 0, lf); B(2.4, 75, 3.4, '#2b2d36', -sx * 3, 37.5, 0, lf); }
   box(90, 6, 6, boneM, 0, 79, 110, room);
   // the hearth, gaping, at the far end
   { const hg = at(0, 0, -110); room.add(hg); B(92, 50, 20, '#cfc7b0', 0, 25, 10, hg); B(40, 30, 21, '#14100c', 0, 15, 10.4, hg); B(100, 5, 24, '#bdb59d', 0, 52, 10, hg); B(54, 8, 22, '#bdb59d', 0, 34, 10.2, hg); B(46, 1, 12, '#3a3a3a', 0, 0.5, 14, hg);
@@ -315,7 +316,7 @@ function interior() {
   const bounds = { x0: -330, x1: 400, z0: -365, z1: 124 };
   const views = { front: [[40, 36, 420], [40, 30, 100]], top: [[40, 760, 20], [40, 0, -120]], iso: [[330, 380, 300], [30, 0, -110]], hall: [[0, 40, 104], [0, 22, -60]], hearth: [[0, 40, -96], [0, 20, 40]], west: [[-100, 38, -26], [-270, 20, -26]], corridorB: [[-294, 40, 90], [-294, 18, -150]], library: [[-100, 38, -100], [-240, 14, -110]], playroom: [[-110, 44, -170], [-250, 10, -250]], kitchen: [[100, 40, 48], [190, 12, -30]], roost: [[256, 44, -214], [320, 14, -280]], garden: [[-80, 60, -120], [100, 4, -250]] };
   return {
-    scene, room, ceiling: ceil, windows, items, place, layout: () => { const o = {}; for (const k in items) { const g = items[k].g; o[k] = { x: +g.position.x.toFixed(1), z: +g.position.z.toFixed(1), ry: +g.rotation.y.toFixed(3) }; } return o; },
+    scene, room, ceiling: ceil, windows, doors, hallLeaves, items, place, layout: () => { const o = {}; for (const k in items) { const g = items[k].g; o[k] = { x: +g.position.x.toFixed(1), z: +g.position.z.toFixed(1), ry: +g.rotation.y.toFixed(3) }; } return o; },
     W: bounds.x1 - bounds.x0, D: bounds.z1 - bounds.z0, H, bounds, views, woman: room.userData.woman,
     update(dt, t) { for (const f of flames) { const s = f.base * (0.8 + 0.55 * Math.sin(t * 9 + f.ph) * Math.sin(t * 5.3 + f.ph * 2)); f.m.scale.y = Math.max(0.3, s / f.base); } for (const a of anim) a(t); },
   };

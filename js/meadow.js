@@ -9,7 +9,7 @@ const THREE = root.THREE, F = root.Farm, A = root.GameAudio, V3 = THREE.Vector3;
 const v = (x, y, z) => new V3(x, y, z), clamp = (x, a, b) => Math.max(a, Math.min(b, x)), lerp = (a, b, t) => a + (b - a) * t;
 const angDiff = (a, b) => { let d = (a - b) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; };
 const SC = 0.95, K0 = 0.25, K1 = 0.10;
-const START_Z = 40, DOOR_Z = -788, TRIGGER_Z = -742;                    // (the walk runs along -z, from the edge of the cloud, over a paved forecourt, to the castle's great door)
+const START_Z = 40, DOOR_Z = -788, TRIGGER_Z = -742, CZW = -790;                    // (the walk runs along -z, from the edge of the cloud, over a paved forecourt, to the castle's great door)
 const KFIX = (/[?&]meadowk=([0-9.]+)/.exec(typeof location !== 'undefined' ? location.search : '') || [])[1];            // (a test: ?meadowk=1 puts Jack at full size the whole way, to judge the flora against him)
 const kOf = z => KFIX ? +KFIX : lerp(K0, K1, clamp((START_Z - z) / (START_Z - TRIGGER_Z), 0, 1));
 // The way to the castle: a footpath at full size (about 14 across), meandering gently, and straight to the gate.
@@ -84,11 +84,14 @@ function build() {
   const pave = new THREE.MeshLambertMaterial({ map: stoneTex(26, 11), color: 0xaaa798 }), kerb = new THREE.MeshLambertMaterial({ map: stoneTex(30, 1), color: 0xbab6a6 });
   box(280, 0.6, 104, pave, 0, 0.3, CZ + 52, castle); for (const sx of [-1, 1]) { box(126, 1.4, 2, kerb, sx * 77, 0.7, CZ + 104, castle); box(2, 1.4, 104, kerb, sx * 140, 0.7, CZ + 52, castle); }
   const wood = new THREE.MeshLambertMaterial({ color: 0x3a2a20 }), iron = new THREE.MeshPhongMaterial({ color: 0x2b2d36, shininess: 70, specular: 0x667088 });
-  box(70, 75, 3, wood, 0, 37.5, CZ + 1.5, castle); box(70, 3, 4, iron, 0, 20, CZ + 2, castle); box(70, 3, 4, iron, 0, 55, CZ + 2, castle); box(2, 75, 4, iron, 0, 37.5, CZ + 2, castle); box(4, 4, 3, iron, -7, 36, CZ + 3, castle); box(4, 4, 3, iron, 7, 36, CZ + 3, castle);
+  box(33, 75, 3, wood, -18.5, 37.5, CZ + 1.5, castle); box(33, 75, 3, wood, 18.5, 37.5, CZ + 1.5, castle); box(4, 68.4, 3, wood, 0, 40.8, CZ + 1.5, castle); box(4, 2.4, 3, pave, 0, 1.2, CZ + 1.5, castle);           // the great door, with a crack at its foot just wide enough for him
+  { const gl = new THREE.Mesh(new THREE.PlaneGeometry(4, 4.2), new THREE.MeshBasicMaterial({ color: 0x6a4824, fog: false })); gl.position.set(0, 4.5, CZ + 0.08); castle.add(gl); }                                       // (a dim warm light beyond it)
+  box(70, 3, 4, iron, 0, 20, CZ + 2, castle); box(70, 3, 4, iron, 0, 55, CZ + 2, castle); box(2, 68, 4, iron, -3.4, 41, CZ + 2, castle); box(2, 68, 4, iron, 3.4, 41, CZ + 2, castle); box(4, 4, 3, iron, -9, 36, CZ + 3, castle); box(4, 4, 3, iron, 9, 36, CZ + 3, castle);
   for (let i = 0; i < 3; i++) { const top = 1.2 + i * 0.6; box(78, top - 0.6, 6, pave, 0, 0.6 + (top - 0.6) / 2, CZ + 15 - i * 6 - 3 + 6, castle); }
   castle.updateMatrixWorld(true);
   // What he stands on: the path, the shallow stream and the paving are floor, at their own heights.
   const groundY = (x, z) => {
+    if (z < CZ + 21 && z > CZ + 3 && Math.abs(x) < 39) return 1.2 + 0.6 * Math.floor((CZ + 21 - z) / 6);
     if (z < CZ + 104 && z > CZ && Math.abs(x) < 140) return 0.6;
     for (const q of streams) { const zs = q[0] + q[1] * Math.sin(x * 0.012 + q[2]); if (Math.abs(z - zs) < 11) return 0.47; }
     if (z < 60 && z > CZ + 104 && Math.abs(x - pathX(z)) < 7.5) return 0.31;
@@ -100,6 +103,7 @@ function build() {
 
 // What he carries: his father's knife, the satchel, and a flask at his belt (the flask is new).
 function addGear(rig) {
+  if (rig.geared) return; rig.geared = true;
   const box = F.box, plain = F.plain, g = new THREE.Group();
   const knife = new THREE.Group(); box(1.2, 8, 0.8, plain('#b9bfc8'), 0, -4.5, 0, knife); box(1.6, 3.6, 1.2, plain('#4a3626'), 0, 0, 0, knife); box(3, 0.7, 1.4, plain('#b8923a'), 0, -1.8, 0, knife); knife.position.set(-5.6, 2, 0.4); rig.hips.add(knife);
   const satchel = new THREE.Group(); box(1.3, 10, 4.7, plain('#6a4a2e'), 0, 6.5, 0, satchel).rotation.z = 0.37; box(2.6, 7, 8, plain('#8a6a42'), 5.4, 3, 0, satchel); box(2.9, 3, 8.2, plain('#6a4a2e'), 5.4, 5.6, 0, satchel); box(0.8, 1.6, 1.4, plain('#b8923a'), 6.9, 4.4, 0, satchel); rig.torso.add(satchel);
@@ -216,17 +220,29 @@ function run(G, W) {
 
     // ── At the gate. ──
     async function arrive() {
-      st.free = false; st.walkN = 0; hud.style.display = 'none'; G.mode = 'cutscene'; document.body.classList.add('cutscene'); st.pos.x = clamp(st.pos.x, -30, 30); st.heading = Math.PI;
+      st.free = false; st.walkN = 0; st.bob = 0; hud.style.display = 'none'; G.mode = 'cutscene'; document.body.classList.add('cutscene'); st.pos.x = clamp(st.pos.x, -30, 30); st.heading = Math.PI;
       const zJ = st.pos.z; G.cut({ pos: v(st.pos.x + 5, 2.4, zJ + 34), look: v(0, 30, DOOR_Z), fov: 56 }); st.look = -0.7; st.craned = 1;
       await G.shot({ pos: v(st.pos.x + 4, 1.4, zJ + 26), look: v(0, 72, DOOR_Z), fov: 64 }, 6.5, 'inOut'); await wait(0.8);
       G.cut({ pos: v(st.pos.x - 3, 3.4, zJ - 10), look: v(st.pos.x, 2.5, zJ), fov: 36 }); st.look = 0.1; st.craned = 0; W.paintJack(jackOut, { expr: 4 });
       await wait(0.8);
       await G.say('jack', 'My satchel’s heavier... my belt, the flask... it isn’t the world that’s grown. It’s me. I’m getting smaller.'); await wait(0.5); await G.say('jack', 'Doesn’t matter. I’m not turning back now.');
       st.look = 0; W.paintJack(jackOut, { expr: 1 });
-      G.cut({ pos: v(st.pos.x - 8, 3.6, zJ + 20), look: v(st.pos.x, 8, zJ - 14), fov: 50 });
-      await wait(1.2); A && A.bell && A.bell(0.7); A && A.duckMusic && A.duckMusic(0.05, 1);
-      for (let i = 0; i < 20; i++) { G.cut({ pos: v(st.pos.x - 8 + (Math.random() - 0.5) * 0.4, 3.6 + (Math.random() - 0.5) * 0.3, zJ + 20), look: v(st.pos.x, 8, zJ - 14), fov: 50 }); await wait(0.04); }
-      await wait(3.4); await G.fade(true, 2.2); A && A.ambience({ wind: 0, birds: 0, fire: 0 });
+      // The walk to the foot of the great door (scripted, in a fixed number of steps so that skipping lands him in the same place).
+      const walkTo = async (tx, tz, secs, cam) => {
+        const x0 = st.pos.x, z0 = st.pos.z, n = Math.max(2, Math.round(secs / 0.04)); st.heading = Math.atan2(tx - x0, tz - z0);
+        for (let i = 1; i <= n; i++) { const k = i / n; st.pos.x = x0 + (tx - x0) * k; st.pos.z = z0 + (tz - z0) * k; st.y += (M.groundY(st.pos.x, st.pos.z) - st.y) * 0.45; st.walkN = 1; st.walkPh += 10.9 * Math.pow(st.kk / SC, -0.35) * 0.55 * 0.04 * 1.4; if (cam) G.cut(cam()); await wait(0.04); }
+        st.walkN = 0;
+      };
+      const low = () => ({ pos: v(st.pos.x - 1.6, st.y + 1.7, st.pos.z + 9), look: v(0, st.y + 2.6, CZW), fov: 46 });
+      await walkTo(0, CZW + 26, 4.4, low);
+      // At the foot of the steps: the gap under the door, and him looking at it.
+      G.cut({ pos: v(-7, 1.4, CZW + 17), look: v(0, 3.2, CZW + 2), fov: 38 }); st.heading = Math.PI; st.look = 0.15; await wait(1.4);
+      await G.say('jack', 'There. A gap at the foot of the door. Just wide enough.'); st.look = 0; await wait(0.4);
+      // Up the steps and into the dark, the picture fading as he goes.
+      const fadeOut = G.fade(true, 2.0);
+      await walkTo(0, CZW + 8, 1.6, () => ({ pos: v(-5, st.y + 1.5, st.pos.z + 9), look: v(0, st.y + 2.8, CZW), fov: 42 }));
+      await walkTo(0, CZW + 0.6, 1.5, () => ({ pos: v(-4, st.y + 1.2, st.pos.z + 7), look: v(0, st.y + 2.8, CZW), fov: 40 }));
+      await fadeOut; A && A.ambience({ wind: 0, birds: 0, fire: 0 }); await wait(0.5);
       cleanup(); G.mode = 'end'; document.body.classList.remove('cutscene'); resolve({ arrived: true });
     }
   });

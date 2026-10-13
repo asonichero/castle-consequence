@@ -25,18 +25,23 @@ function collect(room, ceiling) {
   return { boxes, near };
 }
 
-function run(G, W) {
+function run(G, W, opts) {
+  opts = opts || {}; const story = !!opts.story, ROOMS = { hall: [-88, 88, -108, 108] };
   return new Promise(async resolve => {
     const { jackOut, aOut } = W, el = G.renderer.domElement, camera = G.camera, nearOld = camera.near;
     const M = root.Castle.interior(), scene = M.scene, ceiling = M.ceiling;
+    // In the story, only some rooms are his: the others' doors are shut, and the walls of the rest keep him in. (Jack comes in under the great door, at the size he left the meadow: a tenth.)
+    const open = story ? (opts.rooms || ['hall']).map(k => ROOMS[k]) : null;
+    if (story) { const near = (d, r) => { const x = d.axis === 'z' ? d.c : d.fixed, z = d.axis === 'z' ? d.fixed : d.c, e = 6; return x > r[0] - e && x < r[1] + e && z > r[2] - e && z < r[3] + e && !(x > r[0] + e && x < r[1] - e && z > r[2] + e && z < r[3] - e); };
+      for (const d of M.doors) if (open.some(r => near(d, r))) { d.lg.rotation.y = 0; d.og.userData.noCollide = false; } for (const h of M.hallLeaves) h.lf.rotation.y = 0; }
     const world = { scene, update(dt, t) { M.update(dt, t); aOut.t += dt; root.Blocky.step(jackOut, dt); } };
     // two more horses' worth of toys are not wanted here: one rocking horse is all the nursery has (see castle.js)
     const C = collect(M.room, ceiling);
     scene.add(jackOut.root); jackOut.root.visible = true; W.paintJack(jackOut, { expr: 0 }); root.Meadow && root.Meadow.addGear && root.Meadow.addGear(jackOut);
-    G.setScene(world); G.drone = null; G.noSave = true;
+    G.setScene(world); G.drone = null; if (!story) G.noSave = true;
     camera.near = 0.4; camera.far = 1600; camera.updateProjectionMatrix(); let nearS = 0;
     A && A.ambience({ wind: 0, birds: 0, fire: 0.2 });
-    const st = { pos: v(0, 0, 70), heading: Math.PI, walkN: 0, walkPh: 0, camA: Math.PI / 2, pitch: 0.35, fpPitch: 0, zoom: 1, vy: 0, y: 0, jumpReq: false, s: FULL, fp: false, toastAt: 0 };
+    const st = { pos: v(0, 0, story ? 98 : 70), heading: Math.PI, walkN: 0, walkPh: 0, camA: Math.PI / 2, pitch: 0.35, fpPitch: 0, zoom: 1, vy: 0, y: 0, jumpReq: false, s: story ? (opts.scale || 0.1) : FULL, fp: false, toastAt: 0 };
     jackOut.after = r => {
       const w = Math.sin(st.walkPh) * 0.7 * st.walkN;
       r.legL.thigh.rotation.x = w; r.legR.thigh.rotation.x = -w; r.legL.knee.rotation.x = 0; r.legR.knee.rotation.x = 0;
@@ -83,6 +88,7 @@ function run(G, W) {
     const camPos = new V3(), camLook = new V3();
     const step = () => 4 * st.s;                                                       // how high a ledge he steps straight up onto
     const blockedAt = (x, z, y) => { const r = 4 * st.s, top = y + HEIGHT * st.s * 0.98, up = y + step(); if (x < M.bounds.x0 || x > M.bounds.x1 || z < M.bounds.z0 || z > M.bounds.z1) return true;
+      if (open && !open.some(q => x > q[0] && x < q[1] && z > q[2] && z < q[3])) return true;
       for (const e of C.near(x, z, r)) { if (e.y1 <= up || e.y0 >= top) continue; const cx = clamp(x, e.x0, e.x1), cz = clamp(z, e.z0, e.z1); if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r) return true; } return false; };
     const floorAt = (x, z, y) => { const r = 3 * st.s, up = y + step() + 0.5; let g = 0; for (const e of C.near(x, z, r)) { if (e.y1 > up || e.y1 <= g) continue; const cx = clamp(x, e.x0, e.x1), cz = clamp(z, e.z0, e.z1); if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r) g = e.y1; } return g; };
     const camBlocked = (p, s) => { if (p.y > M.H - 2 || p.y < 1 * s) return true; for (const e of C.near(p.x, p.z, 3)) if (e.y1 - e.y0 > 30 && p.x > e.x0 - 1.5 * s && p.x < e.x1 + 1.5 * s && p.z > e.z0 - 1.5 * s && p.z < e.z1 + 1.5 * s && p.y > e.y0 && p.y < e.y1) return true; return false; };
@@ -116,7 +122,8 @@ function run(G, W) {
     const cleanup = () => { root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('wheel', wheel); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu); G.updaters = G.updaters.filter(u => u !== tick); hud.remove(); css.remove(); jackOut.after = null; jackOut.root.scale.setScalar(SC); jackOut.root.visible = true; camera.near = nearOld; camera.updateProjectionMatrix(); };
     G.updaters.push(tick); G.castleWalk = { st, cleanup, resolve };
     G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine();
-    toast('WASD or the stick to walk · Shift runs · Space jumps · drag to look · V or the wheel zooms · C for first person');
+    if (story) { $('cwPanel').style.display = 'none'; G.save({ step: 'castle' }); }
+    toast(story ? 'Inside the castle. WASD or the stick to walk \u00b7 Shift runs \u00b7 Space jumps \u00b7 drag to look \u00b7 V or the wheel zooms \u00b7 C for first person' : 'WASD or the stick to walk · Shift runs · Space jumps · drag to look · V or the wheel zooms · C for first person');
     const f = $('fade'); f.style.transition = ''; await G.fade(false, 1.2);
   });
 }
