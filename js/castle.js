@@ -18,6 +18,13 @@ const floorHall = () => surface('hall', () => canvasTex(128, 128, (g, w, h) => {
   g.fillStyle = '#efe6d0'; g.fillRect(0, 0, w, h); speck(g, w, h, ['#f4ecd8', '#e6dcc2', '#ebe1c8'], 500);
   for (let v = 0; v < 9; v++) { let x = rng() * w, y = rng() * h; g.fillStyle = rng() < 0.5 ? '#c4ccd8' : '#dde2ea'; for (let i = 0; i < 40; i++) { g.fillRect(Math.floor(x) % w, Math.floor(y) % h, 2, 2); x += (rng() - 0.35) * 4; y += (rng() - 0.5) * 3 + 1; } }
   g.fillStyle = '#d6cdb4'; for (let i = 0; i < w; i += 32) { g.fillRect(i, 0, 1, h); g.fillRect(0, i, w, 1); } }, 44, 44));
+// flagstones, as at 100% scale: each stone about 14 across (a third of a full-size Jack's height), laid in a running bond, no two quite the same colour
+const flagBase = (() => { let t; return () => t || (t = canvasTex(128, 128, (g, w, h) => {
+  const tones = ['#e4dac2', '#d8ccb0', '#e8dfca', '#d2c7ab', '#dfd3b8'], rr = F.rng(2718); g.fillStyle = '#a89d84'; g.fillRect(0, 0, w, h);
+  for (let r = 0; r < 2; r++) for (let c = -1; c < 3; c++) { const x = c * 64 + (r ? 32 : 0), y = r * 64; g.fillStyle = tones[Math.floor(rr() * tones.length)]; g.fillRect(x + 1.5, y + 1.5, 61, 61);
+    for (let i = 0; i < 70; i++) { g.fillStyle = rr() < 0.5 ? 'rgba(255,255,255,0.18)' : 'rgba(90,80,60,0.16)'; g.fillRect(x + 2 + Math.floor(rr() * 58), y + 2 + Math.floor(rr() * 58), 2, 2); }
+    if (rr() < 0.4) { g.fillStyle = 'rgba(110,100,80,0.45)'; let cx = x + 10 + rr() * 40, cy = y + 4; for (let k = 0; k < 18; k++) { g.fillRect(Math.floor(cx), Math.floor(cy), 1, 2); cx += (rr() - 0.5) * 3; cy += 3; } } } }, 1, 1)); })();
+const flagFloor = (w, d, col) => { const t = flagBase().clone(); t.needsUpdate = true; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(w / 28, d / 28); return new THREE.MeshLambertMaterial({ map: t, color: col || 0xffffff }); };
 const wallBone = (rx, ry) => { const m = surface('bone', () => canvasTex(64, 64, (g, w, h) => { g.fillStyle = '#ddd5bf'; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y += 16) { g.fillStyle = '#bdb59d'; g.fillRect(0, y, w, 2); for (let x = (y / 16) % 2 ? 0 : 16; x < w; x += 32) g.fillRect(x, y, 2, 16); } speck(g, w, h, ['#e8e1cc', '#d0c8b0'], 140); })); return m; };
 const stoneFloor = (c) => surface('flag', () => canvasTex(64, 64, (g, w, h) => { g.fillStyle = '#cfc6b0'; g.fillRect(0, 0, w, h); for (let i = 0; i < w; i += 32) { g.fillStyle = '#a99f88'; g.fillRect(i, 0, 1, h); g.fillRect(0, i, w, 1); } speck(g, w, h, ['#d8cfba', '#c2b9a2'], 120); }, 60, 60), c);
 const woodFloor = (c) => surface('wood', () => canvasTex(64, 64, (g, w, h) => { g.fillStyle = '#9a7a52'; g.fillRect(0, 0, w, h); for (let i = 0; i < h; i += 8) { g.fillStyle = '#7e603c'; g.fillRect(0, i, w, 1); for (let j = (i / 8) % 2 ? 0 : 20; j < w; j += 40) g.fillRect(j, i, 1, 8); } speck(g, w, h, ['#a98a60', '#8c6c46'], 160); }, 60, 60), c);
@@ -105,7 +112,7 @@ function interior() {
   };
 
   // ════════ THE ENTRANCE HALL: x -90..90, z -110..110 ════════
-  const hallFloor = floorHall(); slab(-90, -110, 90, 110, hallFloor, boneM, false, HH);
+  const hallFloor = flagFloor(180, 220); slab(-90, -110, 90, 110, hallFloor, boneM, false, HH);
     wall('z', 110, -90, 90, boneM, [[-35, 35, 0, 75], [-73, -49, 50, 76], [49, 73, 50, 76]], HH);                                     // south: the grand doors, and two high windows
   wall('z', -110, -90, 90, boneM, [[-80, -56, 50, 76], [56, 80, 50, 76]], HH);                                                    // north: the hearth wall
   wall('x', -90, -110, 110, boneM, [[-43, -8, 0, 52]], HH);                   // west: to the grand wing
@@ -189,7 +196,7 @@ function interior() {
   chandelier(4, -183, 44, 'Chandelier (music hall)'); chandelier(5, -183, -98, 'Chandelier (library)'); chandelier(6, -230, -226, 'Chandelier 1 (nursery)'); chandelier(7, -160, -226, 'Chandelier 2 (nursery)');
 
   // ════════ GERDA'S WING: the warmer half ════════
-  slab(90, -111, 250, 53, stoneFloor(0xd8c0a0), warmM);                                   // the kitchen
+  slab(90, -111, 250, 53, flagFloor(160, 164, 0xe6cfae), warmM);                                   // the kitchen
   wall('z', 53, 90, 250, warmM, [[108, 138, 35, 52], [171, 201, 35, 52]]); wall('z', -111, 90, 250, warmM, [[110, 130, 36, 54], [150, 174, 0, 50], [196, 216, 36, 54]]); wall('x', 250, -111, 53, warmM, [[-95, -55, 0, 52]]); wall('x', 90, -111, 53, warmM, [[-45, -5, 0, 52]]);
   window_('z', 53, 123, 30, 35, 52, -1, true, 1); window_('z', 53, 186, 30, 35, 52, -1, true, 1); window_('z', -111, 120, 18, 36, 54, 1, true, 1); window_('z', -111, 206, 18, 36, 54, 1, true, 1);
   { const hg = at(246, 0, 5); room.add(hg); hg.rotation.y = -Math.PI / 2; B(66, 40, 14, '#c4a880', 0, 20, 7, hg); B(28, 22, 15, '#14100c', 0, 11, 7.4, hg); B(72, 4, 16, '#a88a62', 0, 42, 7, hg); for (let i = 0; i < 5; i++) { const m = B(3.4, 8, 3, i % 2 ? '#ffb040' : '#ff7a20', -7 + i * 3.6, 5, 9, hg); flames.push({ m, base: 8, ph: i * 1.7 }); } const kl = lamp(230, 12, 5, 0xff9a40, 0.9, 110); anim.push((t) => { kl.intensity = 0.8 + 0.18 * Math.sin(t * 10) * Math.sin(t * 5.7); }); }
@@ -261,8 +268,7 @@ function interior() {
   for (const sx of [-1, 1]) for (const z of [-92, 33]) { const g = put(sx * 85.5, 0, z, 0); B(6, HH - 8, 8, '#c4bba3', 0, HH / 2, 0, g); B(7, 5, 10, '#a99f88', 0, 2.5, 0, g); B(7, 5, 10, '#a99f88', 0, HH - 8, 0, g); B(6, 2, 9, '#c9b88a', 0, HH - 4.5, 0, g); sconce(sx * 82.3, 56, z, -sx * Math.PI / 2); }
   armour(-80, 84, Math.PI / 2); armour(80, 84, -Math.PI / 2);
   for (const sx of [-1, 1]) { const g = put(sx * 61, 0, 102, 0); B(34, 9, 10, '#c4bba3', 0, 4.5, 0, g); B(36, 2, 12, '#a99f88', 0, 10, 0, g); }
-  { const g = put(0, 0, 0, 0); for (const [w, d, x, z] of [[160, 2.2, 0, -96], [160, 2.2, 0, 96], [2.2, 192, -80, 0], [2.2, 192, 80, 0]]) B(w, 0.3, d, '#c9b88a', x, 0.25, z, g); for (const [w, d, x, z] of [[150, 1, 0, -91], [150, 1, 0, 91], [1, 182, -75, 0], [1, 182, 75, 0]]) B(w, 0.3, d, '#9a3a4a', x, 0.25, z, g);
-    const m = B(30, 0.3, 30, '#d6c9a4', 0, 0.25, 74, g); m.rotation.y = Math.PI / 4; const m2 = B(18, 0.35, 18, '#9a3a4a', 0, 0.3, 74, g); m2.rotation.y = Math.PI / 4; B(8, 0.4, 8, '#c9a23c', 0, 0.35, 74, g).rotation.y = Math.PI / 4; B(40, 0.35, 12, '#7a1f3a', 0, 0.3, 100, g); B(40, 0.4, 1.6, '#c9a23c', 0, 0.35, 94.4, g); B(40, 0.4, 1.6, '#c9a23c', 0, 0.35, 105.6, g); }
+  { const g = put(0, 0, 0, 0); B(40, 0.6, 12, '#7a1f3a', 0, 0.3, 100, g); B(40, 0.62, 1.6, '#c9a23c', 0, 0.31, 94.4, g); B(40, 0.62, 1.6, '#c9a23c', 0, 0.31, 105.6, g); B(1.6, 0.62, 12, '#c9a23c', -20.8, 0.31, 100, g); B(1.6, 0.62, 12, '#c9a23c', 20.8, 0.31, 100, g); }   // the rug at the entrance
   { const g = put(64, 0, -92, 0.3); B(13, 8, 13, '#5a4026', 0, 4, 0, g); B(11, 1, 11, '#3a2a1a', 0, 8.2, 0, g); for (let i = 0; i < 3; i++) B(2.6, 2.6, 11, '#6a4a2e', -3 + i * 3, 9, 0, g).rotation.y = (i - 1) * 0.15; B(1.2, 24, 1.2, '#2b2d36', 11, 12, 2, g); B(5, 1, 1, '#2b2d36', 11, 24, 2, g); B(1, 1, 4, '#2b2d36', 12.5, 22, 2, g); }
   painting(-88, 80, 78, Math.PI / 2, 14, 18, 1); painting(88, 80, -82, -Math.PI / 2, 12, 16, 0);
   // — corridor A (x -273..-90, z -43..-8) and the music hall —
