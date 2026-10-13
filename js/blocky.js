@@ -100,9 +100,10 @@ function paintJackInto(k, st) {
     drawers: '#e6dcc2', drawersSh: '#cbbf9f' };
   const pal = { H: C.hair, h: C.hairHi, d: C.brow, S: C.skin, s: C.skinSh, b: C.brow, W: C.white, E: C.iris, l: C.lid, M: C.lip, T: C.teeth, u: C.stub, n: C.skinSh, k: C.skinHi, m: C.mouth };
   const down = st.trousers === 'down', drawersDown = st.drawers === 'down';
-  const outfit = ['Day', 'Soft', 'Fine'].indexOf(st.outfit) >= 0 ? st.outfit : 'Outdoor', tunic = outfit === 'Day' || outfit === 'Soft', fine = outfit === 'Fine';
+  const outfit = ['Day', 'Soft', 'Fine', 'Night'].indexOf(st.outfit) >= 0 ? st.outfit : 'Outdoor', tunic = outfit === 'Day' || outfit === 'Soft' || outfit === 'Night', fine = outfit === 'Fine';
   if (fine) Object.assign(C, { linen: '#f3ecd8', linenSh: '#d8cfb6', vest: '#2f6140', vestDk: '#214a30', belt: '#2f1f14', buckle: '#e8c75a', trousers: '#4c3827', trousersDk: '#3b2a1d', stitch: '#d9b24a', boot: '#2a1a10', bootHi: '#4a3020', sole: '#160d07', lace: '#d9b24a' });
   const T = outfit === 'Day' ? { base: '#86ad72', dk: '#6c9459', hi: '#9cc388', wood: '#8a6038', woodHi: '#b0834f', shorts: '#b8a173', shortsDk: '#9b855d', sE: 4 }
+    : outfit === 'Night' ? { base: '#efede6', dk: '#d3cfc0', hi: '#fbfaf4', wood: '#bdb59c', woodHi: '#d8d1ba', shorts: '#e8dfc6', shortsDk: '#cdc2a2', sE: 3 }        // a white nightshirt, buttoned, over white drawers to mid-thigh
     : outfit === 'Soft' ? { base: '#93acd9', dk: '#7c97c9', hi: '#adc2e8', wood: '#6f86b4', woodHi: '#c4d4f0', shorts: '#7f9ccc', shortsDk: '#6a88b8', sE: 3 } : null;
   if (tunic) { C.trousers = T.shorts; C.trousersDk = T.shortsDk; }
   const bare = [];
@@ -192,7 +193,7 @@ function paintJackInto(k, st) {
     k.fill('body', 'back', T.base); k.fill('body', 'back', T.hi, 0, 0, undefined, 1); k.fill('body', 'right', T.base); k.fill('body', 'left', T.base);
     k.fill('body', 'top', T.base); k.fill('body', 'bottom', T.dk);
     for (const f of SIDES) k.fill('body', f, T.dk, 0, 11, undefined, 1);            // the hem's shadow
-    if (outfit === 'Day') {
+    if (outfit === 'Day' || outfit === 'Night') {
       k.fill('body', 'front', T.dk, 3, 2, 2, 8);
       for (const y of [3, 5, 7, 9]) { k.px('body', 'front', 3, y, T.wood); k.px('body', 'front', 4, y, T.woodHi); }   // wooden buttons
     } else {

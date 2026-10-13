@@ -80,6 +80,13 @@ async function playGarden(tier) {
   await root.Garden.run(G, W, tier);
   showEnd();
 }
+// Chapter Three's opening cutscene, on its own.
+async function playChapter3() {
+  hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
+  const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
+  await root.Chapter3.run(G, W);
+  showEnd();
+}
 function showEnd() {
   const s = G.loadSave() || {}, beans = s.step === 'beans' || s.step === 'planted';
   $('endTitle').textContent = beans ? 'Chapter Two \u2014 The Market Road' : 'Chapter One \u2014 Market Day';
@@ -98,6 +105,7 @@ $('levelSel').onchange = async () => {
     else if (k === 'nightC') await playNight([1, 0, 1]);
     else if (k === 'nightB') await playNight([0, 2, 0]);
     else if (k === 'gardenH' || k === 'gardenC' || k === 'gardenB') await playGarden(k === 'gardenH' ? 0 : k === 'gardenC' ? 1 : 2);
+    else if (k === 'ch3') await playChapter3();
     else if (k === 'corrH' || k === 'corrC' || k === 'corrB') await playCorrection(k === 'corrH' ? 0 : k === 'corrC' ? 1 : 2);
   } finally { G.noSave = false; G.debugCtl = false; }
 };

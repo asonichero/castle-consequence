@@ -200,7 +200,7 @@ function exterior() {
 function interior() {
   textures();
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0x120d09); scene.fog = new THREE.Fog(0x120d09, 140, 330);
-  scene.add(new THREE.HemisphereLight(0xffe2b8, 0x20140c, 0.42));
+  const hemi = new THREE.HemisphereLight(0xffe2b8, 0x20140c, 0.42); scene.add(hemi); let bank = 1;      // (bank: how high the fire burns, 1 full, towards 0 banked low)
   const dim = new THREE.DirectionalLight(0xc8d8f0, 0.22); dim.position.set(-40, 60, 120); scene.add(dim);                  // a little grey daylight from the south window
   const W = 150, D = 150, H = 62, r = rng(31), room = new THREE.Group(); scene.add(room);        // (square: every side is the length of the hearth wall)
   // Free-standing things (the chair, the stool, the rug, the table with what stands on it, the stairs with the hole above them, the sacks, the barrel, the crate, the broom) are placed by
@@ -286,18 +286,19 @@ function interior() {
   const bed = new THREE.Group(); room.add(bed);
   box(44, 3, 21, mat('plankDark'), 0, 1.5, 0, bed); for (const x of [-21, 21]) box(2, 6, 21, mat('plank'), x, 3, 0, bed); box(44, 6, 1.6, mat('plank'), 0, 3, -10.2, bed); box(44, 6, 1.6, mat('plank'), 0, 3, 10.2, bed);
   box(40, 3, 18.4, plain('#c4ac6a'), 0, 4.5, 0, bed); for (let i = 0; i < 7; i++) box(40.2, 0.4, 0.6, plain('#a8904e'), 0, 6.1, -7.5 + i * 2.5, bed);
-  box(24, 1.2, 18.6, plain('#6a4a3a'), 7, 6.6, 0, bed); box(24.2, 1.3, 3, plain('#8a6a4a'), 7, 6.7, -6, bed); box(9, 2, 13, plain('#d8d0b8'), -15, 7, 0, bed);
+  const bedBlanket = [box(24, 1.2, 18.6, plain('#6a4a3a'), 7, 6.6, 0, bed), box(24.2, 1.3, 3, plain('#8a6a4a'), 7, 6.7, -6, bed)]; box(9, 2, 13, plain('#d8d0b8'), -15, 7, 0, bed);
   movable('bed', 'Jack\'s pallet bed', bed, { x: -34, z: D / 2 - 3 - 10.7, ry: 0 });
   // A window in the south wall, and the door.
   const win = new THREE.Group(); win.position.set(-34, 30, D / 2 - 1); room.add(win); box(22, 20, 3, mat('timber'), 0, 0, 0, win); box(16, 14, 1.2, unlit('#6a7a8a'), 0, 0, -0.6, win); box(1.6, 14, 1.6, mat('timber'), 0, 0, -1, win); box(16, 1.6, 1.6, mat('timber'), 0, 0, -1, win);
-  const dr = new THREE.Group(); dr.position.set(34, 0, D / 2 - 1.5); room.add(dr); box(22, 42, 3, mat('timber'), 0, 21, 0, dr); box(15, 38, 1.8, mat('plankDark'), 0, 19.5, -0.8, dr); box(15, 2.6, 1.2, mat('timber'), 0, 8, -1.6, dr); box(15, 2.6, 1.2, mat('timber'), 0, 30, -1.6, dr); box(2, 2, 2, plain('#b8923a'), 5, 19, -2, dr);   // (the same size as the door outside)
+  const dr = new THREE.Group(); dr.position.set(34, 0, D / 2 - 1.5); room.add(dr); box(22, 42, 3, mat('timber'), 0, 21, 0, dr); const doorLeaf = new THREE.Group(); doorLeaf.position.set(-7.5, 0, -0.8); dr.add(doorLeaf);                                   // (hinged on its west edge, swinging out; the same size as the door outside)
+  box(15, 38, 1.8, mat('plankDark'), 7.5, 19.5, 0, doorLeaf); box(15, 2.6, 1.2, mat('timber'), 7.5, 8, -0.8, doorLeaf); box(15, 2.6, 1.2, mat('timber'), 7.5, 30, -0.8, doorLeaf); box(2, 2, 2, plain('#b8923a'), 12.5, 19, -1.2, doorLeaf);
   return {
-    scene, room, ceiling: ceil, items, place, layout: () => { const o = {}; for (const k in items) { const g = items[k].g; o[k] = { x: +g.position.x.toFixed(1), z: +g.position.z.toFixed(1), ry: +g.rotation.y.toFixed(3) }; } return o; },
+    scene, room, ceiling: ceil, hemi, dim, bedBlanket, doorLeaf, setBank: v => { bank = v; }, items, place, layout: () => { const o = {}; for (const k in items) { const g = items[k].g; o[k] = { x: +g.position.x.toFixed(1), z: +g.position.z.toFixed(1), ry: +g.rotation.y.toFixed(3) }; } return o; },
     W, D, H, chair, table, tableClutter, birchHook, birchProp,
     spots: { birch: P(W / 2 - 13, 0, 56), chair: P(chair.position.x, 0, chair.position.z), chairRy: chair.rotation.y, stool: P(stool.position.x, 0, stool.position.z), jack: P(-6, 0, -24), table: P(table.position.x, 0, table.position.z), tableRy: table.rotation.y, hearth: P(0, 0, -D / 2 + 14) },
     update(dt, t) {
-      for (const f of flames) { const s = f.base * (0.8 + 0.55 * Math.sin(t * 9 + f.ph) * Math.sin(t * 5.3 + f.ph * 2)); f.m.scale.y = Math.max(0.3, s / 5); f.m.position.y = 6 + s * 0.8 * 0.5; f.m.rotation.z = 0.12 * Math.sin(t * 7 + f.ph); }
-      fire.intensity = 1.5 + 0.35 * Math.sin(t * 11) * Math.sin(t * 6.1) + 0.15 * Math.sin(t * 23); embers.scale.x = 0.9 + 0.1 * Math.sin(t * 3);
+      for (const f of flames) { const s = f.base * (0.8 + 0.55 * Math.sin(t * 9 + f.ph) * Math.sin(t * 5.3 + f.ph * 2)); f.m.scale.y = Math.max(0.2, s / 5) * (0.2 + 0.8 * bank); f.m.position.y = 6 + s * 0.8 * 0.5; f.m.rotation.z = 0.12 * Math.sin(t * 7 + f.ph); }
+      fire.intensity = (1.5 + 0.35 * Math.sin(t * 11) * Math.sin(t * 6.1) + 0.15 * Math.sin(t * 23)) * (0.15 + 0.85 * bank); embers.scale.x = 0.9 + 0.1 * Math.sin(t * 3);
     },
   };
 }
