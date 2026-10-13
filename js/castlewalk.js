@@ -135,7 +135,7 @@ function run(G, W, opts) {
         let nx = st.pos.x - best.qx, nz = st.pos.z - best.qz; const nl = Math.hypot(nx, nz); if (nl < 0.01) { nx = -fx; nz = -fz; } else { nx /= nl; nz /= nl; }
         st.pos.x = best.qx + nx * 6.5 * s; st.pos.z = best.qz + nz * 6.5 * s; st.heading = Math.atan2(-nx, -nz); st.cl = { e: best.e }; st.stam = 1; st.vy = 0; return true; };
       if (st.jumpReq) { st.jumpReq = false; if (!busy && st.y <= gy + 0.01 && !tryClimb()) { st.vy = 112 * s; st.perch = null; } }
-      if (st.mant) { const m = st.mant; m.t += dt; const k = clamp(m.t / m.dur, 0, 1); st.pos.x = m.from.x + (m.to.x - m.from.x) * k; st.pos.z = m.from.z + (m.to.z - m.from.z) * k; st.y = m.from.y + (m.to.y - m.from.y) * k + Math.sin(k * Math.PI) * 0.4 * Hj * 0.4; if (k >= 1) { st.y = m.to.y; st.mant = null; st.vy = 0; st.stam = 1; st.perch = m.e && Math.min(m.e.x1 - m.e.x0, m.e.z1 - m.e.z0) < 12 * s ? m.e : null; } }
+      if (st.mant) { const m = st.mant; m.t += dt; const k = clamp(m.t / m.dur, 0, 1); st.pos.x = m.from.x + (m.to.x - m.from.x) * k; st.pos.z = m.from.z + (m.to.z - m.from.z) * k; st.y = m.from.y + (m.to.y - m.from.y) * k + Math.sin(k * Math.PI) * 0.4 * Hj * 0.4; if (k >= 1) { st.y = m.to.y; st.mant = null; st.vy = 0; st.stam = 1; st.perch = m.e && Math.min(m.e.x1 - m.e.x0, m.e.z1 - m.e.z0) < 20 * s ? m.e : null; } }
       else if (st.cl) {
         st.climbPh += dt * 9; if (!keys.space || st.stam <= 0) { st.cl = null; }
         else { const sp = 0.8 * Hj; st.y += sp * dt; st.stam -= sp * dt / (1.6 * Hj); let plat = null;
