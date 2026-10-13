@@ -239,11 +239,14 @@ function run(G, W, opts) {
       for (let i = 1; i <= 18; i++) { gst.give = i / 18; placeGerda(); follow(); cam(); await G.wait(0.04); }
       bx.attach(jackOut.root); st.inHand = true; const p0 = jackOut.root.position.clone(), q0 = jackOut.root.quaternion.clone(), qL = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0)), pIn = new V3(0, 1.45, 1.4), pAbove = new V3(0, 4.2, 0.4);
       G.cut({ pos: bx.localToWorld(new V3(-13, 15, 10)), look: bx.localToWorld(new V3(0, 3, 0)), fov: 42 });
+      face(3); G.caption('jack', 'AAAAAAH—!'); if (A && A.voice) { A.voice(1.4, 5, 0, 1.4); setTimeout(() => A.voice(1.5, 5, 0, 1.4), 520); }                         // (he screams as she lowers him)
       const bs = jackOut.root.scale.x; for (let i = 1; i <= 26; i++) { const k = i / 26, e = k * k * (3 - 2 * k), up = Math.sin(Math.PI * k) * 0.0; const tgtP = k < 0.5 ? p0.clone().lerp(pAbove, k / 0.5) : pAbove.clone().lerp(pIn, (k - 0.5) / 0.5); jackOut.root.position.copy(tgtP); jackOut.root.quaternion.copy(q0).slerp(qL, e); gst.give = 1 - 0.35 * k; placeGerda(); follow(); await G.wait(0.04); }
-      face(3); for (let r = 0; r < 2; r++) { for (let i = 1; i <= 16; i++) { const k = Math.sin(Math.PI * i / 16); jackOut.root.quaternion.copy(qL).slerp(new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.9, 0, 0)), k * 0.8); jackOut.root.position.set(0, 1.45 + 0.5 * k, 1.4 - 0.5 * k); await G.wait(0.04); } await G.wait(0.15); }
-      face(1); jackOut.root.quaternion.copy(qL); jackOut.root.position.copy(pIn);
-      shotGerda(); await G.say('gerda', 'A magic stalk, a stranger’s house, a plate that was never yours. And you thought no one would notice.');
+      face(3); let strug = true; const qS = new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.5, 0, 0));
+      const struggle = (async () => { while (strug) { for (let i = 1; i <= 24 && strug; i++) { const k = Math.sin(Math.PI * i / 24); jackOut.root.quaternion.copy(qL).slerp(qS, k * 0.9); jackOut.root.position.set(0, 1.45 + 0.8 * k, 1.4 - 0.8 * k); await G.wait(0.04); } await G.wait(0.25); } })();      // (he struggles to sit up while she speaks)
+      G.cut({ pos: bx.localToWorld(new V3(0, 3.6, -3.9)), look: hd().clone().add(new V3(0, 2, 0)), fov: 62 });                                          // (from behind him, in the box: her face looking down through the top)
+      await G.say('gerda', 'A magic stalk, a stranger’s house, a plate that was never yours. And you thought no one would notice.');
       await G.say('gerda', 'That isn’t a man’s doing, little one. That’s mischief. And mischief gets put somewhere safe.');
+      strug = false; await struggle; face(1); jackOut.root.quaternion.copy(qL); jackOut.root.position.copy(pIn);
       shotBoxJack(); face(3); await G.say('jack', 'I’m not—');
       for (let i = 1; i <= 14; i++) { box.lid.rotation.x = -1.95 * (1 - i / 14); gst.lreach = 1.3 * (1 - i / 14); placeGerda(); await G.wait(0.04); } A && A.thud && A.thud(0.4); await G.wait(1.2);
     }
