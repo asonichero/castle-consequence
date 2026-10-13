@@ -75,13 +75,15 @@ function build(G) {
     if (ma.side) { r.armL.rotation.x = -0.05; r.armL.rotation.z = -0.1; r.armR.rotation.x = -0.05; r.armR.rotation.z = 0.1; if (r.elbow) r.elbow.rotation.x = -0.05; }     // (both arms hanging still at her sides)
     r.neck.rotation.y = ma.chin * 0.65; r.neck.rotation.x = 0.05 + 0.04 * Math.sin(t * 0.7); r.neck.rotation.z = ma.tilt * 0.12;
   };
+  // The glutes block for the correction's standing-bared beats: it stands proud of the back of his torso box, so that the whole of the coloured area shows (hidden otherwise).
+  const jackGl = B.makeGlutes(); jackGl.mesh.scale.set(0.98, 1, 0.45); jackGl.mesh.position.set(0, -1.4, -2.4); jackGl.mesh.visible = false; jackIn.hips.add(jackGl.mesh);
   scene.add(mother.root); scene.add(jackIn.root);
   int.chair.visible = true;
   const world = { scene: ext.scene, update(dt, t) { ext.update(dt, t); aOut.t += dt; B.step(jackOut, dt); } };
   const iworld = { scene, update(dt, t) { int.update(dt, t); ja.t += dt; ma.t += dt; B.step(jackIn, dt); B.step(mother, dt); } };
   // Where the chair stands (the room editor decides), and which way it faces.
   const ch = int.spots.chair, SEAT = { x: ch.x, z: ch.z, ry: int.spots.chairRy };
-  return { SEAT, ext, int, jackOut, aOut, jackIn, ja, mother, ma, paintJack, world, iworld, scene };
+  return { SEAT, ext, int, jackOut, aOut, jackIn, jackGl, ja, mother, ma, paintJack, world, iworld, scene };
 }
 
 // ──────────────────────────────────────────────────────────────────────────────────────────

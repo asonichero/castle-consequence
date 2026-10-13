@@ -94,7 +94,7 @@ async function run(G, W, tier, opts) {
     ma.fold = 0; ma.gesture = 0; ma.wag = 0; ma.side = 0; ma.chin = 0; ma.speed = 0;
     if (where === 'table') {
       placeStage(TABLE); int.chair.visible = true; int.tableClutter.visible = false;
-      const mp = lap.stage.localToWorld(v(-3, -6, -10)), jp = lap.stage.localToWorld(v(-5.7, -6, 10));      // (as far apart as he stands from her at the chair)
+      const mp = lap.stage.localToWorld(v(-17, -6, -10)), jp = lap.stage.localToWorld(v(-17, -6, 10));      // (as far apart as he stands from her at the chair)
       B.setPose(mother, 'stand'); mother.pose = 'stand'; mother.root.position.copy(mp); mother.root.position.y = 0; mother.root.rotation.y = TABLE.ry;
       jackIn.root.position.copy(jp); jackIn.root.position.y = 0; jackIn.root.rotation.y = TABLE.ry + Math.PI;
     } else {
@@ -105,13 +105,14 @@ async function run(G, W, tier, opts) {
     }
     ja.speed = 0; ja.rub = 1; ja.shuffle = 0; ja.bow = 0.5; ja.look = 0; ja.cover = 0; ja.fist = 0; ja.hold = 0;
     W.paintJack(jackIn, { expr: 3, trousers: 'down', drawers: tier >= 1 ? 'down' : 'up', marks: lap.st.marks });
+    W.jackGl.mesh.visible = true; B.paintGlutesInto(W.jackGl.skin, { trousers: 'down', drawers: tier >= 1 ? 'down' : 'up', marks: lap.st.marks, outfit: 'Outdoor' }); W.jackGl.tex.needsUpdate = true;
     for (let i = 0; i < 12; i++) { B.step(mother, 0.1); B.step(jackIn, 0.1); }
     if (where === 'chair') B.seatFeet(mother, 0);
   };
   const closing = async () => {
     await say('mother', tier === 0 ? 'Pull your trousers up.' : 'Pull your trousers up, and wipe your face.');
     await say('jack', 'Yes, Mother.');
-    W.paintJack(jackIn, { expr: 1, trousers: 'up', drawers: 'up' }); ja.rub = 0; ja.bow = 0.3; await wait(0.8);        // his britches go up
+    W.paintJack(jackIn, { expr: 1, trousers: 'up', drawers: 'up' }); W.jackGl.mesh.visible = false; ja.rub = 0; ja.bow = 0.3; await wait(0.8);        // his britches go up
     await say('mother', 'Go and plant them, then. If they’re so powerful. We will see what comes up.');
     await wait(0.6);
   };
