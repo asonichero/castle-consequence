@@ -76,15 +76,17 @@ function run(G, W) {
     let lf = null, targetY = MERGE + 60, sinceBurl = 0; wind.left = 0;
     while (y < TOP - 8) {
       const s = sOf(y), z = zoneOf(y);
+      const finalLeaf = stalkLeaves.find(c => c.y >= 745 && c.y <= 775);
+      if (!lf && finalLeaf && y >= 690) lf = finalLeaf;
       if (!lf && y >= targetY - 60) {                                         // the next leaf to cross: of those about that height, the one whose bearing is nearest where the path is
-        let bm = 9; for (const c of stalkLeaves) { if (c.y < y + 24 || c.y > y + 130 || c.y > TOP - 40) continue; const m = Math.abs(angDiff(-c.a, a0)); if (m < bm) { bm = m; lf = c; } }
+        let bm = 9; for (const c of stalkLeaves) { if (c.y < y + 24 || c.y > y + 130 || c.y > TOP - 90) continue; const m = Math.abs(angDiff(-c.a, a0)); if (m < bm) { bm = m; lf = c; } }
       }
       const lfA = lf ? -lf.a : 0, d = lf ? lf.w / 2 + 0.4 * lf.L : 0, yStand = lf ? lf.y - Math.sin(0.25) * d + 0.7 : 0;
       const step = arcStep(4, y, a0, s), n = lf ? Math.max(1, Math.round((yStand - y) / (8 * s))) : 99;
       if (lf && yStand - y <= 8 * s * 1.15) {                                // the path comes to the leaf, and crosses it
         a0 = a0 + angDiff(lfA, a0);
         const h = { fr: 4, y: yStand, a: a0, r: d, kind: 'ledge', s: sOf(yStand), ph: rnd() * 6.28, mesh: null, leaf: lf.g, curl: 0, curlT: 0, gone: 0, L: 0, lf };
-        lf.g.userData.hold = h; h.rim = box(lf.L * 0.9, 0.35, 12, mats.rim, lf.w / 2 + lf.L / 2, 0.95, 0, lf.g); holds.push(h); lf = null; targetY = yStand + (z === 'lower' ? 12 : z === 'middle' ? 10 : 8) * 8 * s; y = yStand + 38 * s; a0 += arcStep(4, y, a0, s); continue;
+        lf.g.userData.hold = h; h.rim = box(lf.L * 0.9, 0.35, 12, mats.rim, lf.w / 2 + lf.L / 2, 0.95, 0, lf.g); if (lf === finalLeaf) h.final = true; holds.push(h); const wasFinal = lf === finalLeaf; lf = null; if (wasFinal) { a0 = h.a; let yy = yStand + 38 * s; while (yy < CLOUD_Y - 6) { make(4, a0, yy, 'good', sOf(yy)); yy += 8 * sOf(yy); } break; } targetY = yStand + (z === 'lower' ? 12 : z === 'middle' ? 10 : 8) * 8 * s; y = yStand + 38 * s; a0 += arcStep(4, y, a0, s); continue;
       }
       let kind = 'good'; sinceBurl++;
       if (z !== 'lower' && sinceBurl >= (z === 'middle' ? 6 : 5)) { kind = 'burl'; sinceBurl = 0; }          // (a great knot to wedge himself against when the wind comes)
@@ -118,9 +120,9 @@ function run(G, W) {
     jackOut.after = r => {
       const t = G.t, tr = 0.04 * Math.sin(t * 22) * Math.max(0, 1 - st.stamina / 30);       // trembling when spent
       const hang = 1 - pose.stand, sw = Math.sin(t * 1.3) * 0.05;
-      r.armL.rotation.x = lerp(0.05, -2.95 + (st.mode === 'move' ? 0.5 * Math.sin(st.mt * 6.28) : 0), hang) + tr; r.armR.rotation.x = lerp(0.05, -2.95 - (st.mode === 'move' ? 0.5 * Math.sin(st.mt * 6.28) : 0), hang) + tr;
+      r.armL.rotation.x = lerp(0.05, -2.95 + (st.mode === 'move' || st.mode === 'rise' ? 0.5 * Math.sin(st.mt * 6.28) : 0), hang) + tr; r.armR.rotation.x = lerp(0.05, -2.95 - (st.mode === 'move' || st.mode === 'rise' ? 0.5 * Math.sin(st.mt * 6.28) : 0), hang) + tr;
       r.armL.rotation.z = lerp(0, 0.12, hang); r.armR.rotation.z = lerp(0, -0.12, hang);
-      r.legL.thigh.rotation.x = lerp(0, -0.35 + sw + (st.mode === 'move' ? 0.4 * Math.sin(st.mt * 6.28 + 1) : 0), hang); r.legR.thigh.rotation.x = lerp(0, -0.2 - sw + (st.mode === 'move' ? 0.4 * Math.sin(st.mt * 6.28) : 0), hang);
+      r.legL.thigh.rotation.x = lerp(0, -0.35 + sw + (st.mode === 'move' || st.mode === 'rise' ? 0.4 * Math.sin(st.mt * 6.28 + 1) : 0), hang); r.legR.thigh.rotation.x = lerp(0, -0.2 - sw + (st.mode === 'move' || st.mode === 'rise' ? 0.4 * Math.sin(st.mt * 6.28) : 0), hang);
       r.legL.knee.rotation.x = lerp(0, 0.6, hang); r.legR.knee.rotation.x = lerp(0, 0.9, hang);
       if (pose.fall) { r.armL.rotation.x = -2.2 + 0.4 * Math.sin(t * 30); r.armR.rotation.x = -2.2 - 0.4 * Math.sin(t * 30); }
       if (st.walkN > 0) { const w = Math.sin(st.walkPh) * 0.7 * st.walkN; r.legL.thigh.rotation.x += w; r.legR.thigh.rotation.x -= w; r.armL.rotation.x -= w * 0.8; r.armR.rotation.x += w * 0.8; }
@@ -277,7 +279,7 @@ function run(G, W) {
           else if (st.cur.kind === 'ledge' && !st.restedOnce) { st.restedOnce = true; st.lock = 4.5; st.stamina = Math.min(st.stamina, 55); st.capAt = 0; mutter('A broad leaf. I can rest here.', true); toast('Where the path crosses a leaf, you rest. Your strength returns while you stand on it; press Space to climb on.', 5600); }
         }
       }
-      pose.stand = lerp(pose.stand, walking || st.mode === 'walk' || st.cur.kind === 'ledge' ? (st.mode === 'move' ? 0.5 : 1) : 0, Math.min(1, dt * 9));
+      pose.stand = lerp(pose.stand, st.mode === 'rise' ? 0 : walking || st.mode === 'walk' || st.cur.kind === 'ledge' ? (st.mode === 'move' ? 0.5 : 1) : 0, Math.min(1, dt * 9));
       if (st.mode === 'drop') pose.stand = 0;
       // Teaching.
       if (st.tut === 0 && t > 1.0) { st.tut = 1; toast('Walk up to one of the four outer stalks, then press Space to climb. Any of them will do.', 7000); }
@@ -314,20 +316,31 @@ function run(G, W) {
       const walkCam = st.mode === 'walk' || st.mode === 'mount', d = (walkCam ? 70 : 88 + 14 * (st.zone === 'upper' ? 1 : 0)) * kk * st.zoomF, ax = centreOf(st.fr, st.y);
       const at = walkCam ? v(pos.x, 14, pos.z) : v(lerp(ax.x, pos.x, 0.6), st.y + (st.cur.kind === 'ledge' ? 14 : -4) * kk * 0.95, lerp(ax.z, pos.z, 0.6));
       const want = v(at.x + Math.cos(st.camA) * d * Math.cos(st.pitch), at.y + Math.sin(st.pitch) * d * 0.9 + 6 * kk, at.z + Math.sin(st.camA) * d * Math.cos(st.pitch));
+      if (st.cine) { want.copy(st.cine.pos); at.copy(st.cine.look); }
       want.y = clamp(want.y, 3, CLOUD_Y - 8); at.y = Math.min(at.y, CLOUD_Y - 2);
       if (st.shake > 0) { want.x += (Math.random() - 0.5) * 2.2 * kk; want.y += (Math.random() - 0.5) * 1.6 * kk; st.shake = Math.max(0, st.shake - dt * 3); }
-      if (camPos.lengthSq() === 0) camPos.copy(want); else camPos.lerp(want, Math.min(1, dt * 8)); camLook.copy(at);
-      fovCur = lerp(fovCur, g.phase === 'blow' ? 56 : 50, Math.min(1, dt * 4));
+      if (camPos.lengthSq() === 0) camPos.copy(want); else camPos.lerp(want, Math.min(1, dt * (st.cine ? 2.2 : 8))); camLook.lerp(at, st.cine ? Math.min(1, dt * 4) : 1);
+      fovCur = lerp(fovCur, st.cine ? st.cine.fov : g.phase === 'blow' ? 56 : 50, Math.min(1, dt * 4));
       G.cut({ pos: camPos, look: camLook, fov: fovCur });
       // At the top: up through the cloud.
-      if (!st.ended && st.cur.y > TOP - 45 && st.mode === 'idle') { st.ended = true; finish(); }
+      if (!st.ended && st.cur.final && st.mode === 'idle') { st.ended = true; finish(); }
     };
     async function finish() {
-      st.mode = 'rise'; hud.style.display = 'none';
-      const y0 = st.y, t0 = G.t; A && A.ambience({ wind: 0.6, birds: 0, fire: 0 });
-      while (G.t - t0 < 3.4) { const u = clamp((G.t - t0) / 3.4, 0, 1); st.y = lerp(y0, CLOUD_Y + 18, u * u * (3 - 2 * u)); st.mode = 'rise'; pose.stand = 0; await G.wait(0.03); }
-      const f = $('fade'); f.style.background = '#fff'; await G.fade(true, 1.2);
-      await G.wait(0.5); cleanup(); f.style.background = ''; G.mode = 'end'; resolve({ top: true });
+      // The last leaf: a breath, a line, and then straight up the stalk and into the cloud.
+      const h = st.cur, kk = sOf(st.y), d0 = st.r; G.mode = 'cutscene'; document.body.classList.add('cutscene'); st.mode = 'cut'; st.lock = 0; st.gust = { phase: 'wait', t: 9999 }; hud.style.display = 'none'; A && A.ambience({ wind: 0.5, birds: 0, fire: 0 });
+      const jp = () => { const c = centreOf(4, st.y); return v(c.x + Math.cos(st.a) * st.r, st.y, c.z + Math.sin(st.a) * st.r); };
+      const side = h.a + Math.PI / 2, setCine = (dist, below, lookUp, fov) => { const j = jp(); st.cine = { pos: v(j.x + Math.cos(side) * dist * kk, j.y + below * kk, j.z + Math.sin(side) * dist * kk), look: v(j.x, j.y + lookUp * kk, j.z), fov }; };
+      setCine(120, 6, 14, 42); await G.wait(1.6);
+      await G.say('jack', 'Look at that... the cloud is right above me.');
+      setCine(84, 2, 16, 38); await G.say('jack', 'I feel like I’m almost there.');
+      // He steps in to the stalk, and goes up it hand over hand.
+      const rHang = Math.max(surfRf(4, st.y, st.a), surfRf(4, st.y + 18 * kk, st.a), surfRf(4, st.y + 32 * kk, st.a)) + 3 * SC * kk, y0 = st.y + 6 * kk;
+      st.mode = 'rise'; st.cur = h; const yRise = CLOUD_Y + 24;
+      for (let i = 0; i <= 37; i++) { const u = i / 37, e = u * u * (3 - 2 * u); st.r = lerp(d0, rHang, e); st.y = lerp(h.y, y0, e); st.mt = i * 0.03 / 0.55; await G.wait(0.03); }
+      const up = yRise - y0; setCine(74, -22, 8, 44);
+      for (let i = 0; i <= 250; i++) { const u = i / 250; st.y = y0 + up * (0.15 * u + 0.85 * u * u); st.r = rHang; st.mt = i * 0.03 / 0.5; setCine(74 + 12 * u, -22 + 6 * u, 8, 44); await G.wait(0.03); }
+      const f = $('fade'); f.style.background = '#fff'; await G.fade(true, 1.4);
+      await G.wait(0.4); cleanup(); f.style.background = ''; G.mode = 'end'; document.body.classList.remove('cutscene'); resolve({ top: true });
     }
     // (a tick-mode of 'rise' lets the frame code above keep placing him as st.y changes)
     function cleanup() {
