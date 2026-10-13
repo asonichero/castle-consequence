@@ -297,7 +297,7 @@ function create(view, opts) {
   const tableEdgeX = sz => -6 * sz + 3.5 * sz;
   function stanceFrame(name, sz) {                    // where his hip joint is, and which way his body faces
     switch (name) {
-      case 'standSeat': return { p: new V3(0, FLOOR + 12 * sz, 9.5), q: uprightQ };
+      case 'standSeat': return { p: new V3(0, FLOOR + 12 * sz, 18.5), q: uprightQ };       // (a little back from her knees, so that her head and his do not meet as she works at his belt)
       case 'standTable': return { p: new V3(-6 * sz, FLOOR + 12 * sz, 0), q: uprightQ };
       case 'table': return { p: new V3(-6 * sz, FLOOR + 12 * sz, 0), q: lapQ(tablePitch(sz)) };
       default: return { p: new V3(-6 * sz, 8.75 + 2 * sz, P.z), q: lapQ(PITCH) };
@@ -325,14 +325,14 @@ function create(view, opts) {
     }
     // Standing: weight shifting, head bowed, hands at his sides (or, as he comes to it, swung back to cover himself).
     const sh = Math.sin(t * 2.1) * dd;
-    return { tL: -0.08 * sh, tR: 0.08 * sh, zL: 0.05, zR: -0.05, kL: 0.04 * Math.max(0, sh), kR: 0.04 * Math.max(0, -sh), nx: 0.28 + 0.12 * dd, ny: 0.15 * Math.sin(t * 0.7) * dd,
+    return { tL: -0.08 * sh, tR: 0.08 * sh, zL: 0.05, zR: -0.05, kL: 0.04 * Math.max(0, sh), kR: 0.04 * Math.max(0, -sh), nx: 0.05 + 0.12 * dd, ny: 0.15 * Math.sin(t * 0.7) * dd,
       aLx: 0.05 + 0.65 * cover, aRx: 0.05 + 0.65 * cover, aLz: 0.08 - 0.38 * cover, aRz: -(0.08 - 0.38 * cover), tz: 0, tx: 0.06 * dd };
   }
   const mixPose = (a, b, e) => { const o = {}; for (const key in a) o[key] = a[key] + (b[key] - a[key]) * e; return o; };
   const easeIO = x => x * x * (3 - 2 * x);
   // Where she lays her hands while he is being brought to her: his belt as he stands, his shoulders once he is up again.
   const beltL = mk(2.6, 1.2, 3.2, jack.hips), beltR = mk(-2.6, 1.2, 3.2, jack.hips), shoulderL = mk(5.2, 10, 1.5, jack.torso), shoulderR = mk(-5.2, 10, 1.5, jack.torso);
-  const LEAN_SIT_HANDS = 0.1;
+  const LEAN_SIT_HANDS = 0.5;
   // The table (standalone; in the game the room's own table is used): a plank top 22 deep from the edge Jack lies over and 30 wide, on four legs.
   let table = null;
   if (opts.table !== false) {
@@ -386,7 +386,7 @@ function create(view, opts) {
     const sw0 = st.swing, standing = st.giverStance === 'stand';
     if (!strikeStance()) {
       // Hands on him: at his belt (and a little fumbling at it, if `fumble` is up), or on his shoulders once he is upright again.
-      g.torso.rotation.order = 'YXZ'; g.torso.rotation.set(standing ? 0.16 : LEAN_SIT_HANDS, 0, 0); g.neck.rotation.set(0.3, 0, 0);
+      g.torso.rotation.order = 'YXZ'; g.torso.rotation.set(standing ? 0.16 : LEAN_SIT_HANDS, 0, 0); g.neck.rotation.set(standing ? 0.3 : -0.45, 0, 0);      // (seated, she leans in and looks up into his face, not down at her hands)
       paddle.visible = false; birch.visible = !!(IMPL[st.implement].birch && st.armed); if (birch.visible) { twigs.rotation.x = 0.1; for (const j of tips) j.rotation.x = 0.15; }
       g.root.updateMatrixWorld(true);
       const up = st.to === 'standTable', tL = world(up ? shoulderL : beltL), tR = world(up ? shoulderR : beltR), fum = (st.fumble || 0) * 0.5 * Math.sin(J.t * 13);
