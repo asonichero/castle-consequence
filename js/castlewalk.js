@@ -196,7 +196,7 @@ function run(G, W, opts) {
       else if (st.cl) {
         st.climbPh += dt * 9; if (!keys.space || st.stam <= 0) { st.cl = null; }
         else { const sp = 0.8 * Hj; st.y += sp * dt; st.stam -= sp * dt / (1.6 * Hj); let plat = null;
-          for (const e of C.near(st.pos.x, st.pos.z, 1.2 * Hj + 3)) { if (!e.wood || e.low || e.y1 <= st.y + 0.3 * Hj || e.y1 > st.y + 1.0 * Hj) continue; const [qx, qz] = pointOn(e, st.pos.x, st.pos.z); if (Math.hypot(qx - st.pos.x, qz - st.pos.z) > 0.8 * Hj) continue; if (!landingFor(e)) continue; if (!plat || e.y1 > plat.y1) plat = e; }
+          for (const e of C.near(st.pos.x, st.pos.z, 1.2 * Hj + 3)) { if (!e.wood || e.low || e.y1 <= st.y + 0.3 * Hj || e.y1 > st.y + 1.3 * Hj) continue; const [qx, qz] = pointOn(e, st.pos.x, st.pos.z); if (Math.hypot(qx - st.pos.x, qz - st.pos.z) > 0.8 * Hj) continue; if (!landingFor(e)) continue; if (!plat || e.y1 > plat.y1) plat = e; }
           if (plat) startMantle(plat, landingFor(plat)); }
       }
       if (!busy || (!st.cl && !st.mant)) {
