@@ -203,8 +203,6 @@ function run(G, W) {
     G.cut({ pos: v(-7, 5.4, S().z - 12), look: v(S().x, 6.1, S().z), fov: 34 }); st.look = 0; W.paintJack(jackOut, { expr: 1 });
     await wait(0.6); st.shiver = 0.7; await wait(0.7); st.shiver = 0;
     await G.say('jack', 'A whole land above the clouds... and a castle at the end of it.');
-    W.paintJack(jackOut, { expr: 3 });
-    await G.say('jack', '“Perhaps something worth more than her words lies at the top,” I said. Well... look at that.');
     W.paintJack(jackOut, { expr: 1 });
     await G.say('jack', 'Mother will eat every word. Come on, then. Let’s see what the castle has to offer.');
     // Round behind him, and the walk is his.
