@@ -19,7 +19,8 @@ function collect(room, ceiling) {
     if (o.material && (o.material.transparent || o.material.blending === THREE.AdditiveBlending)) return;
     const b = new THREE.Box3().setFromObject(o); if (b.max.x - b.min.x < 0.3 || b.max.z - b.min.z < 0.3) return;
     const low = b.max.y <= 0.7; if (low) { const m = o.matrixWorld.elements; if (b.max.y <= 0.15 || Math.abs(m[0] * m[2]) > 0.01) return; }          // (rugs and mats are floor he stands on, not walls: only the squared-up ones, whose boxes are true)
-    const e = { x0: b.min.x, x1: b.max.x, z0: b.min.z, z1: b.max.z, y0: b.min.y, y1: b.max.y, low }; boxes.push(e);
+    const e = { x0: b.min.x, x1: b.max.x, z0: b.min.z, z1: b.max.z, y0: b.min.y, y1: b.max.y, low };
+    { const m = o.material, c = m && !m.map && m.color; if (c) { const R = Math.round(c.r * 255), G_ = Math.round(c.g * 255), B_ = Math.round(c.b * 255); e.wood = R >= 0x30 && R <= 0xa0 && R > G_ && G_ > B_ && R - B_ >= 14 && R - B_ <= 75; } }      // (brown, unglazed: wood he can get his hands into) boxes.push(e);
     for (let i = Math.floor(e.x0 / CELL); i <= Math.floor(e.x1 / CELL); i++) for (let j = Math.floor(e.z0 / CELL); j <= Math.floor(e.z1 / CELL); j++) { const k = key(i, j); (grid.get(k) || grid.set(k, []).get(k)).push(e); }
   });
   const near = (x, z, r) => { const out = [], seen = new Set(); for (let i = Math.floor((x - r) / CELL); i <= Math.floor((x + r) / CELL); i++) for (let j = Math.floor((z - r) / CELL); j <= Math.floor((z + r) / CELL); j++) { const c = grid.get(key(i, j)); if (c) for (const e of c) if (!seen.has(e)) { seen.add(e); out.push(e); } } return out; };
@@ -45,11 +46,14 @@ function run(G, W, opts) {
     G.setScene(world); G.drone = null; if (!story) G.noSave = true;
     camera.near = 0.4; camera.far = 1600; camera.updateProjectionMatrix(); let nearS = 0;
     A && A.ambience({ wind: 0, birds: 0, fire: 0.2 });
-    const st = { pos: v(0, 0, story ? 98 : 70), heading: Math.PI, walkN: 0, walkPh: 0, camA: Math.PI / 2, pitch: 0.35, fpPitch: 0, zoom: 1, vy: 0, y: 0, jumpReq: false, s: story ? (opts.scale || 0.1) : FULL, fp: false, scene: false, toastAt: 0 };
+    const st = { pos: v(0, 0, story ? 98 : 70), heading: Math.PI, walkN: 0, walkPh: 0, camA: Math.PI / 2, pitch: 0.35, fpPitch: 0, zoom: 1, vy: 0, y: 0, jumpReq: false, s: story ? (opts.scale || 0.1) : FULL, fp: false, scene: false, air: false, cl: null, mant: null, stam: 1, climbPh: 0, toastAt: 0 };
     jackOut.after = r => {
       const w = Math.sin(st.walkPh) * 0.7 * st.walkN;
       r.legL.thigh.rotation.x = w; r.legR.thigh.rotation.x = -w; r.legL.knee.rotation.x = 0; r.legR.knee.rotation.x = 0;
       r.armL.rotation.x = -w * 0.8; r.armR.rotation.x = w * 0.8; r.armL.rotation.z = 0.06; r.armR.rotation.z = -0.06; r.neck.rotation.x = 0; r.torso.rotation.x = 0.04; r.hips.position.y = 12 + Math.abs(Math.sin(st.walkPh)) * 0.5 * st.walkN;
+      if (st.cl) { const c = Math.sin(st.climbPh); r.armL.rotation.x = -2.5 + 0.5 * c; r.armR.rotation.x = -2.5 - 0.5 * c; r.legL.thigh.rotation.x = -0.9 - 0.5 * c; r.legR.thigh.rotation.x = -0.9 + 0.5 * c; r.legL.knee.rotation.x = 0.9; r.legR.knee.rotation.x = 0.9; r.torso.rotation.x = -0.15; }
+      else if (st.mant) { r.armL.rotation.x = r.armR.rotation.x = -2.2; r.legL.thigh.rotation.x = -1.0; r.legR.thigh.rotation.x = -0.3; r.legL.knee.rotation.x = 1.0; }
+      else if (st.air) { r.armL.rotation.x = r.armR.rotation.x = -2.5; r.legL.thigh.rotation.x = -0.5; r.legR.thigh.rotation.x = 0.25; r.legR.knee.rotation.x = 0.5; }                    // (the leap, as in Chapter One)
     };
     // ── HUD and controls ──
     const css = document.createElement('style');
@@ -60,10 +64,11 @@ function run(G, W, opts) {
       #cwBtns { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 6px; pointer-events: auto; } #cwBtns button { margin: 0; padding: 12px 18px; font-size: 15px; background: rgba(20,22,30,0.85); touch-action: none; }
       #cwStick { position: absolute; left: 22px; bottom: 26px; width: 120px; height: 120px; border-radius: 50%; background: rgba(20,22,28,0.45); border: 2px solid rgba(230,196,106,0.55); touch-action: none; display: none; pointer-events: auto; }
       #cwKnob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(230,196,106,0.75); pointer-events: none; } @media (pointer: coarse) { #cwStick { display: block; } }
+      #cwStamW { position: absolute; left: 50%; bottom: 14vh; transform: translateX(-50%); width: 160px; height: 10px; background: rgba(10,12,16,0.7); border: 1px solid #4a4d58; border-radius: 5px; display: none; overflow: hidden; } #cwStam { height: 100%; width: 100%; background: #e6c46a; }
       #cwCross { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: rgba(255,255,255,0.7); display: none; }`;
     document.head.appendChild(css);
     const hud = document.createElement('div'); hud.id = 'cwHud';
-    hud.innerHTML = '<div id="cwPanel"><label>Jack’s size: <b id="cwPct">100%</b><br><input id="cwScale" type="range" min="5" max="150" step="1" value="100"></label><select id="cwGo"><option value="">Go to…</option></select></div><div id="cwCross"></div><div id="cwToast"></div><div id="cwStick"><div id="cwKnob"></div></div><div id="cwBtns"><button id="cwJump" class="touchonly">Jump</button><button id="cwView">View: Third person</button><button id="cwZoom">Zoom</button></div>';
+    hud.innerHTML = '<div id="cwPanel"><label>Jack’s size: <b id="cwPct">100%</b><br><input id="cwScale" type="range" min="5" max="150" step="1" value="100"></label><select id="cwGo"><option value="">Go to…</option></select></div><div id="cwStamW"><div id="cwStam"></div></div><div id="cwCross"></div><div id="cwToast"></div><div id="cwStick"><div id="cwKnob"></div></div><div id="cwBtns"><button id="cwJump" class="touchonly">Jump</button><button id="cwView">View: Third person</button><button id="cwZoom">Zoom</button></div>';
     document.body.appendChild(hud);
     const $ = id => document.getElementById(id);
     const toast = (t, ms = 6000) => { $('cwToast').textContent = t; $('cwToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
@@ -73,9 +78,9 @@ function run(G, W, opts) {
     const ZOOMS = [{ name: 'Close', d: 52 }, { name: 'Medium', d: 92 }, { name: 'Far', d: 150 }, { name: 'Wide', d: 520 }];
     function cycleZoom(dir) { st.zoom = (st.zoom + (dir || 1) + ZOOMS.length) % ZOOMS.length; $('cwZoom').textContent = 'Zoom: ' + ZOOMS[st.zoom].name; }
     function toggleView() { st.fp = !st.fp; $('cwView').textContent = 'View: ' + (st.fp ? 'First person' : 'Third person'); $('cwCross').style.display = st.fp ? 'block' : 'none'; jackOut.root.visible = !st.fp; if (st.fp) st.fpPitch = 0; }
-    const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } if (e.key === ' ') { e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } if (e.repeat) return; if (e.key === ' ') st.jumpReq = true; if (e.key === 'v' || e.key === 'V') cycleZoom(); if (e.key === 'c' || e.key === 'C') toggleView(); }, ku = e => { const k = KM[e.key]; if (k) keys[k] = false; };
+    const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } if (e.key === ' ') { keys.space = true; e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } if (e.repeat) return; if (e.key === ' ') st.jumpReq = true; if (e.key === 'v' || e.key === 'V') cycleZoom(); if (e.key === 'c' || e.key === 'C') toggleView(); }, ku = e => { const k = KM[e.key]; if (k) keys[k] = false; if (e.key === ' ') keys.space = false; };
     root.addEventListener('keydown', kd); root.addEventListener('keyup', ku);
-    $('cwZoom').onclick = () => cycleZoom(); $('cwZoom').textContent = 'Zoom: ' + ZOOMS[st.zoom].name; $('cwView').onclick = toggleView; $('cwJump').onpointerdown = e => { e.preventDefault(); st.jumpReq = true; };
+    $('cwZoom').onclick = () => cycleZoom(); $('cwZoom').textContent = 'Zoom: ' + ZOOMS[st.zoom].name; $('cwView').onclick = toggleView; $('cwJump').onpointerdown = e => { e.preventDefault(); st.jumpReq = true; keys.space = true; }; $('cwJump').onpointerup = $('cwJump').onpointerleave = $('cwJump').onpointercancel = () => { keys.space = false; };
     $('cwScale').oninput = () => { st.s = +$('cwScale').value / 100 * FULL; $('cwPct').textContent = Math.round(st.s / FULL * 100) + '%'; };
     $('cwScale').onchange = () => $('cwScale').blur();
     for (const [i, p] of PLACES.entries()) { const o = document.createElement('option'); o.value = i; o.textContent = p[0]; $('cwGo').appendChild(o); }
@@ -103,9 +108,10 @@ function run(G, W, opts) {
       const s = st.s; if (Math.abs(s - nearS) > 0.02) { nearS = s; camera.near = Math.max(0.1, 0.3 * s); camera.updateProjectionMatrix(); }       // (a nearer near plane only as he is small: the depth buffer keeps its precision, so flat surfaces do not shimmer)
       const f = v(-Math.cos(st.camA), 0, -Math.sin(st.camA)), r = v(Math.sin(st.camA), 0, -Math.cos(st.camA));
       if (st.lockT > 0) { st.lockT -= dt; keys.up = keys.down = keys.left = keys.right = false; stick.x = stick.y = 0; st.heading += angDiff(st.lockH, st.heading) * Math.min(1, dt * 5); st.camA += angDiff(Math.atan2(-Math.cos(st.lockH), -Math.sin(st.lockH)), st.camA) * Math.min(1, dt * 3); }
+      const Hj = HEIGHT * SC * s, busy = !!(st.cl || st.mant);
       const dir = v(0, 0, 0).addScaledVector(f, (keys.up ? 1 : 0) - (keys.down ? 1 : 0)).addScaledVector(r, (keys.right ? 1 : 0) - (keys.left ? 1 : 0));
       if (Math.hypot(stick.x, stick.y) > 0.2) dir.addScaledVector(f, -stick.y).addScaledVector(r, stick.x);
-      if (dir.lengthSq() > 0) {
+      if (busy) { st.walkN = 0; } else if (dir.lengthSq() > 0) {
         dir.normalize(); const want = Math.atan2(dir.x, dir.z); st.heading += angDiff(want, st.heading) * Math.min(1, dt * 9);
         const off = Math.abs(angDiff(want, st.heading)), ease = clamp(1 - off / Math.PI * 0.8, 0.2, 1), sp = (keys.run ? 50 : 26) * SC * Math.pow(s, 0.6) * ease, nx = st.pos.x + Math.sin(st.heading) * sp * dt, nz = st.pos.z + Math.cos(st.heading) * sp * dt;
         if (!blockedAt(nx, st.pos.z, st.y)) st.pos.x = nx; if (!blockedAt(st.pos.x, nz, st.y)) st.pos.z = nz; st.walkN = 1; st.walkPh += 10.9 * Math.pow(s, -0.35) * 0.55 * dt * 1.4 * (keys.run ? 1.5 : 1);
@@ -115,9 +121,29 @@ function run(G, W, opts) {
           if (!st.bread) { st.bread = true; st.lockT = 2.2; st.lockH = Math.atan2(90 - st.pos.x, -25 - st.pos.z); G.caption('jack', 'Is that... warm bread?'); setTimeout(() => G.caption('jack', 'I can smell it from here. I haven\u2019t eaten since... I\u2019m starving.'), 3200); }
           else if (performance.now() - (st.remindAt || 0) > 9000) { st.remindAt = performance.now(); G.caption('jack', 'Not that way. I’m starving, and that bread has to be somewhere close.'); } }
         else if (!near) st.inZone = false; }
-      const gy = floorAt(st.pos.x, st.pos.z, st.y);
-      if (st.jumpReq) { st.jumpReq = false; if (st.y <= gy + 0.01) st.vy = 112 * s; }
-      if (st.vy <= 0 && st.y <= gy + 0.4 * s) { st.y += (gy - st.y) * Math.min(1, dt * 22); st.vy = 0; } else { st.vy -= 420 * s * dt; st.y += st.vy * dt; if (st.y < gy) { st.y = gy; st.vy = 0; } else if (st.vy > 0 && blockedAt(st.pos.x, st.pos.z, st.y)) st.vy = 0; }
+      const gy = floorAt(st.pos.x, st.pos.z, st.y), rj = 4 * s;
+      // Wood he can get his hands to: a short step up (to three quarters of his height) is a mantle; anything taller, a climb, which tires him fast (about a height and a half) unless there is a rung to rest on, and a rung or a top he can pull onto within one more height.
+      const pointOn = (e, x, z) => [clamp(x, e.x0, e.x1), clamp(z, e.z0, e.z1)];
+      const startMantle = e => { const mx = Math.min(rj * 0.8, (e.x1 - e.x0) / 2), mz = Math.min(rj * 0.8, (e.z1 - e.z0) / 2); st.mant = { t: 0, dur: 0.55, from: { x: st.pos.x, y: st.y, z: st.pos.z }, to: { x: clamp(st.pos.x, e.x0 + mx, e.x1 - mx), y: e.y1, z: clamp(st.pos.z, e.z0 + mz, e.z1 - mz) } }; st.cl = null; st.vy = 0; };
+      const tryClimb = () => { const R = rj + 1.2 * s, fx = Math.sin(st.heading), fz = Math.cos(st.heading); let best = null;
+        for (const e of C.near(st.pos.x, st.pos.z, R + 2)) { if (!e.wood || e.low || e.y1 <= st.y + 0.45 * Hj || e.y0 > st.y + 0.5 * Hj) continue; const [qx, qz] = pointOn(e, st.pos.x, st.pos.z), dx = qx - st.pos.x, dz = qz - st.pos.z, d = Math.hypot(dx, dz);
+          if (d > R || (d > 0.01 && (dx * fx + dz * fz) / d < 0.2)) continue; if (!best || e.y1 > best.e.y1) best = { e, qx, qz, d }; }
+        if (!best) return false; const gap = best.e.y1 - st.y; if (gap <= 0.5 * Hj) return false; if (gap <= 0.75 * Hj) { startMantle(best.e); return true; }
+        let nx = st.pos.x - best.qx, nz = st.pos.z - best.qz; const nl = Math.hypot(nx, nz); if (nl < 0.01) { nx = -fx; nz = -fz; } else { nx /= nl; nz /= nl; }
+        st.pos.x = best.qx + nx * rj * 0.85; st.pos.z = best.qz + nz * rj * 0.85; st.heading = Math.atan2(-nx, -nz); st.cl = { e: best.e }; st.stam = 1; st.vy = 0; return true; };
+      if (st.jumpReq) { st.jumpReq = false; if (!busy && st.y <= gy + 0.01 && !tryClimb()) st.vy = 112 * s; }
+      if (st.mant) { const m = st.mant; m.t += dt; const k = clamp(m.t / m.dur, 0, 1); st.pos.x = m.from.x + (m.to.x - m.from.x) * k; st.pos.z = m.from.z + (m.to.z - m.from.z) * k; st.y = m.from.y + (m.to.y - m.from.y) * k + Math.sin(k * Math.PI) * 0.4 * Hj * 0.4; if (k >= 1) { st.y = m.to.y; st.mant = null; st.vy = 0; st.stam = 1; } }
+      else if (st.cl) {
+        st.climbPh += dt * 9; if (!keys.space || st.stam <= 0) { st.cl = null; }
+        else { const sp = 0.8 * Hj; st.y += sp * dt; st.stam -= sp * dt / (1.6 * Hj); let plat = null;
+          for (const e of C.near(st.pos.x, st.pos.z, 1.2 * Hj + 3)) { if (!e.wood || e.low || e.y1 <= st.y + 0.3 * Hj || e.y1 > st.y + 1.0 * Hj) continue; const [qx, qz] = pointOn(e, st.pos.x, st.pos.z); if (Math.hypot(qx - st.pos.x, qz - st.pos.z) > 0.8 * Hj) continue; if (!plat || e.y1 > plat.y1) plat = e; }
+          if (plat) startMantle(plat); }
+      }
+      if (!busy || (!st.cl && !st.mant)) {
+        if (st.vy <= 0 && st.y <= gy + 0.4 * s && !st.cl && !st.mant) { st.y += (gy - st.y) * Math.min(1, dt * 22); st.vy = 0; } else if (!st.cl && !st.mant) { st.vy -= 420 * s * dt; st.y += st.vy * dt; if (st.y < gy) { st.y = gy; st.vy = 0; } else if (st.vy > 0 && blockedAt(st.pos.x, st.pos.z, st.y)) st.vy = 0; }
+      }
+      st.air = !st.cl && !st.mant && (st.vy > 1 || st.y > gy + 0.5 * s); if (!st.air && !st.cl && !st.mant) st.stam = 1;
+      $('cwStamW').style.display = st.cl ? 'block' : 'none'; $('cwStam').style.width = Math.max(0, st.stam * 100) + '%';
       jackOut.root.scale.setScalar(SC * s); jackOut.root.position.set(st.pos.x, st.y, st.pos.z); jackOut.root.rotation.y = st.heading;
       if (st.toastAt && performance.now() > st.toastAt) { $('cwToast').style.opacity = 0; st.toastAt = 0; }
       // the camera: behind him (never snapping back), or through his eyes

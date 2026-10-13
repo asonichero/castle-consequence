@@ -119,13 +119,14 @@ function run(G, W) {
     G.setScene(world); G.drone = null; G.save({ step: 'meadow' });
     camera.near = 0.1; camera.updateProjectionMatrix();
     A && A.ambience({ wind: 0.14, birds: 0, fire: 0 });
-    const st = { pos: v(0, 0, START_Z), heading: Math.PI, walkN: 0, walkPh: 0, mode: 'intro', free: false, camA: Math.PI / 2, pitch: 0.5, zoom: 1, vy: 0, y: 0, jumpReq: false, gy: 0, kk: K0, look: 0, shiver: 0, bob: 0, craned: 0, frown: 0, stillSaid: 0, toastAt: 0, spd: 0, gripPrev: false };
+    const st = { pos: v(0, 0, START_Z), heading: Math.PI, walkN: 0, walkPh: 0, mode: 'intro', free: false, camA: Math.PI / 2, pitch: 0.5, zoom: 1, vy: 0, y: 0, jumpReq: false, gy: 0, kk: K0, look: 0, shiver: 0, bob: 0, craned: 0, frown: 0, stillSaid: 0, toastAt: 0, spd: 0, gripPrev: false, air: false };
     // Jack's body: walking, looking, shivering.
     jackOut.after = r => {
       const w = Math.sin(st.walkPh) * 0.7 * st.walkN, t = G.t, sh = st.shiver * 0.05 * Math.sin(t * 38);
       r.legL.thigh.rotation.x = w - st.bob * 0.5; r.legR.thigh.rotation.x = -w - st.bob * 0.5; r.legL.knee.rotation.x = st.bob * 1.0; r.legR.knee.rotation.x = st.bob * 1.0;
       r.armL.rotation.x = -w * 0.8 + sh; r.armR.rotation.x = w * 0.8 - sh; r.armL.rotation.z = 0.06 + st.shiver * 0.18; r.armR.rotation.z = -0.06 - st.shiver * 0.18;
       r.neck.rotation.x = st.look; r.torso.rotation.x = 0.04 + st.craned * 0.08 + sh * 0.6; r.hips.position.y = 12 - st.bob * 3 + Math.abs(Math.sin(st.walkPh)) * 0.5 * st.walkN;
+      if (st.air) { r.armL.rotation.x = r.armR.rotation.x = -2.5; r.legL.thigh.rotation.x = -0.5; r.legR.thigh.rotation.x = 0.25; r.legR.knee.rotation.x = 0.5; r.legL.knee.rotation.x = 0; }                    // (the leap, as in Chapter One)
     };
     // ── HUD and controls ──
     const css = document.createElement('style');
@@ -176,7 +177,8 @@ function run(G, W) {
         if (st.jumpReq) { st.jumpReq = false; if (st.y <= st.gy + 0.01) st.vy = 112 * st.kk; }           // (Space jumps, exactly as in Chapter One, in proportion to his size: the same height for his body, the same time in the air)
         st.gy = M.groundY(st.pos.x, st.pos.z); const fall = st.vy <= 0 && st.y <= st.gy + 0.4 * st.kk;
         if (fall) { st.y += (st.gy - st.y) * Math.min(1, dt * 22); st.vy = 0; } else { st.vy -= 420 * st.kk * dt; st.y += st.vy * dt; if (st.y < st.gy) { st.y = st.gy; st.vy = 0; } }
-        st.bob = st.y > 0 ? 0 : st.walkN * 0.15 * (0.5 + 0.5 * Math.sin(st.walkPh * 2));                                  // (the moss gives a little under each step)
+        st.bob = st.y > 0 ? 0 : st.walkN * 0.15 * (0.5 + 0.5 * Math.sin(st.walkPh * 2));
+        st.air = st.vy > 1 || st.y > st.gy + 0.5 * st.kk;                                  // (the moss gives a little under each step)
         // (no narration: the land is left to speak. Only the quiet falls as he goes in.)
         const p = clamp((START_Z - st.pos.z) / (START_Z - TRIGGER_Z), 0, 1);
         if (st.stillSaid === 0 && p > 0.04) { st.stillSaid = 1; A && A.ambience({ wind: 0, birds: 0, fire: 0 }); A && A.duckMusic && A.duckMusic(0.18, 5); }
