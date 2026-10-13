@@ -11,6 +11,8 @@ const angDiff = (a, b) => { let d = (a - b) % (Math.PI * 2); if (d > Math.PI) d 
 const SC = 0.95, K0 = 0.25, K1 = 0.10;
 const START_Z = 40, GATE_Z = -700, TRIGGER_Z = -672;                    // (the walk runs along -z, from the edge of the cloud to the castle's gate)
 const kOf = z => lerp(K0, K1, clamp((START_Z - z) / (START_Z - TRIGGER_Z), 0, 1));
+// The way to the castle: a footpath at full size (about 14 across), meandering gently, and straight to the gate.
+const pathX = z => 22 * Math.sin(z * 0.009) * clamp((40 - z) / 90, 0, 1) * clamp((z + 620) / 160, 0, 1);
 const rnd = (() => { let s = 777; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; })();
 
 function canvasTex(w, h, paint, rx, ry) { const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.wrapS = t.wrapT = THREE.RepeatWrapping; if (rx) t.repeat.set(rx, ry); return t; }
@@ -29,6 +31,8 @@ function build() {
   const hill = (x, z, r, h) => { for (let i = 0; i < 4; i++) { const w = r * 2 * (1 - i * 0.24), hh = h / 4; box(w, hh, w * (0.8 + rnd() * 0.4), new THREE.MeshLambertMaterial({ color: mossCols[(i + Math.floor(rnd() * 4)) % 4] }), x, i * hh + hh / 2, z, scene); } };
   for (let i = 0; i < 16; i++) { const side = i % 2 ? 1 : -1; hill(side * (260 + rnd() * 420), 100 - i * 55 - rnd() * 60, 70 + rnd() * 90, 40 + rnd() * 70); }
   for (let i = 0; i < 10; i++) box(300 + rnd() * 200, 30 + rnd() * 30, 200, new THREE.MeshBasicMaterial({ color: 0xf4eee8 }), (rnd() - 0.5) * 2600, 40 + rnd() * 120, -1500 - rnd() * 600, scene);
+  // The path: pale worn stone, laid in short lengths along its meander.
+  { const pm = new THREE.MeshLambertMaterial({ color: 0xd9d4c2 }), em = new THREE.MeshLambertMaterial({ color: 0xc4bfae }); let pz = 70, px = pathX(70); for (let z = 56; z >= -712; z -= 14) { const x = pathX(z), len = Math.hypot(14, x - px); const m = box(14, 0.3, len + 1, pm, (x + px) / 2, 0.16, (z + pz) / 2, scene); m.rotation.y = Math.atan2(x - px, z - pz) + Math.PI; for (const sx of [-8, 8]) box(2, 0.5, len + 1, em, (x + px) / 2 + sx, 0.18, (z + pz) / 2, scene).rotation.y = m.rotation.y; px = x; pz = z; } }
   // The silver stream: twice across the way, shallow enough to wade.
   const silver = new THREE.MeshPhongMaterial({ color: 0xcfe0ee, emissive: 0x6c7a8a, shininess: 140, specular: 0xffffff });
   const ribbon = (z0, amp, ph) => { let px = -520, pz = z0 + amp * Math.sin(px * 0.012 + ph); for (let x = -500; x <= 520; x += 14) { const z = z0 + amp * Math.sin(x * 0.012 + ph), len = Math.hypot(14, z - pz), m = box(len + 1, 0.5, 24 + 6 * Math.sin(x * 0.03), silver, (x + px) / 2, 0.22, (z + pz) / 2, scene); m.rotation.y = -Math.atan2(z - pz, 14); px = x; pz = z; } };
@@ -39,20 +43,20 @@ function build() {
   const C = a => a.map(c => new THREE.Color(c));
   const tuftCols = C(['#cfe0c8', '#bcd4b8', '#e4eedc', '#c4dcc0']), bloomCols = C(['#f4f0ff', '#e8d8f8', '#ffe8c8', '#dff0ff', '#fff6d8', '#f8d8e4']), spikeCols = C(['#d8c8f0', '#f0d8e8', '#cfe0f8', '#f8e8c0']), bushCols = C(['#b4cdb0', '#a4c0a2', '#c2d8b8']);
   // (where things stand: thinly near where he arrives, more and more as he walks; and clear of the stream's banks only by chance)
-  const spot = (clearStart, wide) => { for (;;) { const x = rnd() < wide ? (rnd() < 0.5 ? -1 : 1) * (60 + rnd() * 340) : (rnd() - 0.5) * 170, z = 90 - rnd() * 790; if (clearStart && z > 8 && Math.abs(x) < 30) continue; return [x, z]; } };
-  const field = (n, clearStart, wide) => { const a = []; for (let i = 0; i < n; i++) a.push(spot(clearStart, wide)); return a; };
+  const spot = (clearStart, wide, margin) => { for (;;) { const x = rnd() < wide ? (rnd() < 0.5 ? -1 : 1) * (60 + rnd() * 340) : (rnd() - 0.5) * 170, z = 90 - rnd() * 790; if (clearStart && z > 8 && Math.abs(x) < 30) continue; if (Math.abs(x - pathX(z)) < (margin || 13)) continue; return [x, z]; } };
+  const solids = [], field = (n, clearStart, wide, margin) => { const a = []; for (let i = 0; i < n; i++) a.push(spot(clearStart, wide, margin)); return a; };
   // Tufts of grass: ankle to knee.
-  { const P = field(14000, true, 0.3), H = P.map(() => 1.8 + rnd() * 3.6); inst(new THREE.BoxGeometry(0.45, 1, 0.45), new THREE.MeshLambertMaterial({ color: 0xffffff }), P.length, (d, c, i) => { d.position.set(P[i][0], H[i] / 2, P[i][1]); d.scale.set(1, H[i], 1); d.rotation.set((rnd() - 0.5) * 0.3, rnd() * 3, 0); return tuftCols[i % 4]; }); }
+  { const P = field(14000, true, 0.3, 8), H = P.map(() => 1.8 + rnd() * 3.6); inst(new THREE.BoxGeometry(0.45, 1, 0.45), new THREE.MeshLambertMaterial({ color: 0xffffff }), P.length, (d, c, i) => { d.position.set(P[i][0], H[i] / 2, P[i][1]); d.scale.set(1, H[i], 1); d.rotation.set((rnd() - 0.5) * 0.3, rnd() * 3, 0); return tuftCols[i % 4]; }); }
   // Wildflowers: thigh to waist, each a stem and a bloom.
-  { const P = field(6500, true, 0.3), H = P.map(() => 6 + rnd() * 9); inst(new THREE.BoxGeometry(0.4, 1, 0.4), new THREE.MeshLambertMaterial({ color: 0x9fc08a }), P.length, (d, c, i) => { d.position.set(P[i][0], H[i] / 2, P[i][1]); d.scale.set(1, H[i], 1); d.rotation.set(0, rnd() * 3, 0); return null; });
+  { const P = field(6500, true, 0.3), H = P.map(() => 6 + rnd() * 9); for (const q of P) solids.push([q[0], q[1], 0.6]); inst(new THREE.BoxGeometry(0.4, 1, 0.4), new THREE.MeshLambertMaterial({ color: 0x9fc08a }), P.length, (d, c, i) => { d.position.set(P[i][0], H[i] / 2, P[i][1]); d.scale.set(1, H[i], 1); d.rotation.set(0, rnd() * 3, 0); return null; });
     inst(new THREE.BoxGeometry(2.2, 1.3, 2.2), new THREE.MeshLambertMaterial({ color: 0xffffff }), P.length, (d, c, i) => { d.position.set(P[i][0], H[i] + 0.3, P[i][1]); d.scale.set(1, 1, 1); d.rotation.set(0, rnd() * 3, 0); return bloomCols[i % bloomCols.length]; }); }
   // Tall spiked flowers: a head to well over his head.
-  { const P = field(1500, true, 0.35), H = P.map(() => 22 + rnd() * 18); inst(new THREE.BoxGeometry(0.6, 1, 0.6), new THREE.MeshLambertMaterial({ color: 0x8fb27c }), P.length, (d, c, i) => { d.position.set(P[i][0], H[i] / 2, P[i][1]); d.scale.set(1, H[i], 1); return null; });
+  { const P = field(1500, true, 0.35), H = P.map(() => 22 + rnd() * 18); for (const q of P) solids.push([q[0], q[1], 0.8]); inst(new THREE.BoxGeometry(0.6, 1, 0.6), new THREE.MeshLambertMaterial({ color: 0x8fb27c }), P.length, (d, c, i) => { d.position.set(P[i][0], H[i] / 2, P[i][1]); d.scale.set(1, H[i], 1); return null; });
     inst(new THREE.BoxGeometry(1.7, 1, 1.7), new THREE.MeshLambertMaterial({ color: 0xffffff }), P.length, (d, c, i) => { const h = 7 + rnd() * 5; d.position.set(P[i][0], H[i] - h / 2 + 1, P[i][1]); d.scale.set(1, h, 1); return spikeCols[i % 4]; }); }
   // Bushes and ferns: waist to shoulder, built of a few blocks.
-  for (let i = 0; i < 160; i++) { const [x, z] = spot(true, 0.45), w = 10 + rnd() * 12, h = 9 + rnd() * 9, m = new THREE.MeshLambertMaterial({ color: bushCols[i % 3] }); box(w, h, w * 0.9, m, x, h / 2, z, scene).rotation.y = rnd() * 3; box(w * 0.65, h * 0.7, w * 0.6, m, x + w * 0.2, h * 0.9, z - w * 0.1, scene); }
+  for (let i = 0; i < 160; i++) { const [x, z] = spot(true, 0.45, 30), w = 10 + rnd() * 12; solids.push([x, z, w * 0.55]); const ww = w, h = 9 + rnd() * 9, m = new THREE.MeshLambertMaterial({ color: bushCols[i % 3] }); box(w, h, w * 0.9, m, x, h / 2, z, scene).rotation.y = rnd() * 3; box(w * 0.65, h * 0.7, w * 0.6, m, x + w * 0.2, h * 0.9, z - w * 0.1, scene); }
   // Great pale stones and a few fallen stems, for the eye to measure against.
-  for (let i = 0; i < 40; i++) { const [x, z] = spot(true, 0.4), w = 6 + rnd() * 10; box(w, w * 0.6, w * 0.8, new THREE.MeshLambertMaterial({ color: 0xcfd0c8 }), x, w * 0.3, z, scene).rotation.y = rnd() * 3; }
+  for (let i = 0; i < 40; i++) { const [x, z] = spot(true, 0.4, 24), w = 6 + rnd() * 10; solids.push([x, z, w * 0.55]); box(w, w * 0.6, w * 0.8, new THREE.MeshLambertMaterial({ color: 0xcfd0c8 }), x, w * 0.3, z, scene).rotation.y = rnd() * 3; }
   // The beanstalk's top, rising out of a ring of cloud behind where Jack arrives.
   { const g = new THREE.Group(); g.position.set(0, 0, 78); scene.add(g); const dark = new THREE.MeshLambertMaterial({ color: 0x4f6f5a }), gm = ['#3f7f3a', '#4a8f42', '#37703a', '#58a04a'].map(c => F.plain(c));
     box(40, 0.4, 40, dark, 0, 0.05, 0, g);
@@ -62,7 +66,7 @@ function build() {
     box(26, 2.4, 2.4, gm[1], 12, 56, 0, g).rotation.z = 0.5; }
   // A few pale trees lining the way to the gate: the tallest is the measure the gate is held against.
   const trunkM = new THREE.MeshLambertMaterial({ color: 0xd9d3c0 }), leafM = [0xb9d4c0, 0xa8c8b4, 0xc6dccb].map(c => new THREE.MeshLambertMaterial({ color: c }));
-  for (let i = 0; i < 18; i++) { const side = i % 2 ? 1 : -1, x = side * (70 + rnd() * 90), z = -300 - i * 22 - rnd() * 14, h = 34 + rnd() * 22; box(4, h, 4, trunkM, x, h / 2, z, scene); box(24, 8, 24, leafM[0], x, h + 2, z, scene); box(17, 8, 17, leafM[1], x, h + 9, z, scene); box(10, 8, 10, leafM[2], x, h + 16, z, scene); }
+  for (let i = 0; i < 18; i++) { const side = i % 2 ? 1 : -1, x = side * (70 + rnd() * 90), z = -300 - i * 22 - rnd() * 14, h = 34 + rnd() * 22; solids.push([x, z, 4]); box(4, h, 4, trunkM, x, h / 2, z, scene); box(24, 8, 24, leafM[0], x, h + 2, z, scene); box(17, 8, 17, leafM[1], x, h + 9, z, scene); box(10, 8, 10, leafM[2], x, h + 16, z, scene); }
   // The castle: moonlight and bone. A main body, two wings, one tower; no flag.
   const stone = (rx, ry) => new THREE.MeshLambertMaterial({ map: stoneTex(rx, ry), emissive: 0x161b2a });
   const win = new THREE.MeshBasicMaterial({ color: 0x0b0f1c });
@@ -86,7 +90,7 @@ function build() {
   castle.updateMatrixWorld(true);
   // The castle's long shadow across the last of the way.
   const shade = new THREE.Mesh(new THREE.PlaneGeometry(520, 260), new THREE.MeshBasicMaterial({ color: 0x1c2030, transparent: true, opacity: 0.22, depthWrite: false })); shade.rotation.x = -Math.PI / 2; shade.position.set(0, 0.6, -575); scene.add(shade);
-  return { scene, glints, sun, hemi: scene.children.find(o => o.isHemisphereLight), shade, update(dt, t) { for (const g of glints) g.m.opacity = 0.08 + 0.12 * (0.5 + 0.5 * Math.sin(t * 0.6 + g.ph)) * (0.5 + 0.5 * Math.sin(t * 0.23 + g.ph * 3)); } };
+  return { scene, glints, solids, sun, hemi: scene.children.find(o => o.isHemisphereLight), shade, update(dt, t) { for (const g of glints) g.m.opacity = 0.08 + 0.12 * (0.5 + 0.5 * Math.sin(t * 0.6 + g.ph)) * (0.5 + 0.5 * Math.sin(t * 0.23 + g.ph * 3)); } };
 }
 
 // What he carries: his father's knife, the satchel, and a flask at his belt (the flask is new).
@@ -145,7 +149,10 @@ function run(G, W) {
 
     // ── Each frame: the walk, and the camera when it is the player's. ──
     const camPos = new V3(), camLook = new V3();
-    const blocked = (x, z) => x < -280 || x > 280 || z > 120 || z < -760 || (z < -688 && Math.abs(x) > 44);
+    const grid = new Map(), CELL = 12, gk = (ix, iz) => ix * 4096 + iz;
+    for (const o of M.solids) { const ix = Math.floor(o[0] / CELL), iz = Math.floor(o[1] / CELL), k = gk(ix, iz); (grid.get(k) || grid.set(k, []).get(k)).push(o); }
+    const hitsFlora = (x, z) => { const rJ = 4 * st.kk, ix = Math.floor(x / CELL), iz = Math.floor(z / CELL); for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const c = grid.get(gk(ix + a, iz + b)); if (c) for (const o of c) if (Math.hypot(x - o[0], z - o[1]) < o[2] + rJ) return true; } return false; };
+    const blocked = (x, z) => x < -280 || x > 280 || z > 120 || z < -760 || (z < -688 && Math.abs(x) > 44) || hitsFlora(x, z);       // (the flora stands like the trees on the market road: he goes round, along the path)
     const place = () => { st.kk = kOf(st.pos.z); jackOut.root.scale.setScalar(SC * st.kk); jackOut.root.position.set(st.pos.x, st.y - 0.5 * st.bob * st.kk, st.pos.z); jackOut.root.rotation.y = st.heading; };
     const tick = dt => {
       if (st.mode === 'walk') {
@@ -174,7 +181,7 @@ function run(G, W) {
       }
     };
     const cleanup = () => { root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('wheel', wheel); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu); G.updaters = G.updaters.filter(u => u !== tick); hud.remove(); css.remove(); jackOut.after = null; jackOut.root.scale.setScalar(SC); camera.near = nearOld; camera.updateProjectionMatrix(); };
-    place(); G.updaters.push(tick); G.meadow = { st };
+    place(); G.updaters.push(tick); G.meadow = { st, blocked, pathX };
 
     // ── The opening: the beanstalk climbing out of the cloud behind him, and the castle a long way off; then Jack, with something to say; then round behind him, and the walk. ──
     const k = K0, S = () => st.pos, wait = G.wait;
@@ -185,16 +192,16 @@ function run(G, W) {
     f.style.transition = ''; await G.fade(false, 2.2); f.style.background = '';
     await wait(0.8);
     // He is small beside the stalk; the camera draws away and across, and the castle stands at the end of the land.
-    await G.shot({ pos: v(120, 12, 36), look: v(-10, 36, -420), fov: 40 }, 9, 'inOut');
+    await G.shot({ pos: v(0, 96, 98), look: v(0, 66, -760), fov: 36 }, 8.5, 'inOut');
     await wait(0.5);
     // Jack, in close: the moment he has been proved right.
     G.cut({ pos: v(-7, 5.4, S().z - 12), look: v(S().x, 6.1, S().z), fov: 34 }); st.look = 0; W.paintJack(jackOut, { expr: 1 });
     await wait(0.6); st.shiver = 0.7; await wait(0.7); st.shiver = 0;
     await G.say('jack', 'A whole land above the clouds... and a castle at the end of it.');
     W.paintJack(jackOut, { expr: 3 });
-    await G.say('jack', 'I told her there would be something at the top worth more than all her words. I was right.');
+    await G.say('jack', '“Perhaps something worth more than her words lies at the top,” I said. Well... look at that.');
     W.paintJack(jackOut, { expr: 1 });
-    await G.say('jack', 'Come on, then. Let’s see what the castle has to offer.');
+    await G.say('jack', 'Mother will eat every word. Come on, then. Let’s see what the castle has to offer.');
     // Round behind him, and the walk is his.
     { const kk = K0, d = 92 * kk, c = Math.cos(0.5); await G.shot({ pos: v(0, 15 * SC * kk + Math.sin(0.5) * d, S().z + d * c), look: v(0, 15 * SC * kk, S().z), fov: 48 }, 1.8, 'inOut'); }
     G.skipping = false; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); st.heading = Math.PI; st.look = 0; st.camA = Math.PI / 2; camPos.set(0, 0, 0);
