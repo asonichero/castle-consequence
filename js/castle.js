@@ -320,26 +320,84 @@ function interior() {
     update(dt, t) { for (const f of flames) { const s = f.base * (0.8 + 0.55 * Math.sin(t * 9 + f.ph) * Math.sin(t * 5.3 + f.ph * 2)); f.m.scale.y = Math.max(0.3, s / f.base); } for (const a of anim) a(t); },
   };
 }
-// The castle's outside, for the cloud meadow: the same plan as the inside (every room's outer walls, the hall a third higher), in the meadow's moonlit bone, with a tower rising over the parlour and the stair hall.
-//   exterior(group, { stone(rx, ry), win, glints, rnd, ox, oz }): adds its meshes to `group`; the hall's front face lands on z = oz + 112 (so the great door stands at x = ox, z = oz + 112).
+// The castle's outside, for the cloud meadow: the same plan as the inside (every room's outer walls, the hall a third higher), in the meadow's moonlit bone, but dressed as a castle out of a story:
+//   a gabled hall with a rose window and a pointed great arch, slim gate towers, round turrets with coloured slate cones and gold finials, hipped roofs on the wings, pointed windows, a corbelled bay, battlements,
+//   and a tower over the parlour and stair hall (one storey above the rest, with a spire); pennants, chimney smoke, birds and drifting wisps of cloud.
+//   exterior(group, { stone(rx, ry), win, glints, rnd, ox, oz, gateZ, sideX }): adds its meshes to `group` (the hall's front face lands on z = oz + 112, the great door at x = ox);
+//   returns { door, solids: [[x, z, r]…] (what Jack cannot walk through), update(t) }.
 function exterior(group, o) {
-  const stone = (w, h) => o.stone(Math.max(1, w / 26), Math.max(1, h / 22)), ox = o.ox || 0, oz = o.oz || 0, put = (w, h, d, m, x, y, z) => { const b = box(w, h, d, m, x + ox, y, z + oz, group); return b; };
+  const stone = (w, h) => o.stone(Math.max(1, w / 26), Math.max(1, h / 22)), ox = o.ox || 0, oz = o.oz || 0, anim = [], solids = [];
+  const put = (w, h, d, m, x, y, z) => box(w, h, d, m, x + ox, y, z + oz, group);
+  const lam = (c, e) => new THREE.MeshLambertMaterial({ color: c, emissive: e === undefined ? 0x161b2a : e });
+  const trim = lam(0xe6e2d4, 0x1c2236), plinth = lam(0xb8b4a2, 0x161b2a), gold = lam(0xe8c040, 0x382800), wood = lam(0x3a2a20, 0x0a0806), iron = lam(0x2b2d36, 0x08090c);
+  const slates = [0x5a78b8, 0xb85a78, 0x6a5aa8, 0x3f8a8a, 0xc88a3a].map(c => { const m = lam(c, 0x10142a); m.side = THREE.DoubleSide; return m; });
+  const warm = new THREE.MeshBasicMaterial({ color: 0xffd88a }), glass = new THREE.MeshBasicMaterial({ color: 0x23376e });
+  const flat = g => { g = g.toNonIndexed(); g.computeVertexNormals(); return g; };
+  const mesh = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x + ox, y, z + oz); group.add(m); return m; };
+  const tri = (arr) => { const g = new THREE.BufferGeometry(), p = []; for (const t of arr) p.push(...t[0], ...t[1], ...t[2]); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); g.computeVertexNormals(); return g; };
+  // roofs: a hip (ridge along the long side; a pyramid when square), a gable (vertical ends), a four-sided spire
+  const hipGeo = (L, S, h) => { const r = (L - S) / 2, a = [-L / 2, 0, -S / 2], b = [L / 2, 0, -S / 2], c = [L / 2, 0, S / 2], d = [-L / 2, 0, S / 2], r0 = [-r, h, 0], r1 = [r, h, 0]; return tri([[d, c, r1], [d, r1, r0], [b, a, r0], [b, r0, r1], [a, d, r0], [c, b, r1]]); };
+  const gableGeo = (L, S, h) => { const a = [-L / 2, 0, -S / 2], b = [L / 2, 0, -S / 2], c = [L / 2, 0, S / 2], d = [-L / 2, 0, S / 2], r0 = [-L / 2, h, 0], r1 = [L / 2, h, 0]; return tri([[d, c, r1], [d, r1, r0], [b, a, r0], [b, r0, r1], [a, d, r0], [c, b, r1]]); };
+  const roof = (cx, cz, w, d, h, y, mat, gable) => { const L = Math.max(w, d), S = Math.min(w, d), m = mesh((gable ? gableGeo : hipGeo)(L, S, h), mat, cx, y, cz); if (d > w) m.rotation.y = Math.PI / 2; return m; };
+  const spire = (cx, cz, w, d, h, y, mat) => { const m = mesh(flat(new THREE.CylinderGeometry(0, w / Math.SQRT2, h, 4)), mat, cx, y + h / 2, cz); m.rotation.y = Math.PI / 4; m.scale.z = d / w; return m; };
+  // pennants, waving
+  const pennant = (x, y, z, col, ph) => { const pole = put(0.7, 15, 0.7, iron, x, y + 7.5, z), fl = new THREE.Group(); fl.position.set(x + ox, y + 12, z + oz); group.add(fl); box(11, 5.4, 0.4, lam(col, 0x201010), 5.5, 0, 0, fl); box(5, 2.4, 0.5, gold, 11.4, 0, 0, fl); anim.push(t => { fl.rotation.y = Math.sin(t * 2.1 + ph) * 0.35; }); };
+  // a round (eight-sided) turret: stone shaft with a ring under the cone, slits, a coloured cone, a gold finial; `y0` lifts it onto a roof or ledge
+  const turret = (x, z, r, h, rh, ci, flag, y0) => {
+    y0 = y0 || 0; mesh(new THREE.CylinderGeometry(r, r, h, 8), stone(Math.PI * 2 * r, h), x, y0 + h / 2, z); mesh(new THREE.CylinderGeometry(r + 1.8, r + 1.8, 4, 8), trim, x, y0 + h - 2, z); mesh(new THREE.CylinderGeometry(r + 1, r + 1, 4, 8), stone(r * 6, 4), x, y0 + h - 6, z);
+    mesh(flat(new THREE.CylinderGeometry(0, r + 4.5, rh, 8)), slates[ci % slates.length], x, y0 + h + rh / 2, z); put(1.6, 7, 1.6, gold, x, y0 + h + rh + 3, z); put(3, 3, 3, gold, x, y0 + h + rh - 1, z);
+    for (const yy of [0.35, 0.7]) for (let k = 0; k < 4; k++) { const a = Math.PI / 8 + k * Math.PI / 2 + (k % 2) * Math.PI / 4; if (h > 30 || yy < 0.5) put(3.2, 9, 1, o.win, x + Math.sin(a) * (0.924 * r + 0.3), y0 + h * yy, z + Math.cos(a) * (0.924 * r + 0.3)).rotation.y = a; }
+    if (flag) pennant(x, y0 + h + rh + 6, z, [0xb83a4a, 0x3a6ab8, 0xe8b830][ci % 3], ci); solids.push([x + ox, z + oz, r + 3]);
+  };
+  // ── the walls: each room's outer shell, a base course, an eave band and its roof ──
   const rooms = [[-92, 92, -112, 112, HH], [-275, -88, -45, -6, H], [-316, -271, -162, 99, H], [-275, -91, -2, 90, H], [-275, -91, -148, -49, H], [-316, -97, -295, -158, H], [88, 252, -113, 55, H], [248, 378, -111, -6, H], [249, 377, -10, 55, H], [248, 297, -209, -107, H], [293, 384, -204, -113, H], [248, 392, -332, -206, H]];
-  rooms.forEach(([x0, x1, z0, z1, h], i) => { const e = i * 0.07, w = x1 - x0, d = z1 - z0; put(w, h + e, d, stone(Math.max(w, d), h), (x0 + x1) / 2, (h + e) / 2, (z0 + z1) / 2); put(w + 5, 6, d + 5, stone(w, 6), (x0 + x1) / 2, h + e + 3, (z0 + z1) / 2); });
-  // the garden's walls, and the clouds' side of them
+  rooms.forEach(([x0, x1, z0, z1, h], i) => { const e = i * 0.07, w = x1 - x0, d = z1 - z0, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    put(w, h + e, d, stone(Math.max(w, d), h), cx, (h + e) / 2, cz); put(w + 6, 5, d + 6, plinth, cx, 2.5, cz); put(w + 5, 6, d + 5, stone(w, 6), cx, h + e + 3, cz);
+    if (i === 0) { roof(cx, cz, w + 14, d + 14, 66, h + 6, slates[0], true); } else roof(cx, cz, w + 12, d + 12, Math.min(46, Math.max(18, Math.min(w, d) * 0.36)), h + 6, slates[[1, 2, 3, 4, 0, 1, 2, 3, 4, 1, 2][i - 1] % slates.length]); });
+  // the hall: a rose window in the gable, the pointed great arch over the door, a chimney with smoke
+  { const gy = HH + 6 + 24; mesh(new THREE.CylinderGeometry(15, 15, 1.4, 12), trim, 0, gy, 118.4).rotation.x = Math.PI / 2; mesh(new THREE.CylinderGeometry(12.4, 12.4, 1.8, 12), glass, 0, gy, 118.6).rotation.x = Math.PI / 2;
+    put(1.2, 25, 2, trim, 0, gy, 119.4); put(25, 1.2, 2, trim, 0, gy, 119.4); put(1.2, 25, 2, trim, 0, gy, 119.4).rotation.z = Math.PI / 4; put(1.2, 25, 2, trim, 0, gy, 119.4).rotation.z = -Math.PI / 4; put(7, 7, 2, gold, 0, gy, 119.6); }
+  for (let i = 0; i < 12; i++) { const k = i / 12, w = 70 * (1 - Math.pow(k, 1.35)); if (w < 2) break; put(w, 3.2, 3, wood, 0, 75 + i * 3 + 1.6, 113.5); put(w + 14 - i * 0.6, 3.2, 5, trim, 0, 75 + i * 3 + 1.6, 114.4 - 1.2); }
+  for (const sx of [-1, 1]) put(7, 78, 5, trim, sx * 38.5, 39, 114.2);
+  pennant(0, HH + 6 + 66, 0, 0xb83a4a, 0.5);
+  // smoke from the hearths: the hall's, and the kitchen's
+  const smokes = []; const chimney = (x, z, y, hh) => { put(12, hh, 12, stone(12, hh), x, y + hh / 2, z); put(15, 3, 15, trim, x, y + hh + 1.5, z); for (let i = 0; i < 9; i++) { const m = put(5, 5, 5, new THREE.MeshLambertMaterial({ color: 0xcfd2d6, transparent: true, opacity: 0.6, emissive: 0x20242c }), x, y + hh + 5, z); smokes.push({ m, x: x + ox, y0: y + hh + 4, z: z + oz, t: i / 9 }); } };
+  chimney(0, -100, HH, 70); chimney(236, 5, H + 6, 48);
+  anim.push((t, dt) => { for (const s of smokes) { s.t = (s.t + (dt || 0.016) * 0.1) % 1; s.m.position.set(s.x + Math.sin(s.t * 6) * 3 + s.t * 16, s.y0 + s.t * 70, s.z); s.m.scale.setScalar(0.5 + s.t * 1.7); s.m.material.opacity = 0.6 * (1 - s.t); } });
+  // ── turrets: the hall's four corners, the slim pair that flank the great door, the wings' corners ──
+  [[-92, 108, 17, 150, 60, 0, 1], [92, 108, 17, 150, 60, 1, 1], [-92, -108, 15, 140, 52, 2], [92, -108, 15, 140, 52, 3], [-42, 108, 7, 140, 46, 4], [42, 108, 7, 140, 46, 4],
+   [-316, 99, 14, 112, 46, 1], [-316, -162, 11, 104, 40, 2], [-316, -295, 14, 118, 50, 0, 1], [-97, -295, 12, 108, 44, 3], [-91, 90, 10, 104, 38, 4],
+   [88, 55, 12, 106, 44, 2], [378, 55, 14, 120, 50, 1, 1], [392, -332, 16, 128, 54, 3, 1], [248, -332, 12, 104, 40, 0], [384, -113, 10, 100, 38, 4]].forEach(t => turret(t[0], t[1], t[2], t[3], t[4], t[5], t[6]));
+  // a corbelled bay hanging off the music hall's front, and a stepped one off the kitchen
+  for (const [bx, bz, bw] of [[-143, 96, 30], [153, 61, 30]]) { put(bw, 4, 12, trim, bx, 22, bz); put(bw - 4, 36, 10, stone(bw, 36), bx, 42, bz); put(bw + 2, 3, 12, trim, bx, 61, bz); roof(bx, bz, bw + 6, 16, 18, 62.5, slates[bx < 0 ? 2 : 3]); for (const dx of [-8, 0, 8]) { put(5, 14, 1, o.win, bx + dx, 44, bz + 5.4); put(3.4, 3, 1, o.win, bx + dx, 52, bz + 5.4); } }
+  // ── the tower, over the parlour and the stair hall: one storey above the rest, with four little turrets and a spire ──
+  const tx = 314, tz = -12, TW = 104, TD = 116, TH = H + 86; put(TW, TH, TD, stone(TD, TH), tx, TH / 2, tz); put(TW + 6, 7, TD + 6, plinth, tx, H + 5, tz); put(TW + 8, 6, TD + 8, stone(TW, 6), tx, TH + 3, tz);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) { turret(tx + sx * (TW / 2 + 1), tz + sz * (TD / 2 + 1), 8, 34, 30, sx > 0 ? 1 : 2, 0, TH - 10); for (let y = H + 12; y < TH; y += 16) put(6, 8, 6, (y / 16 | 0) % 2 ? trim : stone(8, 8), tx + sx * (TW / 2), y, tz + sz * (TD / 2)); }
+  spire(tx, tz, TW + 14, TD + 14, 112, TH + 6, slates[0]); put(1.8, 9, 1.8, gold, tx, TH + 6 + 112 + 4, tz); put(4, 4, 4, gold, tx, TH + 6 + 112 - 1, tz); pennant(tx, TH + 6 + 112 + 8, tz, 0xb83a4a, 1.3);
+  // ── windows: pointed, with a lighter surround; a few lit warm; the dark slit's old glint ──
+  let wn = 0;
+  const slit = (axis, face, c, y, w, h, out) => { const z_ = axis === 'z', lit = ((wn++ * 7) % 10) < 3, m = lit ? warm : o.win, pw = (ww, hh, dd, mat, f, cc, yy) => { const pos = face + out * f; return z_ ? put(ww, hh, dd, mat, cc, yy, pos) : put(dd, hh, ww, mat, pos, yy, cc); };
+    pw(w + 4, h + 3, 1.2, trim, 0.6, c, y); pw(w, h, 0.8, m, 1.4, c, y);
+    if (h >= 18) for (let i = 0; i < 3; i++) { pw(w + 4 - i * 2.4 - 2, 2.4, 1.2, trim, 0.6, c, y + h / 2 + 2.4 + i * 2.4); pw(w * (0.82 - i * 0.28), 2.4, 0.8, m, 1.4, c, y + h / 2 + 1.2 + i * 2.4); }
+    if (!lit) { const gm = new THREE.MeshBasicMaterial({ color: 0xbfd4ff, transparent: true, opacity: 0.1, depthWrite: false }), g = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.9, h * 0.9), gm), pos = face + out * 1.9; g.position.set((z_ ? c : pos) + ox, y, (z_ ? pos : c) + oz); g.rotation.y = z_ ? (out > 0 ? 0 : Math.PI) : (out > 0 ? Math.PI / 2 : -Math.PI / 2); group.add(g); o.glints.push({ m: gm, ph: o.rnd() * 6.28 }); } };
+  for (const w of interior().windows) slit(w.axis, w.fixed - w.dirSign * 2, w.c, (w.y0 + w.y1) / 2, w.w, w.y1 - w.y0, -w.dirSign);
+  for (const dx of [-30, 0, 30]) { slit('z', tz + TD / 2, tx + dx, H + 44, 12, 30, 1); slit('z', tz - TD / 2, tx + dx, H + 44, 12, 30, -1); }
+  for (const dz of [-34, 0, 34]) { slit('x', tx + TW / 2, tz + dz, H + 44, 12, 30, 1); slit('x', tx - TW / 2, tz + dz, H + 44, 12, 30, -1); }
+  // ── climbing green on the lower fronts, and the garden's wall with its battlements ──
+  const greens = ['#5a7a4a', '#6a8a52', '#4a6a44', '#7a9a60'];
+  for (const [x0, x1, z, avoid] of [[-92, 92, 112, 40], [-316, -271, 99, 0], [-275, -91, 90, 0], [88, 252, 55, 0], [249, 377, 55, 0]]) for (let i = 0; i < 12; i++) { const w = 4 + o.rnd() * 9, x = x0 + o.rnd() * (x1 - x0); if (Math.abs(x) < avoid) continue; put(w, 5 + o.rnd() * 15, 0.7, lam(new THREE.Color(greens[i % 4]).getHex(), 0x0a100a), x, 2 + (5 + o.rnd() * 10) / 2, z + 2.2); }
   put(349, 56, 4, stone(349, 56), 77.5, 28, -348); put(4, 56, 237, stone(237, 56), -95, 28, -229.5); put(353, 4, 8, stone(353, 4), 77.5, 58, -348); put(8, 4, 241, stone(241, 4), -95, 58, -229.5);
-  // the tower, over the parlour and the stair hall: one storey above the rest of the castle, with a spired roof
-  const tx = 314, tz = -12, TW = 104, TD = 116, TH = H + 86; put(TW, TH, TD, stone(TD, TH), tx, TH / 2, tz); put(TW + 6, 7, TD + 6, stone(TW, 7), tx, H + 5, tz); put(TW + 8, 6, TD + 8, stone(TW, 6), tx, TH + 3, tz);
-  const slate = new THREE.MeshLambertMaterial({ color: 0x5a6684, emissive: 0x161b2a }); const tiers = 16, sh = 7;
-  for (let i = 0; i < tiers; i++) { const k = 1 - i / tiers, w = Math.max(3, (TW + 6) * k), d = Math.max(3, (TD + 6) * k); put(w, sh, d, slate, tx, TH + 6 + sh / 2 + i * sh, tz); }
-  put(1.6, 22, 1.6, slate, tx, TH + 6 + tiers * sh + 8, tz);
-  // windows: dark slits, as before, with the faint glint on the glass; every window of the inside shows from the outside, on the face that looks out
-  const slit = (axis, fixed, c, y, w, h, out) => { const z_ = axis === 'z', dep = 1, pos = fixed + out * 2.3; const m = z_ ? put(w, h, dep, o.win, c, y, pos) : put(dep, h, w, o.win, pos, y, c);
-    const gm = new THREE.MeshBasicMaterial({ color: 0xbfd4ff, transparent: true, opacity: 0.1, depthWrite: false }), g = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.9, h * 0.9), gm); g.position.set(z_ ? c + ox : pos + out * 0.7 + ox, y, z_ ? pos + out * 0.7 + oz : c + oz); g.rotation.y = z_ ? (out > 0 ? 0 : Math.PI) : (out > 0 ? Math.PI / 2 : -Math.PI / 2); group.add(g); o.glints.push({ m: gm, ph: o.rnd() * 6.28 }); return m; };
-  for (const w of interior().windows) slit(w.axis, w.fixed, w.c, (w.y0 + w.y1) / 2, w.w, w.y1 - w.y0, -w.dirSign);
-  for (const dx of [-30, 0, 30]) { slit('z', tz + TD / 2 - 1.8, tx + dx, H + 44, 12, 30, 1); slit('z', tz - TD / 2 + 1.8, tx + dx, H + 44, 12, 30, -1); }
-  for (const dz of [-34, 0, 34]) { slit('x', tx + TW / 2 - 1.8, tz + dz, H + 44, 12, 30, 1); slit('x', tx - TW / 2 + 1.8, tz + dz, H + 44, 12, 30, -1); }
-  return { door: { w: 70, h: 75, z: oz + 112, x: ox } };
+  for (let x = -90; x < 250; x += 12) put(6, 6, 5, stone(6, 6), x, 63, -348); for (let z = -340; z < -112; z += 12) put(5, 6, 6, stone(6, 6), -95, 63, z);
+  // ── the forecourt's gate: two pillars with caps and lanterns, and a low battlemented wall along the kerb ──
+  if (o.gateZ !== undefined) { const wz = o.gateZ, W = (w, h, d, m, x, y, z) => box(w, h, d, m, x, y, z, group);
+    for (const sx of [-1, 1]) { W(7, 24, 7, stone(7, 24), sx * 18, 12, wz); W(9, 3, 9, trim, sx * 18, 25, wz); const cone = new THREE.Mesh(flat(new THREE.CylinderGeometry(0, 7, 12, 8)), slates[sx > 0 ? 1 : 0]); cone.position.set(sx * 18, 32, wz); group.add(cone); W(1.4, 5, 1.4, gold, sx * 18, 40, wz); W(3, 4, 3, warm, sx * 18, 28.5, wz + 4); solids.push([sx * 18, wz, 5]); }
+    for (const sx of [-1, 1]) { W(120, 7, 3, stone(120, 7), sx * 78, 3.5, wz); for (let x = 22; x < 138; x += 9) W(5, 4, 3, stone(5, 4), sx * x, 9, wz); const sxw = o.sideX; W(3, 7, 104, stone(104, 7), sx * sxw, 3.5, wz - 52); for (let z = wz - 100; z < wz; z += 9) W(3, 4, 5, stone(5, 4), sx * sxw, 9, z); } }
+  // ── life: birds round the tower, wisps of cloud drifting past the turrets ──
+  const birds = []; for (let i = 0; i < 5; i++) { const g = new THREE.Group(); group.add(g); box(3, 1, 4, iron, 0, 0, 0, g); const wl = box(5, 0.4, 2, iron, -3.5, 0.3, 0, g), wr = box(5, 0.4, 2, iron, 3.5, 0.3, 0, g); birds.push({ g, wl, wr, ph: i * 1.3, R: 105 + i * 14, y: TH + 20 + i * 11 }); }
+  anim.push(t => { for (const b of birds) { const a = t * (0.22 + 0.02 * b.ph) + b.ph; b.g.position.set(tx + ox + Math.cos(a) * b.R, b.y + Math.sin(t * 0.7 + b.ph) * 4, tz + oz + Math.sin(a) * b.R * 0.9); b.g.rotation.y = -a; b.wl.rotation.z = Math.sin(t * 9 + b.ph) * 0.6; b.wr.rotation.z = -Math.sin(t * 9 + b.ph) * 0.6; } });
+  const wisps = []; for (let i = 0; i < 7; i++) { const g = new THREE.Group(), cm = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, emissive: 0x303844 }); for (let k = 0; k < 4; k++) box(16 + o.rnd() * 14, 4 + o.rnd() * 3, 10 + o.rnd() * 8, cm, k * 14 - 20, o.rnd() * 3, o.rnd() * 6, g); group.add(g); wisps.push({ g, x: [-60, 140, 330, 230, -200, 30, 400][i], y: [150, 190, 200, 120, 130, 170, 140][i], z: [-60, -150, 60, -250, -120, 140, -200][i], ph: i * 2.1 }); }
+  anim.push(t => { for (const w of wisps) w.g.position.set(w.x + ox + Math.sin(t * 0.05 + w.ph) * 40, w.y, w.z + oz + Math.cos(t * 0.04 + w.ph) * 15); });
+  return { door: { w: 70, h: 75, z: oz + 112, x: ox }, solids, update: (t, dt) => { for (const a of anim) a(t, dt); } };
 }
 root.Castle = { interior, exterior, H, HH };
 })(typeof window !== 'undefined' ? window : globalThis);
