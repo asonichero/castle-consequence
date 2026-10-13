@@ -110,7 +110,7 @@ function addGear(rig) {
 function run(G, W) {
   return new Promise(async resolve => {
     const { jackOut, aOut } = W, el = G.renderer.domElement, camera = G.camera, nearOld = camera.near;
-    const M = build(), scene = M.scene, world = { scene, update: M.update };
+    const M = build(), scene = M.scene, world = { scene, update(dt, t) { M.update(dt, t); aOut.t += dt; root.Blocky.step(jackOut, dt); } };      // (Jack is stepped here: his own world's update is not running)
     scene.add(jackOut.root); jackOut.root.visible = true; W.paintJack(jackOut, { expr: 0 }); addGear(jackOut);
     G.setScene(world); G.drone = null; G.save({ step: 'meadow' });
     camera.near = 0.1; camera.updateProjectionMatrix();
