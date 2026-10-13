@@ -212,7 +212,7 @@ function run(G, W) {
     const GATE = v(0, 0, 118), DOORP = v(34, 0, 30);
     const tick = dt => {
       if (ended) return;
-      const t = G.t, k = SC * sOf(st.y), walking = st.mode === 'walk' || st.mode === 'mount';
+      const edge = !!keys.grip && !st.gripPrev, t = G.t, k = SC * sOf(st.y), walking = st.mode === 'walk' || st.mode === 'mount';
       st.zone = zoneOf(st.y); if (st.zone !== st.lastZone) { st.lastZone = st.zone; scheduleGust(); if (st.zone === 'middle') { mutter('It’s fighting me... the bark is slick with sap.', true); toast('The stalk resists: sap makes some holds slick, leaves curl away, and gusts come.', 6000); } else if (st.zone === 'upper') { mutter('The air is so thin... everything is harder.', true); toast('Thin air: your sight narrows and your strength drains faster.', 6000); } }
       // The leaves that curl away.
       for (const h of holds) if (h.kind === 'ledge' && h.leaf) {
@@ -258,8 +258,9 @@ function run(G, W) {
         if (st.stamina <= 0) { drop('Your arms give out! You slide, and catch yourself below.'); }
         else { // slick holds: leave them quickly
           if (st.cur.kind === 'slick') { st.slip += dt; if (st.slip > 0.75) { st.slip = 0; st.stamina = Math.max(0, st.stamina - 10); drop('Slick with sap! Your hands slide off.'); } } else st.slip = 0;
-          st.cool -= dt; if (st.lock > 0) { st.lock -= dt; if (st.lock <= 0) toast('Rested. Climb on whenever you are ready.', 2600); } const inp = st.lock > 0 ? null : input();
-          if (inp && st.cool <= 0 && !st.grip && st.mode === 'idle') { const h = pick(st.cur, inp); if (h) startMove(h); else st.cool = 0.12; }
+          st.cool -= dt; if (st.lock > 0) { st.lock -= dt; if (st.lock <= 0) toast('Rested. Press Space to climb on.', 2600); } const inp = st.lock > 0 ? null : input();
+          if (st.cur.kind === 'ledge') { if (edge && st.lock <= 0 && st.cool <= 0) { const h = pick(st.cur, { x: 0, y: 1 }); if (h) startMove(h); } }       // (a leaf is a stop: out on it, away from the stalk, he climbs on only when told: Space)
+          else if (inp && st.cool <= 0 && !st.grip && st.mode === 'idle') { const h = pick(st.cur, inp); if (h) startMove(h); else st.cool = 0.12; }
         }
         if (st.mode === 'idle') { const p = poseAt(st.cur); st.fr = st.cur.fr; st.y = lerp(st.y, p.y, Math.min(1, dt * 12)); st.a = st.a + angDiff(st.cur.a, st.a) * Math.min(1, dt * 12); st.r = p.r; }
       } else if (st.mode === 'move' || st.mode === 'drop') {
@@ -269,7 +270,7 @@ function run(G, W) {
         if (u >= 1) {
           st.cur = st.to; st.fr = st.to.fr; st.mode = 'idle'; st.cool = 0.14; pose.fall = 0; st.best = Math.max(st.best, st.cur.y); st.xf = false; st.a = st.cur.a; const pp = poseAt(st.cur); st.y = pp.y; st.r = pp.r;
           if (st.cur.kind === 'ground') { const w = poseWorld(st.cur, pp); st.pos.set(w.x, 0, w.z); st.heading = Math.atan2(centreOf(st.fr, 0).x - w.x, centreOf(st.fr, 0).z - w.z) + Math.PI; st.mode = 'walk'; st.stamina = 100; st.zone = 'lower'; }
-          else if (st.cur.kind === 'ledge' && !st.restedOnce) { st.restedOnce = true; st.lock = 4.5; st.stamina = Math.min(st.stamina, 55); st.capAt = 0; mutter('A broad leaf. I can rest here.', true); toast('Where the path crosses a leaf, you rest. Your strength returns while you stand on it.', 5200); }
+          else if (st.cur.kind === 'ledge' && !st.restedOnce) { st.restedOnce = true; st.lock = 4.5; st.stamina = Math.min(st.stamina, 55); st.capAt = 0; mutter('A broad leaf. I can rest here.', true); toast('Where the path crosses a leaf, you rest. Your strength returns while you stand on it; press Space to climb on.', 5600); }
         }
       }
       pose.stand = lerp(pose.stand, walking || st.mode === 'walk' || st.cur.kind === 'ledge' ? (st.mode === 'move' ? 0.5 : 1) : 0, Math.min(1, dt * 9));
@@ -278,7 +279,7 @@ function run(G, W) {
       if (st.tut === 0 && t > 1.0) { st.tut = 1; toast('Walk up to one of the four outer stalks, then press Space to climb. Any of them will do.', 7000); }
       else if (st.tut === 1 && st.mode === 'idle' && st.cur.kind !== 'ground') { st.tut = 2; st.tutAt = t; mutter('Hand over hand. Up we go.'); toast('Reach for a glowing handhold: W A S D, or the stick.', 6000); }
       else if (st.tut === 2 && t > st.tutAt + 8) { st.tut = 3; toast('Hanging tires you. Hold Space to grip and steady yourself; it costs less strength.', 7000); }
-      else if (st.tut === 3 && st.stamina < 65) { st.tut = 4; toast('Watch the stamina bar. Where the path crosses a broad leaf you rest and recover; climb on when you are ready.', 7000); }
+      else if (st.tut === 3 && st.stamina < 65) { st.tut = 4; toast('Watch the stamina bar. Where the path crosses a broad leaf you rest and recover; press Space to climb on when you are ready.', 7000); }
       if (st.best > TOP - 70 && !st.near) { st.near = true; mutter('Cloud! I can see the cloud above!', true); }
       { const tgt = st.mode === 'idle' ? st.cur : st.to, hang = tgt && tgt.kind !== 'ground' && tgt.kind !== 'ledge' && !st.xf;
         if (hang && st.mode !== 'rise') { const kz = sOf(st.y), rj = Math.max(surfRf(st.fr, st.y, st.a), surfRf(st.fr, st.y + 18 * kz, st.a), surfRf(st.fr, st.y + 32 * kz, st.a)) + 3 * SC * kz; st.r = st.mode === 'idle' ? rj : lerp(st.from.r, rj, st.eMove || 0); } }
@@ -298,7 +299,7 @@ function run(G, W) {
       const vig = clamp((st.y - 500) / 260, 0, 1), low = st.stamina < 25 && !walking ? 0.2 * (0.5 + 0.5 * Math.sin(t * 6)) : 0;
       $('clVig').style.opacity = Math.min(1, vig + low); $('clVig').style.background = `radial-gradient(circle at 50% 52%, transparent ${Math.round(lerp(90, 18, vig))}%, rgba(8,10,16,${0.55 + 0.4 * vig}) ${Math.round(lerp(120, 48, vig))}%)`;
       $('clGust').style.opacity = g.phase === 'warn' ? 0.25 + 0.5 * (1 - g.t / 1.9) : g.phase === 'blow' ? 0.8 : 0; $('clGustTxt').style.opacity = g.phase === 'warn' ? 1 : 0;
-      if (st.mode !== 'walk') { const onL = st.cur.kind === 'ledge' && st.mode === 'idle', near = !onL && st.mode === 'idle' && holds.some(h => h.kind === 'ledge' && h.gone <= 0 && Math.abs(h.y - st.y) < 40 && reachable(st.cur, h)); $('clHint').textContent = onL ? (st.stamina < 99.5 ? 'Resting on the leaf. Climb on whenever you are ready.' : 'Rested. Climb on whenever you are ready.') : near ? 'A leaf ahead: a place to rest' : ''; $('clHint').style.opacity = $('clHint').textContent ? 1 : 0; }
+      if (st.mode !== 'walk') { const onL = st.cur.kind === 'ledge' && st.mode === 'idle', near = !onL && st.mode === 'idle' && holds.some(h => h.kind === 'ledge' && h.gone <= 0 && Math.abs(h.y - st.y) < 40 && reachable(st.cur, h)); $('clHint').textContent = onL ? (st.stamina < 99.5 ? 'Resting on the leaf. Press Space to climb on.' : 'Rested. Press Space to climb on.') : near ? 'A leaf ahead: a place to rest' : ''; $('clHint').style.opacity = $('clHint').textContent ? 1 : 0; }
       $('clAlt').textContent = st.mode === 'walk' ? 'On the ground' : `Height ${Math.round(st.mode === 'idle' ? st.cur.y : st.to ? st.to.y : st.y)}   ·   ${st.zone === 'lower' ? 'Lower stalk' : st.zone === 'middle' ? 'Middle stalk' : 'Upper stalk'}${st.lastFall != null ? '   ·   last fall at ' + st.lastFall : ''}`;
       $('clObj').textContent = st.mode === 'walk' ? 'Choose a stalk to climb.' : 'Climb the beanstalk.';
       $('clBar').firstChild.style.width = st.stamina + '%'; $('clBar').classList.toggle('low', st.stamina < 25); $('clSt').style.opacity = st.mode === 'walk' ? 0.4 : 1;
