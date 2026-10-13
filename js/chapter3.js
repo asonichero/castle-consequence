@@ -73,7 +73,7 @@ async function run(G, W) {
     sit: { pos: v(-8, 26, 48), look: v(-34, 14, 62), fov: 44 },
     window: { pos: v(4, 22, 60), look: v(-34, 22, 68), fov: 40 },
     run: { pos: v(-70, 46, 30), look: v(-4, 10, 60), fov: 56 },
-    door: { pos: v(30, 20, 40), look: v(34, 16, 72), fov: 46 },
+    door: { pos: v(8, 30, 2), look: v(34, 12, 70), fov: 42 },
   };
   G.setScene(W.iworld);
   A_ && A_.ambience({ wind: 0.12, birds: 0, fire: 0.25 });
@@ -146,7 +146,7 @@ async function run(G, W) {
   const DOOR = v(34, 0, 22), look = { y: 0 };
   G.setScene(W.world); A_ && A_.ambience({ wind: 0.4, birds: 0, fire: 0 });
   const outPose = () => { aOut.speed = 0; aOut.fist = 0; aOut.hold = 0; aOut.cover = 0; aOut.crouch = 0; aOut.dig = 0; aOut.carry = 0; aOut.bow = 0; aOut.look = 0; };
-  G.cut({ pos: v(60, 22, 52), look: v(34, 18, 24), fov: 46 }, () => { outPose(); jackOut.root.visible = true; jackOut.root.position.set(DOOR.x + 2, 0, DOOR.z + 2); jackOut.root.rotation.y = 0; ext.doorLeaf.rotation.y = -1.9; });
+  G.cut({ pos: v(96, 34, 112), look: v(36, 14, 36), fov: 40 }, () => { outPose(); jackOut.root.visible = true; jackOut.root.position.set(DOOR.x + 2, 0, DOOR.z + 2); jackOut.root.rotation.y = 0; ext.doorLeaf.rotation.y = -1.9; });
   await G.fade(false, 0.5);
   { let h = 0; const to = v(40, 0, 44); for (;;) { const d = Math.hypot(to.x - jackOut.root.position.x, to.z - jackOut.root.position.z); if (d < 1) break; const stp = Math.min(d, 46 * 0.04); h = turn(h, Math.atan2(to.x - jackOut.root.position.x, to.z - jackOut.root.position.z), 0.3); jackOut.root.rotation.y = h; jackOut.root.position.x += Math.sin(h) * stp; jackOut.root.position.z += Math.cos(h) * stp; aOut.speed = 44; aOut.phase += stp * 0.42; await G.wait(0.04); } }
   aOut.speed = 0;

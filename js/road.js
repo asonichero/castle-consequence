@@ -556,7 +556,7 @@ async function trade(G, W, res) {
   // The last exchange, shot clear of the cow: over Jack's shoulder at the Peddler, over hers at Jack.
   const after = {
     peddler: { pos: (q => v(q.x, 30, q.z))(spot(-90, -20)), look: (q => v(q.x, 26.5, q.z))(PP), fov: 32 },
-    jack: { pos: (q => v(q.x, 31, q.z))(spot(-30, 32)), look: (q => v(q.x, 24.5, q.z))(JJ), fov: 32 },
+    jack: { pos: (q => v(q.x, 31, q.z))(spot(-38, 52)), look: (q => v(q.x, 24.5, q.z))(JJ), fov: 30 },
     wide: { pos: (q => v(q.x, 42, q.z))(spot(-60, 108)), look: (q => v(q.x, 16, q.z))(spot(-52, 0)), fov: 50 },
   };
   G.cut(after.peddler); pa.lean = 1;
