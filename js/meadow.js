@@ -192,16 +192,16 @@ function run(G, W) {
     // ── At the gate. ──
     async function gate() {
       st.free = false; st.walkN = 0; hud.style.display = 'none'; G.mode = 'cutscene'; document.body.classList.add('cutscene'); st.pos.x = clamp(st.pos.x, -26, 26); st.heading = Math.PI; const kk = K1;
-      G.cut({ pos: v(st.pos.x + 6, 2.2, GATE_Z + 36), look: v(0, 56, GATE_Z), fov: 52 }); st.look = -0.7; st.craned = 1;
+      const zJ = st.pos.z; G.cut({ pos: v(st.pos.x + 5, 2.4, zJ + 40), look: v(0, 56, GATE_Z), fov: 56 }); st.look = -0.7; st.craned = 1;
       G.say('narrator', 'The gate was wide. Too wide. The iron bars rose higher than the tallest tree, and he had to crane his neck to see the arch.');
-      await G.shot({ pos: v(st.pos.x + 6, 1.4, GATE_Z + 22), look: v(0, 84, GATE_Z), fov: 58 }, 7, 'inOut');
+      await G.shot({ pos: v(st.pos.x + 4, 1.4, zJ + 30), look: v(0, 82, GATE_Z), fov: 62 }, 7, 'inOut');
       await G.say('narrator', 'They looked untouched by time or rust, but worn by memory.');
-      G.cut({ pos: v(st.pos.x - 6, 3.2, GATE_Z + 24), look: v(st.pos.x, 2.6, GATE_Z + 6), fov: 36 }); st.look = 0.1; st.craned = 0; W.paintJack(jackOut, { expr: 4 });
+      G.cut({ pos: v(st.pos.x - 3, 3.4, zJ - 10), look: v(st.pos.x, 2.5, zJ), fov: 36 }); st.look = 0.1; st.craned = 0; W.paintJack(jackOut, { expr: 4 });
       await G.say('narrator', 'His satchel felt heavier now. The belt tugged at his waist. The flask knocked against his knee. He frowned.');
       await G.say('jack', 'It isn’t the world that’s grown. It’s me. I’m getting smaller.');
       await G.say('narrator', 'The world wasn’t just bigger—he was smaller.');
       st.look = 0; W.paintJack(jackOut, { expr: 1 });
-      G.cut({ pos: v(st.pos.x - 8, 3.6, GATE_Z + 20), look: v(st.pos.x, 2.4, GATE_Z - 4), fov: 42 });
+      G.cut({ pos: v(st.pos.x - 8, 3.6, zJ + 18), look: v(st.pos.x, 2.4, zJ - 6), fov: 42 });
       G.say('narrator', 'But Jack didn’t turn back; he stepped through the gate, and the air shifted again.');
       // He goes through, and the camera goes with him.
       for (let i = 0; i < 150; i++) { st.pos.z -= 0.45 * (kk / K1); st.pos.x *= 0.98; st.walkN = 1; st.walkPh += 0.42; st.bob = 0.12; const u = i / 150; G.cut({ pos: v(st.pos.x - 6 + 4 * u, 3 + u, st.pos.z + 16), look: v(st.pos.x, 2.4, st.pos.z - 6), fov: 42 }); await wait(0.04); }
