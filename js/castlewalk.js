@@ -211,7 +211,7 @@ function run(G, W, opts) {
       const shotBoxJack = () => G.cut({ pos: bx.localToWorld(new V3(-5, 9, 7)), look: bx.localToWorld(new V3(0, 2.2, 1.4)), fov: 32 });          // (and in front of him, in the box)
       face(1);                                                                                              // wincing, whenever he is not speaking
       shotFace(); await G.say('gerda', 'Well. Not so badly put together. A little wild at the edges. A little soft in the jaw.');
-      await G.wait(1.0);
+      await G.wait(0.4);
       for (let i = 1; i <= 16; i++) { gst.sniff = 0.35 * Math.sin(Math.PI * i / 16); placeGerda(); await G.wait(0.04); } gst.sniff = 0;
       await G.say('gerda', 'Sweat, and sap. And underneath it, something like home.');
       shotJack(); await G.wait(0.7);
