@@ -109,7 +109,7 @@ function create(view, opts) {
   const bModel = B.makeBirch(), birch = bModel.root, twigs = bModel.twigs, tips = bModel.tips; birch.visible = false; birchTool.add(birch);
 
   // ── The session ─────────────────────────────────────────────────────────────────────────────────────────────────────────
-  const pain = S.createPain({ tolerance: 0.45, resilience: 0.5 });
+  const pain = S.createPain({ tolerance: 1, resilience: 0.7 });       // (Jack at full size: the edge of resistance comes slowly; a smaller Jack feels each smack more, see impact)
   const st = {
     outfit: { gerda: 'Work', jack: 'Outdoor' }, lean: LEAN, size: 1, implement: 'hand', pace: 1, strength: 1, side: 'alt', nextSide: 'R',
     trousers: 'up', drawers: 'up', marks: { L: 0, R: 0 }, expr: 0,
@@ -148,7 +148,8 @@ function create(view, opts) {
   }
   function impact(sw) {
     const impl = IMPL[st.implement], tender = (st.marks.L + st.marks.R) / 2;
-    const hit = pain.hit({ implement: st.implement, strength: st.strength, speed: st.pace, raised: sw.waited, tender, cushion: cushion() });
+    const hit = pain.hit({ implement: st.implement, strength: st.strength / clamp(st.size, 0.5, 1),       // (as he shrinks the same smack tells more: at half size, twice as much, so the edge arrives twice as quickly)
+       speed: st.pace, raised: sw.waited, tender, cushion: cushion() });
     const gain = 0.01875 * impl.mark * st.strength;
     for (const c of sw.side === 'C' ? ['L', 'R'] : [sw.side]) st.marks[c] = 1 - (1 - st.marks[c]) * (1 - gain);
     st.hits++; st.peak = Math.max(st.peak, pain.distress()); st.last = hit;
@@ -364,7 +365,7 @@ function create(view, opts) {
     if (impl.birch && !hs.on && wc > 0.001) {
       const q0 = g.armR.quaternion.clone(), e0 = g.elbow.rotation.x, wy0 = g.wrist.rotation.y, b0 = birchTool.quaternion.clone();
       g.root.updateMatrixWorld(true);
-      const rc = world(rear.C), rl = world(rear.L), rr = world(rear.R), u = rr.clone().sub(rl).normalize(), Hh = rc.clone(); Hh.y += 0.5; Hh.addScaledVector(u, -BIRCH_AT);
+      const rc = world(rear.C), rl = world(rear.L), rr = world(rear.R), u = rr.clone().sub(rl).normalize(), out = new V3(0, 0, -1).applyQuaternion(glutesTilt.getWorldQuaternion(tmpQ)).normalize(), Hh = rc.clone().addScaledVector(out, 1.6); Hh.addScaledVector(u, -BIRCH_AT);      // (the birch lies on the skin, out along the back face's own normal)
       armTo(g, Hh); g.root.updateMatrixWorld(true); aim(birchTool, u);
       const q1 = g.armR.quaternion.clone(), e1 = g.elbow.rotation.x, b1 = birchTool.quaternion.clone(), k = clamp(wc, 0, 1);
       g.armR.quaternion.copy(q0).slerp(q1, k); g.elbow.rotation.set(lerp(e0, e1, k), 0, 0); g.wrist.rotation.set(0, lerp(wy0, 0, k), 0); birchTool.quaternion.copy(b0).slerp(b1, k);
@@ -485,7 +486,9 @@ function create(view, opts) {
     }
     if (impl.paddle) applyEdits('gerda', ['paddle'], gwArm);
   };
+  const STANDING = { standSeat: 1, standTable: 1 };
   jack.after = function (j) {
+    glutesTilt.visible = !STANDING[stanceNow()];      // (the glutes block bridges his back and his thighs once they fold: upright, it would only cut into his legs)
     const k = J.kick, d = clamp(pain.distress(), 0, 1.5), w = Math.sin(J.t * 9) * 0.05 * Math.min(1, d) + Math.sin(J.t * 5.3) * 0.03 * Math.min(1, d), sz = st.size * jackFull;
     const e = easeIO(clamp(st.blend, 0, 1)), p = mixPose(limbs(st.from, k, d, w, sz), limbs(st.to, k, d, w, sz), e);
     // (Every angle is set afresh: a bone put back from its stored quaternion has its Euler angles worked out again, and a leftover turn about the wrong axis would twist the limb.)

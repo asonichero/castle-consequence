@@ -633,7 +633,7 @@ function create(els, ui) {
     lap.reset(); lap.st.sound = true; lap.st.noRecovery = true; lap.outfit('gerda', 'Work'); lap.outfit('jack', 'Day'); lap.size(S.size);
     lap.layers({ trousers: 'up', drawers: 'up' }); lap.implement('hand'); lap.st.side = 'alt';
     // A smaller Jack feels the same hand more: strength grows as he shrinks.
-    lap.st.strength = clamp(plan.strength * (1 + 0.8 * (1 - S.size)), 0.5, 1.5); lap.st.pace = plan.pace; lap.view('overview');
+    lap.st.strength = clamp(plan.strength, 0.5, 1.5);       // (the engine itself makes a smaller Jack feel each smack more) lap.st.pace = plan.pace; lap.view('overview');
     steps = scriptFor(plan); stepAt = 0; stepWait = 0.5;
   }
   // The correction happens in the middle of the room, exactly as Jack left it: the room, the dirt and footprints, any broom or bucket left lying
