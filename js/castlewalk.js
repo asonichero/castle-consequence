@@ -156,8 +156,11 @@ function run(G, W, opts) {
       if (!gerda || st.caught) return st.caught; const Hj = HEIGHT * SC * st.s;
       if (gst.cupOpen && st.inCup && Math.hypot(st.pos.x - gst.x, st.pos.z - gst.z) < 60) return true;
       const ey = (EYE - gst.bend * 16) * GS / 1.4, ex = gst.x + Math.sin(gst.h) * 4, ez = gst.z + Math.cos(gst.h) * 4;
-      for (const f of [0.85, 0.5, 0.12]) { const tx = st.pos.x, ty = st.y + f * Hj, tz = st.pos.z, dx = tx - ex, dy = ty - ey, dz = tz - ez, L = Math.hypot(dx, dy, dz); if (L > 170) continue; let clear = true;
-        for (let u = 1.2; u < L - 0.5 && clear; u += 1.4) { const px = ex + dx * u / L, py = ey + dy * u / L, pz = ez + dz * u / L; for (const e of C.near(px, pz, 1)) { if (e.low || e.y1 - e.y0 < 0.8) continue; if (px > e.x0 && px < e.x1 && pz > e.z0 && pz < e.z1 && py > e.y0 && py < e.y1) { clear = false; break; } } }
+      for (const f of [0.85, 0.5, 0.12]) { const tx = st.pos.x, ty = st.y + f * Hj, tz = st.pos.z, dx = tx - ex, dy = ty - ey, dz = tz - ez, L = Math.hypot(dx, dy, dz); if (L > 170) continue;
+        const cand = new Set(); for (let u = 0; u <= L; u += 6) for (const e of C.near(ex + dx * u / L, ez + dz * u / L, 7)) cand.add(e); cand.add(null);
+        let clear = true; for (const e of cand) { if (!e || e.low || e.y1 - e.y0 < 0.5) continue;                      // an exact test of the sight line against each box that stands near it (a thin door cannot slip between samples)
+          let t0 = 0, t1 = 1, hit = true; for (const [o0, d0, lo, hi] of [[ex, dx, e.x0, e.x1], [ey, dy, e.y0, e.y1], [ez, dz, e.z0, e.z1]]) { if (Math.abs(d0) < 1e-6) { if (o0 < lo || o0 > hi) { hit = false; break; } } else { let ta = (lo - o0) / d0, tb = (hi - o0) / d0; if (ta > tb) { const tt = ta; ta = tb; tb = tt; } t0 = Math.max(t0, ta); t1 = Math.min(t1, tb); if (t0 > t1) { hit = false; break; } } }
+          if (hit && t1 > 0.001 && t0 < 0.999) { clear = false; break; } }
         if (clear) return true; }
       return false; };
     async function gWalk(tx, tz, sp) {                                                                     // true if she arrives; false if she sees him on the way
