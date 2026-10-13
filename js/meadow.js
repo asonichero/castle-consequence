@@ -14,18 +14,18 @@ const kOf = z => lerp(K0, K1, clamp((START_Z - z) / (START_Z - TRIGGER_Z), 0, 1)
 const rnd = (() => { let s = 777; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; })();
 
 function canvasTex(w, h, paint, rx, ry) { const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.wrapS = t.wrapT = THREE.RepeatWrapping; if (rx) t.repeat.set(rx, ry); return t; }
-const mossTex = () => canvasTex(64, 64, (g, w, h) => { g.fillStyle = '#e8eee4'; g.fillRect(0, 0, w, h); const cols = ['#dfe8dc', '#f4f7f1', '#d2dfd0', '#e8efd8', '#f0f3ea']; for (let i = 0; i < 700; i++) { g.fillStyle = cols[Math.floor(rnd() * cols.length)]; g.fillRect(Math.floor(rnd() * w), Math.floor(rnd() * h), 2, 2); } }, 260, 260);
-const stoneTex = (rx, ry) => canvasTex(64, 64, (g, w, h) => { g.fillStyle = '#ebe6d4'; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y += 16) { g.fillStyle = '#cdc7b0'; g.fillRect(0, y, w, 2); for (let x = (y / 16) % 2 ? 0 : 16; x < w; x += 32) g.fillRect(x, y, 2, 16); } for (let i = 0; i < 160; i++) { g.fillStyle = rnd() < 0.5 ? '#f4f0e2' : '#dcd6c0'; g.fillRect(Math.floor(rnd() * w), Math.floor(rnd() * h), 2, 2); } }, rx, ry);
+const mossTex = () => canvasTex(64, 64, (g, w, h) => { g.fillStyle = '#d3ddcd'; g.fillRect(0, 0, w, h); const cols = ['#c8d6c2', '#e1ead9', '#bccfb8', '#d6e2c8', '#e8eee0']; for (let i = 0; i < 700; i++) { g.fillStyle = cols[Math.floor(rnd() * cols.length)]; g.fillRect(Math.floor(rnd() * w), Math.floor(rnd() * h), 2, 2); } }, 260, 260);
+const stoneTex = (rx, ry) => canvasTex(64, 64, (g, w, h) => { g.fillStyle = '#d9d3bd'; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y += 16) { g.fillStyle = '#b9b39c'; g.fillRect(0, y, w, 2); for (let x = (y / 16) % 2 ? 0 : 16; x < w; x += 32) g.fillRect(x, y, 2, 16); } for (let i = 0; i < 160; i++) { g.fillStyle = rnd() < 0.5 ? '#f4f0e2' : '#dcd6c0'; g.fillRect(Math.floor(rnd() * w), Math.floor(rnd() * h), 2, 2); } }, rx, ry);
 
 function build() {
   const scene = new THREE.Scene(), sky = new THREE.Color(0xe6e4ee);
-  scene.background = sky; scene.fog = new THREE.Fog(0xe6e4ee, 90, 1500);
-  scene.add(new THREE.HemisphereLight(0xf0f0ff, 0xd0d8cc, 0.95)); const sun = new THREE.DirectionalLight(0xfff0d8, 0.7); sun.position.set(-300, 400, 200); scene.add(sun);
+  scene.background = sky; scene.fog = new THREE.Fog(0xe2dfea, 60, 1250);
+  scene.add(new THREE.HemisphereLight(0xe8ecfa, 0xb8c4b0, 0.72)); const sun = new THREE.DirectionalLight(0xffe8c8, 0.55); sun.position.set(-300, 400, 200); scene.add(sun);
   const box = F.box, glints = [];
   // The ground: white moss, to the haze.
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.MeshLambertMaterial({ map: mossTex() })); ground.rotation.x = -Math.PI / 2; scene.add(ground);
   // Hills, in soft blocks, and distant banks of cloud.
-  const mossCols = [0xdfe8d8, 0xd2dfc9, 0xe6ecdc, 0xc9d8c2];
+  const mossCols = [0xc9d6c0, 0xbccdb4, 0xd2dcc8, 0xaec2a8];
   const hill = (x, z, r, h) => { for (let i = 0; i < 4; i++) { const w = r * 2 * (1 - i * 0.24), hh = h / 4; box(w, hh, w * (0.8 + rnd() * 0.4), new THREE.MeshLambertMaterial({ color: mossCols[(i + Math.floor(rnd() * 4)) % 4] }), x, i * hh + hh / 2, z, scene); } };
   for (let i = 0; i < 16; i++) { const side = i % 2 ? 1 : -1; hill(side * (260 + rnd() * 420), 100 - i * 55 - rnd() * 60, 70 + rnd() * 90, 40 + rnd() * 70); }
   for (let i = 0; i < 10; i++) box(300 + rnd() * 200, 30 + rnd() * 30, 200, new THREE.MeshBasicMaterial({ color: 0xf4eee8 }), (rnd() - 0.5) * 2600, 40 + rnd() * 120, -1500 - rnd() * 600, scene);
@@ -47,7 +47,7 @@ function build() {
   const trunkM = new THREE.MeshLambertMaterial({ color: 0xd9d3c0 }), leafM = [0xb9d4c0, 0xa8c8b4, 0xc6dccb].map(c => new THREE.MeshLambertMaterial({ color: c }));
   for (let i = 0; i < 18; i++) { const side = i % 2 ? 1 : -1, x = side * (70 + rnd() * 90), z = -300 - i * 22 - rnd() * 14, h = 34 + rnd() * 22; box(4, h, 4, trunkM, x, h / 2, z, scene); box(24, 8, 24, leafM[0], x, h + 2, z, scene); box(17, 8, 17, leafM[1], x, h + 9, z, scene); box(10, 8, 10, leafM[2], x, h + 16, z, scene); }
   // The castle: moonlight and bone. A main body, two wings, one tower; no flag.
-  const stone = (rx, ry) => new THREE.MeshLambertMaterial({ map: stoneTex(rx, ry), emissive: 0x2a3042 });
+  const stone = (rx, ry) => new THREE.MeshLambertMaterial({ map: stoneTex(rx, ry), emissive: 0x161b2a });
   const win = new THREE.MeshBasicMaterial({ color: 0x0b0f1c });
   const castle = new THREE.Group(); scene.add(castle);
   const CZ = -790;                                                         // the main body's front face
@@ -146,7 +146,7 @@ function run(G, W) {
         else if (st.stillSaid === 1 && p > 0.3) { st.stillSaid = 2; G.caption('narrator', 'His legs felt smaller. Not just tired—lighter. Each step seemed to fall more softly.'); }
         else if (st.stillSaid === 2 && p > 0.5) { st.stillSaid = 3; G.caption('narrator', 'He didn’t notice how the grass grew taller; didn’t notice how the breeze felt different—lower, closer, as though he were closer to the ground. Didn’t notice that when he stepped through the meadow’s edge, the flowers came to his hip instead of his shin.'); }
         else if (st.stillSaid === 3 && p > 0.76) { st.stillSaid = 4; G.caption('narrator', 'The air thinned again. Or perhaps he thinned. He walked until the castle’s shadow fell over him.'); }
-        const sh = clamp((-st.pos.z - 520) / 90, 0, 1); M.hemi.intensity = 0.95 * (1 - 0.3 * sh); M.sun.intensity = 0.7 * (1 - 0.55 * sh);
+        const sh = clamp((-st.pos.z - 520) / 90, 0, 1); M.hemi.intensity = 0.72 * (1 - 0.3 * sh); M.sun.intensity = 0.55 * (1 - 0.55 * sh);
         if (st.pos.z <= TRIGGER_Z && st.mode === 'walk') { st.mode = 'gate'; gate(); }
       }
       place();
