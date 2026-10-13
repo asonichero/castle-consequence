@@ -73,24 +73,18 @@ function build() {
   // A few pale trees lining the way to the gate: the tallest is the measure the gate is held against.
   const trunkM = new THREE.MeshLambertMaterial({ color: 0xd9d3c0 }), leafM = [0xb9d4c0, 0xa8c8b4, 0xc6dccb].map(c => new THREE.MeshLambertMaterial({ color: c }));
   for (let i = 0; i < 13; i++) { const side = i % 2 ? 1 : -1, x = side * (70 + rnd() * 90), z = -300 - i * 22 - rnd() * 14, h = 34 + rnd() * 22; solids.push([x, z, 4]); box(4, h, 4, trunkM, x, h / 2, z, scene); box(24, 8, 24, leafM[0], x, h + 2, z, scene); box(17, 8, 17, leafM[1], x, h + 9, z, scene); box(10, 8, 10, leafM[2], x, h + 16, z, scene); }
-  // The castle: moonlight and bone. A main body, two wings, one tower; no flag.
+  // The castle: moonlight and bone. The inside's own plan seen from outside (the hall in front, the wings behind it, the garden walled off at the back), and a tower over the parlour and the stair hall; no flag.
   const stone = (rx, ry) => new THREE.MeshLambertMaterial({ map: stoneTex(rx, ry), emissive: 0x161b2a });
   const win = new THREE.MeshBasicMaterial({ color: 0x0b0f1c });
   const castle = new THREE.Group(); scene.add(castle);
-  const CZ = -790;                                                         // the main body's front face
-  box(260, 110, 60, stone(10, 5), 0, 55, CZ - 30, castle); box(266, 6, 66, stone(10, 1), 0, 113, CZ - 30, castle);
-  for (const sx of [-1, 1]) { box(70, 96, 100, stone(3, 4), sx * 165, 48, CZ + 20, castle); box(76, 6, 106, stone(3, 1), sx * 165, 99, CZ + 20, castle); }
-  box(44, 250, 44, stone(2, 10), 70, 125, CZ - 70, castle); for (let i = 0; i < 6; i++) box(54 - i * 8, 7, 54 - i * 8, stone(2, 1), 70, 253 + i * 7, CZ - 70, castle);
-  const slit = (x, y, z, ry, hh) => { box(6, hh, 1, win, x, y, z, castle).rotation.y = ry; const g = new THREE.Mesh(new THREE.PlaneGeometry(1.1, hh * 0.9), new THREE.MeshBasicMaterial({ color: 0xbfd4ff, transparent: true, opacity: 0.1, depthWrite: false })); g.position.set(x, y, z + (ry ? 0 : 0.7)); g.rotation.y = ry; castle.add(g); glints.push({ m: g.material, ph: rnd() * 6.28 }); };
-  for (let row = 0; row < 3; row++) for (let i = -5; i <= 5; i++) slit(i * 24, 28 + row * 28, CZ + 0.6, 0, 18);
-  for (const sx of [-1, 1]) for (let row = 0; row < 3; row++) for (let i = -1; i <= 1; i++) slit(sx * 165 + i * 22, 26 + row * 26, CZ + 70.6, 0, 16);
-  for (let row = 0; row < 8; row++) slit(70, 30 + row * 28, CZ - 47.6, 0, 18);
+  const CZ = -790;                                                         // the hall's front face
+  { const cache = {}; root.Castle.exterior(castle, { stone: (rx, ry) => { const k = Math.round(rx) + ':' + Math.round(ry); return cache[k] || (cache[k] = stone(Math.round(rx), Math.round(ry))); }, win, glints, rnd, ox: 0, oz: CZ - 112 }); }
   // The forecourt: quiet paving, edged with a low kerb, from where the path ends to the great door; and the great door itself.
   const pave = new THREE.MeshLambertMaterial({ map: stoneTex(26, 11), color: 0xaaa798 }), kerb = new THREE.MeshLambertMaterial({ map: stoneTex(30, 1), color: 0xbab6a6 });
   box(280, 0.6, 104, pave, 0, 0.3, CZ + 52, castle); for (const sx of [-1, 1]) { box(126, 1.4, 2, kerb, sx * 77, 0.7, CZ + 104, castle); box(2, 1.4, 104, kerb, sx * 140, 0.7, CZ + 52, castle); }
   const wood = new THREE.MeshLambertMaterial({ color: 0x3a2a20 }), iron = new THREE.MeshPhongMaterial({ color: 0x2b2d36, shininess: 70, specular: 0x667088 });
-  box(52, 72, 3, wood, 0, 36, CZ + 1.5, castle); box(52, 3, 4, iron, 0, 20, CZ + 2, castle); box(52, 3, 4, iron, 0, 52, CZ + 2, castle); box(2, 72, 4, iron, 0, 36, CZ + 2, castle); box(4, 4, 3, iron, -6, 34, CZ + 3, castle); box(4, 4, 3, iron, 6, 34, CZ + 3, castle);
-  box(62, 6, 6, stone(3, 1), 0, 75, CZ + 2, castle); for (let i = 0; i < 3; i++) { const top = 1.2 + i * 0.6; box(58, top - 0.6, 6, pave, 0, 0.6 + (top - 0.6) / 2, CZ + 15 - i * 6 - 3 + 6, castle); }
+  box(70, 75, 3, wood, 0, 37.5, CZ + 1.5, castle); box(70, 3, 4, iron, 0, 20, CZ + 2, castle); box(70, 3, 4, iron, 0, 55, CZ + 2, castle); box(2, 75, 4, iron, 0, 37.5, CZ + 2, castle); box(4, 4, 3, iron, -7, 36, CZ + 3, castle); box(4, 4, 3, iron, 7, 36, CZ + 3, castle);
+  box(86, 6, 6, stone(3, 1), 0, 78, CZ + 2, castle); for (let i = 0; i < 3; i++) { const top = 1.2 + i * 0.6; box(78, top - 0.6, 6, pave, 0, 0.6 + (top - 0.6) / 2, CZ + 15 - i * 6 - 3 + 6, castle); }
   castle.updateMatrixWorld(true);
   // What he stands on: the path, the shallow stream and the paving are floor, at their own heights.
   const groundY = (x, z) => {

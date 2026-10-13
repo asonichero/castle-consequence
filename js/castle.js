@@ -5,7 +5,7 @@
 (function (root) {
 'use strict';
 const THREE = root.THREE, F = root.Farm, V3 = THREE.Vector3;
-const H = 86;                                                                    // twice a full-size Jack (who stands about 43 here: furniture and doorways are as in the cottage, he is 1.4 times the size the cottage's own model has)
+const H = 86, HH = 115;                                                                    // twice a full-size Jack (who stands about 43 here: furniture and doorways are as in the cottage, he is 1.4 times the size the cottage's own model has)
 const box = F.box, plain = F.plain, unlit = F.unlit;
 const rng = F.rng(4141);
 
@@ -49,7 +49,7 @@ function interior() {
 
   // ── The shell: a floor, walls with openings, and a ceiling, room by room. ──
   const cloud = box(2600, 4, 2600, plain('#f4f0f4'), -20, -9, -170, scene);
-  const slab = (x0, z0, x1, z1, floorM, ceilM, noCeil) => { box(x1 - x0, 2, z1 - z0, floorM, (x0 + x1) / 2, -1, (z0 + z1) / 2, room); if (!noCeil) { box(x1 - x0 + 4, 3, z1 - z0 + 4, ceilM || boneM, (x0 + x1) / 2, H + 1.5, (z0 + z1) / 2, ceil); const n = Math.max(1, Math.round((z1 - z0) / 36)); for (let i = 0; i < n; i++) { const zz = z0 + (i + 0.5) * (z1 - z0) / n; box(x1 - x0, 7, 6.4, plain('#4a3626'), (x0 + x1) / 2, H - 3.5, zz, ceil); box(x1 - x0, 2, 9, plain('#3a2a20'), (x0 + x1) / 2, H - 7.5, zz, ceil); } } };
+  const slab = (x0, z0, x1, z1, floorM, ceilM, noCeil, ch) => { const Hc = ch || H; box(x1 - x0, 2, z1 - z0, floorM, (x0 + x1) / 2, -1, (z0 + z1) / 2, room); if (!noCeil) { box(x1 - x0 + 4, 3, z1 - z0 + 4, ceilM || boneM, (x0 + x1) / 2, Hc + 1.5, (z0 + z1) / 2, ceil); const n = Math.max(1, Math.round((z1 - z0) / 36)); for (let i = 0; i < n; i++) { const zz = z0 + (i + 0.5) * (z1 - z0) / n; box(x1 - x0, 7, 6.4, plain('#4a3626'), (x0 + x1) / 2, Hc - 3.5, zz, ceil); box(x1 - x0, 2, 9, plain('#3a2a20'), (x0 + x1) / 2, Hc - 7.5, zz, ceil); } } };
   // ops: [from, to, bottom, top] along the wall; the wall is a run along x (axis 'z', at z = fixed) or along z (axis 'x', at x = fixed).
   const R2 = F.rng(909);                                                             // (its own dice, so the detail never shifts the rest)
   const wall = (axis, fixed, a0, a1, m, ops, h, th) => {
@@ -82,7 +82,8 @@ function interior() {
   const DOOR = 52;                                                                  // a doorway: up to 52
   const glass = ['#c0485a', '#d8b04a', '#6a4aa8', '#4a78c8'];
   let gi = 0;
-  const window_ = (axis, fixed, c, w, y0, y1, dirSign, shaft, clear) => {                  // glass in the opening, and (if asked) a shaft of coloured light slanting down and in from it
+  const windows = [];
+  const window_ = (axis, fixed, c, w, y0, y1, dirSign, shaft, clear) => { windows.push({ axis, fixed, c, w, y0, y1, dirSign });                  // glass in the opening, and (if asked) a shaft of coloured light slanting down and in from it
     const col = new THREE.Color(clear ? '#bcd6f4' : glass[gi++ % 4]), g = at(axis === 'z' ? c : fixed, (y0 + y1) / 2, axis === 'z' ? fixed : c); room.add(g);
     const gm = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.8 });
     if (axis === 'z') box(w, y1 - y0, 0.5, gm, 0, 0, 0, g); else box(0.5, y1 - y0, w, gm, 0, 0, 0, g);
@@ -103,19 +104,20 @@ function interior() {
   };
 
   // ════════ THE ENTRANCE HALL: x -90..90, z -110..110 ════════
-  const hallFloor = floorHall(); slab(-90, -110, 90, 110, hallFloor, boneM);
-    wall('z', 110, -90, 90, boneM, [[-26, 26, 0, 56], [-70, -52, 38, 56], [52, 70, 38, 56]]);                                     // south: the grand doors, and two high windows
-  wall('z', -110, -90, 90, boneM, [[-77, -59, 38, 56], [59, 77, 38, 56]]);                                                    // north: the hearth wall
-  wall('x', -90, -110, 110, boneM, [[-43, -8, 0, 52]]);                   // west: to the grand wing
-  wall('x', 90, -110, 110, boneM, [[-45, -5, 0, 52]]);                    // east: to Gerda's wing
-  window_('z', 110, -61, 18, 38, 56, -1, true); window_('z', 110, 61, 18, 38, 56, -1, true);
-  window_('z', -110, -68, 18, 38, 56, 1, true); window_('z', -110, 68, 18, 38, 56, 1, true);
+  const hallFloor = floorHall(); slab(-90, -110, 90, 110, hallFloor, boneM, false, HH);
+    wall('z', 110, -90, 90, boneM, [[-35, 35, 0, 75], [-73, -49, 50, 76], [49, 73, 50, 76]], HH);                                     // south: the grand doors, and two high windows
+  wall('z', -110, -90, 90, boneM, [[-80, -56, 50, 76], [56, 80, 50, 76]], HH);                                                    // north: the hearth wall
+  wall('x', -90, -110, 110, boneM, [[-43, -8, 0, 52]], HH);                   // west: to the grand wing
+  wall('x', 90, -110, 110, boneM, [[-45, -5, 0, 52]], HH);                    // east: to Gerda's wing
+  window_('z', 110, -61, 24, 50, 76, -1, true); window_('z', 110, 61, 24, 50, 76, -1, true);
+  window_('z', -110, -68, 24, 50, 76, 1, true); window_('z', -110, 68, 24, 50, 76, 1, true);
   // the grand doors, standing open
-  for (const sx of [-1, 1]) { const lf = at(sx * 26, 0, 110); lf.rotation.y = sx * -1.3; room.add(lf); B(26, 56, 2.6, '#3a2a20', -sx * 13, 28, 0, lf); B(26, 2.4, 3.2, '#2b2d36', -sx * 13, 14, 0, lf); B(26, 2.4, 3.2, '#2b2d36', -sx * 13, 42, 0, lf); }
-  box(60, 5, 6, boneM, 0, 58.5, 110, room);
+  for (const sx of [-1, 1]) { const lf = at(sx * 35, 0, 110); lf.rotation.y = sx * -1.3; room.add(lf); B(35, 75, 2.6, '#3a2a20', -sx * 17.5, 37.5, 0, lf); for (const y of [18, 37, 56]) B(35, 3, 3.2, '#2b2d36', -sx * 17.5, y, 0, lf); B(2.4, 75, 3.4, '#2b2d36', -sx * 3, 37.5, 0, lf); }
+  box(90, 6, 6, boneM, 0, 79, 110, room);
   // the hearth, gaping, at the far end
   { const hg = at(0, 0, -110); room.add(hg); B(92, 50, 20, '#cfc7b0', 0, 25, 10, hg); B(40, 30, 21, '#14100c', 0, 15, 10.4, hg); B(100, 5, 24, '#bdb59d', 0, 52, 10, hg); B(54, 8, 22, '#bdb59d', 0, 34, 10.2, hg); B(46, 1, 12, '#3a3a3a', 0, 0.5, 14, hg);
     for (let i = 0; i < 7; i++) { const m = B(4 + (i % 3), 10, 4, i % 2 ? '#ffb040' : '#ff7a20', -14 + i * 4.6, 6, 12, hg); flames.push({ m, base: 10, ph: i * 1.3 }); } B(36, 1.5, 3, '#4a3626', 0, 1.5, 12, hg); B(20, 3, 3, '#4a3626', 0, 3, 12.4, hg);
+    B(54, HH - 50, 12, '#cfc7b0', 0, 50 + (HH - 50) / 2, 6, hg); B(62, 3, 14, '#bdb59d', 0, 51.5, 6.4, hg); B(60, 4, 14, '#bdb59d', 0, HH - 8, 6.4, hg);
     const hl = lamp(0, 14, -92, 0xff9a40, 1.1, 130); anim.push((t) => { hl.intensity = 1.0 + 0.2 * Math.sin(t * 11) * Math.sin(t * 6.1); }); }
   // the velvet chair, beside the hearth
   { const g = at(0, 0, 0); B(16, 7, 16, '#6a2860', 0, 11, 0, g); B(16, 24, 4, '#5a2052', 0, 22, -6, g); B(3, 12, 16, '#5a2052', -9.5, 14, 0, g); B(3, 12, 16, '#5a2052', 9.5, 14, 0, g); for (const sx of [-1, 1]) for (const sz of [-1, 1]) B(2, 8, 2, '#3a2a20', sx * 7, 4, sz * 7, g); B(18, 1.6, 18, '#c9a23c', 0, 8, 0, g); movable('velvetChair', 'Velvet chair (by the hearth)', g, { x: 36, z: -52, ry: -0.6 }); }
@@ -124,16 +126,16 @@ function interior() {
     B(8, 0.8, 8, '#f4f0e8', -28, 26.2, 0, g); B(2.6, 5, 2.6, '#c9a23c', -22, 28, -4, g); B(0.7, 0.4, 7, '#c8ccd4', -33, 26, 0, g); B(0.7, 0.4, 7, '#c8ccd4', -23.5, 26, 0, g); B(1.6, 7, 1.6, '#e8dcc0', -14, 29, 5, g); B(2, 1, 2, '#ffd870', -14, 33, 5, g);
     B(16, 3, 16, '#6a2860', -46, 12, 0, g); B(3, 24, 16, '#5a2052', -54, 20, 0, g); movable('longTable', 'Long table, set for one', g, { x: 2, z: 9, ry: 0 }); }
   { const g = at(0, 0, 0); B(44, 20, 15, '#4a3626', 0, 10, 0, g); B(46, 2, 16, '#5a4630', 0, 21, 0, g); B(18, 14, 0.8, '#6a5036', -10, 10, 7.8, g); B(18, 14, 0.8, '#6a5036', 10, 10, 7.8, g); B(2, 2, 1, '#c9a23c', -2, 10, 8.4, g); B(2, 2, 1, '#c9a23c', 2, 10, 8.4, g); B(5, 9, 5, '#8a9ab0', -12, 26, 0, g); B(3, 5, 3, '#c9a23c', 8, 24, 0, g); movable('lowCupboard', 'Low cupboard (by the table)', g, { x: -58, z: -85, ry: 0 }); }
-  const chandelier = (k, x, z, label) => {                                                // they sway with no wind
-    const g = at(x, H, z); B(0.8, 14, 0.8, '#5a5a62', 0, -7, 0, g); const ring = at(0, -16, 0); g.add(ring); B(20, 1.6, 1.6, '#c9a23c', 0, 0, 0, ring); B(1.6, 1.6, 20, '#c9a23c', 0, 0, 0, ring); B(14, 1.2, 14, '#b8923a', 0, -1, 0, ring);
+  const chandelier = (k, x, z, label, hh) => { hh = hh || H;                                                // they sway with no wind
+    const g = at(x, hh, z), ex = hh - H; B(0.8, 14 + ex, 0.8, '#5a5a62', 0, -7 - ex / 2, 0, g); const ring = at(0, -16 - ex, 0); g.add(ring); B(20, 1.6, 1.6, '#c9a23c', 0, 0, 0, ring); B(1.6, 1.6, 20, '#c9a23c', 0, 0, 0, ring); B(14, 1.2, 14, '#b8923a', 0, -1, 0, ring);
     for (const [cx, cz] of [[-9, 0], [9, 0], [0, -9], [0, 9]]) { B(1.4, 4, 1.4, '#efe8d8', cx, 2.4, cz, ring); B(1.6, 1.8, 1.6, '#ffd870', cx, 5.2, cz, ring); } B(1.6, 6, 1.6, '#c9a23c', 0, -4, 0, ring);
     movable('chandelier' + k, label || 'Chandelier ' + k, g, { x, z, ry: 0 }); anim.push((t) => { g.rotation.z = 0.05 * Math.sin(t * 0.7 + k * 2); g.rotation.x = 0.04 * Math.sin(t * 0.55 + k); });
   };
-  chandelier(1, -50, 70); chandelier(2, 0, 10); chandelier(3, 40, -50);
+  chandelier(1, -50, 70, 'Chandelier 1', HH); chandelier(2, 0, 10, 'Chandelier 2', HH); chandelier(3, 40, -50, 'Chandelier 3', HH);
   // tapestries, stirring as if someone sighed
   const tapestry = (axis, fixed, c, y, w, h, tex, ph) => { const g = at(axis === 'z' ? c : fixed, y + h, axis === 'z' ? fixed : c); room.add(g); flat(tex, axis === 'z' ? w : 0.8, h, axis === 'z' ? 0.8 : w, 0, -h / 2, 0, g); anim.push((t) => { const s = 0.5 + 0.5 * Math.sin(t * 0.5 + ph); g.rotation[axis === 'z' ? 'x' : 'z'] = 0.05 * s * Math.sin(t * 1.3 + ph); }); return g; };
   const T = [tapTex('#7a1f3a', '#c9a23c', '#3a0f1c'), tapTex('#1f3a7a', '#d8d4c0', '#0f1c3a'), tapTex('#2f6a3a', '#c9a23c', '#173a20'), tapTex('#5a2f78', '#d8b04a', '#2a1238')];
-  tapestry('x', -88, -64, 12, 20, 38, T[0], 0); tapestry('x', -88, 10, 12, 20, 38, T[1], 1.5); tapestry('x', -88, 56, 12, 20, 38, T[3], 3); tapestry('x', 88, -64, 12, 20, 38, T[2], 2); tapestry('x', 88, 10, 12, 20, 38, T[3], 4); tapestry('x', 88, 56, 12, 20, 38, T[0], 5); tapestry('z', 108, 0, 14, 22, 36, T[1], 6);
+  tapestry('x', -88, -64, 16, 22, 54, T[0], 0); tapestry('x', -88, 10, 16, 22, 54, T[1], 1.5); tapestry('x', -88, 56, 16, 22, 54, T[3], 3); tapestry('x', 88, -64, 16, 22, 54, T[2], 2); tapestry('x', 88, 10, 16, 22, 54, T[3], 4); tapestry('x', 88, 56, 16, 22, 54, T[0], 5);
 
   // ════════ THE WEST WING: the quiet, grander half. Corridor B runs north-south down its west side; the rooms open off it to the east. ════════
   const stone = stoneFloor();
@@ -255,13 +257,13 @@ function interior() {
   const crate_ = (x, z, ry, s) => { const g = put(x, 0, z, ry); B(12 * s, 9 * s, 12 * s, '#9a7a52', 0, 4.5 * s, 0, g); for (const sy of [-1, 1]) B(12.4 * s, 1.2, 12.4 * s, '#6a4a2e', 0, 4.5 * s + sy * 3.6 * s, 0, g); return g; };
 
   // — the entrance hall —
-  for (const sx of [-1, 1]) for (const z of [-92, 33]) { const g = put(sx * 85.5, 0, z, 0); B(6, H - 8, 8, '#c4bba3', 0, H / 2, 0, g); B(7, 5, 10, '#a99f88', 0, 2.5, 0, g); B(7, 5, 10, '#a99f88', 0, H - 8, 0, g); B(6, 2, 9, '#c9b88a', 0, H - 4.5, 0, g); sconce(sx * 82.3, 44, z, -sx * Math.PI / 2); }
+  for (const sx of [-1, 1]) for (const z of [-92, 33]) { const g = put(sx * 85.5, 0, z, 0); B(6, HH - 8, 8, '#c4bba3', 0, HH / 2, 0, g); B(7, 5, 10, '#a99f88', 0, 2.5, 0, g); B(7, 5, 10, '#a99f88', 0, HH - 8, 0, g); B(6, 2, 9, '#c9b88a', 0, HH - 4.5, 0, g); sconce(sx * 82.3, 56, z, -sx * Math.PI / 2); }
   armour(-80, 84, Math.PI / 2); armour(80, 84, -Math.PI / 2);
   for (const sx of [-1, 1]) { const g = put(sx * 61, 0, 102, 0); B(34, 9, 10, '#c4bba3', 0, 4.5, 0, g); B(36, 2, 12, '#a99f88', 0, 10, 0, g); }
   { const g = put(0, 0, 0, 0); for (const [w, d, x, z] of [[160, 2.2, 0, -96], [160, 2.2, 0, 96], [2.2, 192, -80, 0], [2.2, 192, 80, 0]]) B(w, 0.3, d, '#c9b88a', x, 0.25, z, g); for (const [w, d, x, z] of [[150, 1, 0, -91], [150, 1, 0, 91], [1, 182, -75, 0], [1, 182, 75, 0]]) B(w, 0.3, d, '#9a3a4a', x, 0.25, z, g);
     const m = B(30, 0.3, 30, '#d6c9a4', 0, 0.25, 74, g); m.rotation.y = Math.PI / 4; const m2 = B(18, 0.35, 18, '#9a3a4a', 0, 0.3, 74, g); m2.rotation.y = Math.PI / 4; B(8, 0.4, 8, '#c9a23c', 0, 0.35, 74, g).rotation.y = Math.PI / 4; B(40, 0.35, 12, '#7a1f3a', 0, 0.3, 100, g); B(40, 0.4, 1.6, '#c9a23c', 0, 0.35, 94.4, g); B(40, 0.4, 1.6, '#c9a23c', 0, 0.35, 105.6, g); }
   { const g = put(64, 0, -92, 0.3); B(13, 8, 13, '#5a4026', 0, 4, 0, g); B(11, 1, 11, '#3a2a1a', 0, 8.2, 0, g); for (let i = 0; i < 3; i++) B(2.6, 2.6, 11, '#6a4a2e', -3 + i * 3, 9, 0, g).rotation.y = (i - 1) * 0.15; B(1.2, 24, 1.2, '#2b2d36', 11, 12, 2, g); B(5, 1, 1, '#2b2d36', 11, 24, 2, g); B(1, 1, 4, '#2b2d36', 12.5, 22, 2, g); }
-  painting(-88, 62, 78, Math.PI / 2, 14, 18, 1); painting(88, 62, -82, -Math.PI / 2, 12, 16, 0);
+  painting(-88, 80, 78, Math.PI / 2, 14, 18, 1); painting(88, 80, -82, -Math.PI / 2, 12, 16, 0);
   // — corridor A (x -273..-90, z -43..-8) and the music hall —
   for (const x of [-255, -170, -125]) painting(x, 24, -41, 0, 14, 18, [1, 0, 3][Math.abs(x) % 3]);
   for (const x of [-250, -200, -150, -110]) painting(x, 24, -10, Math.PI, 14, 18, [0, 2, 1, 3][Math.abs(x / 50 | 0) % 4]);
@@ -313,10 +315,31 @@ function interior() {
   const bounds = { x0: -330, x1: 400, z0: -365, z1: 124 };
   const views = { front: [[40, 36, 420], [40, 30, 100]], top: [[40, 760, 20], [40, 0, -120]], iso: [[330, 380, 300], [30, 0, -110]], hall: [[0, 40, 104], [0, 22, -60]], hearth: [[0, 40, -96], [0, 20, 40]], west: [[-100, 38, -26], [-270, 20, -26]], corridorB: [[-294, 40, 90], [-294, 18, -150]], library: [[-100, 38, -100], [-240, 14, -110]], playroom: [[-110, 44, -170], [-250, 10, -250]], kitchen: [[100, 40, 48], [190, 12, -30]], roost: [[256, 44, -214], [320, 14, -280]], garden: [[-80, 60, -120], [100, 4, -250]] };
   return {
-    scene, room, ceiling: ceil, items, place, layout: () => { const o = {}; for (const k in items) { const g = items[k].g; o[k] = { x: +g.position.x.toFixed(1), z: +g.position.z.toFixed(1), ry: +g.rotation.y.toFixed(3) }; } return o; },
+    scene, room, ceiling: ceil, windows, items, place, layout: () => { const o = {}; for (const k in items) { const g = items[k].g; o[k] = { x: +g.position.x.toFixed(1), z: +g.position.z.toFixed(1), ry: +g.rotation.y.toFixed(3) }; } return o; },
     W: bounds.x1 - bounds.x0, D: bounds.z1 - bounds.z0, H, bounds, views, woman: room.userData.woman,
     update(dt, t) { for (const f of flames) { const s = f.base * (0.8 + 0.55 * Math.sin(t * 9 + f.ph) * Math.sin(t * 5.3 + f.ph * 2)); f.m.scale.y = Math.max(0.3, s / f.base); } for (const a of anim) a(t); },
   };
 }
-root.Castle = { interior, H };
+// The castle's outside, for the cloud meadow: the same plan as the inside (every room's outer walls, the hall a third higher), in the meadow's moonlit bone, with a tower rising over the parlour and the stair hall.
+//   exterior(group, { stone(rx, ry), win, glints, rnd, ox, oz }): adds its meshes to `group`; the hall's front face lands on z = oz + 112 (so the great door stands at x = ox, z = oz + 112).
+function exterior(group, o) {
+  const stone = (w, h) => o.stone(Math.max(1, w / 26), Math.max(1, h / 22)), ox = o.ox || 0, oz = o.oz || 0, put = (w, h, d, m, x, y, z) => { const b = box(w, h, d, m, x + ox, y, z + oz, group); return b; };
+  const rooms = [[-92, 92, -112, 112, HH], [-275, -88, -45, -6, H], [-316, -271, -162, 99, H], [-275, -91, -2, 90, H], [-275, -91, -148, -49, H], [-316, -97, -295, -158, H], [88, 252, -113, 55, H], [248, 378, -111, -6, H], [249, 377, -10, 55, H], [248, 297, -209, -107, H], [293, 384, -204, -113, H], [248, 392, -332, -206, H]];
+  rooms.forEach(([x0, x1, z0, z1, h], i) => { const e = i * 0.07, w = x1 - x0, d = z1 - z0; put(w, h + e, d, stone(Math.max(w, d), h), (x0 + x1) / 2, (h + e) / 2, (z0 + z1) / 2); put(w + 5, 6, d + 5, stone(w, 6), (x0 + x1) / 2, h + e + 3, (z0 + z1) / 2); });
+  // the garden's walls, and the clouds' side of them
+  put(349, 56, 4, stone(349, 56), 77.5, 28, -348); put(4, 56, 237, stone(237, 56), -95, 28, -229.5); put(353, 4, 8, stone(353, 4), 77.5, 58, -348); put(8, 4, 241, stone(241, 4), -95, 58, -229.5);
+  // the tower, over the parlour and the stair hall: one storey above the rest of the castle, with a spired roof
+  const tx = 314, tz = -12, TW = 104, TD = 116, TH = H + 86; put(TW, TH, TD, stone(TD, TH), tx, TH / 2, tz); put(TW + 6, 7, TD + 6, stone(TW, 7), tx, H + 5, tz); put(TW + 8, 6, TD + 8, stone(TW, 6), tx, TH + 3, tz);
+  const slate = new THREE.MeshLambertMaterial({ color: 0x5a6684, emissive: 0x161b2a }); const tiers = 16, sh = 7;
+  for (let i = 0; i < tiers; i++) { const k = 1 - i / tiers, w = Math.max(3, (TW + 6) * k), d = Math.max(3, (TD + 6) * k); put(w, sh, d, slate, tx, TH + 6 + sh / 2 + i * sh, tz); }
+  put(1.6, 22, 1.6, slate, tx, TH + 6 + tiers * sh + 8, tz);
+  // windows: dark slits, as before, with the faint glint on the glass; every window of the inside shows from the outside, on the face that looks out
+  const slit = (axis, fixed, c, y, w, h, out) => { const z_ = axis === 'z', dep = 1, pos = fixed + out * 2.3; const m = z_ ? put(w, h, dep, o.win, c, y, pos) : put(dep, h, w, o.win, pos, y, c);
+    const gm = new THREE.MeshBasicMaterial({ color: 0xbfd4ff, transparent: true, opacity: 0.1, depthWrite: false }), g = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.9, h * 0.9), gm); g.position.set(z_ ? c + ox : pos + out * 0.7 + ox, y, z_ ? pos + out * 0.7 + oz : c + oz); g.rotation.y = z_ ? (out > 0 ? 0 : Math.PI) : (out > 0 ? Math.PI / 2 : -Math.PI / 2); group.add(g); o.glints.push({ m: gm, ph: o.rnd() * 6.28 }); return m; };
+  for (const w of interior().windows) slit(w.axis, w.fixed, w.c, (w.y0 + w.y1) / 2, w.w, w.y1 - w.y0, -w.dirSign);
+  for (const dx of [-30, 0, 30]) { slit('z', tz + TD / 2 - 1.8, tx + dx, H + 44, 12, 30, 1); slit('z', tz - TD / 2 + 1.8, tx + dx, H + 44, 12, 30, -1); }
+  for (const dz of [-34, 0, 34]) { slit('x', tx + TW / 2 - 1.8, tz + dz, H + 44, 12, 30, 1); slit('x', tx - TW / 2 + 1.8, tz + dz, H + 44, 12, 30, -1); }
+  return { door: { w: 70, h: 75, z: oz + 112, x: ox } };
+}
+root.Castle = { interior, exterior, H, HH };
 })(typeof window !== 'undefined' ? window : globalThis);
