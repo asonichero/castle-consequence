@@ -142,9 +142,21 @@ async function run(G, W) {
 
   // ── 7. Outside: the door, and Jack coming out of it. ──
   W.paintJack(jackOut, { outfit: 'Night', expr: 4 });
+  // Dawn: the night's stars and moon go, the sky warms, a low sun climbs behind the hills.
+  { const T = F.textures(), sky = new THREE.Color(0xf0b890);
+    E.background = sky; E.fog = new THREE.Fog(0xf0b890, 260, 1100);
+    E.traverse(o => {
+      if (o.isHemisphereLight) { o.color.set(0xffd9b8); o.groundColor.set(0x5a5242); o.intensity = 0.85; }
+      else if (o.isDirectionalLight) { o.color.set(0xffc080); o.intensity = 0.8; o.position.set(300, 70, -150); }
+      else if (o.isPointLight) o.visible = false;
+      else if (o.isPoints) o.visible = false;
+      else if (o.isMesh && o.material && o.material.isMeshBasicMaterial && o.material.color.getHex() === 0xf4f0d8) o.visible = false;
+      else if (o.isMesh && o.material && o.material.map === T.cloud) { o.visible = true; o.material.color && o.material.color.set(0xffd8c0); }
+    });
+    const sun = new THREE.Mesh(new THREE.BoxGeometry(90, 90, 8), new THREE.MeshBasicMaterial({ color: 0xffe0a0, fog: false })); sun.position.set(-500, 160, -1000); sun.lookAt(0, 0, 0); E.add(sun); }
   const stalk = buildStalk(E);
   const DOOR = v(34, 0, 22), look = { y: 0 };
-  G.setScene(W.world); A_ && A_.ambience({ wind: 0.4, birds: 0, fire: 0 });
+  G.setScene(W.world); A_ && A_.ambience({ wind: 0.3, birds: 0.6, fire: 0 });
   const outPose = () => { aOut.speed = 0; aOut.fist = 0; aOut.hold = 0; aOut.cover = 0; aOut.crouch = 0; aOut.dig = 0; aOut.carry = 0; aOut.bow = 0; aOut.look = 0; };
   G.cut({ pos: v(96, 34, 112), look: v(36, 14, 36), fov: 40 }, () => { outPose(); jackOut.root.visible = true; jackOut.root.position.set(DOOR.x + 2, 0, DOOR.z + 2); jackOut.root.rotation.y = 0; ext.doorLeaf.rotation.y = -1.9; });
   await G.fade(false, 0.5);
