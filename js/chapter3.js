@@ -87,7 +87,7 @@ async function run(G, W, opts) {
     Object.assign(P, { lie: 0, thigh: 0, knee: 0, armX: 0.05, armZ: 0.12, torso: 0.05, neckX: 0.1, neckY: 0, rub: 0 }); ja.speed = 0;
     jackIn.root.visible = true; jackIn.root.scale.setScalar(SC); W.mother.root.visible = false; int.chair.visible = true;
     int.doorLeaf.rotation.y = 0;
-    const st = { pos: v(34, 0, 56), heading: Math.PI, yaw: 0, pitch: 0.5, zoom: 1, dressed: false, knife: false, act: null, toastAt: 0, capAt: 0, stairsNear: false, leaving: false };
+    const st = { pos: v(34, 0, 56), heading: Math.PI, yaw: Math.PI, pitch: 0.4, zoom: 1, dressed: false, knife: false, act: null, toastAt: 0, capAt: 0, stairsNear: false, leaving: false };
     const ZOOMS = [{ name: 'Close', d: 40 }, { name: 'Medium', d: 64 }, { name: 'Far', d: 92 }];
     const WARD = v(55, 0, -34), DRAW = v(55, 0, 4), STAIRS = v(-62, 0, 22);
     const SOLID = [[-58, 50, -10, 74], [-76, -36, -54, 14], [58, -46, 76, -22], [58, -12, 76, 20], [30, 19, 62, 41], [-42, -42, -28, -28], [20, -30, 32, -18], [-74, -44, -61, -32], [-74, -57, -61, -45], [-74, -74, -56, -56], [-44, -72, -30, -62], [58, -74, 74, -58], [-24, -76, 24, -58], [60, 60, 76, 76]];
