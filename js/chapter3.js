@@ -15,17 +15,18 @@ const SC = 0.95, PLOT = F.PLOT;
 const basis = (x, y, z) => new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, z));
 const Q_SIDE = basis(v(0, 1, 0), v(-1, 0, 0), v(0, 0, 1)), Q_BACK = basis(v(0, 0, -1), v(-1, 0, 0), v(0, 1, 0)), Q_SIT = basis(v(0, 0, -1), v(0, 1, 0), v(1, 0, 0));
 
+const STALK = { MERGE: 120, N: 69 };            // (the five vines climb to 120 before they braid into one trunk of 69 more segments, to about 810)
 // ── The beanstalk: five vines from the five furrows, braiding into one great stalk that climbs out of sight, with leaves, tendrils and pods. ──
 function buildStalk(scene) {
   const g = new THREE.Group(); g.userData.leaves = []; scene.add(g); const box = F.box, plain = F.plain;
   const green = [plain('#3f7f3a'), plain('#4a8f42'), plain('#37703a'), plain('#58a04a')], leafM = [plain('#4f9a46'), plain('#3f8a3c'), plain('#62ab52')], pod = plain('#7ab85a');
   const cx = PLOT.cx, cz = PLOT.cz, PIP = [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]].map(([i, j]) => v(cx + i * PLOT.cell, 0, cz + j * PLOT.cell));
   // The five vines lean in from their furrows and join at about 70 up.
-  PIP.forEach((p, k) => { for (let s = 0; s < 8; s++) { const t = s / 8, x = lerp(p.x, cx, t * t), z = lerp(p.z, cz, t * t), y = 4 + t * 70, m = box(7 - t * 2, 11, 7 - t * 2, green[k % 4], x, y, z, g); m.rotation.y = k + t * 3; m.rotation.z = (cx - p.x) * 0.004 * t; m.rotation.x = -(cz - p.z) * 0.004 * t; } });
+  PIP.forEach((p, k) => { for (let s = 0; s < 14; s++) { const t = s / 14, x = lerp(p.x, cx, t * t), z = lerp(p.z, cz, t * t), y = 4 + t * (STALK.MERGE - 4), m = box(7 - t * 2, 11, 7 - t * 2, green[k % 4], x, y, z, g); m.rotation.y = k + t * 3; m.rotation.z = (cx - p.x) * 0.004 * t; m.rotation.x = -(cz - p.z) * 0.004 * t; } });
   // The stalk: it twists as it climbs, thinning a little, bending now one way and now another.
-  const N = 74; let top = null;
+  const N = STALK.N; let top = null;
   for (let s = 0; s < N; s++) {
-    const y = 70 + s * 10, t = s / N, w = lerp(15, 7, t), sway = Math.sin(s * 0.19) * (8 + t * 40), sway2 = Math.cos(s * 0.15) * (6 + t * 36), x = cx + sway, z = cz + sway2;
+    const y = STALK.MERGE + s * 10, t = s / N, w = lerp(15, 7, t), sway = Math.sin(s * 0.19) * (8 + t * 40), sway2 = Math.cos(s * 0.15) * (6 + t * 36), x = cx + sway, z = cz + sway2;
     const m = box(w, 11, w, green[s % 4], x, y, z, g); m.rotation.y = s * 0.42;
     box(w * 0.35, 12, w * 0.35, plain('#8bc46a'), x + Math.cos(s * 0.42) * w * 0.5, y, z + Math.sin(s * 0.42) * w * 0.5, g).rotation.y = s * 0.42;       // a pale rib winding up it
     if (s % 3 === 1) { const a = s * 1.3, L = 30 + (1 - t) * 26; const leaf = new THREE.Group(); leaf.position.set(x, y, z); leaf.rotation.y = a; leaf.rotation.z = -0.25; g.add(leaf);
@@ -315,5 +316,5 @@ async function run(G, W, opts) {
   return { stalk };
 }
 
-root.Chapter3 = { run, buildStalk, ensureDawn, STALK_VIEW };
+root.Chapter3 = { run, buildStalk, ensureDawn, STALK_VIEW, STALK };
 })(typeof window !== 'undefined' ? window : globalThis);
