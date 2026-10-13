@@ -57,19 +57,21 @@ function run(G, W) {
       m.rotation.y = -a; stage.add(m); h.mesh = m; holds.push(h); return h;
     };
     const stalkLeaves = (E.userData.c3 && E.userData.c3.userData.leaves) || [];
+    const arcStep = (yy, aa, ss) => { let da = 10.5 * ss / Math.min(surfR(yy, aa) + 0.6 * ss, 12); for (let i = 0; i < 4; i++) { const r = (surfR(yy, aa) + surfR(yy + 8 * ss, aa + da)) / 2 + 0.6 * ss; da = 10.5 * ss / Math.min(r, 12); } return da; };      // (the turn that makes a rung's reach a fixed length, whatever the stalk's corners do)
     let lf = null, targetY = 120;
     while (y < TOP - 8) {
       const s = sOf(y), z = zoneOf(y);
       if (!lf && y >= targetY - 60) {                                         // the next leaf to cross: of those about that height, the one whose bearing best suits the winding
-        const st0 = 10.5 * s / Math.max(surfR(y, a0), surfR(y + 8 * s, a0), 4); let bm = 9;
-        for (const c of stalkLeaves) { if (c.y < y + 24 || c.y > y + 100 || c.y > TOP - 40) continue; const m = Math.abs(angDiff(-c.a, a0 + st0 * (c.y - y) / (8 * s))); if (m < bm) { bm = m; lf = c; } }
+        const st0 = arcStep(y, a0, s); let bm = 9;
+        for (const c of stalkLeaves) { if (c.y < y + 24 || c.y > y + 130 || c.y > TOP - 40) continue; const m = Math.abs(angDiff(-c.a, a0 + st0 * (c.y - y) / (8 * s))); if (m < bm) { bm = m; lf = c; lf._bm = m; } }
       }
+      if (lf && lf._bm > 0.5) { lf = null; targetY = y + 10; }       // (a leaf that sits badly for the winding is passed over)
       const lfA = lf ? -lf.a : 0, d = lf ? lf.w / 2 + 0.4 * lf.L : 0, yStand = lf ? lf.y - Math.sin(0.25) * d + 0.7 : 0;
-      const step = 10.5 * s / Math.max(surfR(y, a0), surfR(y + 8 * s, a0), 4), n = lf ? Math.max(1, Math.round((yStand - y) / (8 * s))) : 99;
+      const step = arcStep(y, a0, s), n = lf ? Math.max(1, Math.round((yStand - y) / (8 * s))) : 99;
       if (lf && yStand - y <= 8 * s * 1.15) {                                // the path comes to the leaf, and crosses it
         a0 = a0 + angDiff(lfA, a0);
         const h = { y: yStand, a: a0, r: d, kind: 'ledge', s: sOf(yStand), base: { y: yStand, a: a0 }, ph: rnd() * 6.28, mesh: null, leaf: lf.g, curl: 0, curlT: 0, gone: 0, L: 0, lf };
-        lf.g.userData.hold = h; h.rim = box(lf.L * 0.9, 0.35, 12, mats.rim, lf.w / 2 + lf.L / 2, 0.95, 0, lf.g); holds.push(h); lf = null; targetY = yStand + (z === 'lower' ? 125 : z === 'middle' ? 95 : 70); y = yStand + 38 * s; a0 += 10.5 * s / Math.max(surfR(y, a0), surfR(y + 8 * s, a0), 4); continue;
+        lf.g.userData.hold = h; h.rim = box(lf.L * 0.9, 0.35, 12, mats.rim, lf.w / 2 + lf.L / 2, 0.95, 0, lf.g); holds.push(h); lf = null; targetY = yStand + (z === 'lower' ? 125 : z === 'middle' ? 95 : 70); y = yStand + 38 * s; a0 += arcStep(y, a0, s); continue;
       }
       let kind = 'good';
       if (z === 'middle' && rnd() < 0.3) kind = 'slick';
@@ -77,7 +79,7 @@ function run(G, W) {
       make(a0, y, kind, s);
       if (kind === 'slick') make(a0 - 0.42, y + 0.8 * s, 'good', s);
       let da = step;
-      if (lf && n <= 6) { const e = angDiff(lfA, a0 + step * n); da = Math.max(0.2, (step * n + e) / n); }       // (bend the winding so it meets the leaf)
+      if (lf && n <= 6) { const e = angDiff(lfA, a0 + step * n); if (Math.abs(e) > 0.6) { lf = null; targetY = y + 10; } else da = clamp((step * n + e) / n, 0.2, step * 1.4); }       // (bend the winding so it meets the leaf)
       a0 += da; y += 8 * s; rung++;
     }
     holds.sort((p, q) => p.y - q.y);
@@ -101,7 +103,7 @@ function run(G, W) {
     const camera = G.camera, nearOld = camera.near;
 
     // ── Jack on the stalk. ──
-    const st = { cur: GROUND, y: 0, a: GROUND.a, r: GROUND.r, mode: 'idle', mt: 0, from: null, to: null, stamina: 100, grip: false, hold: 0, cool: 0, gust: { t: 14, phase: 'wait' }, slip: 0, toastAt: 0, capAt: 0, pitch: 0.28, camA: GROUND.a, shake: 0, ledgeT: 0, zone: 'lower', best: 0, ended: false, tut: 0 };
+    const st = { cur: GROUND, y: 0, a: GROUND.a, r: GROUND.r, mode: 'idle', mt: 0, from: null, to: null, stamina: 100, grip: false, hold: 0, cool: 0, gust: { t: 14, phase: 'wait' }, slip: 0, toastAt: 0, capAt: 0, pitch: 0.28, zoomF: 1, camA: GROUND.a, shake: 0, ledgeT: 0, zone: 'lower', best: 0, ended: false, tut: 0 };
     jackOut.root.visible = true; jackOut.root.rotation.set(0, 0, 0); W.paintJack(jackOut, { expr: 1 });
     const pose = { up: 0, reach: 0, stand: 1, fall: 0 };
     jackOut.after = r => {
@@ -131,25 +133,29 @@ function run(G, W) {
       #clGustTxt { position: absolute; top: 18%; left: 50%; transform: translateX(-50%); font-size: 20px; letter-spacing: .3em; color: #fff; text-shadow: 0 0 10px #000; opacity: 0; }`;
     document.head.appendChild(css);
     const hud = document.createElement('div'); hud.id = 'clHud';
-    hud.innerHTML = '<div id="clVig"></div><div id="clGust"></div><div id="clGustTxt">WIND</div><div id="clAlt"></div><div id="clObj">Climb the beanstalk.</div><div id="clSt"><span>Stamina</span><div id="clBar"><i></i></div></div><div id="clToast"></div><div id="clHint"></div><div id="clStick"><div id="clKnob"></div></div><div id="clBtns"><button id="clGrip">Grip (Space)</button></div>';
+    hud.innerHTML = '<div id="clVig"></div><div id="clGust"></div><div id="clGustTxt">WIND</div><div id="clAlt"></div><div id="clObj">Climb the beanstalk.</div><div id="clSt"><span>Stamina</span><div id="clBar"><i></i></div></div><div id="clToast"></div><div id="clHint"></div><div id="clStick"><div id="clKnob"></div></div><div id="clBtns"><button id="clGrip">Grip (Space)</button><div style="display:flex;gap:6px"><button id="clZm">&minus;</button><button id="clZp">+</button></div></div>';
     document.body.appendChild(hud);
     const $ = id => document.getElementById(id);
     const toast = (t, ms = 3600) => { $('clToast').textContent = t; $('clToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
     const mutter = (t, force) => { if (!force && performance.now() < st.capAt) return; st.capAt = performance.now() + 7000; G.caption('jack', t); };
-    const keys = {}, stick = { x: 0, y: 0 }, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', ' ': 'grip', Shift: 'grip', q: 'camL', Q: 'camL', e: 'camR', E: 'camR' };
+    const keys = {}, stick = { x: 0, y: 0 }, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', ' ': 'grip', Shift: 'grip', q: 'camL', Q: 'camL', e: 'camR', E: 'camR', '+': 'zIn', '=': 'zIn', '-': 'zOut', _: 'zOut' };
     const typing = e => e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
     const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow') || e.key === ' ') e.preventDefault(); } };
     const ku = e => { const k = KM[e.key]; if (k) keys[k] = false; };
     root.addEventListener('keydown', kd); root.addEventListener('keyup', ku);
     const gb = $('clGrip'); gb.onpointerdown = () => { keys.grip = true; }; gb.onpointerup = gb.onpointerleave = gb.onpointercancel = () => { keys.grip = false; };
+    $('clZm').onpointerdown = () => { keys.zOut = true; }; $('clZp').onpointerdown = () => { keys.zIn = true; }; for (const id of ['clZm', 'clZp']) { const b2 = $(id); b2.onpointerup = b2.onpointerleave = b2.onpointercancel = () => { keys.zOut = keys.zIn = false; }; }
     const drags = new Map();
-    const pd = e => drags.set(e.pointerId, { x: e.clientX, y: e.clientY }), pm = e => { const d = drags.get(e.pointerId); if (!d) return; st.camA -= (e.clientX - d.x) * 0.007; st.pitch = clamp(st.pitch + (e.clientY - d.y) * 0.005, -0.9, 1.45); d.x = e.clientX; d.y = e.clientY; }, pu = e => drags.delete(e.pointerId);
+    const pd = e => drags.set(e.pointerId, { x: e.clientX, y: e.clientY }), pm = e => { const d = drags.get(e.pointerId); if (!d) return; const ox = d.x, oy = d.y; d.x = e.clientX; d.y = e.clientY;
+      if (drags.size === 2) { const pts = [...drags.values()], dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y); if (st.pinch) st.zoomF = clamp(st.zoomF * st.pinch / Math.max(20, dist), 0.3, 3.2); st.pinch = dist; return; }
+      st.camA -= (d.x - ox) * 0.007; st.pitch = clamp(st.pitch + (d.y - oy) * 0.005, -0.9, 1.45); }, pu = e => { drags.delete(e.pointerId); st.pinch = 0; };
+    const wheel = e => { e.preventDefault(); st.zoomF = clamp(st.zoomF * (e.deltaY > 0 ? 1.1 : 0.9), 0.3, 3.2); }; el.addEventListener('wheel', wheel, { passive: false });
     el.addEventListener('pointerdown', pd); el.addEventListener('pointermove', pm); el.addEventListener('pointerup', pu); el.addEventListener('pointercancel', pu);
     { const sEl = $('clStick'), k = $('clKnob'); let id = null; const set = e => { const r = sEl.getBoundingClientRect(); let dx = (e.clientX - r.left - r.width / 2) / (r.width / 2), dy = (e.clientY - r.top - r.height / 2) / (r.height / 2); const m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; } stick.x = dx; stick.y = dy; k.style.transform = `translate(${dx * 34}px, ${dy * 34}px)`; };
       sEl.addEventListener('pointerdown', e => { id = e.pointerId; sEl.setPointerCapture(id); set(e); }); sEl.addEventListener('pointermove', e => { if (e.pointerId === id) set(e); }); const end = e => { if (e.pointerId === id) { id = null; stick.x = stick.y = 0; k.style.transform = ''; } }; sEl.addEventListener('pointerup', end); sEl.addEventListener('pointercancel', end); }
 
     // ── Reaching. ──
-    const reachOf = h => 17 * (h.s || 1) * (h === GROUND ? 1.5 : 1);
+    const reachOf = h => 20 * (h.s || 1) * (h === GROUND ? 1.5 : 1);
     const yFrom = p => (p.kind === 'ledge' || p.kind === 'ground' ? p.y + 30 * (p.s || 1) : p.y);        // (hands, from a standing place)
     const arcTo = (p, q) => { const rr = o => (o.kind === 'ledge' ? 7 : o.r), dth = angDiff(q.a, p.a), r = (rr(p) + rr(q)) / 2; return { right: -dth * Math.min(r, 12), up: q.y - yFrom(p) }; };
     const reachable = (from, h) => { if (h === from || h.gone > 0.5) return false; const d = arcTo(from, h); return Math.hypot(d.right, d.up) <= reachOf(from) && h.y > 1; };
@@ -254,7 +260,8 @@ function run(G, W) {
       if (st.toastAt && performance.now() > st.toastAt) { $('clToast').style.opacity = 0; st.toastAt = 0; }
       // The camera: outside him, at his own scale (so as he shrinks the stalk looms), held under the cloud.
       const kk = sOf(st.y); if (keys.camL) st.camA += 1.7 * dt; if (keys.camR) st.camA -= 1.7 * dt;       // (the view is the player's: all the way round and up and down, never turned for him; only the cloud ceiling and the ground hold it back)
-      const d = (88 + 14 * (st.zone === 'upper' ? 1 : 0)) * kk, at = v(tp.x + Math.cos(st.a) * st.r * 0.4, st.y + (st.cur.kind === 'ledge' ? 14 : -4) * kk * 0.95, tp.z + Math.sin(st.a) * st.r * 0.4);
+      if (keys.zIn) st.zoomF = Math.max(0.3, st.zoomF - 1.2 * dt); if (keys.zOut) st.zoomF = Math.min(3.2, st.zoomF + 1.2 * dt);
+      const d = (88 + 14 * (st.zone === 'upper' ? 1 : 0)) * kk * st.zoomF, at = v(tp.x + Math.cos(st.a) * st.r * 0.4, st.y + (st.cur.kind === 'ledge' ? 14 : -4) * kk * 0.95, tp.z + Math.sin(st.a) * st.r * 0.4);
       const want = v(at.x + Math.cos(st.camA) * d * Math.cos(st.pitch), at.y + Math.sin(st.pitch) * d * 0.9 + 6 * kk, at.z + Math.sin(st.camA) * d * Math.cos(st.pitch));
       want.y = clamp(want.y, 3, CLOUD_Y - 8); at.y = Math.min(at.y, CLOUD_Y - 2);
       if (st.shake > 0) { want.x += (Math.random() - 0.5) * 2.2 * kk; want.y += (Math.random() - 0.5) * 1.6 * kk; st.shake = Math.max(0, st.shake - dt * 3); }
@@ -262,7 +269,7 @@ function run(G, W) {
       fovCur = lerp(fovCur, g.phase === 'blow' ? 56 : 50, Math.min(1, dt * 4));
       G.cut({ pos: camPos, look: camLook, fov: fovCur });
       // At the top: up through the cloud.
-      if (!st.ended && st.y > TOP - 30 && st.mode === 'idle') { st.ended = true; finish(); }
+      if (!st.ended && st.cur.y > TOP - 45 && st.mode === "idle") { st.ended = true; finish(); }
     };
     async function finish() {
       st.mode = 'rise'; hud.style.display = 'none';
@@ -273,11 +280,11 @@ function run(G, W) {
     }
     // (a tick-mode of 'rise' lets the frame code above keep placing him as st.y changes)
     function cleanup() {
-      ended = true; root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu);
+      ended = true; root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('wheel', wheel); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu);
       G.updaters = G.updaters.filter(u => u !== tick); hud.remove(); css.remove(); E.remove(stage); E.fog = fogOld; E.background = bgOld; for (const [l, i0] of lights) l.intensity = i0; jackOut.after = null; jackOut.root.scale.setScalar(SC); camera.near = nearOld;
     }
     camera.near = 0.3; camera.updateProjectionMatrix();
-    G.updaters.push(tick); G.climb = { st, holds, drop };           // (for tools and tests)
+    G.updaters.push(tick); G.climb = { st, holds, drop, pick, reachable, GROUND };           // (for tools and tests)
     G.fade(false, 1.4);
     mutter('Up we go. The stalk is wider than the cottage... but it will hold.', true);
   });
