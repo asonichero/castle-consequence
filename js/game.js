@@ -194,7 +194,7 @@ function create(els) {
       c.getContext('2d').drawImage(renderer.domElement, 0, 0, c.width, c.height);
       const url = c.toDataURL('image/jpeg', 0.78); if (G.noSave) G.memShot = url; else { G.memShot = null; store.set(SHOT_KEY, url); }
       camera.position.copy(old.p); camera.fov = old.fov; camera.updateProjectionMatrix();
-    } catch (e) { /* no storage / no canvas: the title keeps its live view */ }
+    } catch (e) { console.warn('snapshotFarm', e && e.message); }
   };
   return G;
 }
