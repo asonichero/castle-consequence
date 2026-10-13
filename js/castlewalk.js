@@ -222,15 +222,16 @@ function run(G, W, opts) {
       shotJack(); face(2); await G.wait(0.5); await G.say('jack', 'I’m a man.'); face(1); await G.wait(0.6);
       shotFace(); await G.say('gerda', 'Are you. We’ll see.');
       // to the cupboard, with him in her hand
-      const bx = M.items.keepsakeBox.g, box = bx.userData.box, tgt = new V3(124, 0, -92); const route = gnav(gst.x, gst.z, tgt.x, tgt.z);
+      const bx = M.items.keepsakeBox.g, box = bx.userData.box, tgt = new V3(119, 0, -92); const route = gnav(gst.x, gst.z, tgt.x, tgt.z);
       { const mx = (gst.x + tgt.x) / 2, mz = (gst.z + tgt.z) / 2, sp = Math.hypot(gst.x - tgt.x, gst.z - tgt.z); G.cut({ pos: v(mx + 10, 62 + sp * 0.2, mz + 70 + sp * 0.3), look: v(mx, 22, mz), fov: 56 }); }                    // (the walk across the kitchen, from above and to the side)
       for (const [wx, wz] of route) { const x0 = gst.x, z0 = gst.z, d = Math.hypot(wx - x0, wz - z0), n = Math.max(2, Math.ceil(d / 1.2)), h1 = Math.atan2(wx - x0, wz - z0); for (let i = 1; i <= n; i++) { const k = i / n; gst.x = x0 + (wx - x0) * k; gst.z = z0 + (wz - z0) * k; gst.h += angDiff(h1, gst.h) * 0.3; gst.ph += 0.4; gst.walk = 1; placeGerda(); follow(); cam(); await G.wait(0.04); } }
       gst.walk = 0; for (let i = 0; i < 14; i++) { gst.h += angDiff(-Math.PI / 2, gst.h) * 0.3; placeGerda(); follow(); cam(); await G.wait(0.04); }
       // the least she need lean, and how high she need raise her arm, for her hand to be over the open box
       { const T = bx.localToWorld(new V3(0, 11, 0)); let bestG = null; gst.give = 1;
-        for (let tq = 0; tq <= 0.6; tq += 0.05) for (let ar = -2.4; ar <= -0.7; ar += 0.1) { gst.gTorso = tq; gst.gArm = ar; placeGerda(); root.Blocky.step(gerda, 0); gerda.root.updateMatrixWorld(true); const hp = gerda.wrist.localToWorld(new V3(0, -6, 0)), e = hp.distanceTo(T); if (e < 4 && (!bestG || tq < bestG.tq - 1e-6 || (tq === bestG.tq && e < bestG.e))) bestG = { tq, ar, e }; }
-        if (!bestG) { let m = 1e9; for (let tq = 0; tq <= 0.9; tq += 0.05) for (let ar = -2.6; ar <= -0.5; ar += 0.1) { gst.gTorso = tq; gst.gArm = ar; placeGerda(); root.Blocky.step(gerda, 0); gerda.root.updateMatrixWorld(true); const e = gerda.wrist.localToWorld(new V3(0, -6, 0)).distanceTo(T); if (e < m) { m = e; bestG = { tq, ar, e }; } } }
-        gst.give = 0; gst.gTorso = bestG.tq; gst.gArm = bestG.ar; G.castleWalk.giveSolve = bestG; placeGerda(); }
+        for (let tq = 0; tq <= 0.6; tq += 0.05) for (let ar = -2.4; ar <= -0.7; ar += 0.1) { gst.gTorso = tq; gst.gArm = ar; placeGerda(); root.Blocky.step(gerda, 0); gerda.root.updateMatrixWorld(true); const hp = gerda.wrist.localToWorld(new V3(0, -6, 0)), e = hp.distanceTo(T), hd2 = gerda.neck.localToWorld(new V3(0, 4, 0)); if (Math.hypot(hd2.x - T.x, hd2.z - T.z) < 15) continue; if (e < 4 && (!bestG || tq < bestG.tq - 1e-6 || (tq === bestG.tq && e < bestG.e))) bestG = { tq, ar, e }; }
+        if (!bestG) { let m = 1e9; for (let tq = 0; tq <= 0.9; tq += 0.05) for (let ar = -2.6; ar <= -0.5; ar += 0.1) { gst.gTorso = tq; gst.gArm = ar; placeGerda(); root.Blocky.step(gerda, 0); gerda.root.updateMatrixWorld(true); const e = gerda.wrist.localToWorld(new V3(0, -6, 0)).distanceTo(T), hd2 = gerda.neck.localToWorld(new V3(0, 4, 0)); if (Math.hypot(hd2.x - T.x, hd2.z - T.z) < 15) continue; if (e < m) { m = e; bestG = { tq, ar, e }; } } }
+        if (!bestG) bestG = { tq: 0.3, ar: -1.5, e: 99 };
+        gst.give = 0; gst.gTorso = bestG.tq; gst.gArm = bestG.ar; G.castleWalk.giveSolve = bestG; G.castleWalk.giveHead = (() => { const q = gerda.neck.localToWorld(new V3(0, 4, 0)); return [q.x, q.y, q.z, T.x, T.y, T.z]; })(); placeGerda(); }
       // she opens the box with her free hand
       G.cut({ pos: bx.localToWorld(new V3(-26, 28, 24)), look: bx.localToWorld(new V3(10, 8, 0)), fov: 50 });
       for (let i = 1; i <= 20; i++) { const k = i / 20; gst.lreach = 1.3 * k; box.lid.rotation.x = -1.95 * k; placeGerda(); follow(); cam(); await G.wait(0.04); }
