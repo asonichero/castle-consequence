@@ -200,7 +200,7 @@ function run(G, W) {
       if (!tgt) { for (let i = holds.length - 1; i >= 0; i--) { const h = holds[i]; if (h.y < lim - 40 * sOf(lim) && h.kind !== 'slick' && h.fr === st.cur.fr) { tgt = h; break; } } }
       if (!tgt) tgt = grounds[st.cur.fr < 4 ? st.cur.fr : nearestVine(jackWorld())];
       if (toLedge && st.cur.kind === 'ledge') tgt = st.cur;
-      startMove(tgt, 'drop'); pose.fall = 1; st.stamina = Math.max(st.stamina, 35); if (msg) toast(msg); A && A.thwack && A.thwack(0.3, true, 0.3);
+      st.lastFall = Math.round(st.cur.y); startMove(tgt, 'drop'); pose.fall = 1; st.stamina = Math.max(st.stamina, 35); if (msg) toast(msg + ' (fell at height ' + st.lastFall + ')', 4200); A && A.thwack && A.thwack(0.3, true, 0.3);
     }
     const nearestVine = p => { let bk = 0, bd = 1e9; VINE.forEach((q, k) => { const d = Math.hypot(p.x - q.x, p.z - q.z); if (d < bd) { bd = d; bk = k; } }); return bk; };
     const blockedAt = (x, z) => { if (x < -196 || x > 196 || z < -100 || z > 116) return true; for (const o of SOLID) if (x > o.x0 - 5 && x < o.x1 + 5 && z > o.z0 - 5 && z < o.z1 + 5) return true; for (const q of VINE) if (Math.hypot(x - q.x, z - q.z) < 6.5) return true; if (Math.hypot(x - CX, z - CZ) < 7) return true; return false; };
@@ -299,7 +299,7 @@ function run(G, W) {
       $('clVig').style.opacity = Math.min(1, vig + low); $('clVig').style.background = `radial-gradient(circle at 50% 52%, transparent ${Math.round(lerp(90, 18, vig))}%, rgba(8,10,16,${0.55 + 0.4 * vig}) ${Math.round(lerp(120, 48, vig))}%)`;
       $('clGust').style.opacity = g.phase === 'warn' ? 0.25 + 0.5 * (1 - g.t / 1.9) : g.phase === 'blow' ? 0.8 : 0; $('clGustTxt').style.opacity = g.phase === 'warn' ? 1 : 0;
       if (st.mode !== 'walk') { const onL = st.cur.kind === 'ledge' && st.mode === 'idle', near = !onL && st.mode === 'idle' && holds.some(h => h.kind === 'ledge' && h.gone <= 0 && Math.abs(h.y - st.y) < 40 && reachable(st.cur, h)); $('clHint').textContent = onL ? (st.stamina < 99.5 ? 'Resting on the leaf. Climb on whenever you are ready.' : 'Rested. Climb on whenever you are ready.') : near ? 'A leaf ahead: a place to rest' : ''; $('clHint').style.opacity = $('clHint').textContent ? 1 : 0; }
-      $('clAlt').textContent = st.mode === 'walk' ? 'On the ground' : `Height ${Math.round(st.y * 0.12)} m   ·   ${st.zone === 'lower' ? 'Lower stalk' : st.zone === 'middle' ? 'Middle stalk' : 'Upper stalk'}`;
+      $('clAlt').textContent = st.mode === 'walk' ? 'On the ground' : `Height ${Math.round(st.mode === 'idle' ? st.cur.y : st.to ? st.to.y : st.y)}   ·   ${st.zone === 'lower' ? 'Lower stalk' : st.zone === 'middle' ? 'Middle stalk' : 'Upper stalk'}${st.lastFall != null ? '   ·   last fall at ' + st.lastFall : ''}`;
       $('clObj').textContent = st.mode === 'walk' ? 'Choose a stalk to climb.' : 'Climb the beanstalk.';
       $('clBar').firstChild.style.width = st.stamina + '%'; $('clBar').classList.toggle('low', st.stamina < 25); $('clSt').style.opacity = st.mode === 'walk' ? 0.4 : 1;
       if (st.toastAt && performance.now() > st.toastAt) { $('clToast').style.opacity = 0; st.toastAt = 0; }
