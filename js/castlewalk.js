@@ -39,8 +39,8 @@ function run(G, W, opts) {
       const STATES = opts.doors || [['x', -90, -25.5, 'ajar'], ['x', 90, -25, 'open'], ['z', -111, 162, 'closed'], ['x', 250, -75, 'closed']];     // the narrow corridor's doors pulled to; the kitchen's open; the garden's and the parlour's shut
       for (const d of M.doors) { const sp = STATES.find(q => q[0] === d.axis && Math.abs(q[1] - d.fixed) < 3 && Math.abs(q[2] - d.c) < 6);
         if (sp && sp[3] === 'open') continue; if (sp && sp[3] === 'ajar') { d.lg.rotation.y = Math.sign(d.lg.rotation.y || 1) * 0.42; d.og.userData.noCollide = false; continue; }
-        if (sp || open.some(r => near(d, r))) { d.lg.rotation.y = 0; d.og.userData.noCollide = false; } } for (const h of M.hallLeaves) h.lf.rotation.y = 0; }
-    const world = { scene, update(dt, t) { M.update(dt, t); aOut.t += dt; root.Blocky.step(jackOut, dt); } };
+        if (sp || open.some(r => near(d, r))) { d.openAng = d.lg.rotation.y; d.lg.rotation.y = 0; d.og.userData.noCollide = false; } } for (const h of M.hallLeaves) h.lf.rotation.y = 0; }
+    let gerda = null; const world = { scene, update(dt, t) { M.update(dt, t); aOut.t += dt; root.Blocky.step(jackOut, dt); if (gerda) root.Blocky.step(gerda, dt); } };
     // two more horses' worth of toys are not wanted here: one rocking horse is all the nursery has (see castle.js)
     const C = collect(M.room, ceiling, M.items.pantry && M.items.pantry.g);
     const things = []; if (story) { M.room.updateMatrixWorld(true); M.room.traverse(o => { if (o.userData && o.userData.item) { const w = new V3(); o.getWorldPosition(w); things.push(Object.assign({ o, pos: w }, o.userData.item)); } }); }
@@ -140,21 +140,61 @@ function run(G, W, opts) {
             }
           }
         }
-        if (st.alarm && !text) { const c = pantryG.localToWorld(new V3(1.6, 0, 10)); if (st.inCup) { text = 'E \u2014 stay hidden'; if (act) hideEnding(); } else if (Math.hypot(c.x - st.pos.x, c.z - st.pos.z) < 3.4 * Hj && Math.abs(pantryG.position.y - st.y) < 1.4 * Hj) { text = 'E \u2014 climb into the cupboard'; if (act) hideEnding(); } }
       }
       pr.textContent = text; pr.style.display = text ? 'block' : 'none';
     }
     function alarm() {
       st.alarm = true; st.shakeT = 1.4; A && A.thud && A.thud(0.8); say('What was that? Movement... above me.');
-      later(3200, () => { A && A.thud && A.thud(0.9); st.shakeT = 1.0; say('Footsteps. Someone’s coming! I have to hide!'); $('cwObjt').textContent = 'Find somewhere to hide.'; $('cwObjt').style.display = 'block'; });
+      later(3200, () => { A && A.thud && A.thud(0.9); st.shakeT = 1.0; say('Footsteps. Someone’s coming! I have to hide!'); $('cwObjt').textContent = 'Find somewhere to hide.'; $('cwObjt').style.display = 'block'; later(22000, gerdaScene); });
     }
-    async function hideEnding() {
-      st.hiding = true; st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwObjt').style.display = 'none'; $('cwPrompt').style.display = 'none';
-      const wait = G.wait, way = [pantryG.localToWorld(new V3(1.6, 0, 8)), pantryG.localToWorld(new V3(1.6, 0, 0)), pantryG.localToWorld(new V3(-2, 0, -2))];       // (through the gap, and in)
-      for (const c of way) { const x0 = st.pos.x, z0 = st.pos.z, n = 14; st.heading = Math.atan2(c.x - x0, c.z - z0); for (let i = 1; i <= n; i++) { const k = i / n; st.pos.x = x0 + (c.x - x0) * k; st.pos.z = z0 + (c.z - z0) * k; st.walkN = 1; st.walkPh += 0.55; await wait(0.04); } }
-      st.walkN = 0; st.inCup = true; say('Don’t breathe. Don’t even blink.'); await wait(1.2); await G.fade(true, 2.4); await wait(0.4);
-      cleanup(); G.mode = 'end'; document.body.classList.remove('cutscene'); resolve({ hid: true });
+    // ── Gerda, at full size: she opens the parlour door, circles the kitchen looking, and ends at the cupboard. Whatever she sees, she sees by line of sight. ──
+    const GS = FULL, gst = { x: 0, z: 0, h: 0, ph: 0, walk: 0, bend: 0, reach: 0, look: 0 }, EYE = 41;
+    const gsay = t => G.caption('gerda', t);
+    function placeGerda() { gerda.root.position.set(gst.x, 0, gst.z); gerda.root.rotation.y = gst.h; }
+    function makeG() { gerda = root.Blocky.makeGerda('Work'); gerda.root.scale.setScalar(GS); scene.add(gerda.root); gerda.after = r => { const w = Math.sin(gst.ph) * 0.62 * gst.walk; r.legL.thigh.rotation.x = w; r.legR.thigh.rotation.x = -w; r.armL.rotation.x = -w * 0.7; r.armR.rotation.x = w * 0.7 - gst.reach; r.torso.rotation.x = gst.bend; r.neck.rotation.x = gst.look - gst.bend * 0.6; }; placeGerda(); }
+    const seen = () => {                                                                                    // does she see him? from her eyes to his head, chest and feet, through the boxes that stand between
+      if (!gerda || st.caught) return st.caught; const Hj = HEIGHT * SC * st.s;
+      if (gst.cupOpen && st.inCup && Math.hypot(st.pos.x - gst.x, st.pos.z - gst.z) < 60) return true;
+      const ey = (EYE - gst.bend * 16) * GS / 1.4, ex = gst.x + Math.sin(gst.h) * 4, ez = gst.z + Math.cos(gst.h) * 4;
+      for (const f of [0.85, 0.5, 0.12]) { const tx = st.pos.x, ty = st.y + f * Hj, tz = st.pos.z, dx = tx - ex, dy = ty - ey, dz = tz - ez, L = Math.hypot(dx, dy, dz); if (L > 170) continue; let clear = true;
+        for (let u = 1.2; u < L - 0.5 && clear; u += 1.4) { const px = ex + dx * u / L, py = ey + dy * u / L, pz = ez + dz * u / L; for (const e of C.near(px, pz, 1)) { if (e.low || e.y1 - e.y0 < 0.8) continue; if (px > e.x0 && px < e.x1 && pz > e.z0 && pz < e.z1 && py > e.y0 && py < e.y1) { clear = false; break; } } }
+        if (clear) return true; }
+      return false; };
+    async function gWalk(tx, tz, sp) {                                                                     // true if she arrives; false if she sees him on the way
+      const dx = tx - gst.x, dz = tz - gst.z, d = Math.hypot(dx, dz), n = Math.max(2, Math.ceil(d / (sp * 0.04))), h1 = Math.atan2(dx, dz);
+      for (let i = 1; i <= n; i++) { gst.h += angDiff(h1, gst.h) * 0.35; gst.x += dx / n; gst.z += dz / n; gst.ph += 0.42; gst.walk = 1; placeGerda(); if (seen()) { gst.walk = 0; return false; } await G.wait(0.04); }
+      gst.walk = 0; return true; }
+    async function gLook(secs, bend) { const n = Math.round(secs / 0.04); for (let i = 1; i <= n; i++) { const k = Math.sin(Math.PI * i / n); gst.bend = bend * Math.min(1, k * 2.2); gst.look = 0.25 * Math.sin(i * 0.2); placeGerda(); if (seen()) { gst.bend = bend; return false; } await G.wait(0.04); } gst.bend = 0; gst.look = 0; return true; }
+    const quick = d => new Promise(r => setTimeout(r, d));
+    async function gerdaScene() {
+      if (st.scene || st.caught) return; const doors = M.doors.filter(d => d.axis === 'x' && Math.abs(d.fixed - 250) < 3 && Math.abs(d.c + 75) < 6);
+      A && A.thud && A.thud(0.5); for (let i = 1; i <= 25; i++) { for (const d of doors) d.lg.rotation.y = (d.openAng || 1.75) * i / 25; await G.wait(0.04); }
+      makeG(); gst.x = 262; gst.z = -75; gst.h = -Math.PI / 2; placeGerda(); gsay('I can tell somebody’s here. I can feel it.');
+      const route = [[238, -75], [214, -66], { say: 'Don’t think I won’t find you. Small things leave small marks.' }, [214, -8], { look: 1.6, bend: 0.8 }, [226, 22], [222, 38], { say: 'Come out, now. I’m not cross... yet.' }, [170, 38], [122, 24], { look: 1.4, bend: 0.7 }, [126, -6], [126, -66], { say: 'Only one place left.' }, [126, -92]];
+      for (const r of route) { let ok = true; if (Array.isArray(r)) ok = await gWalk(r[0], r[1], 30); else if (r.say) gsay(r.say); else ok = await gLook(r.look, r.bend); if (!ok) return caught(); }
+      // the cupboard
+      gst.h = Math.PI / 2 * -1 + Math.PI; gst.h = -Math.PI / 2; placeGerda(); const cd = pantryG.userData.cupDoors; await G.wait(0.6);
+      for (let i = 1; i <= 22; i++) { cd.dl.rotation.y = -1.7 * i / 22; cd.dr.rotation.y = 0.7 + 1.0 * i / 22; gst.bend = 0.5 * i / 22; placeGerda(); await G.wait(0.04); } gst.cupOpen = true;
+      if (seen()) return caught();
+      gsay('Nothing. Hm.'); await G.wait(1.6); gst.bend = 0; placeGerda(); gsay('I must be going soft.'); await G.wait(1.4);
+      if (!(await gWalk(238, -75, 26)) ) return caught(); await gWalk(268, -75, 26); for (let i = 24; i >= 0; i--) { for (const d of doors) d.lg.rotation.y = (d.openAng || 1.75) * i / 24; await G.wait(0.04); }
+      if (gerda) { scene.remove(gerda.root); }
+      G.castleResult = 'hidden'; $('cwObjt').style.display = 'none'; $('cwObjt').textContent = 'She has gone.'; $('cwObjt').style.display = 'block'; await G.wait(2.5); await finish('hidden');
     }
+    async function caught() {
+      if (st.caught) return; st.caught = true; st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwPrompt').style.display = 'none'; $('cwObjt').style.display = 'none'; st.walkN = 0; st.cl = null; st.mant = null; st.vy = 0;
+      const Hj = HEIGHT * SC * st.s, cam = () => { const mx = (gst.x + st.pos.x) / 2, mz = (gst.z + st.pos.z) / 2, px = -(gst.z - st.pos.z), pz = gst.x - st.pos.x, pl = Math.hypot(px, pz) || 1; G.cut({ pos: v(mx + px / pl * 46, 20, mz + pz / pl * 46), look: v(mx, 18, mz), fov: 52 }); };
+      st.heading = Math.atan2(gst.x - st.pos.x, gst.z - st.pos.z);                                       // he freezes, and turns his face to her
+      for (let i = 0; i < 18; i++) { gst.h += angDiff(Math.atan2(st.pos.x - gst.x, st.pos.z - gst.z), gst.h) * 0.3; placeGerda(); cam(); await G.wait(0.04); }
+      gsay('There you are.'); await G.wait(0.8);
+      for (let g = 0; g < 60; g++) { const dx = st.pos.x - gst.x, dz = st.pos.z - gst.z, d = Math.hypot(dx, dz); if (d <= 15) break; gst.x += dx / d * 1.1; gst.z += dz / d * 1.1; gst.ph += 0.42; gst.walk = 1; gst.h += angDiff(Math.atan2(dx, dz), gst.h) * 0.4; placeGerda(); cam(); await G.wait(0.04); } gst.walk = 0;
+      for (let i = 1; i <= 18; i++) { const k = i / 18; gst.bend = 0.95 * k; gst.reach = 1.5 * k; placeGerda(); cam(); await G.wait(0.04); }
+      const x0 = st.pos.x, z0 = st.pos.z, y0 = st.y;
+      for (let i = 1; i <= 24; i++) { const k = i / 24, hx = gst.x + Math.sin(gst.h) * 13, hz = gst.z + Math.cos(gst.h) * 13; gst.bend = 0.95 - 0.8 * k; gst.reach = 1.5 - 0.6 * k; st.pos.x = x0 + (hx - x0) * k; st.pos.z = z0 + (hz - z0) * k; st.y = y0 + (26 - y0) * k; st.heading = gst.h + Math.PI; placeGerda(); cam(); await G.wait(0.04); }
+      gsay('Well now. Aren’t you a small one?'); for (let i = 0; i < 40; i++) { st.pos.x = gst.x + Math.sin(gst.h) * 13; st.pos.z = gst.z + Math.cos(gst.h) * 13; st.y = 26 + Math.sin(i * 0.2) * 0.3; placeGerda(); cam(); await G.wait(0.04); }
+      await finish('caught');
+    }
+    async function finish(res) { G.castleResult = res; await G.fade(true, 2.2); await G.wait(0.3); cleanup(); G.mode = 'end'; document.body.classList.remove('cutscene'); resolve({ result: res }); }
     const tick = dt => {
       if (st.scene) { jackOut.root.scale.setScalar(SC * st.s); jackOut.root.position.set(st.pos.x, st.y, st.pos.z); jackOut.root.rotation.y = st.heading; return; }
       const s = st.s; if (Math.abs(s - nearS) > 0.02) { nearS = s; camera.near = Math.max(0.1, 0.3 * s); camera.updateProjectionMatrix(); }       // (a nearer near plane only as he is small: the depth buffer keeps its precision, so flat surfaces do not shimmer)
