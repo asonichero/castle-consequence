@@ -21,12 +21,16 @@ const mossTex = () => canvasTex(64, 64, (g, w, h) => { g.fillStyle = '#d3ddcd'; 
 const stoneTex = (rx, ry) => canvasTex(64, 64, (g, w, h) => { g.fillStyle = '#d9d3bd'; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y += 16) { g.fillStyle = '#b9b39c'; g.fillRect(0, y, w, 2); for (let x = (y / 16) % 2 ? 0 : 16; x < w; x += 32) g.fillRect(x, y, 2, 16); } for (let i = 0; i < 120; i++) { g.fillStyle = rnd() < 0.5 ? '#f4f0e2' : '#dcd6c0'; g.fillRect(Math.floor(rnd() * w), Math.floor(rnd() * h), 2, 2); } }, rx, ry);
 
 function build() {
-  const scene = new THREE.Scene(), sky = new THREE.Color(0xe6e4ee);
-  scene.background = sky; scene.fog = new THREE.Fog(0xe2dfea, 60, 1250);
-  scene.add(new THREE.HemisphereLight(0xe8ecfa, 0xb8c4b0, 0.72)); const sun = new THREE.DirectionalLight(0xffe8c8, 0.55); sun.position.set(-300, 400, 200); scene.add(sun);
+  const scene = new THREE.Scene(), sky = new THREE.Color(0x9fd0f4);
+  scene.background = sky; scene.fog = new THREE.Fog(0xcfe6f8, 120, 1700);
+  scene.add(new THREE.HemisphereLight(0xc4e0ff, 0xd0d8c0, 0.85)); const sun = new THREE.DirectionalLight(0xfff4dc, 0.95); sun.position.set(70, 900, 50); scene.add(sun);
+  // A brilliant sky: it is long past dawn, and the sun stands high overhead.
+  { const tex = canvasTex(2, 256, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#2f78d2'); gr.addColorStop(0.45, '#69aeea'); gr.addColorStop(0.8, '#b9dcf6'); gr.addColorStop(1, '#dcf0fb'); g.fillStyle = gr; g.fillRect(0, 0, w, h); }); tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping; const dome = new THREE.Mesh(new THREE.SphereGeometry(3200, 24, 16), new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide, fog: false })); scene.add(dome);
+    const disc = new THREE.Mesh(new THREE.BoxGeometry(150, 150, 14), new THREE.MeshBasicMaterial({ color: 0xfffbe6, fog: false })); disc.position.set(60, 2900, -200); disc.lookAt(0, 0, 0); scene.add(disc);
+    const halo = new THREE.Mesh(new THREE.BoxGeometry(300, 300, 8), new THREE.MeshBasicMaterial({ color: 0xfff6c8, transparent: true, opacity: 0.25, fog: false })); halo.position.set(60, 2890, -200); halo.lookAt(0, 0, 0); scene.add(halo); }
   const box = F.box, glints = [];
   // The ground: white moss, to the haze.
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.MeshLambertMaterial({ map: mossTex() })); ground.rotation.x = -Math.PI / 2; scene.add(ground);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.MeshLambertMaterial({ map: mossTex(), color: 0xe2ecda })); ground.rotation.x = -Math.PI / 2; scene.add(ground);
   // Hills, in soft blocks, and distant banks of cloud.
   const mossCols = [0xc9d6c0, 0xbccdb4, 0xd2dcc8, 0xaec2a8];
   const hill = (x, z, r, h) => { for (let i = 0; i < 4; i++) { const w = r * 2 * (1 - i * 0.24), hh = h / 4; box(w, hh, w * (0.8 + rnd() * 0.4), new THREE.MeshLambertMaterial({ color: mossCols[(i + Math.floor(rnd() * 4)) % 4] }), x, i * hh + hh / 2, z, scene); } };
@@ -171,7 +175,7 @@ function run(G, W) {
         // (no narration: the land is left to speak. Only the quiet falls as he goes in.)
         const p = clamp((START_Z - st.pos.z) / (START_Z - TRIGGER_Z), 0, 1);
         if (st.stillSaid === 0 && p > 0.04) { st.stillSaid = 1; A && A.ambience({ wind: 0, birds: 0, fire: 0 }); A && A.duckMusic && A.duckMusic(0.18, 5); }
-        const sh = clamp((-st.pos.z - 520) / 90, 0, 1); M.hemi.intensity = 0.72 * (1 - 0.3 * sh); M.sun.intensity = 0.55 * (1 - 0.55 * sh);
+        const sh = clamp((-st.pos.z - 520) / 90, 0, 1); M.hemi.intensity = 0.85 * (1 - 0.3 * sh); M.sun.intensity = 0.95 * (1 - 0.55 * sh);
         if (st.pos.z <= TRIGGER_Z && st.mode === 'walk') { st.mode = 'gate'; gate(); }
       }
       place();

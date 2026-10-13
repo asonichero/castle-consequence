@@ -110,7 +110,7 @@ function run(G, W) {
     const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1500, 560), new THREE.MeshBasicMaterial({ color: 0x1a1a2c, transparent: true, opacity: 0.42, depthWrite: false, side: THREE.DoubleSide }));
     shadow.rotation.x = Math.PI / 2; shadow.position.set(CX, CLOUD_Y - 7, CZ); stage.add(shadow);
     const lights = []; E.traverse(o => { if (o.isHemisphereLight || o.isDirectionalLight) lights.push([o, o.intensity]); });
-    const sky0 = new THREE.Color(0xf0b890), sky1 = new THREE.Color(0xd4e4f4), fogOld = E.fog, bgOld = E.background;
+    const sky0 = new THREE.Color(0xf0b890), sky1 = new THREE.Color(0x8fc6f0), fogOld = E.fog, bgOld = E.background;
     const camera = G.camera, nearOld = camera.near;
 
     // ── Jack on the stalk. ──
