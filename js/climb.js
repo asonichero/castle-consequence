@@ -48,14 +48,15 @@ function run(G, W) {
     // ── The holds: a ring of three to a rung, the rungs closer as he shrinks; a broad leaf now and again to rest on. ──
     const holds = [], mats = {
       good: new THREE.MeshLambertMaterial({ color: 0xc9a862 }), glow: new THREE.MeshBasicMaterial({ color: 0xffeaa0 }), faint: new THREE.MeshLambertMaterial({ color: 0xe0c47a, emissive: 0x3a2e10 }),
-      slick: new THREE.MeshPhongMaterial({ color: 0xa8d890, emissive: 0x2a5a3a, shininess: 120, specular: 0xffffff }), moving: new THREE.MeshLambertMaterial({ color: 0xb48a58 }), leaf: new THREE.MeshLambertMaterial({ color: 0x5aa84c }), rim: new THREE.MeshBasicMaterial({ color: 0xfff2a0, transparent: true, opacity: 0.45 }),
+      slick: new THREE.MeshPhongMaterial({ color: 0xa8d890, emissive: 0x2a5a3a, shininess: 120, specular: 0xffffff }), burl: new THREE.MeshLambertMaterial({ color: 0x8a6238 }), burlRing: new THREE.MeshLambertMaterial({ color: 0xe0cfa0 }), leaf: new THREE.MeshLambertMaterial({ color: 0x5aa84c }), rim: new THREE.MeshBasicMaterial({ color: 0xfff2a0, transparent: true, opacity: 0.45 }),
     };
     const worldOf = h => { if (h.lf) return v(h.lf.x + Math.cos(h.a) * h.r, h.y, h.lf.z + Math.sin(h.a) * h.r); const c = centreOf(h.fr, h.y); return v(c.x + Math.cos(h.a) * h.r, h.y, c.z + Math.sin(h.a) * h.r); };
     const holdPos = worldOf;
     const make = (fr, a, hy, kind, s) => {
       const r = surfRf(fr, hy, a) + 0.6 * s;
       const h = { fr, y: hy, a, r, kind, s, ph: rnd() * 6.28, mesh: null, leaf: null, curl: 0, curlT: 0, gone: 0 };
-      const m = new THREE.Mesh(new THREE.BoxGeometry(5 * s, 2.8 * s, 3.4 * s), kind === 'slick' ? mats.slick : mats.good);
+      const m = kind === 'burl' ? new THREE.Group() : new THREE.Mesh(new THREE.BoxGeometry(5 * s, 2.8 * s, 3.4 * s), kind === 'slick' ? mats.slick : mats.good);
+      if (kind === 'burl') { box(8.5 * s, 5.5 * s, 6.5 * s, mats.burl, 0, 0, 0, m); box(9.5 * s, 1.2 * s, 7.4 * s, mats.burlRing, 0, 2.2 * s, 0, m); box(9.5 * s, 1.2 * s, 7.4 * s, mats.burlRing, 0, -2.2 * s, 0, m); }
       m.rotation.y = -a; stage.add(m); h.mesh = m; holds.push(h); return h;
     };
     const arcStep = (fr, yy, aa, ss) => { let da = 10.5 * ss / Math.min(surfRf(fr, yy, aa) + 0.6 * ss, 12); for (let i = 0; i < 4; i++) { const r = (surfRf(fr, yy, aa) + surfRf(fr, yy + 8 * ss, aa + da)) / 2 + 0.6 * ss; da = 10.5 * ss / Math.min(r, 12); } return da; };      // (the turn that makes a rung's reach a fixed length, whatever the stalk's corners do)
@@ -72,7 +73,7 @@ function run(G, W) {
     let y = MERGE + 6, rung = 0, a0 = rnd() * 6.28;
     for (const da of [-1.6, 0, 1.6]) make(4, a0 + da, MERGE - 2, 'good', sOf(MERGE));
     const stalkLeaves = (E.userData.c3 && E.userData.c3.userData.leaves) || [];
-    let lf = null, targetY = MERGE + 60; wind.left = 0;
+    let lf = null, targetY = MERGE + 60, sinceBurl = 0; wind.left = 0;
     while (y < TOP - 8) {
       const s = sOf(y), z = zoneOf(y);
       if (!lf && y >= targetY - 60) {                                         // the next leaf to cross: of those about that height, the one whose bearing is nearest where the path is
@@ -83,10 +84,11 @@ function run(G, W) {
       if (lf && yStand - y <= 8 * s * 1.15) {                                // the path comes to the leaf, and crosses it
         a0 = a0 + angDiff(lfA, a0);
         const h = { fr: 4, y: yStand, a: a0, r: d, kind: 'ledge', s: sOf(yStand), ph: rnd() * 6.28, mesh: null, leaf: lf.g, curl: 0, curlT: 0, gone: 0, L: 0, lf };
-        lf.g.userData.hold = h; h.rim = box(lf.L * 0.9, 0.35, 12, mats.rim, lf.w / 2 + lf.L / 2, 0.95, 0, lf.g); holds.push(h); lf = null; targetY = yStand + (z === 'lower' ? 125 : z === 'middle' ? 95 : 70); y = yStand + 38 * s; a0 += arcStep(4, y, a0, s); continue;
+        lf.g.userData.hold = h; h.rim = box(lf.L * 0.9, 0.35, 12, mats.rim, lf.w / 2 + lf.L / 2, 0.95, 0, lf.g); holds.push(h); lf = null; targetY = yStand + (z === 'lower' ? 12 : z === 'middle' ? 10 : 8) * 8 * s; y = yStand + 38 * s; a0 += arcStep(4, y, a0, s); continue;
       }
-      let kind = 'good';
-      if (z === 'middle' && rnd() < 0.3) kind = 'slick';
+      let kind = 'good'; sinceBurl++;
+      if (z !== 'lower' && sinceBurl >= (z === 'middle' ? 6 : 5)) { kind = 'burl'; sinceBurl = 0; }          // (a great knot to wedge himself against when the wind comes)
+      else if (z === 'middle' && rnd() < 0.3) kind = 'slick';
       else if (z === 'upper' && rnd() < 0.34) kind = 'slick';
       make(4, a0, y, kind, s);
       if (kind === 'slick') make(4, a0 - 0.42, y + 0.8 * s, 'good', s);
@@ -110,7 +112,7 @@ function run(G, W) {
     const camera = G.camera, nearOld = camera.near;
 
     // ── Jack on the stalk. ──
-    const st = { cur: grounds[1], fr: 1, y: 0, a: 0, r: 7, pos: v(CX, 0, CZ + HALF + 14), heading: Math.PI, walkN: 0, walkPh: 0, mode: 'walk', mt: 0, from: null, to: null, xf: false, fromW: null, stamina: 100, grip: false, gripPrev: false, hold: 0, cool: 0, gust: { t: 14, phase: 'wait' }, slip: 0, toastAt: 0, capAt: 0, pitch: 0.4, zoomF: 1, camA: Math.PI / 2, shake: 0, zone: 'lower', best: 0, ended: false, tut: 0, lock: 0 };
+    const st = { gustN: 0, cur: grounds[1], fr: 1, y: 0, a: 0, r: 7, pos: v(CX, 0, CZ + HALF + 14), heading: Math.PI, walkN: 0, walkPh: 0, mode: 'walk', mt: 0, from: null, to: null, xf: false, fromW: null, stamina: 100, grip: false, gripPrev: false, hold: 0, cool: 0, gust: { t: 14, phase: 'wait' }, slip: 0, toastAt: 0, capAt: 0, pitch: 0.4, zoomF: 1, camA: Math.PI / 2, shake: 0, zone: 'lower', best: 0, ended: false, tut: 0, lock: 0 };
     jackOut.root.visible = true; jackOut.root.rotation.set(0, 0, 0); jackOut.root.position.copy(st.pos); W.paintJack(jackOut, { expr: 1 });
     const pose = { up: 0, reach: 0, stand: 1, fall: 0 };
     jackOut.after = r => {
@@ -181,7 +183,7 @@ function run(G, W) {
       }
       return best;
     }
-    const drain = () => (st.zone === 'upper' ? 1.8 : 1);
+    const drain = () => (st.zone === 'upper' ? 1.4 : 1);
     function poseAt(h) {
       if (h.kind === 'ground') return { y: 0, a: h.a, r: h.r };
       if (h.kind === 'ledge') return { y: h.y, a: h.a, r: h.r };
@@ -209,11 +211,12 @@ function run(G, W) {
 
     // ── Each frame. ──
     const camPos = new V3(), camLook = new V3(); let ended = false, fovCur = 50;
+    const GUSTLINES = ['Another gust of wind!', 'The wind is picking up.', 'Here comes another gust...', 'Wind again. Hold tight!', 'I can feel another gust coming.'];
     const GATE = v(0, 0, 118), DOORP = v(34, 0, 30);
     const tick = dt => {
       if (ended) return;
       const edge = !!keys.grip && !st.gripPrev, t = G.t, k = SC * sOf(st.y), walking = st.mode === 'walk' || st.mode === 'mount';
-      st.zone = zoneOf(st.y); if (st.zone !== st.lastZone) { st.lastZone = st.zone; scheduleGust(); if (st.zone === 'middle') { mutter('It’s fighting me... the bark is slick with sap.', true); toast('The stalk resists: sap makes some holds slick, leaves curl away, and gusts come.', 6000); } else if (st.zone === 'upper') { mutter('The air is so thin... everything is harder.', true); toast('Thin air: your sight narrows and your strength drains faster.', 6000); } }
+      st.zone = zoneOf(st.y); if (st.zone !== st.lastZone) { st.lastZone = st.zone; scheduleGust(); if (st.zone === 'middle') { mutter('It’s fighting me... the bark is slick with sap.', true); toast('The stalk resists: sap makes some holds slick, leaves curl away, and gusts come.', 6000); } else if (st.zone === 'upper') { mutter('The air is so thin... everything is harder.', true); toast('Thin air: your sight narrows and your strength drains faster. Great knots on the stalk give you a place to brace.', 6000); } }
       // The leaves that curl away.
       for (const h of holds) if (h.kind === 'ledge' && h.leaf) {
         const on = st.cur === h && st.mode === 'idle', lim = st.zone === 'middle' ? 12 : st.zone === 'upper' ? 15 : 1e9;
@@ -223,12 +226,12 @@ function run(G, W) {
       }
       // Gusts: a warning first, then the blow.
       const g = st.gust; if (!walking) g.t -= dt;
-      if (g.phase === 'wait' && g.t <= 0) { g.phase = 'warn'; g.t = 1.9; A && A.ambience({ wind: 0.9, birds: 0.1, fire: 0 }); toast('A gust is coming. Brace! (hold Space)', 1800); }
+      if (g.phase === 'wait' && g.t <= 0) { g.phase = 'warn'; g.t = 3.2; A && A.ambience({ wind: 0.9, birds: 0.1, fire: 0 }); const first = !st.gustSaid; st.gustSaid = true; mutter(first ? 'That’s the wind rising... a gust is coming. I have to hold on to something!' : GUSTLINES[st.gustN++ % GUSTLINES.length], true); }
       else if (g.phase === 'warn' && g.t <= 0) { g.phase = 'blow'; g.t = 1.5; }
       else if (g.phase === 'blow') {
         st.shake = 1;
         if (g.t <= 0) { A && A.ambience({ wind: 0.35, birds: 0.4, fire: 0 }); scheduleGust(); }
-        else if (!g.hit && st.mode !== 'drop' && !walking) { g.hit = true; if (st.grip) { st.stamina = Math.max(0, st.stamina - 12); toast('You hold on against the wind.', 1800); } else if (st.cur.kind === 'ledge') { toast('The leaf bucks, but you ride it out.', 1800); } else { st.stamina = Math.max(0, st.stamina - 14); drop('The gust tears you from the stalk!'); } }
+        else if (!g.hit && st.mode !== 'drop' && !walking) { g.hit = true; if (st.grip) { st.stamina = Math.max(0, st.stamina - 12); toast('You hold on against the wind.', 1800); } else if (st.cur.kind === 'ledge') { toast('The leaf bucks, but you ride it out.', 1800); } else if (st.cur.kind === 'burl') { toast('You wedge yourself against the great knot.', 1800); } else { st.stamina = Math.max(0, st.stamina - 14); drop('The gust tears you from the stalk!'); } }
       }
       if (g.phase !== 'blow') g.hit = false;
       // On the ground: free to roam.
@@ -252,8 +255,9 @@ function run(G, W) {
       // Strength.
       st.grip = !!keys.grip && st.mode === 'idle'; gb.classList.toggle('on', st.grip); st.gripPrev = !!keys.grip;
       if (st.mode === 'idle') {
-        const onLedge = st.cur.kind === 'ledge';
+        const onLedge = st.cur.kind === 'ledge', onBurl = st.cur.kind === 'burl';
         if (onLedge) st.stamina = Math.min(100, st.stamina + 16 * dt);
+        else if (onBurl) st.stamina = Math.min(100, st.stamina + 3 * dt);
         else st.stamina = Math.max(0, st.stamina - 1.6 * drain() * (st.grip ? 0.3 : 1) * dt * (st.zone === 'lower' ? 0.6 : 1));
         if (st.stamina <= 0) { drop('Your arms give out! You slide, and catch yourself below.'); }
         else { // slick holds: leave them quickly
@@ -298,7 +302,7 @@ function run(G, W) {
       for (const [l, i0] of lights) l.intensity = i0 * (1 - 0.45 * shade);
       const vig = clamp((st.y - 500) / 260, 0, 1), low = st.stamina < 25 && !walking ? 0.2 * (0.5 + 0.5 * Math.sin(t * 6)) : 0;
       $('clVig').style.opacity = Math.min(1, vig + low); $('clVig').style.background = `radial-gradient(circle at 50% 52%, transparent ${Math.round(lerp(90, 18, vig))}%, rgba(8,10,16,${0.55 + 0.4 * vig}) ${Math.round(lerp(120, 48, vig))}%)`;
-      $('clGust').style.opacity = g.phase === 'warn' ? 0.25 + 0.5 * (1 - g.t / 1.9) : g.phase === 'blow' ? 0.8 : 0; $('clGustTxt').style.opacity = g.phase === 'warn' ? 1 : 0;
+      $('clGust').style.opacity = g.phase === 'warn' ? 0.25 + 0.5 * (1 - g.t / 3.2) : g.phase === 'blow' ? 0.8 : 0; $('clGustTxt').style.opacity = 0;
       if (st.mode !== 'walk') { const onL = st.cur.kind === 'ledge' && st.mode === 'idle', near = !onL && st.mode === 'idle' && holds.some(h => h.kind === 'ledge' && h.gone <= 0 && Math.abs(h.y - st.y) < 40 && reachable(st.cur, h)); $('clHint').textContent = onL ? (st.stamina < 99.5 ? 'Resting on the leaf. Press Space to climb on.' : 'Rested. Press Space to climb on.') : near ? 'A leaf ahead: a place to rest' : ''; $('clHint').style.opacity = $('clHint').textContent ? 1 : 0; }
       $('clAlt').textContent = st.mode === 'walk' ? 'On the ground' : `Height ${Math.round(st.mode === 'idle' ? st.cur.y : st.to ? st.to.y : st.y)}   ·   ${st.zone === 'lower' ? 'Lower stalk' : st.zone === 'middle' ? 'Middle stalk' : 'Upper stalk'}${st.lastFall != null ? '   ·   last fall at ' + st.lastFall : ''}`;
       $('clObj').textContent = st.mode === 'walk' ? 'Choose a stalk to climb.' : 'Climb the beanstalk.';
