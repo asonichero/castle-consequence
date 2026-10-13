@@ -40,6 +40,25 @@ function buildStalk(scene) {
 }
 const CELL_ = F.PLOT.cell;
 
+// The farm at first light, with the beanstalk standing in it (done once; the scene is reused if the chapter is played again).
+function ensureDawn(E) {
+  if (E.userData.c3) return E.userData.c3;
+  // Dawn: the night's stars and moon go, the sky warms, a low sun climbs behind the hills.
+  { const T = F.textures(), sky = new THREE.Color(0xf0b890);
+    E.background = sky; E.fog = new THREE.Fog(0xf0b890, 260, 1100);
+    E.traverse(o => {
+      if (o.isHemisphereLight) { o.color.set(0xffd9b8); o.groundColor.set(0x5a5242); o.intensity = 0.85; }
+      else if (o.isDirectionalLight) { o.color.set(0xffc080); o.intensity = 0.8; o.position.set(300, 70, -150); }
+      else if (o.isPointLight) o.visible = false;
+      else if (o.isPoints) o.visible = false;
+      else if (o.isMesh && o.material && o.material.isMeshBasicMaterial && o.material.color.getHex() === 0xf4f0d8) o.visible = false;
+      else if (o.isMesh && o.material && o.material.map === T.cloud) { o.visible = true; o.material.color && o.material.color.set(0xffd8c0); }
+    });
+    const sun = new THREE.Mesh(new THREE.BoxGeometry(90, 90, 8), new THREE.MeshBasicMaterial({ color: 0xffe0a0, fog: false })); sun.position.set(-500, 160, -1000); sun.lookAt(0, 0, 0); E.add(sun); }
+  return (E.userData.c3 = buildStalk(E));
+}
+const STALK_VIEW = () => ({ pos: new THREE.Vector3(250, 230, 520), look: new THREE.Vector3(-40, 330, 0), fov: 66 });
+
 async function run(G, W, opts) {
   const { ext, int, jackIn, jackOut, ja, aOut } = W, A_ = A, I = int.scene, E = ext.scene;
   G.mode = 'cutscene'; document.body.classList.add('cutscene'); G.drone = null; G.keepLine = false;
@@ -79,6 +98,7 @@ async function run(G, W, opts) {
   // ── 9. Playable: the room at first light. He must dress (the wardrobe) and take his father's knife (the chest of drawers) before he goes out. ──
   async function dress() {
     G.skipping = false;                                    // (a skipped cutscene hands over to play at normal speed)
+    ensureDawn(E); jackOut.root.visible = false; G.save({ step: 'dress' }); G.snapshotFarm(W.world, STALK_VIEW);       // (a save point: Continue comes back here, and the title shows the farm at dawn)
     G.setScene(W.iworld); G.drone = null; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine();
     A_ && A_.ambience({ wind: 0.1, birds: 0.5, fire: 0.25 });
     int.setBank(0.3); int.hemi.intensity = 0.55; int.dim.intensity = 0.6; int.dim.color.set(0xffd2a0); moon.visible = false; int.ceiling.visible = false;
@@ -92,7 +112,9 @@ async function run(G, W, opts) {
     const WARD = v(55, 0, -34), DRAW = v(55, 0, 4), STAIRS = v(-62, 0, 22);
     const SOLID = [[-58, 50, -10, 74], [-76, -36, -54, 14], [58, -46, 76, -22], [58, -12, 76, 20], [30, 19, 62, 41], [-42, -42, -28, -28], [20, -30, 32, -18], [-74, -44, -61, -32], [-74, -57, -61, -45], [-74, -74, -56, -56], [-44, -72, -30, -62], [58, -74, 74, -58], [-24, -76, 24, -58], [60, 60, 76, 76]];
     const blocked = (x, z) => { if (Math.abs(x) > 69 || z < -69 || z > 76) return true; if (z > 69 && Math.abs(x - 34) > 9) return true; for (const [x0, z0, x1, z1] of SOLID) if (x > x0 - 4 && x < x1 + 4 && z > z0 - 4 && z < z1 + 4) return true; return false; };
-    const knife = new THREE.Group(); F.box(1.2, 8, 0.8, F.plain('#b9bfc8'), 0, -4.5, 0, knife); F.box(1.6, 3.6, 1.2, F.plain('#4a3626'), 0, 0, 0, knife); F.box(3, 0.7, 1.4, F.plain('#b8923a'), 0, -1.8, 0, knife); knife.position.set(5.6, 2, 0.4); knife.visible = false; jackIn.hips.add(knife);
+    const knife = new THREE.Group(); F.box(1.2, 8, 0.8, F.plain('#b9bfc8'), 0, -4.5, 0, knife); F.box(1.6, 3.6, 1.2, F.plain('#4a3626'), 0, 0, 0, knife); F.box(3, 0.7, 1.4, F.plain('#b8923a'), 0, -1.8, 0, knife); knife.position.set(-5.6, 2, 0.4); knife.visible = false; jackIn.hips.add(knife);
+    const satchel = new THREE.Group(), leather = F.plain('#8a6a42');                                  // (worn across the body, the bag at the right hip)
+    F.box(1.3, 10, 4.7, F.plain('#6a4a2e'), 0, 6.5, 0, satchel).rotation.z = 0.37; F.box(2.6, 7, 8, leather, 5.4, 3, 0, satchel); F.box(2.9, 3, 8.2, F.plain('#6a4a2e'), 5.4, 5.6, 0, satchel); F.box(0.8, 1.6, 1.4, F.plain('#b8923a'), 6.9, 4.4, 0, satchel); satchel.visible = false; jackIn.torso.add(satchel);
 
     const css = document.createElement('style');
     css.textContent = `#cHud { position: fixed; inset: 0; pointer-events: none; z-index: 12; font-family: Georgia, serif; color: #ece8df; }
@@ -135,7 +157,7 @@ async function run(G, W, opts) {
       } else if (near(DRAW, 20)) {
         if (st.knife) { toast('You have the knife.'); return; }
         st.heading = Math.atan2(DRAW.x + 8 - st.pos.x, DRAW.z - st.pos.z);
-        act(1.6, () => { st.knife = true; knife.visible = true; objective(); toast('Father’s knife, on your belt.'); A_ && A_.blip && A_.blip(); });
+        act(1.6, () => { st.knife = true; knife.visible = true; satchel.visible = true; objective(); toast('Father’s knife on your belt, and a satchel over your shoulder.'); A_ && A_.blip && A_.blip(); });
       }
     }
     let resolveDress; const done = new Promise(r => { resolveDress = r; });
@@ -255,19 +277,7 @@ async function run(G, W, opts) {
 
   // ── 7. Outside: the door, and Jack coming out of it. ──
   W.paintJack(jackOut, { outfit: 'Night', expr: 4 });
-  // Dawn: the night's stars and moon go, the sky warms, a low sun climbs behind the hills.
-  { const T = F.textures(), sky = new THREE.Color(0xf0b890);
-    E.background = sky; E.fog = new THREE.Fog(0xf0b890, 260, 1100);
-    E.traverse(o => {
-      if (o.isHemisphereLight) { o.color.set(0xffd9b8); o.groundColor.set(0x5a5242); o.intensity = 0.85; }
-      else if (o.isDirectionalLight) { o.color.set(0xffc080); o.intensity = 0.8; o.position.set(300, 70, -150); }
-      else if (o.isPointLight) o.visible = false;
-      else if (o.isPoints) o.visible = false;
-      else if (o.isMesh && o.material && o.material.isMeshBasicMaterial && o.material.color.getHex() === 0xf4f0d8) o.visible = false;
-      else if (o.isMesh && o.material && o.material.map === T.cloud) { o.visible = true; o.material.color && o.material.color.set(0xffd8c0); }
-    });
-    const sun = new THREE.Mesh(new THREE.BoxGeometry(90, 90, 8), new THREE.MeshBasicMaterial({ color: 0xffe0a0, fog: false })); sun.position.set(-500, 160, -1000); sun.lookAt(0, 0, 0); E.add(sun); }
-  const stalk = buildStalk(E);
+  const stalk = ensureDawn(E);
   const DOOR = v(34, 0, 22), look = { y: 0 };
   G.setScene(W.world); A_ && A_.ambience({ wind: 0.3, birds: 0.6, fire: 0 });
   const outPose = () => { aOut.speed = 0; aOut.fist = 0; aOut.hold = 0; aOut.cover = 0; aOut.crouch = 0; aOut.dig = 0; aOut.carry = 0; aOut.bow = 0; aOut.look = 0; };
@@ -297,5 +307,5 @@ async function run(G, W, opts) {
   return { stalk };
 }
 
-root.Chapter3 = { run, buildStalk };
+root.Chapter3 = { run, buildStalk, STALK_VIEW };
 })(typeof window !== 'undefined' ? window : globalThis);

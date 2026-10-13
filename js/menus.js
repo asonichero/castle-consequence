@@ -14,7 +14,7 @@ $('dev').style.display = 'block';
 G.setScene(W.ext); G.drone = root.Opening.DRONE; G.mode = 'title';
 
 const snap = (world, drone) => G.snapshotFarm(world, drone || root.Opening.DRONE);
-const STALK_VIEW = () => ({ pos: new THREE.Vector3(250, 230, 520), look: new THREE.Vector3(-40, 330, 0), fov: 66 });
+const STALK_VIEW = () => root.Chapter3.STALK_VIEW();
 const toTitle = () => {
   G.mode = 'title'; G.setScene(W.ext); G.drone = root.Opening.DRONE; G.skipping = false; G.hideLine(); document.body.classList.remove('cutscene');
   $('fade').style.transition = 'opacity .8s ease'; $('fade').style.opacity = 0;
@@ -94,7 +94,7 @@ async function playChapter3(only) {
 function showEnd() {
   const s = G.loadSave() || {}, beans = s.step === 'beans' || s.step === 'planted';
   $('endTitle').textContent = beans ? 'Chapter Two \u2014 The Market Road' : 'Chapter One \u2014 Market Day';
-  $('endText').textContent = s.step === 'beanstalk' ? 'A beanstalk has grown in the night, and Jack means to climb it.' : s.step === 'garden-done' ? 'The beans are in the ground, and Jack is indoors.' : s.step === 'planted' ? 'Jack goes out into the dark to plant the beans.' : beans ? 'Jack has the beans, and a mother waiting up for him.' : 'Jack has a cow to sell in the morning.';
+  $('endText').textContent = s.step === 'dress' ? 'Jack is awake in the dawn, with a beanstalk outside.' : s.step === 'beanstalk' ? 'A beanstalk has grown in the night, and Jack means to climb it.' : s.step === 'garden-done' ? 'The beans are in the ground, and Jack is indoors.' : s.step === 'planted' ? 'Jack goes out into the dark to plant the beans.' : beans ? 'Jack has the beans, and a mother waiting up for him.' : 'Jack has a cow to sell in the morning.';
   show('endcard'); G.mode = 'end'; $('fade').style.transition = 'none'; $('fade').style.opacity = 0; document.body.classList.remove('playing', 'cutscene');
 }
 // Level select (debug): plays from a chapter without touching the saved game.
@@ -119,7 +119,7 @@ if (/[?&]debug\b/.test(location.search)) G.debugCtl = true;
 $('dbgBack').onclick = () => G.rewind(); $('dbgPlay').onclick = () => G.pause(); $('dbgFwd').onclick = () => G.forward();
 setInterval(() => { const on = G.debugCtl && G.mode === 'cutscene'; document.body.classList.toggle('dbg', on); if (on) { $('dbgPlay').textContent = G.paused ? '\u25B6' : '\u275A\u275A'; $('dbgBack').disabled = !G.rerun; $('dbgInfo').textContent = 'beat ' + G.beat + (G.seekTo != null ? ' \u2192 ' + G.seekTo : ''); } }, 150);
 $('bNew').onclick = () => { G.noSave = false; if (G.loadSave() && !confirm('Start a new game? Your saved game will be replaced.')) return; G.clearSave(); playOpening(); };
-$('bContinue').onclick = () => { G.noSave = false; wake(); const sv = G.loadSave() || {}; if (sv.step === 'market-day') playMarket(); else if (sv.step === 'market-road') playRoad(); else if (sv.step === 'garden-done' || sv.step === 'beanstalk') playChapter3(); else if (sv.step === 'beans') playNight((sv.choices) || []); else { hideAll(); showEnd(); } };
+$('bContinue').onclick = () => { G.noSave = false; wake(); const sv = G.loadSave() || {}; if (sv.step === 'market-day') playMarket(); else if (sv.step === 'market-road') playRoad(); else if (sv.step === 'garden-done') playChapter3(); else if (sv.step === 'dress' || sv.step === 'beanstalk') playChapter3('dress'); else if (sv.step === 'beans') playNight((sv.choices) || []); else { hideAll(); showEnd(); } };
 $('bSettings').onclick = () => { wake(); show('settings'); };
 $('bBack').onclick = () => { G.saveSettings(); if (pmOpen()) pmBack(); else show('title'); };
 $('bTitle').onclick = toTitle;
