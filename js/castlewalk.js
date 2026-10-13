@@ -176,10 +176,13 @@ function run(G, W, opts) {
       gst.walk = 0; return true; }
     async function gLook(secs, bend) { const n = Math.round(secs / 0.04); for (let i = 1; i <= n; i++) { const k = Math.sin(Math.PI * i / n); gst.bend = bend * Math.min(1, k * 2.2); gst.look = 0.25 * Math.sin(i * 0.2); placeGerda(); if (seen()) { gst.bend = bend; return false; } await G.wait(0.04); } gst.bend = 0; gst.look = 0; return true; }
     const quick = d => new Promise(r => setTimeout(r, d));
+    if (story) { makeG(); gst.x = 268; gst.z = -75; gst.h = -Math.PI / 2; placeGerda(); }                   // she is in the parlour from the start, behind its shut doors
+    const swing = d => { const a = d.openAng || 1.75; d.lg.rotation.y = a; d.og.updateMatrixWorld(true); const p = d.lg.localToWorld(new V3(10, 0, 0)); d.lg.rotation.y = 0; return p.x < d.fixed ? a : -a; };   // which way the leaf swings to open into the kitchen
     async function gerdaScene() {
       if (st.scene || st.caught) return; const doors = M.doors.filter(d => d.axis === 'x' && Math.abs(d.fixed - 250) < 3 && Math.abs(d.c + 75) < 6);
-      A && A.thud && A.thud(0.5); for (let i = 1; i <= 25; i++) { for (const d of doors) d.lg.rotation.y = (d.openAng || 1.75) * i / 25; await G.wait(0.04); }
-      makeG(); gst.x = 262; gst.z = -75; gst.h = -Math.PI / 2; placeGerda(); gsay('I can tell somebody’s here. I can feel it.');
+      for (const d of doors) d.ang = swing(d);
+      A && A.thud && A.thud(0.5); for (let i = 1; i <= 25; i++) { for (const d of doors) d.lg.rotation.y = d.ang * i / 25; await G.wait(0.04); }
+      gsay('I can tell somebody’s here. I can feel it.');
       const route = [[238, -75], [214, -66], { say: 'Don’t think I won’t find you. Small things leave small marks.' }, [214, -8], { look: 1.6, bend: 0.8 }, [226, 22], [222, 38], { say: 'Come out, now. I’m not cross... yet.' }, [170, 38], [122, 24], { look: 1.4, bend: 0.7 }, [126, -6], [126, -66], { say: 'Only one place left.' }, [126, -92]];
       for (const r of route) { let ok = true; if (Array.isArray(r)) ok = await gWalk(r[0], r[1], 30); else if (r.say) gsay(r.say); else ok = await gLook(r.look, r.bend); if (!ok) return caught(); }
       // the cupboard
@@ -187,7 +190,7 @@ function run(G, W, opts) {
       for (let i = 1; i <= 22; i++) { cd.dl.rotation.y = -1.7 * i / 22; cd.dr.rotation.y = 0.7 + 1.0 * i / 22; gst.bend = 0.5 * i / 22; placeGerda(); await G.wait(0.04); } gst.cupOpen = true;
       if (seen()) return caught();
       gsay('Nothing. Hm.'); await G.wait(1.6); gst.bend = 0; placeGerda(); gsay('I must be going soft.'); await G.wait(1.4);
-      if (!(await gWalk(238, -75, 26)) ) return caught(); await gWalk(268, -75, 26); for (let i = 24; i >= 0; i--) { for (const d of doors) d.lg.rotation.y = (d.openAng || 1.75) * i / 24; await G.wait(0.04); }
+      if (!(await gWalk(238, -75, 26)) ) return caught(); await gWalk(268, -75, 26); for (let i = 24; i >= 0; i--) { for (const d of doors) d.lg.rotation.y = d.ang * i / 24; await G.wait(0.04); }
       if (gerda) { scene.remove(gerda.root); }
       G.castleResult = 'hidden'; $('cwObjt').style.display = 'none'; $('cwObjt').textContent = 'She has gone.'; $('cwObjt').style.display = 'block'; await G.wait(2.5); await finish('hidden');
     }
@@ -217,14 +220,17 @@ function run(G, W, opts) {
       shotFace(); await G.say('gerda', 'Are you. We’ll see.');
       // to the cupboard, with him in her hand
       const bx = M.items.keepsakeBox.g, box = bx.userData.box, tgt = new V3(124, 0, -92); const route = gnav(gst.x, gst.z, tgt.x, tgt.z);
+      { const mx = (gst.x + tgt.x) / 2, mz = (gst.z + tgt.z) / 2, sp = Math.hypot(gst.x - tgt.x, gst.z - tgt.z); G.cut({ pos: v(mx + 10, 62 + sp * 0.2, mz + 70 + sp * 0.3), look: v(mx, 22, mz), fov: 56 }); }                    // (the walk across the kitchen, from above and to the side)
       for (const [wx, wz] of route) { const x0 = gst.x, z0 = gst.z, d = Math.hypot(wx - x0, wz - z0), n = Math.max(2, Math.ceil(d / 1.2)), h1 = Math.atan2(wx - x0, wz - z0); for (let i = 1; i <= n; i++) { const k = i / n; gst.x = x0 + (wx - x0) * k; gst.z = z0 + (wz - z0) * k; gst.h += angDiff(h1, gst.h) * 0.3; gst.ph += 0.4; gst.walk = 1; placeGerda(); follow(); cam(); await G.wait(0.04); } }
       gst.walk = 0; for (let i = 0; i < 14; i++) { gst.h += angDiff(-Math.PI / 2, gst.h) * 0.3; placeGerda(); follow(); cam(); await G.wait(0.04); }
       // she opens the box with her free hand
+      G.cut({ pos: bx.localToWorld(new V3(-26, 28, 24)), look: bx.localToWorld(new V3(10, 8, 0)), fov: 50 });
       for (let i = 1; i <= 20; i++) { const k = i / 20; gst.lreach = 1.3 * k; box.lid.rotation.x = -1.95 * k; placeGerda(); follow(); cam(); await G.wait(0.04); }
       // and gives him up to it: he is eased down and laid on the velvet
       for (let i = 1; i <= 18; i++) { gst.give = i / 18; placeGerda(); follow(); cam(); await G.wait(0.04); }
       bx.attach(jackOut.root); st.inHand = true; const p0 = jackOut.root.position.clone(), q0 = jackOut.root.quaternion.clone(), qL = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0)), pIn = new V3(0, 1.45, 1.4), pAbove = new V3(0, 4.2, 0.4);
-      const bs = jackOut.root.scale.x; for (let i = 1; i <= 26; i++) { const k = i / 26, e = k * k * (3 - 2 * k), up = Math.sin(Math.PI * k) * 0.0; const tgtP = k < 0.5 ? p0.clone().lerp(pAbove, k / 0.5) : pAbove.clone().lerp(pIn, (k - 0.5) / 0.5); jackOut.root.position.copy(tgtP); jackOut.root.quaternion.copy(q0).slerp(qL, e); gst.give = 1 - 0.35 * k; placeGerda(); follow(); G.cut({ pos: bx.localToWorld(new V3(-13, 15, 10)), look: bx.localToWorld(new V3(0, 3, 0)), fov: 42 }); await G.wait(0.04); }
+      G.cut({ pos: bx.localToWorld(new V3(-13, 15, 10)), look: bx.localToWorld(new V3(0, 3, 0)), fov: 42 });
+      const bs = jackOut.root.scale.x; for (let i = 1; i <= 26; i++) { const k = i / 26, e = k * k * (3 - 2 * k), up = Math.sin(Math.PI * k) * 0.0; const tgtP = k < 0.5 ? p0.clone().lerp(pAbove, k / 0.5) : pAbove.clone().lerp(pIn, (k - 0.5) / 0.5); jackOut.root.position.copy(tgtP); jackOut.root.quaternion.copy(q0).slerp(qL, e); gst.give = 1 - 0.35 * k; placeGerda(); follow(); await G.wait(0.04); }
       face(3); for (let r = 0; r < 2; r++) { for (let i = 1; i <= 16; i++) { const k = Math.sin(Math.PI * i / 16); jackOut.root.quaternion.copy(qL).slerp(new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.9, 0, 0)), k * 0.8); jackOut.root.position.set(0, 1.45 + 0.5 * k, 1.4 - 0.5 * k); await G.wait(0.04); } await G.wait(0.15); }
       face(1); jackOut.root.quaternion.copy(qL); jackOut.root.position.copy(pIn);
       G.cut({ pos: bx.localToWorld(new V3(-14, 14, 13)), look: bx.localToWorld(new V3(0, 2.5, 0)), fov: 38 }); await G.say('gerda', 'A magic stalk, a stranger’s house, a plate that was never yours. And you thought no one would notice.');
@@ -234,7 +240,8 @@ function run(G, W, opts) {
     }
     async function caught() {
       if (st.caught) return; st.caught = true; st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwPrompt').style.display = 'none'; $('cwObjt').style.display = 'none'; st.walkN = 0; st.cl = null; st.mant = null; st.vy = 0;
-      const cam = () => { const mx = (gst.x + st.pos.x) / 2, mz = (gst.z + st.pos.z) / 2, px = -(gst.z - st.pos.z), pz = gst.x - st.pos.x, pl = Math.hypot(px, pz) || 1; G.cut({ pos: v(mx + px / pl * 52, 40, mz + pz / pl * 52), look: v(mx, 24, mz), fov: 54 }); };      // (from above the height of the table, so nothing stands between)
+      const wide = () => { const mx = (gst.x + st.pos.x) / 2, mz = (gst.z + st.pos.z) / 2, px = -(gst.z - st.pos.z), pz = gst.x - st.pos.x, pl = Math.hypot(px, pz) || 1, dd = Math.max(52, pl * 0.9); G.cut({ pos: v(mx + px / pl * dd, 58 + Math.max(0, dd - 52) * 0.4, mz + pz / pl * dd), look: v(mx, 26, mz), fov: 54 }); };      // (one angle per beat, from above the height of the table so nothing stands between; the scene-notes tool can then move it)
+      const cam = () => {};
       const jx = st.pos.x, jz = st.pos.z, jy = st.y;
       st.heading = Math.atan2(gst.x - jx, gst.z - jz);                                                   // he freezes, and turns his face to her
       // Where she can stand and lean without any of her going into anything: her body on the floor, her torso over what is between, her arm down to him.
@@ -247,13 +254,18 @@ function run(G, W, opts) {
           if (ok) cands.push({ sx, sz, D, d: Math.hypot(sx - gst.x, sz - gst.z) }); }
         if (cands.length) { cands.sort((p1, p2) => p1.d - p2.d); stance = cands[0]; break; } }
       if (!stance) { const a = Math.atan2(gst.z - jz, gst.x - jx); stance = { sx: jx + Math.cos(a) * 27, sz: jz + Math.sin(a) * 27, D: 27 }; }
-      const faceJ = Math.atan2(jx - stance.sx, jz - stance.sz), Dh = stance.D - 1, bendTo = clamp(0.55 + (stance.D - 14) / 28, 0.6, 1.15);
+      const faceJ = Math.atan2(jx - stance.sx, jz - stance.sz);
       for (let i = 0; i < 14; i++) { gst.h += angDiff(Math.atan2(jx - gst.x, jz - gst.z), gst.h) * 0.3; placeGerda(); cam(); await G.wait(0.04); }
-      gsay('There you are.'); await G.wait(0.6);
+      wide(); gsay('There you are.'); await G.wait(0.6);
       { const x0 = gst.x, z0 = gst.z, n = Math.max(2, Math.ceil(Math.hypot(stance.sx - x0, stance.sz - z0) / 1.2)); for (let i = 1; i <= n; i++) { const k = i / n; gst.x = x0 + (stance.sx - x0) * k; gst.z = z0 + (stance.sz - z0) * k; gst.h += angDiff(i < n * 0.7 ? Math.atan2(stance.sx - x0, stance.sz - z0) : faceJ, gst.h) * 0.35; gst.ph += 0.42; gst.walk = 1; placeGerda(); cam(); await G.wait(0.04); } gst.walk = 0; gst.h = faceJ; }
-      for (let i = 1; i <= 18; i++) { const k = i / 18; gst.bend = bendTo * k; gst.reach = 1.5 * k; placeGerda(); cam(); await G.wait(0.04); }
-      const hx = stance.sx + Math.sin(faceJ) * 12, hz = stance.sz + Math.cos(faceJ) * 12;                    // (the hand has him: he slides to it along the ground, then she lifts)
-      for (let i = 1; i <= 8; i++) { const k = i / 8; st.pos.x = jx + (hx - jx) * k; st.pos.z = jz + (hz - jz) * k; st.heading = faceJ + Math.PI; placeGerda(); cam(); await G.wait(0.04); }
+      wide();
+      // she leans only as far as her hand needs to meet him: the least bend (then reach) that puts her palm at his feet
+      const handAt = (bd, rc) => { gst.bend = bd; gst.reach = rc; placeGerda(); root.Blocky.step(gerda, 0); gerda.root.updateMatrixWorld(true); return gerda.wrist.localToWorld(new V3(0, -6, 0)); };
+      let best = null; for (let bd = 0; bd <= 1.4; bd += 0.05) for (let rc = 0.5; rc <= 2.0; rc += 0.1) { const hp = handAt(bd, rc), e = Math.hypot(hp.x - jx, hp.z - jz) + Math.abs(hp.y - (jy + 2)) * 0.8; if (e < 3.2 && (!best || bd < best.bd - 1e-6 || (bd === best.bd && e < best.e))) best = { bd, rc, e }; }
+      if (!best) { let m = 1e9; for (let bd = 0; bd <= 1.4; bd += 0.05) for (let rc = 0.5; rc <= 2.0; rc += 0.1) { const hp = handAt(bd, rc), e = Math.hypot(hp.x - jx, hp.z - jz) + Math.abs(hp.y - (jy + 2)) * 0.8; if (e < m) { m = e; best = { bd, rc, e }; } } }
+      handAt(0, 0); const bendTo = best.bd, reachTo = best.rc;
+      for (let i = 1; i <= 18; i++) { const k = i / 18; gst.bend = bendTo * k; gst.reach = reachTo * k; placeGerda(); cam(); await G.wait(0.04); }
+      { const hp = handAt(bendTo, reachTo), x0 = st.pos.x, z0 = st.pos.z; for (let i = 1; i <= 6; i++) { const k = i / 6; st.pos.x = x0 + (hp.x - x0) * k; st.pos.z = z0 + (hp.z - z0) * k; placeGerda(); cam(); await G.wait(0.04); } }
       // the hand has him: he is fixed to her wrist from here, so he goes wherever her arm goes; she rises into the held pose
       gerda.root.updateMatrixWorld(true); { const wq = new THREE.Quaternion(), jq = new THREE.Quaternion(), wp = new V3(); gerda.wrist.getWorldQuaternion(wq); jackOut.root.getWorldQuaternion(jq); jackOut.root.getWorldPosition(wp);
         const lp = gerda.wrist.worldToLocal(wp.clone()), le = new THREE.Euler().setFromQuaternion(wq.clone().invert().multiply(jq), 'XYZ'), PJ = root.GerdaHold.jack, lerp = (a1, b1, k) => a1 + (b1 - a1) * k;
@@ -261,6 +273,12 @@ function run(G, W, opts) {
         const follow = () => { gerda.root.updateMatrixWorld(true); const wp2 = new V3(); jackOut.root.getWorldPosition(wp2); st.pos.set(wp2.x, 0, wp2.z); st.y = wp2.y; };
         for (let i = 1; i <= 30; i++) { const k = i / 30; gst.hold = k; gst.bend *= 0.96; gst.reach *= 0.96; jackOut.root.position.set(lerp(lp.x, PJ.px, k), lerp(lp.y, PJ.py, k), lerp(lp.z, PJ.pz, k)); jackOut.root.rotation.set(lerp(le.x, PJ.rx, k), lerp(le.y, PJ.ry, k), lerp(le.z, PJ.rz, k)); placeGerda(); follow(); cam(); await G.wait(0.04); }
         for (let i = 0; i < 6; i++) { jackOut.root.position.set(PJ.px, PJ.py, PJ.pz); jackOut.root.rotation.set(PJ.rx, PJ.ry, PJ.rz); placeGerda(); follow(); cam(); await G.wait(0.04); }
+        // before the scene proper, she steps back into the nearest open space, so that the cameras have room and nothing of hers goes into anything
+        { const clear = (x, z) => !hit(x, z, 17, 4, 60, 0) && !hit(x, z, 11, 60, 90, 0); let sp = null, bd = 1e9;
+          for (let r = 0; r <= 70; r += 5) for (let k = 0; k < 24; k++) { const a2 = k * Math.PI / 12, x = gst.x + Math.cos(a2) * r, z = gst.z + Math.sin(a2) * r; if (!clear(x, z) || x < 100 || x > 236 || z < -100 || z > 44) continue;
+            const n = Math.ceil(r / 3); let ok = true; for (let i = 1; i <= n && ok; i++) if (!clear(gst.x + (x - gst.x) * i / n, gst.z + (z - gst.z) * i / n)) ok = false; if (!ok) continue;
+            const back = Math.cos(a2 - (gst.h + Math.PI)), cost = r - back * 6; if (cost < bd) { bd = cost; sp = [x, z]; } if (sp && r >= 15) break; }
+          if (sp && Math.hypot(sp[0] - gst.x, sp[1] - gst.z) > 1) { const x0 = gst.x, z0 = gst.z, n = Math.max(2, Math.ceil(Math.hypot(sp[0] - x0, sp[1] - z0) / 0.9)); for (let i = 1; i <= n; i++) { const k = i / n; gst.x = x0 + (sp[0] - x0) * k; gst.z = z0 + (sp[1] - z0) * k; gst.ph -= 0.4; gst.walk = 0.7; placeGerda(); follow(); cam(); await G.wait(0.04); } gst.walk = 0; placeGerda(); follow(); } }
         await ending(follow, cam); }
       await finish('caught');
     }
@@ -329,6 +347,9 @@ function run(G, W, opts) {
     };
     const cleanup = () => { if (jackOut.root.parent !== scene) { scene.add(jackOut.root); st.inHand = false; } root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('wheel', wheel); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu); G.updaters = G.updaters.filter(u => u !== tick); hud.remove(); css.remove(); jackOut.after = null; jackOut.root.scale.setScalar(SC); jackOut.root.visible = true; camera.near = nearOld; camera.updateProjectionMatrix(); };
     G.updaters.push(tick); G.castleWalk = { st, cleanup, resolve, C, M };
+    if (opts.capture) {                                                                                      // the capture, on its own (for scene-notes.html): Jack is by the table, Gerda has just seen him
+      st.pos.set(opts.at ? opts.at[0] : 160, 0, opts.at ? opts.at[1] : -50); st.y = 0; st.scene = true; G.mode = 'cutscene'; $('cwPanel').style.display = 'none'; st.alarm = true; st.heading = 0;
+      gst.x = 214; gst.z = -8; gst.h = Math.atan2(st.pos.x - gst.x, st.pos.z - gst.z); placeGerda(); jackOut.root.scale.setScalar(SC * st.s); jackOut.root.position.set(st.pos.x, 0, st.pos.z); await caught(); return; }
     const toastTxt = story ? 'WASD or the stick to walk \u00b7 Shift runs \u00b7 Space jumps \u00b7 drag to look \u00b7 V or the wheel zooms \u00b7 C for first person' : 'WASD or the stick to walk \u00b7 Shift runs \u00b7 Space jumps \u00b7 drag to look \u00b7 V or the wheel zooms \u00b7 C for first person';
     const f = $('fade');
     if (!story) { G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); toast(toastTxt); f.style.transition = ''; await G.fade(false, 1.2); return; }
