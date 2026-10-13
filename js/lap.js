@@ -127,7 +127,7 @@ function create(view, opts) {
   };
   const bandIndex = () => { const d = pain.distress(); return d < 0.3 ? 0 : d < 0.6 ? 1 : d < 0.9 ? 2 : d < 1 ? 3 : d < 1.5 ? 4 : 5; };
   const exprFor = () => Math.min(3, Math.max(0, bandIndex() - (bandIndex() >= 3 ? 1 : 0)));
-  const canStrike = () => !st.ended && !pain.tooHarsh && st.blend >= 1 && (st.to === 'lap' ? st.implement !== 'birch' : st.to === 'table');   // (the birch is for the table; it is not used across the knee)
+  const canStrike = () => !st.ended && (!pain.tooHarsh || st.noLimit) && st.blend >= 1 && (st.to === 'lap' ? st.implement !== 'birch' : st.to === 'table');   // (the birch is for the table; it is not used across the knee)
 
   // Audio (js/audio.js): the smack is a short noise burst, deeper through clothing, and Jack's voice is a synthesised vowel, higher, longer and more broken the more distressed he is.
   const thwack = power => { if (st.sound && root.GameAudio) { if (st.implement === 'birch') root.GameAudio.birch(power, st.trousers === 'up'); else root.GameAudio.thwack(power, st.trousers === 'up'); } };
@@ -155,11 +155,11 @@ function create(view, opts) {
     J.kick = Math.max(J.kick, hit.reaction); J.kickSide = sw.side === 'C' ? (Math.random() < 0.5 ? 'L' : 'R') : sw.side;
     thwack(hit.reaction); voice(hit.reaction, bandIndex()); dirty = true;
     say('hit', { hit, side: sw.side, distress: pain.distress(), band: BANDS[bandIndex()] });
-    if (pain.tooHarsh) { st.runLeft = 0; say('tooharsh', {}); }
+    if (pain.tooHarsh && !st.noLimit) { st.runLeft = 0; say('tooharsh', {}); }
   }
   function advance(dt) {
     const sw = st.swing; if (!sw) return;
-    const sp = st.pace; sw.t += sw.phase === 'hold' || sw.phase === 'contact' ? dt : dt * sp;
+    const sp = st.pace; sw.t += dt * sp;       // (the whole of a smack runs at the pace: twice the pace is twice as many smacks in the time)
     const ease = x => x * x * (3 - 2 * x);
     switch (sw.phase) {
       case 'lift': sw.tau = lerp(1, 0, ease(clamp(sw.t / TIMES.lift, 0, 1))); sw.hover = sw.tau; if (sw.t >= TIMES.lift) { sw.phase = 'hold'; sw.t = 0; } break;
