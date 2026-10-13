@@ -183,7 +183,7 @@ function run(G, W, opts) {
     }
     async function caught() {
       if (st.caught) return; st.caught = true; st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwPrompt').style.display = 'none'; $('cwObjt').style.display = 'none'; st.walkN = 0; st.cl = null; st.mant = null; st.vy = 0;
-      const Hj = HEIGHT * SC * st.s, cam = () => { const mx = (gst.x + st.pos.x) / 2, mz = (gst.z + st.pos.z) / 2, px = -(gst.z - st.pos.z), pz = gst.x - st.pos.x, pl = Math.hypot(px, pz) || 1; G.cut({ pos: v(mx + px / pl * 46, 20, mz + pz / pl * 46), look: v(mx, 18, mz), fov: 52 }); };
+      const Hj = HEIGHT * SC * st.s, cam = () => { const mx = (gst.x + st.pos.x) / 2, mz = (gst.z + st.pos.z) / 2, px = -(gst.z - st.pos.z), pz = gst.x - st.pos.x, pl = Math.hypot(px, pz) || 1; G.cut({ pos: v(mx + px / pl * 52, 40, mz + pz / pl * 52), look: v(mx, 24, mz), fov: 54 }); };      // (from above the height of the table, so nothing stands between)
       st.heading = Math.atan2(gst.x - st.pos.x, gst.z - st.pos.z);                                       // he freezes, and turns his face to her
       for (let i = 0; i < 18; i++) { gst.h += angDiff(Math.atan2(st.pos.x - gst.x, st.pos.z - gst.z), gst.h) * 0.3; placeGerda(); cam(); await G.wait(0.04); }
       gsay('There you are.'); await G.wait(0.8);
