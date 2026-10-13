@@ -326,12 +326,12 @@ function interior() {
 //   exterior(group, { stone(rx, ry), win, glints, rnd, ox, oz, gateZ, sideX }): adds its meshes to `group` (the hall's front face lands on z = oz + 112, the great door at x = ox);
 //   returns { door, solids: [[x, z, r]…] (what Jack cannot walk through), update(t) }.
 function exterior(group, o) {
-  const stone = (w, h) => o.stone(Math.max(1, w / 26), Math.max(1, h / 22)), ox = o.ox || 0, oz = o.oz || 0, anim = [], solids = [];
+  const stone = (w, h) => { const m = o.stone(Math.max(1, w / 26), Math.max(1, h / 22)); m.color.setHex(0x585b68); m.emissive.setHex(0x0a0c14); m.fog = false; return m; }, ox = o.ox || 0, oz = o.oz || 0, anim = [], solids = [];
   const put = (w, h, d, m, x, y, z) => box(w, h, d, m, x + ox, y, z + oz, group);
-  const lam = (c, e) => new THREE.MeshLambertMaterial({ color: c, emissive: e === undefined ? 0x161b2a : e });
-  const trim = lam(0xe6e2d4, 0x1c2236), plinth = lam(0xb8b4a2, 0x161b2a), gold = lam(0xe8c040, 0x382800), wood = lam(0x3a2a20, 0x0a0806), iron = lam(0x2b2d36, 0x08090c);
-  const slates = [0x5a78b8, 0xb85a78, 0x6a5aa8, 0x3f8a8a, 0xc88a3a].map(c => { const m = lam(c, 0x10142a); m.side = THREE.DoubleSide; return m; });
-  const warm = new THREE.MeshBasicMaterial({ color: 0xffd88a }), glass = new THREE.MeshBasicMaterial({ color: 0x23376e });
+  const lam = (c, e) => new THREE.MeshLambertMaterial({ color: c, emissive: e === undefined ? 0x161b2a : e, fog: false });
+  const trim = lam(0x6c6f7a, 0x080a10), plinth = lam(0x3c3e48, 0x06070c), gold = lam(0x4a4538, 0x0a0a08), wood = lam(0x3a2a20, 0x0a0806), iron = lam(0x2b2d36, 0x08090c);
+  const slates = [0x10131c, 0x1a1220, 0x0f1a1e, 0x1e1618, 0x101524].map(c => { const m = lam(c, 0x04050a); m.side = THREE.DoubleSide; return m; });
+  const warm = new THREE.MeshBasicMaterial({ color: 0xb8863f }), glass = new THREE.MeshBasicMaterial({ color: 0x3a1a26 });
   const flat = g => { g = g.toNonIndexed(); g.computeVertexNormals(); return g; };
   const mesh = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x + ox, y, z + oz); group.add(m); return m; };
   const tri = (arr) => { const g = new THREE.BufferGeometry(), p = []; for (const t of arr) p.push(...t[0], ...t[1], ...t[2]); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); g.computeVertexNormals(); return g; };
@@ -341,7 +341,7 @@ function exterior(group, o) {
   const roof = (cx, cz, w, d, h, y, mat, gable) => { const L = Math.max(w, d), S = Math.min(w, d), m = mesh((gable ? gableGeo : hipGeo)(L, S, h), mat, cx, y, cz); if (d > w) m.rotation.y = Math.PI / 2; return m; };
   const spire = (cx, cz, w, d, h, y, mat) => { const m = mesh(flat(new THREE.CylinderGeometry(0, w / Math.SQRT2, h, 4)), mat, cx, y + h / 2, cz); m.rotation.y = Math.PI / 4; m.scale.z = d / w; return m; };
   // pennants, waving
-  const pennant = (x, y, z, col, ph) => { const pole = put(0.7, 15, 0.7, iron, x, y + 7.5, z), fl = new THREE.Group(); fl.position.set(x + ox, y + 12, z + oz); group.add(fl); box(11, 5.4, 0.4, lam(col, 0x201010), 5.5, 0, 0, fl); box(5, 2.4, 0.5, gold, 11.4, 0, 0, fl); anim.push(t => { fl.rotation.y = Math.sin(t * 2.1 + ph) * 0.35; }); };
+  const pennant = (x, y, z, col, ph) => { return; const pole = put(0.7, 15, 0.7, iron, x, y + 7.5, z), fl = new THREE.Group(); fl.position.set(x + ox, y + 12, z + oz); group.add(fl); box(11, 5.4, 0.4, lam(col, 0x201010), 5.5, 0, 0, fl); box(5, 2.4, 0.5, gold, 11.4, 0, 0, fl); anim.push(t => { fl.rotation.y = Math.sin(t * 2.1 + ph) * 0.35; }); };
   // a round (eight-sided) turret: stone shaft with a ring under the cone, slits, a coloured cone, a gold finial; `y0` lifts it onto a roof or ledge
   const turret = (x, z, r, h, rh, ci, flag, y0) => {
     y0 = y0 || 0; mesh(new THREE.CylinderGeometry(r, r, h, 8), stone(Math.PI * 2 * r, h), x, y0 + h / 2, z); mesh(new THREE.CylinderGeometry(r + 1.8, r + 1.8, 4, 8), trim, x, y0 + h - 2, z); mesh(new THREE.CylinderGeometry(r + 1, r + 1, 4, 8), stone(r * 6, 4), x, y0 + h - 6, z);
@@ -376,7 +376,7 @@ function exterior(group, o) {
   spire(tx, tz, TW + 14, TD + 14, 112, TH + 6, slates[0]); put(1.8, 9, 1.8, gold, tx, TH + 6 + 112 + 4, tz); put(4, 4, 4, gold, tx, TH + 6 + 112 - 1, tz); pennant(tx, TH + 6 + 112 + 8, tz, 0xb83a4a, 1.3);
   // ── windows: pointed, with a lighter surround; a few lit warm; the dark slit's old glint ──
   let wn = 0;
-  const slit = (axis, face, c, y, w, h, out) => { const z_ = axis === 'z', lit = ((wn++ * 7) % 10) < 3, m = lit ? warm : o.win, pw = (ww, hh, dd, mat, f, cc, yy) => { const pos = face + out * f; return z_ ? put(ww, hh, dd, mat, cc, yy, pos) : put(dd, hh, ww, mat, pos, yy, cc); };
+  const slit = (axis, face, c, y, w, h, out) => { const z_ = axis === 'z', lit = ((wn++ * 7) % 10) < 2, m = lit ? warm : o.win, pw = (ww, hh, dd, mat, f, cc, yy) => { const pos = face + out * f; return z_ ? put(ww, hh, dd, mat, cc, yy, pos) : put(dd, hh, ww, mat, pos, yy, cc); };
     pw(w + 4, h + 3, 1.2, trim, 0.6, c, y); pw(w, h, 0.8, m, 1.4, c, y);
     if (h >= 18) for (let i = 0; i < 3; i++) { pw(w + 4 - i * 2.4 - 2, 2.4, 1.2, trim, 0.6, c, y + h / 2 + 2.4 + i * 2.4); pw(w * (0.82 - i * 0.28), 2.4, 0.8, m, 1.4, c, y + h / 2 + 1.2 + i * 2.4); }
     if (!lit) { const gm = new THREE.MeshBasicMaterial({ color: 0xbfd4ff, transparent: true, opacity: 0.1, depthWrite: false }), g = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.9, h * 0.9), gm), pos = face + out * 1.9; g.position.set((z_ ? c : pos) + ox, y, (z_ ? pos : c) + oz); g.rotation.y = z_ ? (out > 0 ? 0 : Math.PI) : (out > 0 ? Math.PI / 2 : -Math.PI / 2); group.add(g); o.glints.push({ m: gm, ph: o.rnd() * 6.28 }); } };
@@ -384,8 +384,8 @@ function exterior(group, o) {
   for (const dx of [-30, 0, 30]) { slit('z', tz + TD / 2, tx + dx, H + 44, 12, 30, 1); slit('z', tz - TD / 2, tx + dx, H + 44, 12, 30, -1); }
   for (const dz of [-34, 0, 34]) { slit('x', tx + TW / 2, tz + dz, H + 44, 12, 30, 1); slit('x', tx - TW / 2, tz + dz, H + 44, 12, 30, -1); }
   // ── climbing green on the lower fronts, and the garden's wall with its battlements ──
-  const greens = ['#5a7a4a', '#6a8a52', '#4a6a44', '#7a9a60'];
-  for (const [x0, x1, z, avoid] of [[-92, 92, 112, 40], [-316, -271, 99, 0], [-275, -91, 90, 0], [88, 252, 55, 0], [249, 377, 55, 0]]) for (let i = 0; i < 12; i++) { const w = 4 + o.rnd() * 9, x = x0 + o.rnd() * (x1 - x0); if (Math.abs(x) < avoid) continue; put(w, 5 + o.rnd() * 15, 0.7, lam(new THREE.Color(greens[i % 4]).getHex(), 0x0a100a), x, 2 + (5 + o.rnd() * 10) / 2, z + 2.2); }
+  const greens = ['#3a4a34', '#44543a', '#2e3e2c', '#4a5a40'];
+  for (const [x0, x1, z, avoid] of [[-92, 92, 112, 40], [-316, -271, 99, 0], [-275, -91, 90, 0], [88, 252, 55, 0], [249, 377, 55, 0]]) for (let i = 0; i < 12; i++) { const w = 4 + o.rnd() * 9, x = x0 + o.rnd() * (x1 - x0); if (Math.abs(x) < avoid) continue; put(w, 5 + o.rnd() * 15, 0.7, lam(new THREE.Color(greens[i % 4]).getHex(), 0x050805), x, 2 + (5 + o.rnd() * 10) / 2, z + 2.2); }
   put(349, 56, 4, stone(349, 56), 77.5, 28, -348); put(4, 56, 237, stone(237, 56), -95, 28, -229.5); put(353, 4, 8, stone(353, 4), 77.5, 58, -348); put(8, 4, 241, stone(241, 4), -95, 58, -229.5);
   for (let x = -90; x < 250; x += 12) put(6, 6, 5, stone(6, 6), x, 63, -348); for (let z = -340; z < -112; z += 12) put(5, 6, 6, stone(6, 6), -95, 63, z);
   // ── the forecourt's gate: two pillars with caps and lanterns, and a low battlemented wall along the kerb ──
@@ -395,7 +395,7 @@ function exterior(group, o) {
   // ── life: birds round the tower, wisps of cloud drifting past the turrets ──
   const birds = []; for (let i = 0; i < 5; i++) { const g = new THREE.Group(); group.add(g); box(3, 1, 4, iron, 0, 0, 0, g); const wl = box(5, 0.4, 2, iron, -3.5, 0.3, 0, g), wr = box(5, 0.4, 2, iron, 3.5, 0.3, 0, g); birds.push({ g, wl, wr, ph: i * 1.3, R: 105 + i * 14, y: TH + 20 + i * 11 }); }
   anim.push(t => { for (const b of birds) { const a = t * (0.22 + 0.02 * b.ph) + b.ph; b.g.position.set(tx + ox + Math.cos(a) * b.R, b.y + Math.sin(t * 0.7 + b.ph) * 4, tz + oz + Math.sin(a) * b.R * 0.9); b.g.rotation.y = -a; b.wl.rotation.z = Math.sin(t * 9 + b.ph) * 0.6; b.wr.rotation.z = -Math.sin(t * 9 + b.ph) * 0.6; } });
-  const wisps = []; for (let i = 0; i < 7; i++) { const g = new THREE.Group(), cm = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, emissive: 0x303844 }); for (let k = 0; k < 4; k++) box(16 + o.rnd() * 14, 4 + o.rnd() * 3, 10 + o.rnd() * 8, cm, k * 14 - 20, o.rnd() * 3, o.rnd() * 6, g); group.add(g); wisps.push({ g, x: [-60, 140, 330, 230, -200, 30, 400][i], y: [150, 190, 200, 120, 130, 170, 140][i], z: [-60, -150, 60, -250, -120, 140, -200][i], ph: i * 2.1 }); }
+  const wisps = []; for (let i = 0; i < 7; i++) { const g = new THREE.Group(), cm = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.22, emissive: 0x20242c }); for (let k = 0; k < 4; k++) box(16 + o.rnd() * 14, 4 + o.rnd() * 3, 10 + o.rnd() * 8, cm, k * 14 - 20, o.rnd() * 3, o.rnd() * 6, g); group.add(g); wisps.push({ g, x: [-60, 140, 330, 230, -200, 30, 400][i], y: [150, 190, 200, 120, 130, 170, 140][i], z: [-60, -150, 60, -250, -120, 140, -200][i], ph: i * 2.1 }); }
   anim.push(t => { for (const w of wisps) w.g.position.set(w.x + ox + Math.sin(t * 0.05 + w.ph) * 40, w.y, w.z + oz + Math.cos(t * 0.04 + w.ph) * 15); });
   return { door: { w: 70, h: 75, z: oz + 112, x: ox }, solids, update: (t, dt) => { for (const a of anim) a(t, dt); } };
 }
