@@ -40,7 +40,7 @@ function buildStalk(scene) {
 }
 const CELL_ = F.PLOT.cell;
 
-async function run(G, W) {
+async function run(G, W, opts) {
   const { ext, int, jackIn, jackOut, ja, aOut } = W, A_ = A, I = int.scene, E = ext.scene;
   G.mode = 'cutscene'; document.body.classList.add('cutscene'); G.drone = null; G.keepLine = false;
   // ── The room, in the dark, the fire banked low. ──
@@ -75,6 +75,118 @@ async function run(G, W) {
     run: { pos: v(-70, 46, 30), look: v(-4, 10, 60), fov: 56 },
     door: { pos: v(8, 30, 2), look: v(34, 12, 70), fov: 42 },
   };
+
+  // ── 9. Playable: the room at first light. He must dress (the wardrobe) and take his father's knife (the chest of drawers) before he goes out. ──
+  async function dress() {
+    G.setScene(W.iworld); G.drone = null; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine();
+    A_ && A_.ambience({ wind: 0.1, birds: 0.5, fire: 0.25 });
+    int.setBank(0.3); int.hemi.intensity = 0.55; int.dim.intensity = 0.6; int.dim.color.set(0xffd2a0); moon.visible = false; int.ceiling.visible = false;
+    if (!blanket.parent) I.add(blanket); placeBlanket(-8, 8.6, 66, 0.55);
+    W.paintJack(jackIn, { outfit: 'Night', expr: 0 });
+    Object.assign(P, { lie: 0, thigh: 0, knee: 0, armX: 0.05, armZ: 0.12, torso: 0.05, neckX: 0.1, neckY: 0, rub: 0 }); ja.speed = 0;
+    jackIn.root.visible = true; jackIn.root.scale.setScalar(SC); W.mother.root.visible = false; int.chair.visible = true;
+    int.doorLeaf.rotation.y = 0;
+    const st = { pos: v(34, 0, 56), heading: Math.PI, yaw: 0, pitch: 0.5, zoom: 1, dressed: false, knife: false, act: null, toastAt: 0, capAt: 0, stairsNear: false, leaving: false };
+    const ZOOMS = [{ name: 'Close', d: 40 }, { name: 'Medium', d: 64 }, { name: 'Far', d: 92 }];
+    const WARD = v(55, 0, -34), DRAW = v(55, 0, 4), STAIRS = v(-62, 0, 22);
+    const SOLID = [[-58, 50, -10, 74], [-76, -36, -54, 14], [58, -46, 76, -22], [58, -12, 76, 20], [30, 19, 62, 41], [-42, -42, -28, -28], [20, -30, 32, -18], [-74, -44, -61, -32], [-74, -57, -61, -45], [-74, -74, -56, -56], [-44, -72, -30, -62], [58, -74, 74, -58], [-24, -76, 24, -58], [60, 60, 76, 76]];
+    const blocked = (x, z) => { if (Math.abs(x) > 69 || z < -69 || z > 76) return true; if (z > 69 && Math.abs(x - 34) > 9) return true; for (const [x0, z0, x1, z1] of SOLID) if (x > x0 - 4 && x < x1 + 4 && z > z0 - 4 && z < z1 + 4) return true; return false; };
+    const knife = new THREE.Group(); F.box(1.2, 8, 0.8, F.plain('#b9bfc8'), 0, -4.5, 0, knife); F.box(1.6, 3.6, 1.2, F.plain('#4a3626'), 0, 0, 0, knife); F.box(3, 0.7, 1.4, F.plain('#b8923a'), 0, -1.8, 0, knife); knife.position.set(5.6, 2, 0.4); knife.visible = false; jackIn.hips.add(knife);
+
+    const css = document.createElement('style');
+    css.textContent = `#cHud { position: fixed; inset: 0; pointer-events: none; z-index: 12; font-family: Georgia, serif; color: #ece8df; }
+      #cObj { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(10,12,16,0.78); border: 1px solid #4a4d58; border-radius: 8px; padding: 8px 16px; font-size: clamp(13px, 1.9vw, 17px); text-align: center; max-width: 80vw; } #cObj .done { opacity: .5; text-decoration: line-through; }
+      #cHint { position: absolute; left: 50%; bottom: 18vh; transform: translateX(-50%); background: rgba(10,12,16,0.85); border: 1px solid #c9a84c; color: #f0d98a; padding: 6px 14px; border-radius: 6px; font-size: 15px; display: none; }
+      #cToast { position: absolute; left: 50%; bottom: 8vh; transform: translateX(-50%); background: rgba(10,12,16,0.85); border: 1px solid #4a4d58; padding: 8px 16px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .4s; }
+      #cBtns { position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 6px; align-items: flex-end; pointer-events: auto; } #cBtns button { margin: 0; padding: 9px 14px; font-size: 14px; background: rgba(20,22,30,0.85); }
+      #cStick { position: absolute; left: 22px; bottom: 26px; width: 120px; height: 120px; border-radius: 50%; background: rgba(20,22,28,0.45); border: 2px solid rgba(230,196,106,0.55); touch-action: none; display: none; pointer-events: auto; }
+      #cKnob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(230,196,106,0.75); pointer-events: none; } @media (pointer: coarse) { #cStick { display: block; } }`;
+    document.head.appendChild(css);
+    const hud = document.createElement('div'); hud.id = 'cHud';
+    hud.innerHTML = '<div id="cObj"></div><div id="cHint"></div><div id="cToast"></div><div id="cStick"><div id="cKnob"></div></div><div id="cBtns"><button id="cAct">Do (E)</button><button id="cZoom">Zoom</button></div>';
+    document.body.appendChild(hud);
+    const $ = id => document.getElementById(id), el = G.renderer.domElement;
+    const toast = (t, ms = 3000) => { $('cToast').textContent = t; $('cToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
+    const objective = () => { $('cObj').innerHTML = `<span class="${st.dressed ? 'done' : ''}">Dress (the wardrobe)</span> &nbsp;·&nbsp; <span class="${st.knife ? 'done' : ''}">Take Father’s knife (the chest of drawers)</span>`; };
+    const mutter = text => { if (performance.now() < st.capAt) return; st.capAt = performance.now() + 6500; G.caption('jack', text); };
+    const keys = {}, stick = { x: 0, y: 0 }, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right' };
+    const typing = e => e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
+    const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } if (e.repeat) return; if (e.key === 'e' || e.key === 'E') interact(); else if (e.key === 'v' || e.key === 'V') zoom(); };
+    const ku = e => { const k = KM[e.key]; if (k) keys[k] = false; };
+    root.addEventListener('keydown', kd); root.addEventListener('keyup', ku);
+    const drags = new Map();
+    const pd = e => drags.set(e.pointerId, { x: e.clientX, y: e.clientY }), pm = e => { const d = drags.get(e.pointerId); if (!d) return; st.yaw -= (e.clientX - d.x) * 0.006; st.pitch = clamp(st.pitch + (e.clientY - d.y) * 0.005, 0.1, 1.35); d.x = e.clientX; d.y = e.clientY; }, pu = e => drags.delete(e.pointerId);
+    el.addEventListener('pointerdown', pd); el.addEventListener('pointermove', pm); el.addEventListener('pointerup', pu); el.addEventListener('pointercancel', pu);
+    const wheel = e => { e.preventDefault(); zoom(e.deltaY > 0 ? 1 : -1); }; el.addEventListener('wheel', wheel, { passive: false });
+    function zoom(dir) { st.zoom = (st.zoom + (dir || 1) + ZOOMS.length) % ZOOMS.length; $('cZoom').textContent = 'Zoom: ' + ZOOMS[st.zoom].name; }
+    $('cAct').onclick = () => interact(); $('cZoom').onclick = () => zoom(); $('cZoom').textContent = 'Zoom: ' + ZOOMS[st.zoom].name;
+    { const sEl = $('cStick'), k = $('cKnob'); let id = null; const set = e => { const r = sEl.getBoundingClientRect(); let dx = (e.clientX - r.left - r.width / 2) / (r.width / 2), dy = (e.clientY - r.top - r.height / 2) / (r.height / 2); const m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; } stick.x = dx; stick.y = dy; k.style.transform = `translate(${dx * 34}px, ${dy * 34}px)`; };
+      sEl.addEventListener('pointerdown', e => { id = e.pointerId; sEl.setPointerCapture(id); set(e); }); sEl.addEventListener('pointermove', e => { if (e.pointerId === id) set(e); }); const end = e => { if (e.pointerId === id) { id = null; stick.x = stick.y = 0; k.style.transform = ''; } }; sEl.addEventListener('pointerup', end); sEl.addEventListener('pointercancel', end); }
+
+    const near = (p, r) => Math.hypot(st.pos.x - p.x, st.pos.z - p.z) < r;
+    const act = (dur, then) => { st.act = { t: 0, dur, then }; ja.speed = 0; };
+    function interact() {
+      if (st.act || st.leaving) return;
+      if (near(WARD, 20)) {
+        if (st.dressed) { toast('You are dressed already.'); return; }
+        st.heading = Math.atan2(WARD.x + 8 - st.pos.x, WARD.z - st.pos.z);
+        act(1.8, () => { st.dressed = true; W.paintJack(jackIn, { outfit: 'Outdoor', expr: 1 }); objective(); toast('Dressed: shirt, jerkin and boots.'); A_ && A_.blip && A_.blip(); });
+      } else if (near(DRAW, 20)) {
+        if (st.knife) { toast('You have the knife.'); return; }
+        st.heading = Math.atan2(DRAW.x + 8 - st.pos.x, DRAW.z - st.pos.z);
+        act(1.6, () => { st.knife = true; knife.visible = true; objective(); toast('Father’s knife, on your belt.'); A_ && A_.blip && A_.blip(); });
+      }
+    }
+    let resolveDress; const done = new Promise(r => { resolveDress = r; });
+    async function leave() {
+      st.leaving = true; $('cHint').style.display = 'none'; hud.style.display = 'none'; st.act = null; ja.speed = 0;
+      st.heading = 0; jackIn.root.quaternion.setFromAxisAngle(v(0, 1, 0), 0); await tween(0.8, (k, e) => { int.doorLeaf.rotation.y = lerp(0, -1.9, e); }); A_ && A_.latch && A_.latch();
+      while (st.pos.z < 86) { st.pos.z += 0.7; jackIn.root.position.set(st.pos.x, 0, st.pos.z); ja.speed = 22; ja.phase += 0.3; await G.wait(0.04); }
+      jackIn.root.visible = false; ja.speed = 0; await G.wait(0.6);
+      A_ && A_.stopMusic && A_.stopMusic(2.5); await G.fade(true, 1.8); A_ && A_.ambience({ wind: 0, birds: 0, fire: 0 });
+      root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu); el.removeEventListener('wheel', wheel);
+      G.updaters = G.updaters.filter(u => u !== tick); hud.remove(); css.remove(); G.mode = 'end'; resolveDress();
+    }
+    const camPos = new V3(), camLook = new V3();
+    const tick = dt => {
+      if (st.leaving) return;
+      if (st.act) {
+        const a = st.act; a.t += dt; ja.speed = 0; P.armX = -0.5 * Math.sin(Math.min(1, a.t / 0.4) * Math.PI / 2) + 0.05; P.torso = 0.18;
+        if (a.t >= a.dur) { st.act = null; P.armX = 0.05; P.torso = 0.05; a.then && a.then(); }
+      } else {
+        const f = new V3(-Math.sin(st.yaw), 0, -Math.cos(st.yaw)), r = new V3(Math.cos(st.yaw), 0, -Math.sin(st.yaw));
+        const dir = new V3().addScaledVector(f, (keys.up ? 1 : 0) - (keys.down ? 1 : 0)).addScaledVector(r, (keys.right ? 1 : 0) - (keys.left ? 1 : 0));
+        if (Math.hypot(stick.x, stick.y) > 0.2) dir.addScaledVector(f, -stick.y).addScaledVector(r, stick.x);
+        if (dir.lengthSq() > 0) {
+          dir.normalize(); st.heading = turn(st.heading, Math.atan2(dir.x, dir.z), Math.min(1, dt * 9));
+          const sp = 24 * SC, nx = st.pos.x + Math.sin(st.heading) * sp * dt, nz = st.pos.z + Math.cos(st.heading) * sp * dt;
+          if (!blocked(nx, st.pos.z)) st.pos.x = nx; if (!blocked(st.pos.x, nz)) st.pos.z = nz; ja.speed = 24; ja.phase += sp * dt * 0.42 / 0.95;
+        } else ja.speed = 0;
+      }
+      jackIn.root.position.set(st.pos.x, 0, st.pos.z); jackIn.root.quaternion.setFromAxisAngle(v(0, 1, 0), st.heading);
+      const atStairs = near(STAIRS, 17); if (atStairs && !st.stairsNear) mutter('Quietly... I mustn’t wake Mother.'); st.stairsNear = atStairs;
+      if (st.pos.z > 66 && Math.abs(st.pos.x - 34) < 10) {
+        if (st.dressed && st.knife) { leave(); return; }
+        if (!st.dressed && !st.knife) mutter('I can’t go out like this. I need to dress, and fetch Father’s knife from the drawers first.');
+        else if (!st.dressed) mutter('I’m still in my nightshirt. I need to dress first.');
+        else mutter('Not yet. I still need Father’s knife from the drawers.');
+        st.pos.z = Math.min(st.pos.z, 64); st.heading = Math.PI;
+      }
+      let hint = ''; if (!st.act) { if (near(WARD, 20)) hint = st.dressed ? '' : 'E: dress'; else if (near(DRAW, 20)) hint = st.knife ? '' : 'E: take Father’s knife'; }
+      $('cHint').textContent = hint; $('cHint').style.display = hint ? 'block' : 'none';
+      if (st.toastAt && performance.now() > st.toastAt) { $('cToast').style.opacity = 0; st.toastAt = 0; }
+      const d = ZOOMS[st.zoom].d, p = st.pitch, at = v(st.pos.x, 15 * SC, st.pos.z);
+      const want = v(clamp(at.x + Math.sin(st.yaw) * Math.cos(p) * d, -70, 70), clamp(at.y + Math.sin(p) * d, 4, 56), clamp(at.z + Math.cos(st.yaw) * Math.cos(p) * d, -70, 70));
+      if (camPos.lengthSq() === 0) camPos.copy(want); else camPos.lerp(want, Math.min(1, dt * 10)); camLook.copy(at);
+      G.cut({ pos: camPos, look: camLook, fov: 48 });
+    };
+    G.updaters.push(tick); G.chapter3 = { st, interact };
+    objective(); await G.fade(false, 1.4);
+    G.caption('jack', 'I can’t climb in my nightshirt. I’ll dress, and fetch Father’s knife from the chest of drawers.');
+    st.capAt = performance.now() + 5000;
+    await done;
+  }
+  if (opts && opts.only === 'dress') { await dress(); return { stalk: null }; }
   G.setScene(W.iworld);
   A_ && A_.ambience({ wind: 0.12, birds: 0, fire: 0.25 });
 
@@ -178,9 +290,9 @@ async function run(G, W) {
   jackOut.root.visible = false; aOut.speed = 0;
   { const t0 = G.t; await tween(0.7, (k, e) => { ext.doorLeaf.rotation.y = lerp(-1.9, 0, e); }); A_ && A_.thwack && A_.thwack(0.3, true, 0.5); }
   await G.wait(1.4);
-  A_ && A_.stopMusic && A_.stopMusic(2.5); await G.fade(true, 2.2); A_ && A_.ambience({ wind: 0, birds: 0, fire: 0 });
-  G.hideLine && G.hideLine(); await G.wait(0.8);
-  G.mode = 'end'; document.body.classList.remove('cutscene');
+  await G.fade(true, 1.6); G.hideLine && G.hideLine(); await G.wait(0.5);
+  // The room again, at first light, and now it is his to move about in.
+  I.add(moon); await dress();
   return { stalk };
 }
 

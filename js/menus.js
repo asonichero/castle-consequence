@@ -85,10 +85,10 @@ async function playGarden(tier) {
   showEnd();
 }
 // Chapter Three's opening cutscene, on its own.
-async function playChapter3() {
+async function playChapter3(only) {
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
-  await root.Chapter3.run(G, W); G.save({ step: 'beanstalk' }); snap(W.world, STALK_VIEW);
+  await root.Chapter3.run(G, W, only ? { only } : null); G.save({ step: 'beanstalk' }); snap(W.world, STALK_VIEW);
   showEnd();
 }
 function showEnd() {
@@ -110,6 +110,7 @@ $('levelSel').onchange = async () => {
     else if (k === 'nightB') await playNight([0, 2, 0]);
     else if (k === 'gardenH' || k === 'gardenC' || k === 'gardenB') await playGarden(k === 'gardenH' ? 0 : k === 'gardenC' ? 1 : 2);
     else if (k === 'ch3') await playChapter3();
+    else if (k === 'ch3d') await playChapter3('dress');
     else if (k === 'corrH' || k === 'corrC' || k === 'corrB') await playCorrection(k === 'corrH' ? 0 : k === 'corrC' ? 1 : 2);
   } finally { G.noSave = false; G.debugCtl = false; }
 };

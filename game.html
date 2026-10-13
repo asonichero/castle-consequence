@@ -29,7 +29,7 @@
   #menu { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
   #menu button { min-width: 230px; margin: 0; padding: 12px 20px; font-size: 18px; background: rgba(20,22,30,0.82); }
   #dev { position: fixed; left: 12px; bottom: 10px; font-size: 12px; opacity: .65; z-index: 31; } #dev a { color: #c9b87a; margin-right: 12px; } #dev select { background: #1a1d26; color: #c9b87a; border: 1px solid #4a4d58; border-radius: 4px; font-size: 12px; padding: 2px 4px; }
-  #ver { position: fixed; right: 12px; bottom: 10px; font-size: 12px; opacity: .55; z-index: 31; }
+  #ver { position: fixed; right: 12px; bottom: 10px; font-size: 14px; font-weight: bold; letter-spacing: .04em; color: #f3e4b0; background: rgba(8,10,14,0.78); border: 1px solid #5a5f72; border-radius: 6px; padding: 4px 10px; opacity: 1; z-index: 31; }
   #settings, #endcard { background: rgba(8,10,14,0.78); align-items: center; justify-content: center; }
   .row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 9px 0; font-size: 15px; }
   .row.stack { flex-direction: column; align-items: stretch; gap: 2px; margin: 12px 0; } .row.stack input[type=range] { width: 100%; margin: 0; }
@@ -57,6 +57,7 @@
   #menuBtn { position: fixed; right: 12px; top: 10px; z-index: 37; margin: 0; padding: 7px 14px; font-size: 14px; background: rgba(20,22,30,0.85); display: none; } body.inplay #menuBtn { display: block; } body.pm #menuBtn { display: none; }
   #pmenu { background: rgba(8,10,14,0.78); align-items: center; justify-content: center; z-index: 50; } #pmenu #bReset { display: none; } #pmenu .card button { display: block; width: 100%; margin: 10px 0 0; }
   #titleShot { position: fixed; inset: 0; z-index: 29; display: none; background-size: cover; background-position: center; } body.titlePic #titleShot { display: block; }
+  body.inplay #ver { display: none; }
   body.playing #tapHint, body.playing #skip, body.playing #ver { display: none; }
 </style>
 </head>
@@ -85,8 +86,8 @@
     <button id="bSettings">Settings</button>
   </div>
 </div>
-<div id="dev" class="screen-dev"><a href="level.html">Test level: the golden hen</a><a href="lap.html">Lap scene</a><a href="blocky.html">Models</a><select id="levelSel" title="Level select (does not touch your save)"><option value="">Level select&hellip;</option><option value="opening">The opening</option><option value="market">Chapter One: Market Day</option><option value="road">Chapter Two: The Market Road</option><option value="cart">Chapter Two: the Peddler's cart</option><option value="nightH">Chapter Two: night, humble</option><option value="nightC">Chapter Two: night, cheeky</option><option value="nightB">Chapter Two: night, brash (the birch)</option><option value="gardenH">Chapter Two: the garden, humble</option><option value="gardenC">Chapter Two: the garden, cheeky</option><option value="gardenB">Chapter Two: the garden, brash</option><option value="ch3">Chapter Three: the beanstalk (opening)</option><option value="corrH">Chapter Two: the correction, humble</option><option value="corrC">Chapter Two: the correction, cheeky</option><option value="corrB">Chapter Two: the correction, brash (the birch)</option></select></div>
-<div id="ver">v0.3 &middot; build 62 &middot; 2026-10-13</div>
+<div id="dev" class="screen-dev"><a href="level.html">Test level: the golden hen</a><a href="lap.html">Lap scene</a><a href="blocky.html">Models</a><select id="levelSel" title="Level select (does not touch your save)"><option value="">Level select&hellip;</option><option value="opening">The opening</option><option value="market">Chapter One: Market Day</option><option value="road">Chapter Two: The Market Road</option><option value="cart">Chapter Two: the Peddler's cart</option><option value="nightH">Chapter Two: night, humble</option><option value="nightC">Chapter Two: night, cheeky</option><option value="nightB">Chapter Two: night, brash (the birch)</option><option value="gardenH">Chapter Two: the garden, humble</option><option value="gardenC">Chapter Two: the garden, cheeky</option><option value="gardenB">Chapter Two: the garden, brash</option><option value="ch3">Chapter Three: the beanstalk (opening)</option><option value="ch3d">Chapter Three: dress and the knife</option><option value="corrH">Chapter Two: the correction, humble</option><option value="corrC">Chapter Two: the correction, cheeky</option><option value="corrB">Chapter Two: the correction, brash (the birch)</option></select></div>
+<div id="ver">v0.3 &middot; build 64 &middot; 2026-10-13</div>
 
 <div id="settings" class="screen">
   <div class="card narrow">
