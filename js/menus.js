@@ -13,12 +13,13 @@ $('dev').style.display = 'block';
 // The drone view is behind everything, from the first frame.
 G.setScene(W.ext); G.drone = root.Opening.DRONE; G.mode = 'title';
 
-const snap = world => G.snapshotFarm(world, root.Opening.DRONE);
+const snap = (world, drone) => G.snapshotFarm(world, drone || root.Opening.DRONE);
+const STALK_VIEW = () => ({ pos: new THREE.Vector3(250, 230, 520), look: new THREE.Vector3(-40, 330, 0), fov: 66 });
 const toTitle = () => {
   G.mode = 'title'; G.setScene(W.ext); G.drone = root.Opening.DRONE; G.skipping = false; G.hideLine(); document.body.classList.remove('cutscene');
   $('fade').style.transition = 'opacity .8s ease'; $('fade').style.opacity = 0;
   $('bContinue').disabled = !G.loadSave(); show('title');
-  { const shot = G.loadSave() && G.titleShot(); $('titleShot').style.backgroundImage = shot ? 'url(' + shot + ')' : ''; document.body.classList.toggle('titlePic', !!shot); }
+  { const shot = G.memShot || (G.loadSave() && G.titleShot()); $('titleShot').style.backgroundImage = shot ? 'url(' + shot + ')' : ''; document.body.classList.toggle('titlePic', !!shot); }
   if (A && A.ctx) { A.ambience({ wind: 0.5, birds: 0.5, fire: 0 }); A.duckMusic(1, 2); A.startMusic(); }
   $('dev').style.display = 'block';
 };
@@ -64,7 +65,7 @@ async function playNight(choices) {
   G.skipping = false; G.save({ step: 'planted', night: { tier: res.tier, brash: res.brash } }); snap(res.world.world);
   if (root.Correction && res.world) await root.Correction.run(G, res.world, res.tier);
   if (root.Garden && res.world) { G.save({ step: 'garden', night: { tier: res.tier, brash: res.brash } }); await root.Garden.run(G, res.world, res.tier); G.save({ step: 'garden-done' }); snap(res.world.world); }
-  if (root.Chapter3 && res.world) { await root.Chapter3.run(G, res.world); G.save({ step: 'beanstalk' }); snap(res.world.world); }
+  if (root.Chapter3 && res.world) { await root.Chapter3.run(G, res.world); G.save({ step: 'beanstalk' }); snap(res.world.world, STALK_VIEW); }
   showEnd();
 }
 // Debug: the correction on its own, with Jack standing before his Mother as the night scene leaves him.
@@ -87,7 +88,7 @@ async function playGarden(tier) {
 async function playChapter3() {
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
-  await root.Chapter3.run(G, W);
+  await root.Chapter3.run(G, W); snap(W.world, STALK_VIEW);
   showEnd();
 }
 function showEnd() {
