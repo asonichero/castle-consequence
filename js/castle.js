@@ -1,11 +1,11 @@
-// Climbing Toward Consequence — the castle within, at full (100%) model scale. Gerda's home: mostly one storey (the tower's single room above is not built yet), ceilings twice a model's height (61).
+// Climbing Toward Consequence — the castle within, at full (100%) model scale. Gerda's home: mostly one storey (the tower's single room above is not built yet), ceilings twice a model's height (86).
 //   The entrance hall is the heart of it. Off it, to the west, the quiet grand wing (two corridors, the music hall, the library, the old playroom); to the east, Gerda's warm wing (the kitchen, the parlour,
 //   a narrow hallway, the bathing room, the roost), and out of the kitchen the walled garden. Free-standing pieces are placed by CastleLayout (js/castle-layout.js, written by room-editor.html?room=castle).
 // Exposes Castle.interior() with the same shape as Farm.interior(): { scene, room, ceiling, items, place, layout, update, bounds, views }.
 (function (root) {
 'use strict';
 const THREE = root.THREE, F = root.Farm, V3 = THREE.Vector3;
-const H = 61;                                                                    // twice a full-size Jack
+const H = 86;                                                                    // twice a full-size Jack (who stands about 43 here: furniture and doorways are as in the cottage, he is 1.4 times the size the cottage's own model has)
 const box = F.box, plain = F.plain, unlit = F.unlit;
 const rng = F.rng(4141);
 
