@@ -114,7 +114,7 @@ function run(G, W) {
     const camera = G.camera, nearOld = camera.near;
 
     // ── Jack on the stalk. ──
-    const st = { gustN: 0, cur: grounds[1], fr: 1, y: 0, a: 0, r: 7, pos: v(CX, 0, CZ + HALF + 14), heading: Math.PI, walkN: 0, walkPh: 0, mode: 'walk', mt: 0, from: null, to: null, xf: false, fromW: null, stamina: 100, grip: false, gripPrev: false, hold: 0, cool: 0, gust: { t: 14, phase: 'wait' }, slip: 0, toastAt: 0, capAt: 0, pitch: 0.4, zoomF: 1, camA: Math.PI / 2, shake: 0, zone: 'lower', best: 0, ended: false, tut: 0, lock: 0 };
+    const st = { gustN: 0, cur: grounds[1], fr: 1, y: 0, a: 0, r: 7, pos: v(CX, 0, CZ + HALF + 14), heading: Math.PI, walkN: 0, walkPh: 0, mode: 'walk', mt: 0, from: null, to: null, xf: false, fromW: null, stamina: 100, grip: false, gripPrev: false, hold: 0, cool: 0, gust: { t: 14, phase: 'wait' }, slip: 0, toastAt: 0, capAt: 0, pitch: 0.5, zoom: 1, wy: 0, wvy: 0, camA: Math.PI / 2, shake: 0, zone: 'lower', best: 0, ended: false, tut: 0, lock: 0 };
     jackOut.root.visible = true; jackOut.root.rotation.set(0, 0, 0); jackOut.root.position.copy(st.pos); W.paintJack(jackOut, { expr: 1 });
     const pose = { up: 0, reach: 0, stand: 1, fall: 0 };
     jackOut.after = r => {
@@ -145,24 +145,24 @@ function run(G, W) {
       #clGustTxt { position: absolute; top: 18%; left: 50%; transform: translateX(-50%); font-size: 20px; letter-spacing: .3em; color: #fff; text-shadow: 0 0 10px #000; opacity: 0; }`;
     document.head.appendChild(css);
     const hud = document.createElement('div'); hud.id = 'clHud';
-    hud.innerHTML = '<div id="clVig"></div><div id="clGust"></div><div id="clGustTxt">WIND</div><div id="clAlt"></div><div id="clObj">Climb the beanstalk.</div><div id="clSt"><span>Stamina</span><div id="clBar"><i></i></div></div><div id="clToast"></div><div id="clHint"></div><div id="clStick"><div id="clKnob"></div></div><div id="clBtns"><button id="clGrip">Grip (Space)</button><div style="display:flex;gap:6px"><button id="clZm">&minus;</button><button id="clZp">+</button></div></div>';
+    hud.innerHTML = '<div id="clVig"></div><div id="clGust"></div><div id="clGustTxt">WIND</div><div id="clAlt"></div><div id="clObj">Climb the beanstalk.</div><div id="clSt"><span>Stamina</span><div id="clBar"><i></i></div></div><div id="clToast"></div><div id="clHint"></div><div id="clStick"><div id="clKnob"></div></div><div id="clBtns"><button id="clGrip">Grip (Space)</button><button id="clZoom">Zoom</button></div>';
     document.body.appendChild(hud);
     const $ = id => document.getElementById(id);
     const toast = (t, ms = 3600) => { $('clToast').textContent = t; $('clToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
     const mutter = (t, force) => { if (!force && performance.now() < st.capAt) return; st.capAt = performance.now() + 7000; G.caption('jack', t); };
-    const keys = {}, stick = { x: 0, y: 0 }, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', ' ': 'grip', Shift: 'run', q: 'camL', Q: 'camL', e: 'camR', E: 'camR', '+': 'zIn', '=': 'zIn', '-': 'zOut', _: 'zOut' };
+    const keys = {}, stick = { x: 0, y: 0 }, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', ' ': 'grip', Shift: 'run' };
     const runB = document.createElement('button'); runB.textContent = 'Run'; runB.className = 'touchonly'; runB.onpointerdown = () => { keys.run = true; }; runB.onpointerup = runB.onpointerleave = runB.onpointercancel = () => { keys.run = false; }; document.getElementById('clBtns').appendChild(runB);
     const typing = e => e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
-    const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow') || e.key === ' ') e.preventDefault(); } };
+    const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow') || e.key === ' ') e.preventDefault(); } if (e.repeat) return; if (e.key === 'v' || e.key === 'V') cycleZoom(); };
     const ku = e => { const k = KM[e.key]; if (k) keys[k] = false; };
     root.addEventListener('keydown', kd); root.addEventListener('keyup', ku);
     const gb = $('clGrip'); gb.onpointerdown = () => { keys.grip = true; }; gb.onpointerup = gb.onpointerleave = gb.onpointercancel = () => { keys.grip = false; };
-    $('clZm').onpointerdown = () => { keys.zOut = true; }; $('clZp').onpointerdown = () => { keys.zIn = true; }; for (const id of ['clZm', 'clZp']) { const b2 = $(id); b2.onpointerup = b2.onpointerleave = b2.onpointercancel = () => { keys.zOut = keys.zIn = false; }; }
+    const ZOOMS = [{ name: 'Close', d: 52 }, { name: 'Medium', d: 92 }, { name: 'Far', d: 150 }], ZF = [52 / 92, 1, 150 / 92];      // (as in Chapter One)
+    function cycleZoom(dir) { st.zoom = (st.zoom + (dir || 1) + ZOOMS.length) % ZOOMS.length; $('clZoom').textContent = 'Zoom: ' + ZOOMS[st.zoom].name; }
+    $('clZoom').onclick = () => cycleZoom(); $('clZoom').textContent = 'Zoom: Medium';
     const drags = new Map();
-    const pd = e => drags.set(e.pointerId, { x: e.clientX, y: e.clientY }), pm = e => { const d = drags.get(e.pointerId); if (!d) return; const ox = d.x, oy = d.y; d.x = e.clientX; d.y = e.clientY;
-      if (drags.size === 2) { const pts = [...drags.values()], dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y); if (st.pinch) st.zoomF = clamp(st.zoomF * st.pinch / Math.max(20, dist), 0.3, 3.2); st.pinch = dist; return; }
-      st.camA -= (d.x - ox) * 0.007; st.pitch = clamp(st.pitch + (d.y - oy) * 0.005, -0.9, 1.45); }, pu = e => { drags.delete(e.pointerId); st.pinch = 0; };
-    const wheel = e => { e.preventDefault(); st.zoomF = clamp(st.zoomF * (e.deltaY > 0 ? 1.1 : 0.9), 0.3, 3.2); }; el.addEventListener('wheel', wheel, { passive: false });
+    const pd = e => drags.set(e.pointerId, { x: e.clientX, y: e.clientY }), pm = e => { const d = drags.get(e.pointerId); if (!d) return; const walkingNow = st.mode === 'walk' || st.mode === 'mount'; st.camA += (e.clientX - d.x) * 0.006; st.pitch = clamp(st.pitch + (e.clientY - d.y) * 0.005, walkingNow ? 0.08 : -0.9, walkingNow ? 1.35 : 1.45); d.x = e.clientX; d.y = e.clientY; }, pu = e => { drags.delete(e.pointerId); };
+    const wheel = e => { e.preventDefault(); cycleZoom(e.deltaY > 0 ? 1 : -1); }; el.addEventListener('wheel', wheel, { passive: false });
     el.addEventListener('pointerdown', pd); el.addEventListener('pointermove', pm); el.addEventListener('pointerup', pu); el.addEventListener('pointercancel', pu);
     { const sEl = $('clStick'), k = $('clKnob'); let id = null; const set = e => { const r = sEl.getBoundingClientRect(); let dx = (e.clientX - r.left - r.width / 2) / (r.width / 2), dy = (e.clientY - r.top - r.height / 2) / (r.height / 2); const m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; } stick.x = dx; stick.y = dy; k.style.transform = `translate(${dx * 34}px, ${dy * 34}px)`; };
       sEl.addEventListener('pointerdown', e => { id = e.pointerId; sEl.setPointerCapture(id); set(e); }); sEl.addEventListener('pointermove', e => { if (e.pointerId === id) set(e); }); const end = e => { if (e.pointerId === id) { id = null; stick.x = stick.y = 0; k.style.transform = ''; } }; sEl.addEventListener('pointerup', end); sEl.addEventListener('pointercancel', end); }
@@ -208,6 +208,7 @@ function run(G, W) {
       st.lastFall = Math.round(st.cur.y); startMove(tgt, 'drop'); pose.fall = 1; st.stamina = Math.max(st.stamina, 35); if (msg) toast(msg + ' (fell at height ' + st.lastFall + ')', 4200); A && A.thwack && A.thwack(0.3, true, 0.3);
     }
     const nearestVine = p => { let bk = 0, bd = 1e9; VINE.forEach((q, k) => { const d = Math.hypot(p.x - q.x, p.z - q.z); if (d < bd) { bd = d; bk = k; } }); return bk; };
+    const nearVineNow = () => { const k = nearestVine(st.pos); return Math.hypot(st.pos.x - VINE[k].x, st.pos.z - VINE[k].z) < 20; };
     const blockedAt = (x, z) => { if (x < -196 || x > 196 || z < -100 || z > 116) return true; for (const o of SOLID) if (x > o.x0 - 5 && x < o.x1 + 5 && z > o.z0 - 5 && z < o.z1 + 5) return true; for (const q of VINE) if (Math.hypot(x - q.x, z - q.z) < 6.5) return true; if (Math.hypot(x - CX, z - CZ) < 7) return true; return false; };
     function scheduleGust() { const z = st.zone; st.gust = { phase: 'wait', t: z === 'middle' ? 13 + rnd() * 7 : z === 'upper' ? 8 + rnd() * 5 : 999 }; }
     scheduleGust();
@@ -242,7 +243,9 @@ function run(G, W) {
         const f = v(-Math.cos(st.camA), 0, -Math.sin(st.camA)), r = v(Math.sin(st.camA), 0, -Math.cos(st.camA));
         const dir = v(0, 0, 0).addScaledVector(f, (keys.up ? 1 : 0) - (keys.down ? 1 : 0)).addScaledVector(r, (keys.right ? 1 : 0) - (keys.left ? 1 : 0));
         if (Math.hypot(stick.x, stick.y) > 0.2) dir.addScaledVector(f, -stick.y).addScaledVector(r, stick.x);
-        if (dir.lengthSq() > 0) { dir.normalize(); st.heading = st.heading + angDiff(Math.atan2(dir.x, dir.z), st.heading) * Math.min(1, dt * 10); const sp = (keys.run ? 50 : 26) * SC, nx = st.pos.x + Math.sin(st.heading) * sp * dt, nz = st.pos.z + Math.cos(st.heading) * sp * dt; if (!blockedAt(nx, st.pos.z)) st.pos.x = nx; if (!blockedAt(st.pos.x, nz)) st.pos.z = nz; st.walkN = 1; st.walkPh += sp * dt * 0.42 / 0.95; } else st.walkN = Math.max(0, st.walkN - dt * 6);
+        if (dir.lengthSq() > 0) { dir.normalize(); const want = Math.atan2(dir.x, dir.z); st.heading = st.heading + angDiff(want, st.heading) * Math.min(1, dt * 9); const off = Math.abs(angDiff(want, st.heading)), ease = Math.max(0.2, Math.min(1, 1 - off / Math.PI * 0.8)), sp = (keys.run ? 50 : 26) * SC * ease, nx = st.pos.x + Math.sin(st.heading) * sp * dt, nz = st.pos.z + Math.cos(st.heading) * sp * dt; if (!blockedAt(nx, st.pos.z)) st.pos.x = nx; if (!blockedAt(st.pos.x, nz)) st.pos.z = nz; st.walkN = 1; st.walkPh += sp * dt * 0.42 / 0.95 / Math.max(0.2, ease); } else st.walkN = Math.max(0, st.walkN - dt * 6);
+        if (edge && !nearVineNow()) st.wvy = 112;                                    // (Space jumps, as in Chapter One, unless a stalk is at hand to climb)
+        st.wvy -= 420 * dt; st.wy += st.wvy * dt; if (st.wy <= 0) { st.wy = 0; st.wvy = 0; }
         st.stamina = Math.min(100, st.stamina + 30 * dt);
         const vk = nearestVine(st.pos), dv = Math.hypot(st.pos.x - VINE[vk].x, st.pos.z - VINE[vk].z), nearV = dv < 20;
         if (nearV && keys.grip && !st.gripPrev) { st.mount = { k: vk, t: 0, from: st.pos.clone() }; st.mode = 'mount'; }
@@ -293,7 +296,7 @@ function run(G, W) {
       // Jack himself: scaled down as he climbs.
       jackOut.root.scale.setScalar(k);
       let pos, face;
-      if (st.mode === 'walk' || st.mode === 'mount' || st.xf) { pos = st.pos.clone(); face = st.mode === 'walk' || st.mode === 'mount' ? st.heading : Math.atan2(-Math.cos(st.a), -Math.sin(st.a)); }
+      if (st.mode === 'walk' || st.mode === 'mount' || st.xf) { pos = st.pos.clone(); if (st.mode === 'walk') pos.y = st.wy; face = st.mode === 'walk' || st.mode === 'mount' ? st.heading : Math.atan2(-Math.cos(st.a), -Math.sin(st.a)); }
       else { const tp = centreOf(st.fr, st.y); pos = v(tp.x + Math.cos(st.a) * st.r, st.y, tp.z + Math.sin(st.a) * st.r); face = Math.atan2(-Math.cos(st.a), -Math.sin(st.a)); if (st.mode !== 'rise') st.pos.copy(pos); }
       jackOut.root.position.copy(pos); jackOut.root.rotation.y = face;
       // Which holds are within reach (lower: bright and pulsing; middle: a faint tint).
@@ -312,10 +315,9 @@ function run(G, W) {
       $('clBar').firstChild.style.width = st.stamina + '%'; $('clBar').classList.toggle('low', st.stamina < 25); $('clSt').style.opacity = st.mode === 'walk' ? 0.4 : 1;
       if (st.toastAt && performance.now() > st.toastAt) { $('clToast').style.opacity = 0; st.toastAt = 0; }
       // The camera: outside him, at his own scale (so as he shrinks the stalk looms), held under the cloud.
-      const kk = sOf(st.y); if (keys.camL) st.camA += 1.7 * dt; if (keys.camR) st.camA -= 1.7 * dt;       // (the view is the player's: all the way round and up and down, never turned for him; only the cloud ceiling and the ground hold it back)
-      if (keys.zIn) st.zoomF = Math.max(0.3, st.zoomF - 1.2 * dt); if (keys.zOut) st.zoomF = Math.min(3.2, st.zoomF + 1.2 * dt);
-      const walkCam = st.mode === 'walk' || st.mode === 'mount', d = (walkCam ? 70 : 88 + 14 * (st.zone === 'upper' ? 1 : 0)) * kk * st.zoomF, ax = centreOf(st.fr, st.y);
-      const at = walkCam ? v(pos.x, 14, pos.z) : v(lerp(ax.x, pos.x, 0.6), st.y + (st.cur.kind === 'ledge' ? 14 : -4) * kk * 0.95, lerp(ax.z, pos.z, 0.6));
+      const kk = sOf(st.y);       // (the view is the player's: all the way round, never turned for him; only the cloud ceiling and the ground hold it back; zoom is Chapter One's three steps)
+      const walkCam = st.mode === 'walk' || st.mode === 'mount', d = walkCam ? ZOOMS[st.zoom].d : (88 + 14 * (st.zone === 'upper' ? 1 : 0)) * kk * ZF[st.zoom], ax = centreOf(st.fr, st.y);
+      const at = walkCam ? v(pos.x, st.wy + 15 * SC, pos.z) : v(lerp(ax.x, pos.x, 0.6), st.y + (st.cur.kind === 'ledge' ? 14 : -4) * kk * 0.95, lerp(ax.z, pos.z, 0.6));
       const want = v(at.x + Math.cos(st.camA) * d * Math.cos(st.pitch), at.y + Math.sin(st.pitch) * d * 0.9 + 6 * kk, at.z + Math.sin(st.camA) * d * Math.cos(st.pitch));
       if (st.cine) { want.copy(st.cine.pos); at.copy(st.cine.look); }
       want.y = clamp(want.y, 3, CLOUD_Y - 8); at.y = Math.min(at.y, CLOUD_Y - 2);

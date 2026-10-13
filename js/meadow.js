@@ -1,7 +1,7 @@
 // Climbing Toward Consequence — the cloud meadow, Chapter Two ("The Climb"): Jack walks from the top of the beanstalk to the castle gate.
 //   The land is built at full scale (a castle for people; a meadow of moss and low flowers). Jack starts at a quarter of his size and, as he walks, shrinks to a tenth; the camera is kept to his size,
 //   so the meadow seems to grow round him, though nothing in it changes. He does not notice, and neither does the prose, until the gate.
-//   An opening cutscene (the moss, the air, the land, the castle), a walk (WASD / stick; drag to look; wheel, + and - or pinch to zoom), and a closing cutscene at the gate.
+//   An opening cutscene (the moss, the air, the land, the castle), a walk (WASD or the stick; Shift runs, Space jumps; drag to look; V or the wheel to zoom: as in Chapter One), and a closing cutscene at the gate.
 // Exposes Meadow.run(G, W): W is Night.build's world (Jack, in his outdoor clothes).
 (function (root) {
 'use strict';
@@ -106,7 +106,7 @@ function run(G, W) {
     G.setScene(world); G.drone = null; G.save({ step: 'meadow' });
     camera.near = 0.1; camera.updateProjectionMatrix();
     A && A.ambience({ wind: 0.14, birds: 0, fire: 0 });
-    const st = { pos: v(0, 0, START_Z), heading: Math.PI, walkN: 0, walkPh: 0, mode: 'intro', free: false, camA: Math.PI / 2, pitch: 0.28, zoomF: 1, kk: K0, look: 0, shiver: 0, bob: 0, craned: 0, frown: 0, stillSaid: 0, toastAt: 0, spd: 0, gripPrev: false };
+    const st = { pos: v(0, 0, START_Z), heading: Math.PI, walkN: 0, walkPh: 0, mode: 'intro', free: false, camA: Math.PI / 2, pitch: 0.5, zoom: 1, vy: 0, y: 0, jumpReq: false, kk: K0, look: 0, shiver: 0, bob: 0, craned: 0, frown: 0, stillSaid: 0, toastAt: 0, spd: 0, gripPrev: false };
     // Jack's body: walking, looking, shivering.
     jackOut.after = r => {
       const w = Math.sin(st.walkPh) * 0.7 * st.walkN, t = G.t, sh = st.shiver * 0.05 * Math.sin(t * 38);
@@ -124,21 +124,21 @@ function run(G, W) {
       #mwKnob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(230,196,106,0.75); pointer-events: none; } @media (pointer: coarse) { #mwStick { display: block; } }`;
     document.head.appendChild(css);
     const hud = document.createElement('div'); hud.id = 'mwHud'; hud.style.display = 'none';
-    hud.innerHTML = '<div id="mwObj">Walk to the castle.</div><div id="mwToast"></div><div id="mwStick"><div id="mwKnob"></div></div><div id="mwBtns"><button id="mwZm">&minus;</button><button id="mwZp">+</button></div>';
+    hud.innerHTML = '<div id="mwObj">Walk to the castle.</div><div id="mwToast"></div><div id="mwStick"><div id="mwKnob"></div></div><div id="mwBtns"><button id="mwJump" class="touchonly">Jump</button><button id="mwZoom">Zoom</button></div>';
     document.body.appendChild(hud);
     const $ = id => document.getElementById(id);
     const toast = (t, ms = 5000) => { $('mwToast').textContent = t; $('mwToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
-    const keys = {}, stick = { x: 0, y: 0 }, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', Shift: 'run', q: 'camL', Q: 'camL', e: 'camR', E: 'camR', '+': 'zIn', '=': 'zIn', '-': 'zOut', _: 'zOut' };
+    const keys = {}, stick = { x: 0, y: 0 }, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', Shift: 'run' };
     const runB = document.createElement('button'); runB.textContent = 'Run'; runB.className = 'touchonly'; runB.onpointerdown = () => { keys.run = true; }; runB.onpointerup = runB.onpointerleave = runB.onpointercancel = () => { keys.run = false; }; document.getElementById('mwBtns').appendChild(runB);
     const typing = e => e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
-    const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } }, ku = e => { const k = KM[e.key]; if (k) keys[k] = false; };
+    const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } if (e.key === ' ') e.preventDefault(); if (e.repeat) return; if (e.key === ' ') st.jumpReq = true; if (e.key === 'v' || e.key === 'V') cycleZoom(); }, ku = e => { const k = KM[e.key]; if (k) keys[k] = false; };
     root.addEventListener('keydown', kd); root.addEventListener('keyup', ku);
-    $('mwZm').onpointerdown = () => { keys.zOut = true; }; $('mwZp').onpointerdown = () => { keys.zIn = true; }; for (const id of ['mwZm', 'mwZp']) { const b = $(id); b.onpointerup = b.onpointerleave = b.onpointercancel = () => { keys.zOut = keys.zIn = false; }; }
+    const ZOOMS = [{ name: 'Close', d: 52 }, { name: 'Medium', d: 92 }, { name: 'Far', d: 150 }];                  // (as in Chapter One, in units of his full size)
+    function cycleZoom(dir) { st.zoom = (st.zoom + (dir || 1) + ZOOMS.length) % ZOOMS.length; $('mwZoom').textContent = 'Zoom: ' + ZOOMS[st.zoom].name; }
+    $('mwZoom').onclick = () => cycleZoom(); $('mwZoom').textContent = 'Zoom: ' + ZOOMS[st.zoom].name; $('mwJump').onpointerdown = e => { e.preventDefault(); st.jumpReq = true; };
     const drags = new Map();
-    const pd = e => drags.set(e.pointerId, { x: e.clientX, y: e.clientY }), pm = e => { const d = drags.get(e.pointerId); if (!d || !st.free) return; const ox = d.x, oy = d.y; d.x = e.clientX; d.y = e.clientY;
-      if (drags.size === 2) { const p = [...drags.values()], dist = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y); if (st.pinch) st.zoomF = clamp(st.zoomF * st.pinch / Math.max(20, dist), 0.3, 3.2); st.pinch = dist; return; }
-      st.camA -= (d.x - ox) * 0.007; st.pitch = clamp(st.pitch + (d.y - oy) * 0.005, -0.5, 1.45); }, pu = e => { drags.delete(e.pointerId); st.pinch = 0; };
-    const wheel = e => { e.preventDefault(); if (st.free) st.zoomF = clamp(st.zoomF * (e.deltaY > 0 ? 1.1 : 0.9), 0.3, 3.2); };
+    const pd = e => drags.set(e.pointerId, { x: e.clientX, y: e.clientY }), pm = e => { const d = drags.get(e.pointerId); if (!d || !st.free) return; st.camA += (e.clientX - d.x) * 0.006; st.pitch = clamp(st.pitch + (e.clientY - d.y) * 0.005, 0.08, 1.35); d.x = e.clientX; d.y = e.clientY; }, pu = e => drags.delete(e.pointerId);
+    const wheel = e => { e.preventDefault(); if (st.free) cycleZoom(e.deltaY > 0 ? 1 : -1); };
     el.addEventListener('wheel', wheel, { passive: false }); el.addEventListener('pointerdown', pd); el.addEventListener('pointermove', pm); el.addEventListener('pointerup', pu); el.addEventListener('pointercancel', pu);
     { const sEl = $('mwStick'), k = $('mwKnob'); let id = null; const set = e => { const r = sEl.getBoundingClientRect(); let dx = (e.clientX - r.left - r.width / 2) / (r.width / 2), dy = (e.clientY - r.top - r.height / 2) / (r.height / 2); const m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; } stick.x = dx; stick.y = dy; k.style.transform = `translate(${dx * 34}px, ${dy * 34}px)`; };
       sEl.addEventListener('pointerdown', e => { id = e.pointerId; sEl.setPointerCapture(id); set(e); }); sEl.addEventListener('pointermove', e => { if (e.pointerId === id) set(e); }); const end = e => { if (e.pointerId === id) { id = null; stick.x = stick.y = 0; k.style.transform = ''; } }; sEl.addEventListener('pointerup', end); sEl.addEventListener('pointercancel', end); }
@@ -146,18 +146,20 @@ function run(G, W) {
     // ── Each frame: the walk, and the camera when it is the player's. ──
     const camPos = new V3(), camLook = new V3();
     const blocked = (x, z) => x < -280 || x > 280 || z > 120 || z < -760 || (z < -688 && Math.abs(x) > 44);
-    const place = () => { st.kk = kOf(st.pos.z); jackOut.root.scale.setScalar(SC * st.kk); jackOut.root.position.set(st.pos.x, -0.5 * st.bob * st.kk, st.pos.z); jackOut.root.rotation.y = st.heading; };
+    const place = () => { st.kk = kOf(st.pos.z); jackOut.root.scale.setScalar(SC * st.kk); jackOut.root.position.set(st.pos.x, st.y - 0.5 * st.bob * st.kk, st.pos.z); jackOut.root.rotation.y = st.heading; };
     const tick = dt => {
       if (st.mode === 'walk') {
         const f = v(-Math.cos(st.camA), 0, -Math.sin(st.camA)), r = v(Math.sin(st.camA), 0, -Math.cos(st.camA));
         const dir = v(0, 0, 0).addScaledVector(f, (keys.up ? 1 : 0) - (keys.down ? 1 : 0)).addScaledVector(r, (keys.right ? 1 : 0) - (keys.left ? 1 : 0));
         if (Math.hypot(stick.x, stick.y) > 0.2) dir.addScaledVector(f, -stick.y).addScaledVector(r, stick.x);
         if (dir.lengthSq() > 0) {
-          dir.normalize(); st.heading += angDiff(Math.atan2(dir.x, dir.z), st.heading) * Math.min(1, dt * 10);
-          const sp = 30 * SC * Math.pow(st.kk / K0, 0.6) * 0.43 * 2.3 * 0.62 * (keys.run ? 1.9 : 1), nx = st.pos.x + Math.sin(st.heading) * sp * dt, nz = st.pos.z + Math.cos(st.heading) * sp * dt;     // (his stride shortens as he shrinks, but not as fast as his size)
-          if (!blocked(nx, st.pos.z)) st.pos.x = nx; if (!blocked(st.pos.x, nz)) st.pos.z = nz; st.walkN = 1; st.walkPh += 10.9 * Math.pow(st.kk / SC, -0.35) * 0.55 * dt * 1.4;
+          dir.normalize(); const want = Math.atan2(dir.x, dir.z); st.heading += angDiff(want, st.heading) * Math.min(1, dt * 9);
+          const off = Math.abs(angDiff(want, st.heading)), ease = clamp(1 - off / Math.PI * 0.8, 0.2, 1), sp = (keys.run ? 50 : 26) * SC * Math.pow(st.kk, 0.6) * ease, nx = st.pos.x + Math.sin(st.heading) * sp * dt, nz = st.pos.z + Math.cos(st.heading) * sp * dt;     // (Chapter One's pace, his stride shortening as he shrinks, though not as fast as his size)
+          if (!blocked(nx, st.pos.z)) st.pos.x = nx; if (!blocked(st.pos.x, nz)) st.pos.z = nz; st.walkN = 1; st.walkPh += 10.9 * Math.pow(st.kk / SC, -0.35) * 0.55 * dt * 1.4 * (keys.run ? 1.5 : 1);
         } else st.walkN = Math.max(0, st.walkN - dt * 6);
-        st.bob = st.walkN * 0.15 * (0.5 + 0.5 * Math.sin(st.walkPh * 2));                                  // (the moss gives a little under each step)
+        if (st.jumpReq) { st.jumpReq = false; if (st.y <= 0) st.vy = 112 * Math.sqrt(st.kk); }           // (Space jumps, as in Chapter One; a jump rises as far as it did at full size, in proportion)
+        st.vy -= 420 * dt; st.y += st.vy * dt; if (st.y <= 0) { st.y = 0; st.vy = 0; }
+        st.bob = st.y > 0 ? 0 : st.walkN * 0.15 * (0.5 + 0.5 * Math.sin(st.walkPh * 2));                                  // (the moss gives a little under each step)
         // (no narration: the land is left to speak. Only the quiet falls as he goes in.)
         const p = clamp((START_Z - st.pos.z) / (START_Z - TRIGGER_Z), 0, 1);
         if (st.stillSaid === 0 && p > 0.04) { st.stillSaid = 1; A && A.ambience({ wind: 0, birds: 0, fire: 0 }); A && A.duckMusic && A.duckMusic(0.18, 5); }
@@ -167,9 +169,8 @@ function run(G, W) {
       place();
       if (st.toastAt && performance.now() > st.toastAt) { $('mwToast').style.opacity = 0; st.toastAt = 0; }
       if (st.free) {
-        if (keys.camL) st.camA += 1.7 * dt; if (keys.camR) st.camA -= 1.7 * dt; if (keys.zIn) st.zoomF = Math.max(0.3, st.zoomF - 1.2 * dt); if (keys.zOut) st.zoomF = Math.min(3.2, st.zoomF + 1.2 * dt);
-        const kk = st.kk, d = 90 * kk * st.zoomF, at = v(st.pos.x, 14 * kk, st.pos.z), want = v(at.x + Math.cos(st.camA) * d * Math.cos(st.pitch), Math.max(0.4 * kk, at.y + Math.sin(st.pitch) * d * 0.9 + 6 * kk), at.z + Math.sin(st.camA) * d * Math.cos(st.pitch));
-        if (camPos.lengthSq() === 0) camPos.copy(want); else camPos.lerp(want, Math.min(1, dt * 8)); camLook.copy(at); G.cut({ pos: camPos, look: camLook, fov: 50 });
+        const kk = st.kk, d = ZOOMS[st.zoom].d * kk, at = v(st.pos.x, st.y + 15 * SC * kk, st.pos.z), want = v(at.x + Math.cos(st.camA) * d * Math.cos(st.pitch), Math.max(3 * kk, at.y + Math.sin(st.pitch) * d), at.z + Math.sin(st.camA) * d * Math.cos(st.pitch));
+        if (camPos.lengthSq() === 0) camPos.copy(want); else camPos.lerp(want, Math.min(1, dt * 8)); camLook.copy(at); G.cut({ pos: camPos, look: camLook, fov: 48 });
       }
     };
     const cleanup = () => { root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('wheel', wheel); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu); G.updaters = G.updaters.filter(u => u !== tick); hud.remove(); css.remove(); jackOut.after = null; jackOut.root.scale.setScalar(SC); camera.near = nearOld; camera.updateProjectionMatrix(); };
@@ -195,9 +196,9 @@ function run(G, W) {
     W.paintJack(jackOut, { expr: 1 });
     await G.say('jack', 'Come on, then. Let’s see what the castle has to offer.');
     // Round behind him, and the walk is his.
-    await G.shot({ pos: v(0, 10.4, S().z + 21.6), look: v(0, 3.5, S().z), fov: 50 }, 1.8, 'inOut');
+    { const kk = K0, d = 92 * kk, c = Math.cos(0.5); await G.shot({ pos: v(0, 15 * SC * kk + Math.sin(0.5) * d, S().z + d * c), look: v(0, 15 * SC * kk, S().z), fov: 48 }, 1.8, 'inOut'); }
     G.skipping = false; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); st.heading = Math.PI; st.look = 0; st.camA = Math.PI / 2; camPos.set(0, 0, 0);
-    st.free = true; st.mode = 'walk'; hud.style.display = 'block'; $('mwObj').style.display = 'block'; toast('WASD or the stick to walk (Shift to run) · drag to look round · wheel or + / − to zoom', 6500);
+    st.free = true; st.mode = 'walk'; hud.style.display = 'block'; $('mwObj').style.display = 'block'; toast('WASD or the stick to walk · Shift to run · Space to jump · drag to look round · V or the wheel to zoom', 6500);
 
     // ── At the gate. ──
     async function gate() {
