@@ -278,6 +278,7 @@ function run(G, W, opts) {
           for (let r = 0; r <= 70; r += 5) for (let k = 0; k < 24; k++) { const a2 = k * Math.PI / 12, x = gst.x + Math.cos(a2) * r, z = gst.z + Math.sin(a2) * r; if (!clear(x, z) || x < 100 || x > 236 || z < -100 || z > 44) continue;
             const n = Math.ceil(r / 3); let ok = true; for (let i = 1; i <= n && ok; i++) if (!clear(gst.x + (x - gst.x) * i / n, gst.z + (z - gst.z) * i / n)) ok = false; if (!ok) continue;
             const back = Math.cos(a2 - (gst.h + Math.PI)), cost = r - back * 6; if (cost < bd) { bd = cost; sp = [x, z]; } if (sp && r >= 15) break; }
+          G.castleWalk.back = { from: [gst.x, gst.z], sp, clearHere: clear(gst.x, gst.z) };
           if (sp && Math.hypot(sp[0] - gst.x, sp[1] - gst.z) > 1) { const x0 = gst.x, z0 = gst.z, n = Math.max(2, Math.ceil(Math.hypot(sp[0] - x0, sp[1] - z0) / 0.9)); for (let i = 1; i <= n; i++) { const k = i / n; gst.x = x0 + (sp[0] - x0) * k; gst.z = z0 + (sp[1] - z0) * k; gst.ph -= 0.4; gst.walk = 0.7; placeGerda(); follow(); cam(); await G.wait(0.04); } gst.walk = 0; placeGerda(); follow(); } }
         await ending(follow, cam); }
       await finish('caught');
@@ -346,7 +347,7 @@ function run(G, W, opts) {
       }
     };
     const cleanup = () => { if (jackOut.root.parent !== scene) { scene.add(jackOut.root); st.inHand = false; } root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('wheel', wheel); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu); G.updaters = G.updaters.filter(u => u !== tick); hud.remove(); css.remove(); jackOut.after = null; jackOut.root.scale.setScalar(SC); jackOut.root.visible = true; camera.near = nearOld; camera.updateProjectionMatrix(); };
-    G.updaters.push(tick); G.castleWalk = { st, cleanup, resolve, C, M };
+    G.updaters.push(tick); G.castleWalk = { st, cleanup, resolve, C, M, gst };
     if (opts.capture) {                                                                                      // the capture, on its own (for scene-notes.html): Jack is hiding in the cupboard, and Gerda has just opened its doors
       const cd = pantryG.userData.cupDoors; cd.dl.rotation.y = -1.7; cd.dr.rotation.y = 1.7; st.inCup = true;
       st.pos.set(98, 0, -84); st.y = 0; st.scene = true; G.mode = 'cutscene'; $('cwPanel').style.display = 'none'; st.alarm = true; st.heading = Math.PI / 2;
