@@ -69,7 +69,7 @@ function interior() {
     const strip = (c0, c1, y0, y1, depth, col) => { if (c1 - c0 < 0.3) return; if (axis === 'z') box(c1 - c0, y1 - y0, depth, plain(col), (c0 + c1) / 2, (y0 + y1) / 2, fixed, room); else box(depth, y1 - y0, c1 - c0, plain(col), fixed, (y0 + y1) / 2, (c0 + c1) / 2, room); };
     const floorOps = sorted.filter(o => o[2] <= 0.5); let c = a0; const runs = [];                // the stretches of wall that reach the floor
     for (const o of floorOps) { runs.push([c, o[0]]); c = o[1]; } runs.push([c, a1]);
-    for (const [r0, r1] of runs) { if (r1 - r0 < 1) continue; strip(r0, r1, 0, 4, th + 1.4, '#3a2a20'); strip(r0, r1, 4, 21, th + 0.8, dado); strip(r0, r1, 21, 23, th + 1.8, dadoRail); }
+    for (const [r0, r1] of runs) { if (r1 - r0 < 1) continue; strip(r0, r1, 0, 5, th + 1, '#a99f88'); }
     strip(a0, a1, h - 4, h, th + 2.4, trim); strip(a0, a1, h - 5.2, h - 4, th + 1.4, dadoRail);   // the cornice, all along
     for (const o of sorted) {
       if (o[2] <= 0.5) { if (o[3] < 20) continue; strip(o[0] - 2.6, o[0] + 0.4, 0, o[3] + 3.5, th + 1.8, trim); strip(o[1] - 0.4, o[1] + 2.6, 0, o[3] + 3.5, th + 1.8, trim); strip(o[0] - 2.6, o[1] + 2.6, o[3] - 0.4, o[3] + 3.5, th + 2.4, trim); }
