@@ -41,7 +41,7 @@ function build() {
   // The silver stream: twice across the way, shallow enough to wade.
   const silver = new THREE.MeshPhongMaterial({ color: 0xcfe0ee, emissive: 0x6c7a8a, shininess: 140, specular: 0xffffff });
   const ribbon = (z0, amp, ph) => { let px = -520, pz = z0 + amp * Math.sin(px * 0.012 + ph); for (let x = -500; x <= 520; x += 14) { const z = z0 + amp * Math.sin(x * 0.012 + ph), len = Math.hypot(14, z - pz), m = box(len + 1, 0.5, 24 + 6 * Math.sin(x * 0.03), silver, (x + px) / 2, 0.22, (z + pz) / 2, scene); m.rotation.y = -Math.atan2(z - pz, 14); px = x; pz = z; } };
-  ribbon(-210, 40, 0.5); ribbon(-430, 55, 2.1); ribbon(-90, 120, 4.0);
+  const streams = [[-210, 40, 0.5], [-430, 55, 2.1], [-90, 120, 4.0]]; for (const q of streams) ribbon(q[0], q[1], q[2]);
   // The flora, all of it built as it would stand beside a full-size Jack (about 30 high: tufts to his shin, flowers to his thigh and waist, tall spikes above his head, shrubs, small trees),
   // so that a full-size Jack would wade a meadow that comes to his thigh and waist, with only the odd spike reaching his chest (test it: ?meadowk=1 puts him at full size the whole way).
   const dummy = new THREE.Object3D(), inst = (geo, mat, n, place) => { const m = new THREE.InstancedMesh(geo, mat, n); const col = new THREE.Color(); for (let i = 0; i < n; i++) { const c = place(dummy, col, i); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); if (c) m.setColorAt(i, c); } m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; scene.add(m); return m; };
@@ -87,12 +87,20 @@ function build() {
   for (let row = 0; row < 8; row++) slit(70, 30 + row * 28, CZ - 47.6, 0, 18);
   // The forecourt: quiet paving, edged with a low kerb, from where the path ends to the great door; and the great door itself.
   const pave = new THREE.MeshLambertMaterial({ map: stoneTex(26, 11), color: 0xaaa798 }), kerb = new THREE.MeshLambertMaterial({ map: stoneTex(30, 1), color: 0xbab6a6 });
-  box(280, 0.6, 104, pave, 0, 0.3, CZ + 52, castle); box(280, 1.4, 2, kerb, 0, 0.7, CZ + 104, castle); for (const sx of [-1, 1]) box(2, 1.4, 104, kerb, sx * 140, 0.7, CZ + 52, castle);
+  box(280, 0.6, 104, pave, 0, 0.3, CZ + 52, castle); for (const sx of [-1, 1]) { box(126, 1.4, 2, kerb, sx * 77, 0.7, CZ + 104, castle); box(2, 1.4, 104, kerb, sx * 140, 0.7, CZ + 52, castle); }
   const wood = new THREE.MeshLambertMaterial({ color: 0x3a2a20 }), iron = new THREE.MeshPhongMaterial({ color: 0x2b2d36, shininess: 70, specular: 0x667088 });
   box(52, 72, 3, wood, 0, 36, CZ + 1.5, castle); box(52, 3, 4, iron, 0, 20, CZ + 2, castle); box(52, 3, 4, iron, 0, 52, CZ + 2, castle); box(2, 72, 4, iron, 0, 36, CZ + 2, castle); box(4, 4, 3, iron, -6, 34, CZ + 3, castle); box(4, 4, 3, iron, 6, 34, CZ + 3, castle);
-  box(62, 6, 6, stone(3, 1), 0, 75, CZ + 2, castle); for (let i = 0; i < 3; i++) box(60 - i * 6, 1.2, 8 + i * 4, stone(3, 1), 0, 0.6 + i * 0.6, CZ + 8 + (2 - i) * 4, castle);
+  box(62, 6, 6, stone(3, 1), 0, 75, CZ + 2, castle); for (let i = 0; i < 3; i++) { const top = 1.2 + i * 0.6; box(58, top - 0.6, 6, pave, 0, 0.6 + (top - 0.6) / 2, CZ + 15 - i * 6 - 3 + 6, castle); }
   castle.updateMatrixWorld(true);
-  return { scene, glints, solids, sun, hemi: scene.children.find(o => o.isHemisphereLight), update(dt, t) { for (const g of glints) g.m.opacity = 0.08 + 0.12 * (0.5 + 0.5 * Math.sin(t * 0.6 + g.ph)) * (0.5 + 0.5 * Math.sin(t * 0.23 + g.ph * 3)); } };
+  // What he stands on: the path, the shallow stream and the paving are floor, at their own heights.
+  const groundY = (x, z) => {
+    if (z < CZ + 104 && z > CZ && Math.abs(x) < 140) return 0.6;
+    for (const q of streams) { const zs = q[0] + q[1] * Math.sin(x * 0.012 + q[2]); if (Math.abs(z - zs) < 11) return 0.47; }
+    if (z < 60 && z > CZ + 104 && Math.abs(x - pathX(z)) < 7.5) return 0.31;
+    return 0;
+  };
+  const kerbed = (x, z) => ((Math.abs(z - (CZ + 104)) < 1.4 && Math.abs(x) > 14 && Math.abs(x) < 140) || (Math.abs(Math.abs(x) - 140) < 1.4 && z < CZ + 104 && z > CZ));
+  return { scene, glints, solids, groundY, kerbed, sun, hemi: scene.children.find(o => o.isHemisphereLight), update(dt, t) { for (const g of glints) g.m.opacity = 0.08 + 0.12 * (0.5 + 0.5 * Math.sin(t * 0.6 + g.ph)) * (0.5 + 0.5 * Math.sin(t * 0.23 + g.ph * 3)); } };
 }
 
 // What he carries: his father's knife, the satchel, and a flask at his belt (the flask is new).
@@ -112,7 +120,7 @@ function run(G, W) {
     G.setScene(world); G.drone = null; G.save({ step: 'meadow' });
     camera.near = 0.1; camera.updateProjectionMatrix();
     A && A.ambience({ wind: 0.14, birds: 0, fire: 0 });
-    const st = { pos: v(0, 0, START_Z), heading: Math.PI, walkN: 0, walkPh: 0, mode: 'intro', free: false, camA: Math.PI / 2, pitch: 0.5, zoom: 1, vy: 0, y: 0, jumpReq: false, kk: K0, look: 0, shiver: 0, bob: 0, craned: 0, frown: 0, stillSaid: 0, toastAt: 0, spd: 0, gripPrev: false };
+    const st = { pos: v(0, 0, START_Z), heading: Math.PI, walkN: 0, walkPh: 0, mode: 'intro', free: false, camA: Math.PI / 2, pitch: 0.5, zoom: 1, vy: 0, y: 0, jumpReq: false, gy: 0, kk: K0, look: 0, shiver: 0, bob: 0, craned: 0, frown: 0, stillSaid: 0, toastAt: 0, spd: 0, gripPrev: false };
     // Jack's body: walking, looking, shivering.
     jackOut.after = r => {
       const w = Math.sin(st.walkPh) * 0.7 * st.walkN, t = G.t, sh = st.shiver * 0.05 * Math.sin(t * 38);
@@ -154,7 +162,7 @@ function run(G, W) {
     const grid = new Map(), CELL = 12, gk = (ix, iz) => ix * 4096 + iz;
     for (const o of M.solids) { const ix = Math.floor(o[0] / CELL), iz = Math.floor(o[1] / CELL), k = gk(ix, iz); (grid.get(k) || grid.set(k, []).get(k)).push(o); }
     const hitsFlora = (x, z) => { const rJ = 4 * st.kk, ix = Math.floor(x / CELL), iz = Math.floor(z / CELL); for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const c = grid.get(gk(ix + a, iz + b)); if (c) for (const o of c) if (Math.hypot(x - o[0], z - o[1]) < o[2] + rJ) return true; } return false; };
-    const blocked = (x, z) => x < -280 || x > 280 || z > 120 || z < -772 || (z < -716 && Math.abs(x) > 128) || hitsFlora(x, z);       // (the flora stands like the trees on the market road: he goes round, along the path)
+    const blocked = (x, z) => x < -280 || x > 280 || z > 120 || z < -772 || (z < -716 && Math.abs(x) > 128) || hitsFlora(x, z) || (M.kerbed(x, z) && st.y < 1.3);       // (the flora stands like the trees on the market road: he goes round, along the path)
     const place = () => { st.kk = kOf(st.pos.z); jackOut.root.scale.setScalar(SC * st.kk); jackOut.root.position.set(st.pos.x, st.y - 0.5 * st.bob * st.kk, st.pos.z); jackOut.root.rotation.y = st.heading; };
     const tick = dt => {
       if (st.mode === 'walk') {
@@ -166,12 +174,16 @@ function run(G, W) {
           const off = Math.abs(angDiff(want, st.heading)), ease = clamp(1 - off / Math.PI * 0.8, 0.2, 1), sp = (keys.run ? 50 : 26) * SC * Math.pow(st.kk, 0.6) * ease, nx = st.pos.x + Math.sin(st.heading) * sp * dt, nz = st.pos.z + Math.cos(st.heading) * sp * dt;     // (Chapter One's pace, his stride shortening as he shrinks, though not as fast as his size)
           if (!blocked(nx, st.pos.z)) st.pos.x = nx; if (!blocked(st.pos.x, nz)) st.pos.z = nz; st.walkN = 1; st.walkPh += 10.9 * Math.pow(st.kk / SC, -0.35) * 0.55 * dt * 1.4 * (keys.run ? 1.5 : 1);
         } else st.walkN = Math.max(0, st.walkN - dt * 6);
-        if (st.jumpReq) { st.jumpReq = false; if (st.y <= 0) st.vy = 112 * Math.sqrt(st.kk); }           // (Space jumps, as in Chapter One; a jump rises as far as it did at full size, in proportion)
-        st.vy -= 420 * dt; st.y += st.vy * dt; if (st.y <= 0) { st.y = 0; st.vy = 0; }
+        if (st.jumpReq) { st.jumpReq = false; if (st.y <= st.gy + 0.01) st.vy = 112 * st.kk; }           // (Space jumps, exactly as in Chapter One, in proportion to his size: the same height for his body, the same time in the air)
+        st.gy = M.groundY(st.pos.x, st.pos.z); const fall = st.vy <= 0 && st.y <= st.gy + 0.4 * st.kk;
+        if (fall) { st.y += (st.gy - st.y) * Math.min(1, dt * 22); st.vy = 0; } else { st.vy -= 420 * st.kk * dt; st.y += st.vy * dt; if (st.y < st.gy) { st.y = st.gy; st.vy = 0; } }
         st.bob = st.y > 0 ? 0 : st.walkN * 0.15 * (0.5 + 0.5 * Math.sin(st.walkPh * 2));                                  // (the moss gives a little under each step)
         // (no narration: the land is left to speak. Only the quiet falls as he goes in.)
         const p = clamp((START_Z - st.pos.z) / (START_Z - TRIGGER_Z), 0, 1);
         if (st.stillSaid === 0 && p > 0.04) { st.stillSaid = 1; A && A.ambience({ wind: 0, birds: 0, fire: 0 }); A && A.duckMusic && A.duckMusic(0.18, 5); }
+        else if (st.stillSaid === 1 && p > 0.28) { st.stillSaid = 2; G.caption('jack', 'Funny. Those flowers only came to my shins when I started.'); }       // (he begins to notice, as he walks, without the walk being stopped)
+        else if (st.stillSaid === 2 && p > 0.55) { st.stillSaid = 3; G.caption('jack', 'Is it just me, or is the grass getting taller?'); }
+        else if (st.stillSaid === 3 && p > 0.8) { st.stillSaid = 4; G.caption('jack', 'Everything looks bigger from here... or I’m only tired. Keep going.'); }
         const sh = clamp((-st.pos.z - 520) / 90, 0, 1); M.hemi.intensity = 0.85 * (1 - 0.3 * sh); M.sun.intensity = 0.95 * (1 - 0.55 * sh);
         if (st.pos.z <= TRIGGER_Z && st.mode === 'walk') { st.mode = 'arrive'; arrive(); }
       }
