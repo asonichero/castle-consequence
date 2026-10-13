@@ -192,5 +192,14 @@ A.latch = function (vol) {
 };
 A.blip = function () { if (!A.init()) return; const ctx = A.ctx, t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'triangle'; o.frequency.value = 660; g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.06, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12); o.connect(g); g.connect(A.nodes.sfx); o.start(t); o.stop(t + 0.15); };
 
+// A great bell tolling, low and slow, far off inside a stone place: a deep fundamental with the inharmonic partials of cast bronze, each ringing out long.
+A.bell = function (vol) {
+  if (!A.init()) return; const ctx = A.ctx, t = ctx.currentTime, v0 = vol == null ? 0.5 : vol;
+  for (const [mul, g0, dec] of [[1, 1, 7], [2.01, 0.55, 5.5], [2.76, 0.4, 4], [4.1, 0.22, 3], [5.4, 0.12, 2.2]]) {
+    const o = ctx.createOscillator(), g = ctx.createGain(), lp = ctx.createBiquadFilter(); o.type = 'sine'; o.frequency.value = 73.4 * mul; lp.type = 'lowpass'; lp.frequency.value = 900;
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.16 * g0 * v0, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + dec); o.connect(lp); lp.connect(g); g.connect(A.nodes.sfx); o.start(t); o.stop(t + dec + 0.1);
+  }
+};
+
 root.GameAudio = A;
 })(typeof window !== 'undefined' ? window : globalThis);
