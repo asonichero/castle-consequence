@@ -88,7 +88,7 @@ async function playGarden(tier) {
 async function playChapter3() {
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
-  await root.Chapter3.run(G, W); snap(W.world, STALK_VIEW);
+  await root.Chapter3.run(G, W); G.save({ step: 'beanstalk' }); snap(W.world, STALK_VIEW);
   showEnd();
 }
 function showEnd() {
