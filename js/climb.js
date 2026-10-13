@@ -150,7 +150,8 @@ function run(G, W) {
     const $ = id => document.getElementById(id);
     const toast = (t, ms = 3600) => { $('clToast').textContent = t; $('clToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
     const mutter = (t, force) => { if (!force && performance.now() < st.capAt) return; st.capAt = performance.now() + 7000; G.caption('jack', t); };
-    const keys = {}, stick = { x: 0, y: 0 }, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', ' ': 'grip', Shift: 'grip', q: 'camL', Q: 'camL', e: 'camR', E: 'camR', '+': 'zIn', '=': 'zIn', '-': 'zOut', _: 'zOut' };
+    const keys = {}, stick = { x: 0, y: 0 }, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', ' ': 'grip', Shift: 'run', q: 'camL', Q: 'camL', e: 'camR', E: 'camR', '+': 'zIn', '=': 'zIn', '-': 'zOut', _: 'zOut' };
+    const runB = document.createElement('button'); runB.textContent = 'Run'; runB.className = 'touchonly'; runB.onpointerdown = () => { keys.run = true; }; runB.onpointerup = runB.onpointerleave = runB.onpointercancel = () => { keys.run = false; }; document.getElementById('clBtns').appendChild(runB);
     const typing = e => e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
     const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow') || e.key === ' ') e.preventDefault(); } };
     const ku = e => { const k = KM[e.key]; if (k) keys[k] = false; };
@@ -241,7 +242,7 @@ function run(G, W) {
         const f = v(-Math.cos(st.camA), 0, -Math.sin(st.camA)), r = v(Math.sin(st.camA), 0, -Math.cos(st.camA));
         const dir = v(0, 0, 0).addScaledVector(f, (keys.up ? 1 : 0) - (keys.down ? 1 : 0)).addScaledVector(r, (keys.right ? 1 : 0) - (keys.left ? 1 : 0));
         if (Math.hypot(stick.x, stick.y) > 0.2) dir.addScaledVector(f, -stick.y).addScaledVector(r, stick.x);
-        if (dir.lengthSq() > 0) { dir.normalize(); st.heading = st.heading + angDiff(Math.atan2(dir.x, dir.z), st.heading) * Math.min(1, dt * 10); const sp = 26 * SC, nx = st.pos.x + Math.sin(st.heading) * sp * dt, nz = st.pos.z + Math.cos(st.heading) * sp * dt; if (!blockedAt(nx, st.pos.z)) st.pos.x = nx; if (!blockedAt(st.pos.x, nz)) st.pos.z = nz; st.walkN = 1; st.walkPh += sp * dt * 0.42 / 0.95; } else st.walkN = Math.max(0, st.walkN - dt * 6);
+        if (dir.lengthSq() > 0) { dir.normalize(); st.heading = st.heading + angDiff(Math.atan2(dir.x, dir.z), st.heading) * Math.min(1, dt * 10); const sp = (keys.run ? 50 : 26) * SC, nx = st.pos.x + Math.sin(st.heading) * sp * dt, nz = st.pos.z + Math.cos(st.heading) * sp * dt; if (!blockedAt(nx, st.pos.z)) st.pos.x = nx; if (!blockedAt(st.pos.x, nz)) st.pos.z = nz; st.walkN = 1; st.walkPh += sp * dt * 0.42 / 0.95; } else st.walkN = Math.max(0, st.walkN - dt * 6);
         st.stamina = Math.min(100, st.stamina + 30 * dt);
         const vk = nearestVine(st.pos), dv = Math.hypot(st.pos.x - VINE[vk].x, st.pos.z - VINE[vk].z), nearV = dv < 20;
         if (nearV && keys.grip && !st.gripPrev) { st.mount = { k: vk, t: 0, from: st.pos.clone() }; st.mode = 'mount'; }

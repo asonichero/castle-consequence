@@ -33,16 +33,33 @@ function build() {
   const silver = new THREE.MeshPhongMaterial({ color: 0xcfe0ee, emissive: 0x6c7a8a, shininess: 140, specular: 0xffffff });
   const ribbon = (z0, amp, ph) => { let px = -520, pz = z0 + amp * Math.sin(px * 0.012 + ph); for (let x = -500; x <= 520; x += 14) { const z = z0 + amp * Math.sin(x * 0.012 + ph), len = Math.hypot(14, z - pz), m = box(len + 1, 0.5, 24 + 6 * Math.sin(x * 0.03), silver, (x + px) / 2, 0.22, (z + pz) / 2, scene); m.rotation.y = -Math.atan2(z - pz, 14); px = x; pz = z; } };
   ribbon(-210, 40, 0.5); ribbon(-430, 55, 2.1); ribbon(-90, 120, 4.0);
-  // Flowers and grass, in their thousands: all of one height, so the shrinking Jack finds them rising.
-  const dummy = new THREE.Object3D(), inst = (geo, mat, n, place) => { const m = new THREE.InstancedMesh(geo, mat, n); const col = new THREE.Color(); for (let i = 0; i < n; i++) { const c = place(dummy, col); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); if (c) m.setColorAt(i, c); } m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; scene.add(m); return m; };
-  const bloomCols = ['#f4f0ff', '#e8d8f8', '#ffe8c8', '#dff0ff', '#fff6d8'].map(c => new THREE.Color(c)), tuftCols = ['#cfe0c8', '#bcd4b8', '#e4eedc'].map(c => new THREE.Color(c));
-  const spot = () => { const wide = rnd() < 0.22, x = wide ? (rnd() < 0.5 ? -1 : 1) * (90 + rnd() * 320) : (rnd() - 0.5) * 190, z = 80 - rnd() * 800; return [x, z]; };
-  const NF = 3200; const pts = []; for (let i = 0; i < NF; i++) pts.push(spot());
-  const stems = [], blooms = [];
-  inst(new THREE.BoxGeometry(0.22, 1, 0.22), new THREE.MeshLambertMaterial({ color: 0x9fc08a }), NF, (d, c) => { const [x, z] = pts[stems.length], h = 1.0 + rnd() * 0.5; stems.push(h); d.position.set(x, h / 2, z); d.scale.set(1, h, 1); d.rotation.set(0, rnd() * 3, 0); return null; });
-  inst(new THREE.BoxGeometry(0.7, 0.45, 0.7), new THREE.MeshLambertMaterial({ color: 0xffffff }), NF, (d, c) => { const [x, z] = pts[blooms.length], h = stems[blooms.length]; blooms.push(1); d.position.set(x, h + 0.1, z); d.scale.set(1, 1, 1); d.rotation.set(0, rnd() * 3, 0); return bloomCols[Math.floor(rnd() * bloomCols.length)]; });
-  const NG = 7000, gp = []; for (let i = 0; i < NG; i++) gp.push(spot());
-  let gi = 0; inst(new THREE.BoxGeometry(0.3, 1, 0.3), new THREE.MeshLambertMaterial({ color: 0xffffff }), NG, (d, c) => { const [x, z] = gp[gi++], h = 0.6 + rnd() * 0.9; d.position.set(x, h / 2, z); d.scale.set(1, h, 1); d.rotation.set(0, rnd() * 3, 0); return tuftCols[Math.floor(rnd() * 3)]; });
+  // The flora, all of it built as it would stand beside a full-size Jack (about 30 high: tufts to his shin, flowers to his thigh and waist, tall spikes above his head, shrubs, small trees),
+  // so that Jack, at a quarter of his size and then a tenth, walks through it as through a forest.
+  const dummy = new THREE.Object3D(), inst = (geo, mat, n, place) => { const m = new THREE.InstancedMesh(geo, mat, n); const col = new THREE.Color(); for (let i = 0; i < n; i++) { const c = place(dummy, col, i); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); if (c) m.setColorAt(i, c); } m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; scene.add(m); return m; };
+  const C = a => a.map(c => new THREE.Color(c));
+  const tuftCols = C(['#cfe0c8', '#bcd4b8', '#e4eedc', '#c4dcc0']), bloomCols = C(['#f4f0ff', '#e8d8f8', '#ffe8c8', '#dff0ff', '#fff6d8', '#f8d8e4']), spikeCols = C(['#d8c8f0', '#f0d8e8', '#cfe0f8', '#f8e8c0']), bushCols = C(['#b4cdb0', '#a4c0a2', '#c2d8b8']);
+  // (where things stand: thinly near where he arrives, more and more as he walks; and clear of the stream's banks only by chance)
+  const spot = (clearStart, wide) => { for (;;) { const x = rnd() < wide ? (rnd() < 0.5 ? -1 : 1) * (60 + rnd() * 340) : (rnd() - 0.5) * 170, z = 90 - rnd() * 790; if (clearStart && z > 8 && Math.abs(x) < 30) continue; return [x, z]; } };
+  const field = (n, clearStart, wide) => { const a = []; for (let i = 0; i < n; i++) a.push(spot(clearStart, wide)); return a; };
+  // Tufts of grass: ankle to knee.
+  { const P = field(14000, true, 0.3), H = P.map(() => 1.8 + rnd() * 3.6); inst(new THREE.BoxGeometry(0.45, 1, 0.45), new THREE.MeshLambertMaterial({ color: 0xffffff }), P.length, (d, c, i) => { d.position.set(P[i][0], H[i] / 2, P[i][1]); d.scale.set(1, H[i], 1); d.rotation.set((rnd() - 0.5) * 0.3, rnd() * 3, 0); return tuftCols[i % 4]; }); }
+  // Wildflowers: thigh to waist, each a stem and a bloom.
+  { const P = field(6500, true, 0.3), H = P.map(() => 6 + rnd() * 9); inst(new THREE.BoxGeometry(0.4, 1, 0.4), new THREE.MeshLambertMaterial({ color: 0x9fc08a }), P.length, (d, c, i) => { d.position.set(P[i][0], H[i] / 2, P[i][1]); d.scale.set(1, H[i], 1); d.rotation.set(0, rnd() * 3, 0); return null; });
+    inst(new THREE.BoxGeometry(2.2, 1.3, 2.2), new THREE.MeshLambertMaterial({ color: 0xffffff }), P.length, (d, c, i) => { d.position.set(P[i][0], H[i] + 0.3, P[i][1]); d.scale.set(1, 1, 1); d.rotation.set(0, rnd() * 3, 0); return bloomCols[i % bloomCols.length]; }); }
+  // Tall spiked flowers: a head to well over his head.
+  { const P = field(1500, true, 0.35), H = P.map(() => 22 + rnd() * 18); inst(new THREE.BoxGeometry(0.6, 1, 0.6), new THREE.MeshLambertMaterial({ color: 0x8fb27c }), P.length, (d, c, i) => { d.position.set(P[i][0], H[i] / 2, P[i][1]); d.scale.set(1, H[i], 1); return null; });
+    inst(new THREE.BoxGeometry(1.7, 1, 1.7), new THREE.MeshLambertMaterial({ color: 0xffffff }), P.length, (d, c, i) => { const h = 7 + rnd() * 5; d.position.set(P[i][0], H[i] - h / 2 + 1, P[i][1]); d.scale.set(1, h, 1); return spikeCols[i % 4]; }); }
+  // Bushes and ferns: waist to shoulder, built of a few blocks.
+  for (let i = 0; i < 160; i++) { const [x, z] = spot(true, 0.45), w = 10 + rnd() * 12, h = 9 + rnd() * 9, m = new THREE.MeshLambertMaterial({ color: bushCols[i % 3] }); box(w, h, w * 0.9, m, x, h / 2, z, scene).rotation.y = rnd() * 3; box(w * 0.65, h * 0.7, w * 0.6, m, x + w * 0.2, h * 0.9, z - w * 0.1, scene); }
+  // Great pale stones and a few fallen stems, for the eye to measure against.
+  for (let i = 0; i < 40; i++) { const [x, z] = spot(true, 0.4), w = 6 + rnd() * 10; box(w, w * 0.6, w * 0.8, new THREE.MeshLambertMaterial({ color: 0xcfd0c8 }), x, w * 0.3, z, scene).rotation.y = rnd() * 3; }
+  // The beanstalk's top, rising out of a ring of cloud behind where Jack arrives.
+  { const g = new THREE.Group(); g.position.set(0, 0, 78); scene.add(g); const dark = new THREE.MeshLambertMaterial({ color: 0x4f6f5a }), gm = ['#3f7f3a', '#4a8f42', '#37703a', '#58a04a'].map(c => F.plain(c));
+    box(40, 0.4, 40, dark, 0, 0.05, 0, g);
+    for (let i = 0; i < 14; i++) { const a = i / 14 * 6.283, r = 18 + rnd() * 5; box(10 + rnd() * 8, 3 + rnd() * 4, 10 + rnd() * 8, new THREE.MeshLambertMaterial({ color: 0xe8e6ee }), Math.cos(a) * r, 1.5, Math.sin(a) * r, g); }
+    for (let i = 0; i < 9; i++) { const y = -20 + i * 8.5, sway = Math.sin(i * 0.5) * 2; box(7 - i * 0.12, 9.5, 7 - i * 0.12, gm[i % 4], sway, y + 4, Math.cos(i * 0.4) * 2, g).rotation.y = i * 0.42; box(2.4, 10, 2.4, F.plain('#8bc46a'), sway + 3.4, y + 4, Math.cos(i * 0.4) * 2, g); }
+    for (const [y, a, L] of [[14, 0.6, 36], [34, 2.8, 30], [50, 4.6, 22]]) { const lf = new THREE.Group(); lf.position.set(0, y, 0); lf.rotation.y = a; lf.rotation.z = -0.3; g.add(lf); box(L, 1.4, 13, F.plain('#4f9a46'), L / 2 + 4, 0, 0, lf); box(L * 0.7, 1.4, 8, F.plain('#62ab52'), L * 0.9, 0.3, 6, lf); box(L * 0.7, 1.4, 8, F.plain('#3f8a3c'), L * 0.9, 0.3, -6, lf); }
+    box(26, 2.4, 2.4, gm[1], 12, 56, 0, g).rotation.z = 0.5; }
   // A few pale trees lining the way to the gate: the tallest is the measure the gate is held against.
   const trunkM = new THREE.MeshLambertMaterial({ color: 0xd9d3c0 }), leafM = [0xb9d4c0, 0xa8c8b4, 0xc6dccb].map(c => new THREE.MeshLambertMaterial({ color: c }));
   for (let i = 0; i < 18; i++) { const side = i % 2 ? 1 : -1, x = side * (70 + rnd() * 90), z = -300 - i * 22 - rnd() * 14, h = 34 + rnd() * 22; box(4, h, 4, trunkM, x, h / 2, z, scene); box(24, 8, 24, leafM[0], x, h + 2, z, scene); box(17, 8, 17, leafM[1], x, h + 9, z, scene); box(10, 8, 10, leafM[2], x, h + 16, z, scene); }
@@ -111,7 +128,8 @@ function run(G, W) {
     document.body.appendChild(hud);
     const $ = id => document.getElementById(id);
     const toast = (t, ms = 5000) => { $('mwToast').textContent = t; $('mwToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
-    const keys = {}, stick = { x: 0, y: 0 }, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', q: 'camL', Q: 'camL', e: 'camR', E: 'camR', '+': 'zIn', '=': 'zIn', '-': 'zOut', _: 'zOut' };
+    const keys = {}, stick = { x: 0, y: 0 }, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', Shift: 'run', q: 'camL', Q: 'camL', e: 'camR', E: 'camR', '+': 'zIn', '=': 'zIn', '-': 'zOut', _: 'zOut' };
+    const runB = document.createElement('button'); runB.textContent = 'Run'; runB.className = 'touchonly'; runB.onpointerdown = () => { keys.run = true; }; runB.onpointerup = runB.onpointerleave = runB.onpointercancel = () => { keys.run = false; }; document.getElementById('mwBtns').appendChild(runB);
     const typing = e => e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
     const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } }, ku = e => { const k = KM[e.key]; if (k) keys[k] = false; };
     root.addEventListener('keydown', kd); root.addEventListener('keyup', ku);
@@ -136,16 +154,13 @@ function run(G, W) {
         if (Math.hypot(stick.x, stick.y) > 0.2) dir.addScaledVector(f, -stick.y).addScaledVector(r, stick.x);
         if (dir.lengthSq() > 0) {
           dir.normalize(); st.heading += angDiff(Math.atan2(dir.x, dir.z), st.heading) * Math.min(1, dt * 10);
-          const sp = 30 * SC * Math.pow(st.kk / K0, 0.6) * 0.43 * 2.3 * 0.62, nx = st.pos.x + Math.sin(st.heading) * sp * dt, nz = st.pos.z + Math.cos(st.heading) * sp * dt;     // (his stride shortens as he shrinks, but not as fast as his size)
+          const sp = 30 * SC * Math.pow(st.kk / K0, 0.6) * 0.43 * 2.3 * 0.62 * (keys.run ? 1.9 : 1), nx = st.pos.x + Math.sin(st.heading) * sp * dt, nz = st.pos.z + Math.cos(st.heading) * sp * dt;     // (his stride shortens as he shrinks, but not as fast as his size)
           if (!blocked(nx, st.pos.z)) st.pos.x = nx; if (!blocked(st.pos.x, nz)) st.pos.z = nz; st.walkN = 1; st.walkPh += 10.9 * Math.pow(st.kk / SC, -0.35) * 0.55 * dt * 1.4;
         } else st.walkN = Math.max(0, st.walkN - dt * 6);
         st.bob = st.walkN * 0.15 * (0.5 + 0.5 * Math.sin(st.walkPh * 2));                                  // (the moss gives a little under each step)
-        // The prose, as he goes.
+        // (no narration: the land is left to speak. Only the quiet falls as he goes in.)
         const p = clamp((START_Z - st.pos.z) / (START_Z - TRIGGER_Z), 0, 1);
-        if (st.stillSaid === 0 && p > 0.04) { st.stillSaid = 1; A && A.ambience({ wind: 0, birds: 0, fire: 0 }); A && A.duckMusic && A.duckMusic(0.18, 5); G.caption('narrator', 'The breeze here carried no scent, no birdsong, no rustle of branch or leaf. Just stillness—deep and deliberate.'); }
-        else if (st.stillSaid === 1 && p > 0.3) { st.stillSaid = 2; G.caption('narrator', 'His legs felt smaller. Not just tired—lighter. Each step seemed to fall more softly.'); }
-        else if (st.stillSaid === 2 && p > 0.5) { st.stillSaid = 3; G.caption('narrator', 'He didn’t notice how the grass grew taller; didn’t notice how the breeze felt different—lower, closer, as though he were closer to the ground. Didn’t notice that when he stepped through the meadow’s edge, the flowers came to his hip instead of his shin.'); }
-        else if (st.stillSaid === 3 && p > 0.76) { st.stillSaid = 4; G.caption('narrator', 'The air thinned again. Or perhaps he thinned. He walked until the castle’s shadow fell over him.'); }
+        if (st.stillSaid === 0 && p > 0.04) { st.stillSaid = 1; A && A.ambience({ wind: 0, birds: 0, fire: 0 }); A && A.duckMusic && A.duckMusic(0.18, 5); }
         const sh = clamp((-st.pos.z - 520) / 90, 0, 1); M.hemi.intensity = 0.72 * (1 - 0.3 * sh); M.sun.intensity = 0.55 * (1 - 0.55 * sh);
         if (st.pos.z <= TRIGGER_Z && st.mode === 'walk') { st.mode = 'gate'; gate(); }
       }
@@ -160,57 +175,46 @@ function run(G, W) {
     const cleanup = () => { root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('wheel', wheel); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu); G.updaters = G.updaters.filter(u => u !== tick); hud.remove(); css.remove(); jackOut.after = null; jackOut.root.scale.setScalar(SC); camera.near = nearOld; camera.updateProjectionMatrix(); };
     place(); G.updaters.push(tick); G.meadow = { st };
 
-    // ── The opening: the moss, the air, the land, the castle. ──
+    // ── The opening: the beanstalk climbing out of the cloud behind him, and the castle a long way off; then Jack, with something to say; then round behind him, and the walk. ──
     const k = K0, S = () => st.pos, wait = G.wait;
     G.mode = 'cutscene'; document.body.classList.add('cutscene');
     const f = $('fade'); f.style.background = '#fff'; f.style.transition = 'none'; f.style.opacity = 1;
-    G.cut({ pos: v(S().x + 5 * k * 10, 1.6, S().z + 18), look: v(S().x, 1.0, S().z), fov: 42 }); await wait(0.5);
+    st.look = 0.1; st.heading = Math.PI;
+    G.cut({ pos: v(46, 9, 112), look: v(0, 14, 78), fov: 50 }); await wait(0.5);
     f.style.transition = ''; await G.fade(false, 2.2); f.style.background = '';
-    // 1. The moss.
-    st.look = 0.55; await G.say('narrator', 'The ground was spongy beneath his boots—not cloud but white moss, thick and soft, cool as riverbed stone. It gave slightly under his weight.');
-    for (let i = 0; i < 2; i++) { for (let j = 0; j <= 12; j++) { st.bob = Math.sin(j / 12 * Math.PI) * 0.9; await wait(0.03); } await wait(0.25); } st.bob = 0;
-    // 2. The air.
-    G.cut({ pos: v(S().x + 7, 7.5, S().z + 17), look: v(S().x, 6.2, S().z - 6), fov: 44 }); st.look = -0.18;
-    await G.say('narrator', 'The air was heavy with sweetness—honeysuckle, maybe, and something richer beneath it. Something old.');
-    // 3. The land.
-    st.look = 0; G.cut({ pos: v(-60, 22, S().z + 52), look: v(-10, 8, S().z - 120), fov: 52 });
-    G.say('narrator', 'The land stretched wide. Meadow and stream, hill and haze. Nothing looked fully real, but it all felt present. Like it had been waiting for him to arrive.');
-    await G.shot({ pos: v(70, 30, S().z + 40), look: v(10, 14, S().z - 260), fov: 56 }, 9, 'inOut'); G.captionOff && G.captionOff();
-    // 4. The castle.
-    G.cut({ pos: v(S().x + 3, 6, S().z + 22), look: v(0, 90, -760), fov: 34 });
-    await G.say('narrator', 'Far off, rising above the strange meadows and curling silver streams, stood a castle. Enormous. Impossible.');
-    G.say('narrator', 'A main body with two wings, its single tower shimmered in the light, and the stone looked like it had been carved from moonlight and bone.');
-    await G.shot({ pos: v(S().x + 2, 8, S().z - 120), look: v(0, 120, -770), fov: 26 }, 8, 'inOut');
-    await G.say('narrator', 'No flag flew. No gate moved. But the windows watched—tall and dark and glinting faintly, as if they caught more than sunlight.');
-    G.cut({ pos: v(S().x - 7, 6, S().z + 16), look: v(S().x, 5.6, S().z), fov: 36 }); st.shiver = 1; st.heading = Math.PI + 0.2;
-    await G.say('narrator', 'Jack shivered. He felt their gaze on him, cold and quiet, like breath on the back of his neck.');
-    st.shiver = 0; await G.say('narrator', 'Jack walked.');
-    // ── The walk ──
+    await wait(0.8);
+    // He is small beside the stalk; the camera draws away and across, and the castle stands at the end of the land.
+    await G.shot({ pos: v(120, 12, 36), look: v(-10, 36, -420), fov: 40 }, 9, 'inOut');
+    await wait(0.5);
+    // Jack, in close: the moment he has been proved right.
+    G.cut({ pos: v(-7, 5.4, S().z - 12), look: v(S().x, 6.1, S().z), fov: 34 }); st.look = 0; W.paintJack(jackOut, { expr: 1 });
+    await wait(0.6); st.shiver = 0.7; await wait(0.7); st.shiver = 0;
+    await G.say('jack', 'A whole land above the clouds... and a castle at the end of it.');
+    W.paintJack(jackOut, { expr: 3 });
+    await G.say('jack', 'I told her there would be something at the top worth more than all her words. I was right.');
+    W.paintJack(jackOut, { expr: 1 });
+    await G.say('jack', 'Come on, then. Let’s see what the castle has to offer.');
+    // Round behind him, and the walk is his.
+    await G.shot({ pos: v(0, 10.4, S().z + 21.6), look: v(0, 3.5, S().z), fov: 50 }, 1.8, 'inOut');
     G.skipping = false; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); st.heading = Math.PI; st.look = 0; st.camA = Math.PI / 2; camPos.set(0, 0, 0);
-    st.free = true; st.mode = 'walk'; hud.style.display = 'block'; $('mwObj').style.display = 'block'; toast('WASD or the stick to walk · drag to look round · wheel or + / − to zoom', 6500);
+    st.free = true; st.mode = 'walk'; hud.style.display = 'block'; $('mwObj').style.display = 'block'; toast('WASD or the stick to walk (Shift to run) · drag to look round · wheel or + / − to zoom', 6500);
 
     // ── At the gate. ──
     async function gate() {
       st.free = false; st.walkN = 0; hud.style.display = 'none'; G.mode = 'cutscene'; document.body.classList.add('cutscene'); st.pos.x = clamp(st.pos.x, -26, 26); st.heading = Math.PI; const kk = K1;
       const zJ = st.pos.z; G.cut({ pos: v(st.pos.x + 5, 2.4, zJ + 40), look: v(0, 56, GATE_Z), fov: 56 }); st.look = -0.7; st.craned = 1;
-      G.say('narrator', 'The gate was wide. Too wide. The iron bars rose higher than the tallest tree, and he had to crane his neck to see the arch.');
-      await G.shot({ pos: v(st.pos.x + 4, 1.4, zJ + 30), look: v(0, 82, GATE_Z), fov: 62 }, 7, 'inOut');
-      await G.say('narrator', 'They looked untouched by time or rust, but worn by memory.');
+      await G.shot({ pos: v(st.pos.x + 4, 1.4, zJ + 30), look: v(0, 82, GATE_Z), fov: 62 }, 6, 'inOut'); await wait(0.8);
       G.cut({ pos: v(st.pos.x - 3, 3.4, zJ - 10), look: v(st.pos.x, 2.5, zJ), fov: 36 }); st.look = 0.1; st.craned = 0; W.paintJack(jackOut, { expr: 4 });
-      await G.say('narrator', 'His satchel felt heavier now. The belt tugged at his waist. The flask knocked against his knee. He frowned.');
-      await G.say('jack', 'It isn’t the world that’s grown. It’s me. I’m getting smaller.');
-      await G.say('narrator', 'The world wasn’t just bigger—he was smaller.');
+      await wait(0.8);
+      await G.say('jack', 'My satchel’s heavier... my belt, the flask... it isn’t the world that’s grown. It’s me. I’m getting smaller.'); await wait(0.5); await G.say('jack', 'Doesn’t matter. I’m not turning back now.');
       st.look = 0; W.paintJack(jackOut, { expr: 1 });
       G.cut({ pos: v(st.pos.x - 8, 3.6, zJ + 18), look: v(st.pos.x, 2.4, zJ - 6), fov: 42 });
-      G.say('narrator', 'But Jack didn’t turn back; he stepped through the gate, and the air shifted again.');
       // He goes through, and the camera goes with him.
       for (let i = 0; i < 150; i++) { st.pos.z -= 0.45 * (kk / K1); st.pos.x *= 0.98; st.walkN = 1; st.walkPh += 0.42; st.bob = 0.12; const u = i / 150; G.cut({ pos: v(st.pos.x - 6 + 4 * u, 3 + u, st.pos.z + 16), look: v(st.pos.x, 2.4, st.pos.z - 6), fov: 42 }); await wait(0.04); }
       st.walkN = 0; st.bob = 0; await wait(0.9);
       A && A.bell && A.bell(0.7); A && A.duckMusic && A.duckMusic(0.05, 1);
       for (let i = 0; i < 20; i++) { G.cut({ pos: v(st.pos.x - 2 + (Math.random() - 0.5) * 0.4, 4 + (Math.random() - 0.5) * 0.3, st.pos.z + 12), look: v(st.pos.x, 3, st.pos.z - 10), fov: 42 }); await wait(0.04); }
-      await G.say('narrator', 'Somewhere within the castle, a bell tolled.');
-      await G.say('narrator', 'Low.'); await G.say('narrator', 'Slow.'); await G.say('narrator', 'As if it had been waiting for him.');
-      await wait(1.2); await G.fade(true, 2.2); A && A.ambience({ wind: 0, birds: 0, fire: 0 });
+      await wait(3.4); await G.fade(true, 2.2); A && A.ambience({ wind: 0, birds: 0, fire: 0 });
       cleanup(); G.mode = 'end'; document.body.classList.remove('cutscene'); resolve({ gate: true });
     }
   });

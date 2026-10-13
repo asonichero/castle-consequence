@@ -9,7 +9,7 @@
 const THREE = root.THREE, B = root.Blocky, F = root.Farm, A = root.GameAudio, V3 = THREE.Vector3;
 const v = (x, y, z) => new V3(x, y, z), clamp = (x, a, b) => Math.max(a, Math.min(b, x)), lerp = (a, b, t) => a + (b - a) * t;
 const turn = (from, to, t) => { const d = ((to - from + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI; return from + d * t; };
-const SC = 0.95, WALK = 26, HEAVY = 15;
+const SC = 0.95, WALK = 26, RUN = 50, HEAVY = 15;
 const ZOOMS = [{ name: 'Close', d: 52 }, { name: 'Medium', d: 92 }, { name: 'Far', d: 150 }];
 const BOUNDS = { x0: -196, x1: 196, z0: -100, z1: 116 };
 const SOLID = [{ x0: -70, x1: 70, z0: -80, z1: 20 }, { x0: -66, x1: -54, z0: 24, z1: 36 }, { x0: -153, x1: -147, z0: 17, z1: 23 }, { x0: -99, x1: -93, z0: -73, z1: -67 }];      // the cottage, the barrel, the scarecrow, the tree
@@ -87,7 +87,8 @@ function run(G, W, tier) {
     BEANS.forEach(([n, c]) => { const i = document.createElement('i'); i.style.background = '#' + c.toString(16).padStart(6, '0'); i.title = n; $('gBeans').appendChild(i); });
     const toast = (t, ms = 3200) => { $('gToast').textContent = t; $('gToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
     const keys = {}, stick = { x: 0, y: 0 };
-    const KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right' };
+    const runB = document.createElement('button'); runB.textContent = 'Run'; runB.className = 'touchonly'; runB.onpointerdown = () => { keys.run = true; }; runB.onpointerup = runB.onpointerleave = runB.onpointercancel = () => { keys.run = false; }; document.getElementById('gBtns').appendChild(runB);
+    const KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', Shift: 'run' };
     const typing = e => e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
     const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } if (e.repeat) return; if (e.key === 'e' || e.key === 'E') interact(); else if (e.key === 'q' || e.key === 'Q') putDown(); else if (e.key === 'v' || e.key === 'V') cycleZoom(); };
     const ku = e => { const k = KM[e.key]; if (k) keys[k] = false; };
@@ -239,7 +240,7 @@ function run(G, W, tier) {
         if (Math.hypot(stick.x, stick.y) > 0.2) dir.addScaledVector(f, -stick.y).addScaledVector(r, stick.x);
         if (dir.lengthSq() > 0) {
           dir.normalize(); const want = Math.atan2(dir.x, dir.z); st.heading = turn(st.heading, want, Math.min(1, dt * 9));
-          const sp = (st.hold === 'rock' ? HEAVY : WALK) * SC, nx = st.pos.x + Math.sin(st.heading) * sp * dt, nz = st.pos.z + Math.cos(st.heading) * sp * dt;
+          const sp = (st.hold === 'rock' ? HEAVY : keys.run ? RUN : WALK) * SC, nx = st.pos.x + Math.sin(st.heading) * sp * dt, nz = st.pos.z + Math.cos(st.heading) * sp * dt;
           if (!blockedAt(nx, st.pos.z)) st.pos.x = nx; if (!blockedAt(st.pos.x, nz)) st.pos.z = nz; st.speedN = sp / SC;
         } else st.speedN = 0;
         aOut.speed = st.speedN; aOut.phase += st.speedN * SC * dt * 0.42 / 0.95;
