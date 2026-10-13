@@ -167,9 +167,9 @@ function interior() {
   window_('x', 376, -70, 40, 28, 54, -1, true, 1);
   { const g = at(0, 0, 0); B(44, 7, 12, '#5a4026', 0, 4, 0, g); B(44, 4, 12, '#b86a4a', 0, 9, 0, g); movable('windowBench', 'Window bench', g, { x: 368, z: -70, ry: Math.PI / 2 }); }
   { const g = at(0, 0, 0); box(30, 0.5, 20, rugTex(), 0, 0.3, 0, g); movable('parlourRug', 'Parlour rug', g, { x: 307, z: -59, ry: 0 }); }
-  // where the stairs to the tower will rise (not built yet): a small stair hall off the parlour, x 262..364, z -6..49
-  slab(262, -6, 364, 49, woodFloor(0xc8a880), warmM); wall('z', 49, 262, 364, warmM, []); wall('x', 262, -6, 49, warmM, []); wall('x', 364, -6, 49, warmM, []);
-  for (let i = 0; i < 4; i++) B(34 - i * 1.2, 4.6 * (i + 1), 6, '#8a6a44', 313, 2.3 * (i + 1), 42 - i * 5.6, room);
+  // where the stairs to the tower will rise (not built yet): a stair hall flush under the parlour, x 250..376, z -8..53 (shares the kitchen's east wall)
+  slab(250, -8, 376, 53, woodFloor(0xc8a880), warmM); wall('z', 53, 250, 376, warmM, []); wall('x', 376, -8, 53, warmM, []);
+  for (let i = 0; i < 4; i++) B(34 - i * 1.2, 4.6 * (i + 1), 6, '#8a6a44', 313, 2.3 * (i + 1), 46 - i * 5.6, room);
   // the narrow hallway: x 250..295, z -207..-109; and the tiled bathing room: x 295..382, z -202..-115
   slab(250, -207, 295, -109, woodFloor(0xc8a880), warmM); wall('x', 295, -207, -109, warmM, [[-175, -145, 0, 52]]);
   slab(295, -202, 382, -115, tileFloor(), warmM); wall('z', -202, 295, 382, warmM, []); wall('z', -115, 295, 382, warmM, []); wall('x', 382, -202, -115, warmM, [[-172, -145, 36, 54]]);
