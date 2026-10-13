@@ -7,16 +7,18 @@ root.__game = G;
 let W = G.worlds = root.Opening.build(G); W.market = root.Market.build(G, W);
 const rebuildWorlds = () => { W = G.worlds = root.Opening.build(G); W.market = root.Market.build(G, W); };
 const show = id => document.querySelectorAll('.screen').forEach(s => { if (s.id === id) s.classList.add('on'); else if (s.id !== 'dev') s.classList.remove('on'); });
-const hideAll = () => document.querySelectorAll('.screen').forEach(s => { if (s.id !== 'dev') s.classList.remove('on'); });
+const hideAll = () => { document.body.classList.remove('titlePic'); document.querySelectorAll('.screen').forEach(s => { if (s.id !== 'dev') s.classList.remove('on'); }); };
 $('dev').style.display = 'block';
 
 // The drone view is behind everything, from the first frame.
 G.setScene(W.ext); G.drone = root.Opening.DRONE; G.mode = 'title';
 
+const snap = world => G.snapshotFarm(world, root.Opening.DRONE);
 const toTitle = () => {
   G.mode = 'title'; G.setScene(W.ext); G.drone = root.Opening.DRONE; G.skipping = false; G.hideLine(); document.body.classList.remove('cutscene');
   $('fade').style.transition = 'opacity .8s ease'; $('fade').style.opacity = 0;
   $('bContinue').disabled = !G.loadSave(); show('title');
+  { const shot = G.loadSave() && G.titleShot(); $('titleShot').style.backgroundImage = shot ? 'url(' + shot + ')' : ''; document.body.classList.toggle('titlePic', !!shot); }
   if (A && A.ctx) { A.ambience({ wind: 0.5, birds: 0.5, fire: 0 }); A.duckMusic(1, 2); A.startMusic(); }
   $('dev').style.display = 'block';
 };
@@ -32,7 +34,7 @@ async function playOpening() {
   G.rerun = () => { rebuildWorlds(); return playOpening(); };       // (debug rewind: the opening runs again on fresh worlds)
   hideAll(); $('dev').style.display = 'none'; wake();
   await root.Opening.run(G, W);
-  G.skipping = false; G.save({ step: 'market-day', opening: true, size: 0.8 });
+  G.skipping = false; G.save({ step: 'market-day', opening: true, size: 0.8 }); snap(W.ext);
   await playMarket();
 }
 // Chapter One: the dialogue at the cottage door, the cow to wrangle, the closing scene. (It starts from black.)
@@ -41,7 +43,7 @@ async function playMarket() {
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60));
   const res = await root.Market.run(G, W, W.market);
-  G.skipping = false; G.save({ step: 'market-road', care: { cowStartles: res ? res.startles : 0 } });
+  G.skipping = false; G.save({ step: 'market-road', care: { cowStartles: res ? res.startles : 0 } }); snap(W.ext);
   await playRoad();
 }
 // Chapter Two: the winding road, the obstacles, the Peddler's cart and the trade. (It starts from black.)
@@ -50,7 +52,7 @@ async function playRoad(opts) {
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60));
   const res = await root.Road.run(G, opts);
-  G.skipping = false; G.save({ step: 'beans', care: Object.assign((G.loadSave() || {}).care || {}, { runSecs: res.runSecs, soothes: res.soothes, plants: res.plants }), choices: res.choices });
+  G.skipping = false; G.save({ step: 'beans', care: Object.assign((G.loadSave() || {}).care || {}, { runSecs: res.runSecs, soothes: res.soothes, plants: res.plants }), choices: res.choices }); snap(W.ext);
   await playNight(res.choices);
 }
 // The close of Chapter Two: the cottage at night (Jack's account, his Mother's reply). The choices he made at the cart set how it goes.
@@ -59,10 +61,10 @@ async function playNight(choices) {
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60));
   const res = await root.Night.run(G, choices);
-  G.skipping = false; G.save({ step: 'planted', night: { tier: res.tier, brash: res.brash } });
+  G.skipping = false; G.save({ step: 'planted', night: { tier: res.tier, brash: res.brash } }); snap(res.world.world);
   if (root.Correction && res.world) await root.Correction.run(G, res.world, res.tier);
-  if (root.Garden && res.world) { G.save({ step: 'garden', night: { tier: res.tier, brash: res.brash } }); await root.Garden.run(G, res.world, res.tier); G.save({ step: 'garden-done' }); }
-  if (root.Chapter3 && res.world) { await root.Chapter3.run(G, res.world); G.save({ step: 'beanstalk' }); }
+  if (root.Garden && res.world) { G.save({ step: 'garden', night: { tier: res.tier, brash: res.brash } }); await root.Garden.run(G, res.world, res.tier); G.save({ step: 'garden-done' }); snap(res.world.world); }
+  if (root.Chapter3 && res.world) { await root.Chapter3.run(G, res.world); G.save({ step: 'beanstalk' }); snap(res.world.world); }
   showEnd();
 }
 // Debug: the correction on its own, with Jack standing before his Mother as the night scene leaves him.
@@ -117,10 +119,24 @@ setInterval(() => { const on = G.debugCtl && G.mode === 'cutscene'; document.bod
 $('bNew').onclick = () => { G.noSave = false; if (G.loadSave() && !confirm('Start a new game? Your saved game will be replaced.')) return; G.clearSave(); playOpening(); };
 $('bContinue').onclick = () => { G.noSave = false; wake(); const sv = G.loadSave() || {}; if (sv.step === 'market-day') playMarket(); else if (sv.step === 'market-road') playRoad(); else if (sv.step === 'garden-done' || sv.step === 'beanstalk') playChapter3(); else if (sv.step === 'beans') playNight((sv.choices) || []); else { hideAll(); showEnd(); } };
 $('bSettings').onclick = () => { wake(); show('settings'); };
-$('bBack').onclick = () => { G.saveSettings(); show('title'); };
+$('bBack').onclick = () => { G.saveSettings(); if (pmOpen()) pmBack(); else show('title'); };
 $('bTitle').onclick = toTitle;
 $('skip').onclick = () => { G.skipping = true; };
 $('bReset').onclick = () => { if (confirm('Delete your saved game?')) { G.clearSave(); $('bContinue').disabled = true; } };
+
+// The pause menu: the Menu button, or Escape, during anything playable. It stops the scene where it stands; its settings open in the same pop-up.
+const setCard = $('settings').firstElementChild, pm = $('pmenu');
+const pmOpen = () => pm.classList.contains('on');
+const playable = () => !['title', 'notice', 'end'].includes(G.mode) && !document.querySelector('.screen.on:not(#dev):not(#pmenu)');
+let pmWas = false;
+function pmShow() { if (pmOpen() || !playable()) return; pmWas = G.paused; G.pause(true); pmBack(); pm.classList.add('on'); document.body.classList.add('pm'); }
+function pmBack() { if (setCard.parentNode === pm) $('settings').appendChild(setCard); $('pmMain').style.display = ''; }
+function pmHide() { pm.classList.remove('on'); document.body.classList.remove('pm'); pmBack(); if (!pmWas) G.pause(false); }
+$('menuBtn').onclick = pmShow; $('pmResume').onclick = pmHide;
+$('pmSettings').onclick = () => { $('pmMain').style.display = 'none'; pm.appendChild(setCard); };
+$('pmTitle').onclick = () => { if (confirm('Return to the title? Your last save point is kept; progress within this scene is lost.')) location.reload(); };
+root.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (pmOpen()) { pmHide(); e.preventDefault(); } else if (playable()) { pmShow(); e.preventDefault(); } });
+setInterval(() => document.body.classList.toggle('inplay', playable() && !pmOpen()), 150);
 
 // Settings controls.
 const vol = [['vMaster', 'master'], ['vMusic', 'music'], ['vSfx', 'sfx'], ['vVoice', 'voice']];

@@ -36,7 +36,7 @@
   .card.narrow { max-width: 340px; width: min(340px, 90vw); max-height: 92vh; overflow-y: auto; }
   #subs { position: fixed; left: 50%; bottom: 5vh; transform: translateX(-50%); width: min(780px, 92vw); display: none; z-index: 20; background: rgba(8,8,12,0.78); border: 1px solid #4a4d58; border-radius: 8px; padding: 12px 18px 14px; font-size: clamp(15px, 2.2vw, 20px); line-height: 1.5; }
   #subWho { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 4px; } #subText { min-height: 1.5em; }
-  #skip { position: fixed; right: 14px; top: 12px; z-index: 35; display: none; opacity: .75; font-size: 14px; padding: 7px 12px; } body.cutscene #skip { display: block; }
+  #skip { position: fixed; right: 14px; top: 56px; z-index: 35; display: none; opacity: .75; font-size: 14px; padding: 7px 12px; } body.cutscene #skip { display: block; }
   #tapHint { position: fixed; left: 50%; bottom: 1.6vh; transform: translateX(-50%); font-size: 12px; opacity: .55; z-index: 19; display: none; } body.cutscene #tapHint { display: block; }
   #subChoices { display: none; margin-top: 8px; } #subChoices .choice { display: block; width: 100%; text-align: left; margin: 6px 0 0; padding: 10px 14px; font-size: clamp(14px, 1.9vw, 17px); background: rgba(40,44,56,0.9); }
   #subGate { display: none; margin: 10px 0 0; float: right; font-size: 18px; padding: 10px 30px; }
@@ -54,6 +54,9 @@
   .touchonly { display: none; } @media (pointer: coarse) { .mstick { display: block; } .touchonly { display: block; } }
   #dbgBar { position: fixed; left: 50%; top: 10px; transform: translateX(-50%); z-index: 36; display: none; align-items: center; gap: 4px; background: rgba(10,12,16,.82); border: 1px solid #4a4d58; border-radius: 8px; padding: 3px 8px; font-size: 12px; } body.dbg #dbgBar { display: flex; }
   #dbgBar button { margin: 0; padding: 4px 11px; font-size: 14px; } #dbgInfo { opacity: .7; margin-left: 6px; min-width: 64px; }
+  #menuBtn { position: fixed; right: 12px; top: 10px; z-index: 37; margin: 0; padding: 7px 14px; font-size: 14px; background: rgba(20,22,30,0.85); display: none; } body.inplay #menuBtn { display: block; } body.pm #menuBtn { display: none; }
+  #pmenu { background: rgba(8,10,14,0.78); align-items: center; justify-content: center; z-index: 50; } #pmenu #bReset { display: none; } #pmenu .card button { display: block; width: 100%; margin: 10px 0 0; }
+  #titleShot { position: fixed; inset: 0; z-index: 29; display: none; background-size: cover; background-position: center; } body.titlePic #titleShot { display: block; }
   body.playing #tapHint, body.playing #skip, body.playing #ver { display: none; }
 </style>
 </head>
@@ -72,6 +75,7 @@
   </div>
 </div>
 
+<div id="titleShot"></div>
 <div id="title" class="screen">
   <h1>Climbing Toward Consequence</h1>
   <div class="sub">Jack and the Beanstalk, for grown-ups</div>
@@ -82,7 +86,7 @@
   </div>
 </div>
 <div id="dev" class="screen-dev"><a href="level.html">Test level: the golden hen</a><a href="lap.html">Lap scene</a><a href="blocky.html">Models</a><select id="levelSel" title="Level select (does not touch your save)"><option value="">Level select&hellip;</option><option value="opening">The opening</option><option value="market">Chapter One: Market Day</option><option value="road">Chapter Two: The Market Road</option><option value="cart">Chapter Two: the Peddler's cart</option><option value="nightH">Chapter Two: night, humble</option><option value="nightC">Chapter Two: night, cheeky</option><option value="nightB">Chapter Two: night, brash (the birch)</option><option value="gardenH">Chapter Two: the garden, humble</option><option value="gardenC">Chapter Two: the garden, cheeky</option><option value="gardenB">Chapter Two: the garden, brash</option><option value="ch3">Chapter Three: the beanstalk (opening)</option><option value="corrH">Chapter Two: the correction, humble</option><option value="corrC">Chapter Two: the correction, cheeky</option><option value="corrB">Chapter Two: the correction, brash (the birch)</option></select></div>
-<div id="ver">v0.3 &middot; build 59 &middot; 2026-10-13</div>
+<div id="ver">v0.3 &middot; build 60 &middot; 2026-10-13</div>
 
 <div id="settings" class="screen">
   <div class="card narrow">
@@ -99,6 +103,15 @@
   </div>
 </div>
 
+<div id="pmenu" class="screen">
+  <div class="card narrow" id="pmMain">
+    <h2>Paused</h2>
+    <button class="primary" id="pmResume">Resume</button>
+    <button id="pmSettings">Settings</button>
+    <button id="pmTitle">Return to title</button>
+  </div>
+</div>
+
 <div id="endcard" class="screen">
   <div class="card" style="text-align:center">
     <h2 id="endTitle">Chapter One &mdash; Market Day</h2>
@@ -111,6 +124,7 @@
 <div id="subs"><div id="subWho"></div><div id="subText"></div><button id="subGate" class="primary">Continue</button><div id="subChoices"></div></div>
 <div id="tapHint">tap or press space to move on</div>
 <button id="skip">Skip scene</button>
+<button id="menuBtn">Menu</button>
 <div id="dbgBar"><button id="dbgBack" title="Back to the start of the previous beat (,)">⏮</button><button id="dbgPlay" title="Pause / play (P)">❚❚</button><button id="dbgFwd" title="On to the next beat (.)">⏭</button><span id="dbgInfo"></span></div>
 
 <script src="vendor/three.min.js"></script>

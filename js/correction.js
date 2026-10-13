@@ -16,7 +16,7 @@ const RED = { red: true };
 function ui() {
   if (document.getElementById('corrUI')) return document.getElementById('corrUI');
   const st = document.createElement('style');
-  st.textContent = `#corrUI { position: fixed; right: 12px; top: 10px; z-index: 36; display: none; flex-direction: row; align-items: center; gap: 12px; }
+  st.textContent = `#corrUI { position: fixed; right: 92px; top: 10px; z-index: 36; display: none; flex-direction: row; align-items: center; gap: 12px; }
     #corrUI.on { display: flex; }
     #corrCam { width: 74px; height: 74px; margin: 0; padding: 0; border-radius: 50%; border: 3px solid #fff; background: rgba(20,22,30,0.88); cursor: pointer; display: flex; align-items: center; justify-content: center; filter: drop-shadow(0 2px 6px #000); }
     #corrCam:hover { background: rgba(60,66,90,0.95); } #corrCam svg { width: 40px; height: 40px; fill: none; stroke: #fff; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }

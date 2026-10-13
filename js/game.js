@@ -180,7 +180,22 @@ function create(els) {
 
   G.store = store; G.SAVE_KEY = SAVE_KEY; G.NOTICE_KEY = NOTICE_KEY; G.saveSettings = () => store.set(SET_KEY, G.settings);
   G.save = data => G.noSave || store.set(SAVE_KEY, Object.assign(store.get(SAVE_KEY, {}), data, { savedAt: Date.now() }));
-  G.loadSave = () => store.get(SAVE_KEY, null); G.clearSave = () => store.del(SAVE_KEY);
+  const SHOT_KEY = 'castle-consequence:titleshot:v1';
+  G.loadSave = () => store.get(SAVE_KEY, null); G.clearSave = () => { store.del(SAVE_KEY); store.del(SHOT_KEY); };
+  // The wide view of the farm, as it stands now, kept for the title screen (rendered once from the drone's first position, then shrunk to a JPEG).
+  G.titleShot = () => store.get(SHOT_KEY, null);
+  G.snapshotFarm = (world, drone) => {
+    if (G.noSave || !world || !world.scene || !drone) return;
+    try {
+      const s = drone(0), old = { fov: camera.fov, p: camera.position.clone() };
+      camera.position.copy(s.pos); camera.fov = s.fov; camera.updateProjectionMatrix(); camera.lookAt(s.look);
+      renderer.render(world.scene, camera);
+      const c = document.createElement('canvas'); c.width = 1280; c.height = Math.round(1280 * renderer.domElement.height / renderer.domElement.width);
+      c.getContext('2d').drawImage(renderer.domElement, 0, 0, c.width, c.height);
+      store.set(SHOT_KEY, c.toDataURL('image/jpeg', 0.78));
+      camera.position.copy(old.p); camera.fov = old.fov; camera.updateProjectionMatrix();
+    } catch (e) { /* no storage / no canvas: the title keeps its live view */ }
+  };
   return G;
 }
 
