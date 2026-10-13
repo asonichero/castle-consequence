@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Climbing Toward Consequence — pose editor: Gerda holding Jack</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #14181f; font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; color: #e8e6e3; }
+  #view { position: fixed; inset: 0 340px 0 0; }
+  #panel { position: fixed; top: 0; right: 0; bottom: 0; width: 340px; box-sizing: border-box; padding: 12px 14px; overflow-y: auto; background: rgba(20,20,26,0.96); border-left: 1px solid #2c2c36; font-size: 12px; }
+  h1 { font-size: 15px; margin: 0 0 4px; } h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #9aa0ac; margin: 14px 0 6px; border-bottom: 1px solid #2c2c36; padding-bottom: 3px; }
+  .sub { color: #8a8a96; font-size: 11px; line-height: 1.5; } button { background: #2e2e3a; color: #e8e6e3; border: 1px solid #454555; border-radius: 4px; padding: 5px 9px; font-size: 12px; cursor: pointer; margin: 2px 2px 2px 0; } button:hover { background: #3a3a48; }
+  .row { display: grid; grid-template-columns: 78px 1fr 46px; align-items: center; gap: 6px; margin: 2px 0; } .row input[type=range] { width: 100%; margin: 0; } .row output { text-align: right; color: #c9c9d4; font-variant-numeric: tabular-nums; }
+  textarea { width: 100%; height: 150px; background: #101218; color: #cfe0cf; border: 1px solid #333; font: 11px/1.4 ui-monospace, monospace; box-sizing: border-box; }
+</style>
+</head>
+<body>
+<div id="view"></div>
+<aside id="panel">
+  <h1>Gerda holding Jack</h1>
+  <div class="sub">Jack stands at a tenth of his size in her right hand: he is fixed to her wrist, so he follows whatever her arm does. Drag to orbit, wheel to zoom. Pose her, then Copy pose and paste it over <b>js/gerda-pose.js</b>.</div>
+  <div><button data-v="front">Front</button><button data-v="side">Side</button><button data-v="back">Back</button><button data-v="top">Top</button><button data-v="hand">Close on the hand</button></div>
+  <div id="sl"></div>
+  <h3>Pose</h3>
+  <div><button id="copy">Copy pose</button><button id="apply">Apply pasted</button><button id="draft">Keep draft</button><button id="reset">Reset</button></div>
+  <textarea id="out" spellcheck="false"></textarea>
+  <div class="sub">A draft is kept in this browser and reopens here. The game reads js/gerda-pose.js, so the pose only reaches the game once pasted there.</div>
+</aside>
+<script src="vendor/three.min.js"></script>
+<script src="vendor/OrbitControls.js"></script>
+<script src="js/blocky.js"></script>
+<script src="js/gerda-pose.js"></script>
+<script>
+(function () {
+'use strict';
+const $ = id => document.getElementById(id), THREE = window.THREE, B = window.Blocky, DRAFT = 'castle-consequence:gerdapose:draft';
+const DEF = JSON.parse(JSON.stringify(window.GerdaHold)); let P = JSON.parse(JSON.stringify(DEF)); try { const d = JSON.parse(localStorage.getItem(DRAFT)); if (d && d.gerda && d.jack) P = d; } catch (e) {}
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); renderer.outputEncoding = THREE.sRGBEncoding; $('view').appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x1b2028); scene.add(new THREE.HemisphereLight(0xfff3e0, 0x556070, 0.9)); const sun = new THREE.DirectionalLight(0xffffff, 0.7); sun.position.set(60, 120, 80); scene.add(sun);
+const grid = new THREE.GridHelper(120, 24, 0x88aa88, 0x445544); scene.add(grid);
+const camera = new THREE.PerspectiveCamera(40, 1, 0.5, 2000), controls = new THREE.OrbitControls(camera, renderer.domElement); controls.enableDamping = true;
+const FULL = 1.4, SC = 0.95, JS = 0.1;                                                         // (her scale in the castle, Jack's model scale, and the tenth he is at)
+const gerda = B.makeGerda('Fine'); gerda.root.scale.setScalar(FULL); scene.add(gerda.root);
+const jack = B.makeJack(); B.paintJackInto(jack.skin, { outfit: 'Outdoor', expr: 1, trousers: 'up', drawers: 'up' }); jack.tex.needsUpdate = true; jack.root.scale.setScalar(SC * JS / FULL); gerda.wrist.add(jack.root);
+const HOLD = new THREE.Group(); scene.add(HOLD);
+const SPECS = {
+  'Gerda: body': [['gerda', 'hipsY', 'hips down', -12, 6, 0.1], ['gerda', 'torsoX', 'lean forward', -1, 1.6, 0.01], ['gerda', 'torsoY', 'turn', -1, 1, 0.01], ['gerda', 'torsoZ', 'tilt', -0.6, 0.6, 0.01], ['gerda', 'neckX', 'head nod', -1, 1, 0.01], ['gerda', 'neckY', 'head turn', -1, 1, 0.01]],
+  'Gerda: right arm (the hand that holds)': [['gerda', 'armRx', 'arm forward', -3, 1, 0.01], ['gerda', 'armRz', 'arm out', -1.5, 1.5, 0.01], ['gerda', 'elbowX', 'elbow bend', -2.8, 0.4, 0.01], ['gerda', 'wristY', 'wrist twist', -1.6, 1.6, 0.01]],
+  'Gerda: left arm and legs': [['gerda', 'armLx', 'left arm', -2.5, 1, 0.01], ['gerda', 'armLz', 'left arm out', -1.5, 1.5, 0.01], ['gerda', 'legLx', 'left thigh', -1, 1, 0.01], ['gerda', 'legLknee', 'left knee', -0.2, 1.6, 0.01], ['gerda', 'legRx', 'right thigh', -1, 1, 0.01], ['gerda', 'legRknee', 'right knee', -0.2, 1.6, 0.01]],
+  'Jack: where he stands in her hand': [['jack', 'px', 'x', -10, 10, 0.05], ['jack', 'py', 'y', -14, 4, 0.05], ['jack', 'pz', 'z', -8, 8, 0.05], ['jack', 'rx', 'turn x', -3.2, 3.2, 0.01], ['jack', 'ry', 'turn y', -3.2, 3.2, 0.01], ['jack', 'rz', 'turn z', -3.2, 3.2, 0.01]],
+  'Jack: his own limbs': [['jack', 'armLx', 'left arm', -3, 1.5, 0.01], ['jack', 'armRx', 'right arm', -3, 1.5, 0.01], ['jack', 'armLz', 'left out', -1.5, 1.5, 0.01], ['jack', 'armRz', 'right out', -1.5, 1.5, 0.01], ['jack', 'legLx', 'left thigh', -1.5, 1.5, 0.01], ['jack', 'legRx', 'right thigh', -1.5, 1.5, 0.01], ['jack', 'kneeL', 'left knee', -0.2, 1.8, 0.01], ['jack', 'kneeR', 'right knee', -0.2, 1.8, 0.01], ['jack', 'torsoX', 'lean', -1, 1, 0.01], ['jack', 'neckX', 'head', -1, 1, 0.01]],
+};
+const outs = {};
+function build() { const host = $('sl'); host.innerHTML = ''; for (const [title, rows] of Object.entries(SPECS)) { const h = document.createElement('h3'); h.textContent = title; host.appendChild(h);
+  for (const [who, key, label, mn, mx, stp] of rows) { const r = document.createElement('div'); r.className = 'row'; const l = document.createElement('span'); l.textContent = label; const i = document.createElement('input'); i.type = 'range'; i.min = mn; i.max = mx; i.step = stp; i.value = P[who][key]; const o = document.createElement('output');
+    i.oninput = () => { P[who][key] = +i.value; o.textContent = (+i.value).toFixed(2); refresh(); }; o.textContent = (+i.value).toFixed(2); r.append(l, i, o); host.appendChild(r); outs[who + key] = { i, o }; } } }
+function sync() { for (const who of ['gerda', 'jack']) for (const k in P[who]) { const e = outs[who + k]; if (e) { e.i.value = P[who][k]; e.o.textContent = (+P[who][k]).toFixed(2); } } }
+function pose() {
+  const g = P.gerda, j = P.jack; gerda.apply();
+  gerda.hips.position.y -= g.hipsY; gerda.torso.rotation.set(g.torsoX, g.torsoY, g.torsoZ); gerda.neck.rotation.set(g.neckX, g.neckY, 0);
+  gerda.armR.rotation.set(g.armRx, 0, g.armRz); gerda.elbow.rotation.x = g.elbowX; gerda.wrist.rotation.y = g.wristY; gerda.armL.rotation.set(g.armLx, 0, g.armLz);
+  gerda.legL.thigh.rotation.x = g.legLx; gerda.legL.knee.rotation.x = g.legLknee; gerda.legR.thigh.rotation.x = g.legRx; gerda.legR.knee.rotation.x = g.legRknee;
+  jack.apply(); jack.root.position.set(j.px, j.py, j.pz); jack.root.rotation.set(j.rx, j.ry, j.rz);
+  jack.armL.rotation.set(j.armLx, 0, j.armLz); jack.armR.rotation.set(j.armRx, 0, j.armRz); jack.legL.thigh.rotation.x = j.legLx; jack.legR.thigh.rotation.x = j.legRx; jack.legL.knee.rotation.x = j.kneeL; jack.legR.knee.rotation.x = j.kneeR;
+  jack.torso.rotation.x = j.torsoX; jack.neck.rotation.x = j.neckX;
+}
+const text = () => '// Climbing Toward Consequence — how Gerda holds Jack (at a tenth of his size) in one hand. Written by pose-editor.html (Copy pose): paste it over this file.\n(function (root) {\n\'use strict\';\nroot.GerdaHold = ' + JSON.stringify(P, null, 1).replace(/\n\s+/g, ' ').replace(/ \}/g, ' }').replace(/\{ "gerda"/, '{\n  "gerda"').replace(/, "jack"/, ',\n  "jack"').replace(/ \}$/, '\n}') + ';\n})(typeof window !== \'undefined\' ? window : globalThis);\n';
+function refresh() { pose(); $('out').value = text(); }
+const VIEWS = { front: [[0, 34, 90], [0, 26, 0]], side: [[90, 34, 0], [0, 26, 0]], back: [[0, 34, -90], [0, 26, 0]], top: [[0, 130, 8], [0, 20, 0]] };
+const view = k => { if (k === 'hand') { const p = new THREE.Vector3(); jack.root.getWorldPosition(p); camera.position.set(p.x + 22, p.y + 8, p.z + 26); controls.target.copy(p); } else { camera.position.set(...VIEWS[k][0]); controls.target.set(...VIEWS[k][1]); } controls.update(); };
+document.querySelectorAll('[data-v]').forEach(b => b.onclick = () => view(b.dataset.v));
+$('copy').onclick = () => { $('out').select(); try { document.execCommand('copy'); } catch (e) {} }; $('draft').onclick = () => { try { localStorage.setItem(DRAFT, JSON.stringify(P)); } catch (e) {} };
+$('reset').onclick = () => { P = JSON.parse(JSON.stringify(DEF)); sync(); refresh(); }; $('apply').onclick = () => { try { const m = /(\{[\s\S]*\})\s*;/.exec($('out').value); const d = JSON.parse(m[1]); if (d.gerda && d.jack) { P = d; sync(); refresh(); } } catch (e) { alert('Could not read that pose.'); } };
+$('out').readOnly = false;
+build(); view('front'); refresh();
+const size = () => { const w = $('view').clientWidth, h = $('view').clientHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); }; addEventListener('resize', size); size();
+(function loop() { requestAnimationFrame(loop); pose(); controls.update(); renderer.render(scene, camera); })();
+window.__pose = { P, gerda, jack };
+})();
+</script>
+</body>
+</html>
