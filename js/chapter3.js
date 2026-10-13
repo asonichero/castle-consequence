@@ -110,7 +110,13 @@ async function run(G, W, opts) {
     const st = { pos: v(34, 0, 56), heading: Math.PI, yaw: Math.PI, pitch: 0.4, zoom: 1, dressed: false, knife: false, act: null, toastAt: 0, capAt: 0, stairsNear: false, leaving: false };
     const ZOOMS = [{ name: 'Close', d: 40 }, { name: 'Medium', d: 64 }, { name: 'Far', d: 92 }];
     const WARD = v(55, 0, -34), DRAW = v(55, 0, 4), STAIRS = v(-62, 0, 22);
-    const SOLID = [[-58, 50, -10, 74], [-76, -36, -54, 14], [58, -46, 76, -22], [58, -12, 76, 20], [30, 19, 62, 41], [-42, -42, -28, -28], [20, -30, 32, -18], [-74, -44, -61, -32], [-74, -57, -61, -45], [-74, -74, -56, -56], [-44, -72, -30, -62], [58, -74, 74, -58], [-24, -76, 24, -58], [60, 60, 76, 76]];
+    // What blocks him: the fixed furniture, and the movable pieces wherever the room layout has put them (half-widths across x and z, with the piece turned a quarter or not).
+    const SOLID = [[58, -46, 76, -22], [58, -12, 76, 20], [-24, -76, 24, -58]];            // (the wardrobe, the chest of drawers, the hearth)
+    for (const [key, hx, hz, z0, z1] of [['table', 15, 10], ['chair', 7, 7], ['stool', 6, 6], ['sack1', 6, 4.5], ['sack2', 6, 4.5], ['sack3', 6, 4.5], ['barrel', 7, 7], ['crate', 6, 6], ['broom', 5, 5], ['bed', 23, 10.7], ['stairs', 9, 0, -44, 4]]) {
+      const it = int.items[key]; if (!it) continue; const g = it.g, q = Math.abs(Math.sin(g.rotation.y)) > 0.7, ax = q ? hz : hx, az = q ? hx : hz;
+      if (key === 'stairs') SOLID.push([g.position.x - hx, g.position.z + z0, g.position.x + hx, g.position.z + z1]); else SOLID.push([g.position.x - ax, g.position.z - az, g.position.x + ax, g.position.z + az]);
+    }
+    if (int.items.stairs) STAIRS.set(int.items.stairs.g.position.x, 0, int.items.stairs.g.position.z + 12);
     const blocked = (x, z) => { if (Math.abs(x) > 69 || z < -69 || z > 76) return true; if (z > 69 && Math.abs(x - 34) > 9) return true; for (const [x0, z0, x1, z1] of SOLID) if (x > x0 - 4 && x < x1 + 4 && z > z0 - 4 && z < z1 + 4) return true; return false; };
     const knife = new THREE.Group(); F.box(1.2, 8, 0.8, F.plain('#b9bfc8'), 0, -4.5, 0, knife); F.box(1.6, 3.6, 1.2, F.plain('#4a3626'), 0, 0, 0, knife); F.box(3, 0.7, 1.4, F.plain('#b8923a'), 0, -1.8, 0, knife); knife.position.set(-5.6, 2, 0.4); knife.visible = false; jackIn.hips.add(knife);
     const satchel = new THREE.Group(), leather = F.plain('#8a6a42');                                  // (worn across the body, the bag at the right hip)
