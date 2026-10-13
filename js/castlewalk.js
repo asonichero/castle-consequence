@@ -42,11 +42,12 @@ function run(G, W, opts) {
     const world = { scene, update(dt, t) { M.update(dt, t); aOut.t += dt; root.Blocky.step(jackOut, dt); } };
     // two more horses' worth of toys are not wanted here: one rocking horse is all the nursery has (see castle.js)
     const C = collect(M.room, ceiling);
+    const things = []; if (story) { M.room.updateMatrixWorld(true); M.room.traverse(o => { if (o.userData && o.userData.item) { const w = new V3(); o.getWorldPosition(w); things.push(Object.assign({ o, pos: w }, o.userData.item)); } }); }
     scene.add(jackOut.root); jackOut.root.visible = true; W.paintJack(jackOut, { expr: 0 }); root.Meadow && root.Meadow.addGear && root.Meadow.addGear(jackOut);
     G.setScene(world); G.drone = null; if (!story) G.noSave = true;
     camera.near = 0.4; camera.far = 1600; camera.updateProjectionMatrix(); let nearS = 0;
     A && A.ambience({ wind: 0, birds: 0, fire: 0.2 });
-    const st = { pos: v(0, 0, story ? 98 : 70), heading: Math.PI, walkN: 0, walkPh: 0, camA: Math.PI / 2, pitch: 0.35, fpPitch: 0, zoom: 1, vy: 0, y: 0, jumpReq: false, s: story ? (opts.scale || 0.1) : FULL, fp: false, scene: false, perch: null, air: false, cl: null, mant: null, stam: 1, climbPh: 0, toastAt: 0 };
+    const st = { pos: v(0, 0, story ? 98 : 70), heading: Math.PI, walkN: 0, walkPh: 0, camA: Math.PI / 2, pitch: 0.35, fpPitch: 0, zoom: 1, vy: 0, y: 0, jumpReq: false, s: story ? (opts.scale || 0.1) : FULL, fp: false, scene: false, actReq: false, putReq: false, eaten: 0, perch: null, air: false, cl: null, mant: null, stam: 1, climbPh: 0, toastAt: 0 };
     jackOut.after = r => {
       const w = Math.sin(st.walkPh) * 0.7 * st.walkN;
       r.legL.thigh.rotation.x = w; r.legR.thigh.rotation.x = -w; r.legL.knee.rotation.x = 0; r.legR.knee.rotation.x = 0;
@@ -65,10 +66,12 @@ function run(G, W, opts) {
       #cwStick { position: absolute; left: 22px; bottom: 26px; width: 120px; height: 120px; border-radius: 50%; background: rgba(20,22,28,0.45); border: 2px solid rgba(230,196,106,0.55); touch-action: none; display: none; pointer-events: auto; }
       #cwKnob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(230,196,106,0.75); pointer-events: none; } @media (pointer: coarse) { #cwStick { display: block; } }
       #cwStamW { position: absolute; left: 50%; bottom: 14vh; transform: translateX(-50%); width: 160px; height: 10px; background: rgba(10,12,16,0.7); border: 1px solid #4a4d58; border-radius: 5px; display: none; overflow: hidden; } #cwStam { height: 100%; width: 100%; background: #e6c46a; }
+      #cwPrompt { position: absolute; left: 50%; bottom: 30vh; transform: translateX(-50%); background: rgba(10,12,16,0.82); border: 1px solid #c9a84c; color: #f3e4b0; padding: 6px 14px; border-radius: 8px; font-size: 15px; display: none; white-space: nowrap; }
+      #cwObjt { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(10,12,16,0.7); border: 1px solid #4a4d58; border-radius: 8px; padding: 8px 16px; font-size: 16px; display: none; }
       #cwCross { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: rgba(255,255,255,0.7); display: none; }`;
     document.head.appendChild(css);
     const hud = document.createElement('div'); hud.id = 'cwHud';
-    hud.innerHTML = '<div id="cwPanel"><label>Jack’s size: <b id="cwPct">100%</b><br><input id="cwScale" type="range" min="5" max="150" step="1" value="100"></label><select id="cwGo"><option value="">Go to…</option></select></div><div id="cwStamW"><div id="cwStam"></div></div><div id="cwCross"></div><div id="cwToast"></div><div id="cwStick"><div id="cwKnob"></div></div><div id="cwBtns"><button id="cwJump" class="touchonly">Jump</button><button id="cwView">View: Third person</button><button id="cwZoom">Zoom</button></div>';
+    hud.innerHTML = '<div id="cwPanel"><label>Jack’s size: <b id="cwPct">100%</b><br><input id="cwScale" type="range" min="5" max="150" step="1" value="100"></label><select id="cwGo"><option value="">Go to…</option></select></div><div id="cwObjt"></div><div id="cwPrompt"></div><div id="cwStamW"><div id="cwStam"></div></div><div id="cwCross"></div><div id="cwToast"></div><div id="cwStick"><div id="cwKnob"></div></div><div id="cwBtns"><button id="cwJump" class="touchonly">Jump</button><button id="cwView">View: Third person</button><button id="cwZoom">Zoom</button></div>';
     document.body.appendChild(hud);
     const $ = id => document.getElementById(id);
     const toast = (t, ms = 6000) => { $('cwToast').textContent = t; $('cwToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
@@ -78,7 +81,7 @@ function run(G, W, opts) {
     const ZOOMS = [{ name: 'Close', d: 52 }, { name: 'Medium', d: 92 }, { name: 'Far', d: 150 }, { name: 'Wide', d: 520 }];
     function cycleZoom(dir) { st.zoom = (st.zoom + (dir || 1) + ZOOMS.length) % ZOOMS.length; $('cwZoom').textContent = 'Zoom: ' + ZOOMS[st.zoom].name; }
     function toggleView() { st.fp = !st.fp; $('cwView').textContent = 'View: ' + (st.fp ? 'First person' : 'Third person'); $('cwCross').style.display = st.fp ? 'block' : 'none'; jackOut.root.visible = !st.fp; if (st.fp) st.fpPitch = 0; }
-    const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } if (e.key === ' ') { keys.space = true; e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } if (e.repeat) return; if (e.key === ' ') st.jumpReq = true; if (e.key === 'v' || e.key === 'V') cycleZoom(); if (e.key === 'c' || e.key === 'C') toggleView(); }, ku = e => { const k = KM[e.key]; if (k) keys[k] = false; if (e.key === ' ') keys.space = false; };
+    const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } if (e.key === ' ') { keys.space = true; e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } if (e.repeat) return; if (e.key === ' ') st.jumpReq = true; if (e.key === 'v' || e.key === 'V') cycleZoom(); if (e.key === 'c' || e.key === 'C') toggleView(); if (e.key === 'e' || e.key === 'E') st.actReq = true; if (e.key === 'q' || e.key === 'Q') st.putReq = true; }, ku = e => { const k = KM[e.key]; if (k) keys[k] = false; if (e.key === ' ') keys.space = false; };
     root.addEventListener('keydown', kd); root.addEventListener('keyup', ku);
     $('cwZoom').onclick = () => cycleZoom(); $('cwZoom').textContent = 'Zoom: ' + ZOOMS[st.zoom].name; $('cwView').onclick = toggleView; $('cwJump').onpointerdown = e => { e.preventDefault(); st.jumpReq = true; keys.space = true; }; $('cwJump').onpointerup = $('cwJump').onpointerleave = $('cwJump').onpointercancel = () => { keys.space = false; };
     $('cwScale').oninput = () => { st.s = +$('cwScale').value / 100 * FULL; $('cwPct').textContent = Math.round(st.s / FULL * 100) + '%'; };
@@ -105,6 +108,51 @@ function run(G, W, opts) {
     const ceilAt = p => (Math.abs(p.x) < 92 && Math.abs(p.z) < 112) ? root.Castle.HH : M.H;                     // (the hall's ceiling is higher)
     const camBlocked = (p, s) => { if (p.y > ceilAt(p) - 9) return true; for (const e of C.near(p.x, p.z, 3)) if (e.y1 - e.y0 > 30 && p.x > e.x0 - 1.5 * s && p.x < e.x1 + 1.5 * s && p.z > e.z0 - 1.5 * s && p.z < e.z1 + 1.5 * s && p.y > e.y0 && p.y < e.y1) return true; return false; };
 
+    // ── The kitchen table: things to look at, crumbs to take or leave, the loaf that is not his, and then footsteps overhead. ──
+    const say = t => G.caption('jack', t), later = (ms, f) => setTimeout(f, ms), tableG = M.items.kitchenTable.g, pantryG = M.items.pantry.g;
+    const promptEl = () => $('cwPrompt');
+    function storyTick(dt) {
+      const Hj = HEIGHT * SC * st.s, pr = promptEl(); let text = '';
+      if (st.hiding) { pr.style.display = 'none'; return; }
+      const onTable = st.y >= 25.3 && Math.abs(st.pos.x - tableG.position.x) <= 25 && Math.abs(st.pos.z - tableG.position.z) <= 13;
+      if (onTable && !st.tMount) st.tMount = performance.now();
+      if (st.tMount && !st.alarm) { const el = (performance.now() - st.tMount) / 1000; if ((st.loafTaken && el >= 50) || el >= 110) alarm(); }
+      const act = st.actReq, put = st.putReq; st.actReq = st.putReq = false;
+      if (st.held) {                                                                                       // a crumb in his hand: eat it, or put it back
+        text = 'E \u2014 eat it     Q \u2014 put it back';
+        if (act) { st.eaten++; const k = st.held; st.held = null; say(st.eaten === 1 ? 'Mm. Sorry. It was only a crumb.' : 'Mm.'); if (st.eaten >= 4) { st.loafReady = true; later(2600, () => say('That barely touched it... I’m still hungry.')); } }
+        else if (put) { st.held.o.visible = true; st.held = null; say('No. Better to leave it where it was.'); }
+      } else {
+        let best = null, bd = 1e9;
+        for (const t of things) { if (t.kind === 'crumb' && !t.o.visible) continue; const dx = t.pos.x - st.pos.x, dz = t.pos.z - st.pos.z, d = Math.hypot(dx, dz); if (d < 3.4 * Hj && Math.abs(t.pos.y - st.y) < 1.4 * Hj && d < bd) { best = t; bd = d; } }
+        if (best) {
+          text = best.kind === 'crumb' ? 'E \u2014 pick up the crumb' : best.kind === 'loaf' ? (st.loafReady ? 'E \u2014 take a crumb of the loaf' : 'E \u2014 look at the loaf') : 'E \u2014 look';
+          if (act) {
+            if (best.kind === 'look') say(best.text);
+            else if (best.kind === 'crumb') { best.o.visible = false; st.held = best; if (!st.firstCrumb) { st.firstCrumb = true; say('Should I? It isn’t mine... it doesn’t belong to me.'); } }
+            else if (best.kind === 'loaf') {
+              if (!st.loafReady) say(best.text);
+              else if (!st.loafHes) { st.loafHes = true; say('Mother would say not to take what isn’t offered.'); }
+              else if (!st.loafTaken) { st.loafTaken = true; say('Just one crumb. A loaf that size won’t miss it.'); }
+              else say('I’ve had my crumb.');
+            }
+          }
+        }
+        if (st.alarm && !text) { const c = pantryG.localToWorld(new V3(5, 0, 0)); if (Math.hypot(c.x - st.pos.x, c.z - st.pos.z) < 5 * Hj && Math.abs(pantryG.position.y - st.y) < 1.4 * Hj) { text = 'E \u2014 hide in the cupboard'; if (act) hideEnding(c); } }
+      }
+      pr.textContent = text; pr.style.display = text ? 'block' : 'none';
+    }
+    function alarm() {
+      st.alarm = true; st.shakeT = 1.4; A && A.thud && A.thud(0.8); say('What was that? Movement... above me.');
+      later(3200, () => { A && A.thud && A.thud(0.9); st.shakeT = 1.0; say('Footsteps. Someone’s coming! I have to hide!'); $('cwObjt').textContent = 'Find somewhere to hide.'; $('cwObjt').style.display = 'block'; });
+    }
+    async function hideEnding(c) {
+      st.hiding = true; st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwObjt').style.display = 'none'; $('cwPrompt').style.display = 'none';
+      const wait = G.wait, x0 = st.pos.x, z0 = st.pos.z, n = 22; st.heading = Math.atan2(c.x - x0, c.z - z0);
+      for (let i = 1; i <= n; i++) { const k = i / n; st.pos.x = x0 + (c.x - x0) * k; st.pos.z = z0 + (c.z - z0) * k; st.walkN = 1; st.walkPh += 0.55; await wait(0.04); } st.walkN = 0;
+      say('Don’t breathe. Don’t even blink.'); await wait(0.8); await G.fade(true, 2.4); await wait(0.4);
+      cleanup(); G.mode = 'end'; document.body.classList.remove('cutscene'); resolve({ hid: true });
+    }
     const tick = dt => {
       if (st.scene) { jackOut.root.scale.setScalar(SC * st.s); jackOut.root.position.set(st.pos.x, st.y, st.pos.z); jackOut.root.rotation.y = st.heading; return; }
       const s = st.s; if (Math.abs(s - nearS) > 0.02) { nearS = s; camera.near = Math.max(0.1, 0.3 * s); camera.updateProjectionMatrix(); }       // (a nearer near plane only as he is small: the depth buffer keeps its precision, so flat surfaces do not shimmer)
@@ -124,6 +172,7 @@ function run(G, W, opts) {
           if (!st.bread) { st.bread = true; st.lockT = 2.2; st.lockH = Math.atan2(90 - st.pos.x, -25 - st.pos.z); G.caption('jack', 'Is that... warm bread?'); setTimeout(() => G.caption('jack', 'I can smell it from here. I haven\u2019t eaten since... I\u2019m starving.'), 3200); }
           else { if (performance.now() - (st.remindAt || 0) > 6000) { st.remindAt = performance.now(); G.caption('jack', 'Not that way. I’m starving, and that bread has to be somewhere close.'); } } }
         else if (!near) st.inZone = false; }
+      if (story) storyTick(dt);
       const gy = floorAt(st.pos.x, st.pos.z, st.y), rj = 4 * s;
       // Wood he can get his hands to: a short step up (to three quarters of his height) is a mantle; anything taller, a climb, which tires him fast (about a height and a half) unless there is a rung to rest on, and a rung or a top he can pull onto within one more height.
       const pointOn = (e, x, z) => [clamp(x, e.x0, e.x1), clamp(z, e.z0, e.z1)];
@@ -163,7 +212,7 @@ function run(G, W, opts) {
         const d = ZOOMS[st.zoom].d * s, at = v(st.pos.x, st.y + 15 * SC * s, st.pos.z), dirv = v(Math.cos(st.camA) * Math.cos(st.pitch), Math.sin(st.pitch), Math.sin(st.camA) * Math.cos(st.pitch));
         let reach = d, p = v(0, 0, 0); for (let u = 4 * s; u <= d; u += Math.max(1, 2 * s)) { p.copy(at).addScaledVector(dirv, u); p.y = Math.max(p.y, 1.2 * s); if (camBlocked(p, s)) { reach = Math.max(4 * s, u - 3 * s); break; } }
         const want = at.clone().addScaledVector(dirv, reach); want.y = Math.max(want.y, 1.2 * s);                       // (the camera slides along the floor, never below it, and tilts up to take in the ceiling)
-        if (camPos.lengthSq() === 0) camPos.copy(want); else camPos.lerp(want, Math.min(1, dt * 10)); camLook.copy(at); camLook.y += Math.max(0, -st.pitch) * d * 0.9; G.cut({ pos: camPos, look: camLook, fov: 48 });
+        if (camPos.lengthSq() === 0) camPos.copy(want); else camPos.lerp(want, Math.min(1, dt * 10)); camLook.copy(at); camLook.y += Math.max(0, -st.pitch) * d * 0.9; let cp = camPos; if (st.shakeT > 0) { st.shakeT -= dt; cp = camPos.clone(); cp.x += (Math.random() - 0.5) * 0.6 * s; cp.y += (Math.random() - 0.5) * 0.6 * s; } G.cut({ pos: cp, look: camLook, fov: 48 });
       }
     };
     const cleanup = () => { root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('wheel', wheel); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu); G.updaters = G.updaters.filter(u => u !== tick); hud.remove(); css.remove(); jackOut.after = null; jackOut.root.scale.setScalar(SC); jackOut.root.visible = true; camera.near = nearOld; camera.updateProjectionMatrix(); };

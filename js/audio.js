@@ -201,5 +201,11 @@ A.bell = function (vol) {
   }
 };
 
+A.thud = function (vol) {                                       // a heavy tread somewhere overhead
+  if (!A.init()) return; const ctx = A.ctx, t = ctx.currentTime, v0 = vol == null ? 0.6 : vol;
+  for (const [f, d] of [[48, 0.5], [31, 0.8]]) { const o = ctx.createOscillator(), g = ctx.createGain(), lp = ctx.createBiquadFilter(); o.type = 'sine'; o.frequency.setValueAtTime(f * 1.6, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.12); lp.type = 'lowpass'; lp.frequency.value = 220;
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.5 * v0, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(lp); lp.connect(g); g.connect(A.nodes.sfx || ctx.destination); o.start(t); o.stop(t + d + 0.1); }
+};
+
 root.GameAudio = A;
 })(typeof window !== 'undefined' ? window : globalThis);
