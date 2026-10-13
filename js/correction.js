@@ -58,7 +58,7 @@ async function run(G, W, tier, opts) {
   // The engine, in the room.
   const lap = Lap.create(null, { external: { scene, camera: G.camera, renderer: G.renderer }, table: false, jackFull: 1 });
   lap.giver('mother', 1); lap.stage.scale.setScalar(SC); lap.stage.visible = false; lap.jack.root.visible = true;
-  lap.pain.stats.tolerance = 0; lap.pain.stats.resilience = 0.2; lap.st.noRecovery = true; lap.st.side = 'alt';
+  lap.pain.stats.tolerance = 1; lap.pain.stats.resilience = 0.7; lap.st.noRecovery = true; lap.st.side = 'alt';
   G.lap = lap;      // (for tools and tests)
   const placeStage = at => { lap.stage.position.set(at.x, STAGE_Y, at.z); lap.stage.rotation.y = at.ry; lap.stage.updateMatrixWorld(true); };
   const cworld = { scene, update(dt, t) { int.update(dt, t); ja.t += dt; ma.t += dt; B.step(jackIn, dt); B.step(mother, dt); if (lap.stage.visible) lap.update(dt); } };
