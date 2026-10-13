@@ -17,7 +17,7 @@ const Q_SIDE = basis(v(0, 1, 0), v(-1, 0, 0), v(0, 0, 1)), Q_BACK = basis(v(0, 0
 
 // ── The beanstalk: five vines from the five furrows, braiding into one great stalk that climbs out of sight, with leaves, tendrils and pods. ──
 function buildStalk(scene) {
-  const g = new THREE.Group(); scene.add(g); const box = F.box, plain = F.plain;
+  const g = new THREE.Group(); g.userData.leaves = []; scene.add(g); const box = F.box, plain = F.plain;
   const green = [plain('#3f7f3a'), plain('#4a8f42'), plain('#37703a'), plain('#58a04a')], leafM = [plain('#4f9a46'), plain('#3f8a3c'), plain('#62ab52')], pod = plain('#7ab85a');
   const cx = PLOT.cx, cz = PLOT.cz, PIP = [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]].map(([i, j]) => v(cx + i * PLOT.cell, 0, cz + j * PLOT.cell));
   // The five vines lean in from their furrows and join at about 70 up.
@@ -29,6 +29,7 @@ function buildStalk(scene) {
     const m = box(w, 11, w, green[s % 4], x, y, z, g); m.rotation.y = s * 0.42;
     box(w * 0.35, 12, w * 0.35, plain('#8bc46a'), x + Math.cos(s * 0.42) * w * 0.5, y, z + Math.sin(s * 0.42) * w * 0.5, g).rotation.y = s * 0.42;       // a pale rib winding up it
     if (s % 3 === 1) { const a = s * 1.3, L = 30 + (1 - t) * 26; const leaf = new THREE.Group(); leaf.position.set(x, y, z); leaf.rotation.y = a; leaf.rotation.z = -0.25; g.add(leaf);
+      g.userData.leaves.push({ g: leaf, y, a, L, w, x, z, s });
       box(L, 1.4, 14, leafM[s % 3], L / 2 + w / 2, 0, 0, leaf); box(L * 0.7, 1.4, 9, leafM[(s + 1) % 3], L * 0.9, 0.4, 7, leaf); box(L * 0.7, 1.4, 9, leafM[(s + 2) % 3], L * 0.9, 0.4, -7, leaf); }
     if (s % 8 === 5) { const a = s * 0.9; box(2, 2, 22, pod, x + Math.cos(a) * w, y - 4, z + Math.sin(a) * w, g).rotation.y = -a; }
     top = [x, y, z];
