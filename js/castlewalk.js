@@ -15,7 +15,7 @@ const PLACES = [['Entrance hall', 0, 70, Math.PI], ['Corridor A', -180, -26, Mat
 function collect(room, ceiling) {
   const boxes = [], grid = new Map(), CELL = 24, key = (a, b) => a * 4096 + b; room.updateMatrixWorld(true);
   room.traverse(o => {
-    if (!o.isMesh || !o.visible) return; for (let p = o.parent; p; p = p.parent) if (p === ceiling) return;
+    if (!o.isMesh || !o.visible) return; for (let p = o.parent; p; p = p.parent) if (p === ceiling || (p.userData && p.userData.noCollide)) return;
     if (o.material && (o.material.transparent || o.material.blending === THREE.AdditiveBlending)) return;
     const b = new THREE.Box3().setFromObject(o); if (b.max.y <= 0.6 || b.max.x - b.min.x < 0.3 || b.max.z - b.min.z < 0.3) return;
     const e = { x0: b.min.x, x1: b.max.x, z0: b.min.z, z1: b.max.z, y0: b.min.y, y1: b.max.y }; boxes.push(e);
@@ -34,7 +34,7 @@ function run(G, W) {
     const C = collect(M.room, ceiling);
     scene.add(jackOut.root); jackOut.root.visible = true; W.paintJack(jackOut, { expr: 0 }); root.Meadow && root.Meadow.addGear && root.Meadow.addGear(jackOut);
     G.setScene(world); G.drone = null; G.noSave = true;
-    camera.near = 0.1; camera.far = 4000; camera.updateProjectionMatrix();
+    camera.near = 0.4; camera.far = 1600; camera.updateProjectionMatrix(); let nearS = 0;
     A && A.ambience({ wind: 0, birds: 0, fire: 0.2 });
     const st = { pos: v(0, 0, 70), heading: Math.PI, walkN: 0, walkPh: 0, camA: Math.PI / 2, pitch: 0.35, fpPitch: 0, zoom: 1, vy: 0, y: 0, jumpReq: false, s: FULL, fp: false, toastAt: 0 };
     jackOut.after = r => {
@@ -88,7 +88,8 @@ function run(G, W) {
     const camBlocked = (p, s) => { if (p.y > M.H - 2 || p.y < 1 * s) return true; for (const e of C.near(p.x, p.z, 3)) if (e.y1 - e.y0 > 30 && p.x > e.x0 - 1.5 * s && p.x < e.x1 + 1.5 * s && p.z > e.z0 - 1.5 * s && p.z < e.z1 + 1.5 * s && p.y > e.y0 && p.y < e.y1) return true; return false; };
 
     const tick = dt => {
-      const s = st.s, f = v(-Math.cos(st.camA), 0, -Math.sin(st.camA)), r = v(Math.sin(st.camA), 0, -Math.cos(st.camA));
+      const s = st.s; if (Math.abs(s - nearS) > 0.02) { nearS = s; camera.near = Math.max(0.1, 0.3 * s); camera.updateProjectionMatrix(); }       // (a nearer near plane only as he is small: the depth buffer keeps its precision, so flat surfaces do not shimmer)
+      const f = v(-Math.cos(st.camA), 0, -Math.sin(st.camA)), r = v(Math.sin(st.camA), 0, -Math.cos(st.camA));
       const dir = v(0, 0, 0).addScaledVector(f, (keys.up ? 1 : 0) - (keys.down ? 1 : 0)).addScaledVector(r, (keys.right ? 1 : 0) - (keys.left ? 1 : 0));
       if (Math.hypot(stick.x, stick.y) > 0.2) dir.addScaledVector(f, -stick.y).addScaledVector(r, stick.x);
       if (dir.lengthSq() > 0) {

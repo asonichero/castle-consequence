@@ -63,9 +63,17 @@ function interior() {
     for (const [r0, r1] of runs) { if (r1 - r0 < 1) continue; strip(r0, r1, 0, 4, th + 1.4, '#3a2a20'); strip(r0, r1, 4, 21, th + 0.8, dado); strip(r0, r1, 21, 23, th + 1.8, dadoRail); }
     strip(a0, a1, h - 4, h, th + 2.4, trim); strip(a0, a1, h - 5.2, h - 4, th + 1.4, dadoRail);   // the cornice, all along
     for (const o of sorted) {
-      if (o[2] <= 0.5) { if (o[3] < 20) continue; strip(o[0] - 2.6, o[0], 0, o[3] + 3.5, th + 1.8, trim); strip(o[1], o[1] + 2.6, 0, o[3] + 3.5, th + 1.8, trim); strip(o[0] - 2.6, o[1] + 2.6, o[3], o[3] + 3.5, th + 2.4, trim); }
-      else { strip(o[0] - 2, o[0], o[2] - 2, o[3] + 2.5, th + 1.6, trim); strip(o[1], o[1] + 2, o[2] - 2, o[3] + 2.5, th + 1.6, trim); strip(o[0] - 2, o[1] + 2, o[3], o[3] + 2.5, th + 2.4, trim); strip(o[0] - 3, o[1] + 3, o[2] - 2, o[2], th + 3.6, trim); }
+      if (o[2] <= 0.5) { if (o[3] < 20) continue; strip(o[0] - 2.6, o[0] + 0.4, 0, o[3] + 3.5, th + 1.8, trim); strip(o[1] - 0.4, o[1] + 2.6, 0, o[3] + 3.5, th + 1.8, trim); strip(o[0] - 2.6, o[1] + 2.6, o[3] - 0.4, o[3] + 3.5, th + 2.4, trim); }
+      else { strip(o[0] - 2, o[0] + 0.4, o[2] - 2, o[3] + 2.5, th + 1.6, trim); strip(o[1] - 0.4, o[1] + 2, o[2] - 2, o[3] + 2.5, th + 1.6, trim); strip(o[0] - 2, o[1] + 2, o[3] - 0.4, o[3] + 2.5, th + 2.4, trim); strip(o[0] - 3, o[1] + 3, o[2] - 2, o[2] + 0.4, th + 3.6, trim); }
     }
+    sorted.forEach((o, i) => {                                                            // a door in every doorway (ajar, and no hindrance), double where wide
+      if (o[2] > 0.5 || o[3] < 20 || (axis === 'z' && fixed === 110)) return; const w = o[1] - o[0], dbl = w > 30, hh = o[3] - 0.6, par = Math.abs(Math.round(fixed + o[0])) % 2, ang = 1.75 + (Math.abs(Math.round(o[0] * 3)) % 5) * 0.06;
+      const leaf = (hx, sgn, lw, push) => { const og = new THREE.Group(); og.position.set(axis === 'z' ? hx : fixed, 0, axis === 'z' ? fixed : hx); og.rotation.y = axis === 'z' ? 0 : -Math.PI / 2; og.userData.noCollide = true; room.add(og);
+        const lg = new THREE.Group(); lg.rotation.y = sgn * push * ang; og.add(lg); const cx = sgn * lw / 2;
+        box(lw - 0.4, hh, 1.8, plain('#6a4a2e'), cx, hh / 2, 0, lg); box(lw - 3, hh - 6, 0.5, plain('#7e5a38'), cx, hh / 2, 1.0, lg); box(lw - 3, hh - 6, 0.5, plain('#7e5a38'), cx, hh / 2, -1.0, lg);
+        for (const y of [0.22, 0.5, 0.78]) box(lw - 0.2, 2.2, 2.4, plain('#2b2d36'), cx, hh * y, 0, lg); box(1.6, 1.6, 4, plain('#c9a23c'), sgn * (lw - 3), hh * 0.45, 0, lg); };
+      if (dbl) { leaf(o[0], 1, w / 2, par ? 1 : -1); leaf(o[1], -1, w / 2, par ? 1 : -1); } else if (par) leaf(o[0], 1, w, 1); else leaf(o[1], -1, w, -1);
+    });
     const flake = stoneW ? ['#cfc7b0', '#e6dfca', '#c6bea6'] : ['#d9c196', '#efdcb8', '#cdb48a']; c = a0; const solid = [];
     for (const o of sorted) { solid.push([c, o[0]]); c = o[1]; } solid.push([c, a1]);
     for (const [r0, r1] of solid) for (let k = 0; k < Math.floor((r1 - r0) / 26); k++) for (const side of [-1, 1]) { const cc = r0 + 8 + R2() * Math.max(1, r1 - r0 - 16), y = 26 + R2() * Math.max(2, h - 40), w = 3 + R2() * 7, hh = 2 + R2() * 5, col = flake[Math.floor(R2() * 3)], off = side * (th / 2 + 0.12);
@@ -112,9 +120,9 @@ function interior() {
   // the velvet chair, beside the hearth
   { const g = at(0, 0, 0); B(16, 7, 16, '#6a2860', 0, 11, 0, g); B(16, 24, 4, '#5a2052', 0, 22, -6, g); B(3, 12, 16, '#5a2052', -9.5, 14, 0, g); B(3, 12, 16, '#5a2052', 9.5, 14, 0, g); for (const sx of [-1, 1]) for (const sz of [-1, 1]) B(2, 8, 2, '#3a2a20', sx * 7, 4, sz * 7, g); B(18, 1.6, 18, '#c9a23c', 0, 8, 0, g); movable('velvetChair', 'Velvet chair (by the hearth)', g, { x: 36, z: -52, ry: -0.6 }); }
   // the long table, set for one, and its chair
-  { const g = at(0, 0, 0); B(100, 3, 24, '#5a3c26', 0, 24, 0, g); for (const sx of [-1, 1]) for (const sz of [-1, 1]) B(4, 24, 4, '#3a2a20', sx * 44, 12, sz * 9, g); B(104, 1, 28, '#7a1f3a', 0, 25.4, 0, g);
-    B(8, 0.8, 8, '#f4f0e8', -40, 26.2, 0, g); B(2.6, 5, 2.6, '#c9a23c', -34, 28, -4, g); B(0.7, 0.4, 7, '#c8ccd4', -45, 26, 0, g); B(0.7, 0.4, 7, '#c8ccd4', -35.5, 26, 0, g); B(1.6, 7, 1.6, '#e8dcc0', -26, 29, 5, g); B(2, 1, 2, '#ffd870', -26, 33, 5, g);
-    B(16, 3, 16, '#6a2860', -52, 12, 0, g); B(3, 24, 16, '#5a2052', -60, 20, 0, g); movable('longTable', 'Long table, set for one', g, { x: 2, z: 9, ry: 0 }); }
+  { const g = at(0, 0, 0); B(76, 3, 24, '#5a3c26', 0, 24, 0, g); for (const sx of [-1, 1]) for (const sz of [-1, 1]) B(4, 24, 4, '#3a2a20', sx * 32, 12, sz * 9, g); B(80, 1, 28, '#7a1f3a', 0, 25.4, 0, g);
+    B(8, 0.8, 8, '#f4f0e8', -28, 26.2, 0, g); B(2.6, 5, 2.6, '#c9a23c', -22, 28, -4, g); B(0.7, 0.4, 7, '#c8ccd4', -33, 26, 0, g); B(0.7, 0.4, 7, '#c8ccd4', -23.5, 26, 0, g); B(1.6, 7, 1.6, '#e8dcc0', -14, 29, 5, g); B(2, 1, 2, '#ffd870', -14, 33, 5, g);
+    B(16, 3, 16, '#6a2860', -46, 12, 0, g); B(3, 24, 16, '#5a2052', -54, 20, 0, g); movable('longTable', 'Long table, set for one', g, { x: 2, z: 9, ry: 0 }); }
   { const g = at(0, 0, 0); B(44, 20, 15, '#4a3626', 0, 10, 0, g); B(46, 2, 16, '#5a4630', 0, 21, 0, g); B(18, 14, 0.8, '#6a5036', -10, 10, 7.8, g); B(18, 14, 0.8, '#6a5036', 10, 10, 7.8, g); B(2, 2, 1, '#c9a23c', -2, 10, 8.4, g); B(2, 2, 1, '#c9a23c', 2, 10, 8.4, g); B(5, 9, 5, '#8a9ab0', -12, 26, 0, g); B(3, 5, 3, '#c9a23c', 8, 24, 0, g); movable('lowCupboard', 'Low cupboard (by the table)', g, { x: -58, z: -85, ry: 0 }); }
   const chandelier = (k, x, z, label) => {                                                // they sway with no wind
     const g = at(x, H, z); B(0.8, 14, 0.8, '#5a5a62', 0, -7, 0, g); const ring = at(0, -16, 0); g.add(ring); B(20, 1.6, 1.6, '#c9a23c', 0, 0, 0, ring); B(1.6, 1.6, 20, '#c9a23c', 0, 0, 0, ring); B(14, 1.2, 14, '#b8923a', 0, -1, 0, ring);
@@ -247,7 +255,7 @@ function interior() {
   const crate_ = (x, z, ry, s) => { const g = put(x, 0, z, ry); B(12 * s, 9 * s, 12 * s, '#9a7a52', 0, 4.5 * s, 0, g); for (const sy of [-1, 1]) B(12.4 * s, 1.2, 12.4 * s, '#6a4a2e', 0, 4.5 * s + sy * 3.6 * s, 0, g); return g; };
 
   // — the entrance hall —
-  for (const sx of [-1, 1]) for (const z of [-92, 33]) { const g = put(sx * 85, 0, z, 0); B(5, H - 8, 8, '#c4bba3', 0, H / 2, 0, g); B(7, 5, 10, '#a99f88', 0, 2.5, 0, g); B(7, 5, 10, '#a99f88', 0, H - 8, 0, g); B(6, 2, 9, '#c9b88a', 0, H - 4.5, 0, g); sconce(sx * 82, 44, z, -sx * Math.PI / 2); }
+  for (const sx of [-1, 1]) for (const z of [-92, 33]) { const g = put(sx * 85.5, 0, z, 0); B(6, H - 8, 8, '#c4bba3', 0, H / 2, 0, g); B(7, 5, 10, '#a99f88', 0, 2.5, 0, g); B(7, 5, 10, '#a99f88', 0, H - 8, 0, g); B(6, 2, 9, '#c9b88a', 0, H - 4.5, 0, g); sconce(sx * 82.3, 44, z, -sx * Math.PI / 2); }
   armour(-80, 84, Math.PI / 2); armour(80, 84, -Math.PI / 2);
   for (const sx of [-1, 1]) { const g = put(sx * 61, 0, 102, 0); B(34, 9, 10, '#c4bba3', 0, 4.5, 0, g); B(36, 2, 12, '#a99f88', 0, 10, 0, g); }
   { const g = put(0, 0, 0, 0); for (const [w, d, x, z] of [[160, 2.2, 0, -96], [160, 2.2, 0, 96], [2.2, 192, -80, 0], [2.2, 192, 80, 0]]) B(w, 0.3, d, '#c9b88a', x, 0.25, z, g); for (const [w, d, x, z] of [[150, 1, 0, -91], [150, 1, 0, 91], [1, 182, -75, 0], [1, 182, 75, 0]]) B(w, 0.3, d, '#9a3a4a', x, 0.25, z, g);
