@@ -63,7 +63,7 @@ async function run(G, W, opts) {
   };
   const hipsLocal = v(0, 12 * SC, 0);
   const setBody = (Q, p) => { jackIn.root.quaternion.copy(Q); jackIn.root.position.copy(p).sub(hipsLocal.clone().applyQuaternion(Q)); };
-  const tween = async (secs, fn) => { const t0 = G.t; for (;;) { const k = clamp((G.t - t0) / secs, 0, 1); fn(k, ease(k)); if (k >= 1) break; await G.wait(0.03); } };
+  const tween = async (secs, fn) => { if (G.skipping) { fn(1, 1); return; } const t0 = G.t; for (;;) { const k = clamp((G.t - t0) / secs, 0, 1); fn(k, ease(k)); if (k >= 1) break; await G.wait(0.03); } };
   const BED_Y = 6.2, HIPS_SIDE = v(-28.5, BED_Y + 4.2, 62.5), HIPS_BACK = v(-28.5, BED_Y + 2.4, 62), HIPS_SIT = v(-34, BED_Y + 2.2, 62);
   const placeBlanket = (x, y, z, sx) => { blanket.position.set(x, y, z); blanket.scale.set(sx == null ? 1 : sx, 1, 1); };
   const sleeping = () => { P.lie = 1; P.thigh = -0.25; P.knee = 0.55; P.armX = 0.25; P.armZ = 0.1; P.torso = 0.12; P.neckX = 0.1; P.neckY = 0; P.rub = 0; ja.speed = 0; setBody(Q_SIDE, HIPS_SIDE); placeBlanket(-31, 11.2, 62.2, 1); };
@@ -78,6 +78,7 @@ async function run(G, W, opts) {
 
   // ── 9. Playable: the room at first light. He must dress (the wardrobe) and take his father's knife (the chest of drawers) before he goes out. ──
   async function dress() {
+    G.skipping = false;                                    // (a skipped cutscene hands over to play at normal speed)
     G.setScene(W.iworld); G.drone = null; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine();
     A_ && A_.ambience({ wind: 0.1, birds: 0.5, fire: 0.25 });
     int.setBank(0.3); int.hemi.intensity = 0.55; int.dim.intensity = 0.6; int.dim.color.set(0xffd2a0); moon.visible = false; int.ceiling.visible = false;
