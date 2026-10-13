@@ -145,7 +145,7 @@ $('clear').onclick = () => { if (confirm('Forget every camera change and note ke
 $('copy').onclick = () => {
   const f = c => 'pos (' + c.pos.map(r1).join(', ') + ')  look (' + c.look.map(r1).join(', ') + ')  fov ' + r1(c.fov);
   const beats = [...new Set([...Object.keys(kept.cams), ...Object.keys(kept.notes)])].map(Number).sort((a, b) => a - b), out = [], json = {};
-  out.push(SCENE === 'castle' ? 'SCENE NOTES — Chapter Two, the castle kitchen: Gerda catches Jack' : 'SCENE NOTES — Chapter Two, the cottage at night (route ' + route + ': ' + $('route').selectedOptions[0].textContent.toLowerCase() + ')', 'Camera values are world units; "was" is the scene’s own angle for the beat.', '');
+  out.push(SCENE === 'castle' ? 'SCENE NOTES — Chapter Two, the castle kitchen: Gerda catches Jack' : 'SCENE NOTES — Chapter Two, the cottage at night (route ' + route + ': ' + $('route').selectedOptions[0].textContent.toLowerCase() + ')', 'Camera values are world units; "was" is the scene’s own angle for the beat.', (document.getElementById('buildBadge') || {}).textContent || '', '');
   for (const b of beats) {
     const c = kept.cams[b], was = (info[b] || {}).cam, n = kept.notes[b], line = (info[b] && info[b].lines && info[b].lines.length ? info[b].lines : kept.lines[b] || ['(no one speaks)']).join(' / ');
     out.push('Beat ' + b + ' · ' + line); if (c) { if (was) out.push('  camera was: ' + f(was)); out.push('  camera now: ' + f(c)); } if (n && n.trim()) out.push('  note: ' + n.trim().replace(/\n/g, '\n        ')); out.push('');
@@ -162,5 +162,6 @@ if (A) A.init();
 refresh(); goTo(1);
 })();
 </script>
+<script src="js/buildbadge.js"></script>
 </body>
 </html>
