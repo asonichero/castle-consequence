@@ -156,7 +156,9 @@ function run(G, W, opts) {
       const h = gst.hold || 0, HP = root.GerdaHold && root.GerdaHold.gerda; if (h > 0 && HP) { const L = (a, b) => a + (b - a) * h;                                  // holding Jack: the pose set in pose-editor.html (js/gerda-pose.js)
         r.hips.position.y -= HP.hipsY * h; r.torso.rotation.set(L(r.torso.rotation.x, HP.torsoX), L(0, HP.torsoY), L(0, HP.torsoZ)); r.neck.rotation.set(L(r.neck.rotation.x, HP.neckX), L(0, HP.neckY), 0);
         r.armR.rotation.set(L(r.armR.rotation.x, HP.armRx), 0, L(0, HP.armRz)); r.elbow.rotation.x = L(0, HP.elbowX); r.wrist.rotation.y = L(0, HP.wristY); r.armL.rotation.set(L(r.armL.rotation.x, HP.armLx), 0, L(0, HP.armLz));
-        r.legL.thigh.rotation.x = L(r.legL.thigh.rotation.x, HP.legLx); r.legL.knee.rotation.x = L(0, HP.legLknee); r.legR.thigh.rotation.x = L(r.legR.thigh.rotation.x, HP.legRx); r.legR.knee.rotation.x = L(0, HP.legRknee); } }; placeGerda(); }
+        r.legL.thigh.rotation.x = L(w, HP.legLx) + w * h; r.legL.knee.rotation.x = L(0, HP.legLknee); r.legR.thigh.rotation.x = L(-w, HP.legRx) - w * h; r.legR.knee.rotation.x = L(0, HP.legRknee); }
+      if (gst.give > 0) { const k = gst.give, L2 = (a, b) => a + (b - a) * k; r.armR.rotation.x = L2(r.armR.rotation.x, -1.5); r.armR.rotation.z = L2(r.armR.rotation.z, 0.05); r.elbow.rotation.x = L2(r.elbow.rotation.x, -0.2); r.torso.rotation.x = L2(r.torso.rotation.x, 0.5); r.neck.rotation.x = L2(r.neck.rotation.x, 0.35); }
+      if (gst.lreach > 0) r.armL.rotation.set(-gst.lreach, 0, 0.05); if (gst.sniff) r.neck.rotation.x += gst.sniff; }; placeGerda(); }
     const seen = () => {                                                                                    // does she see him? from her eyes to his head, chest and feet, through the boxes that stand between
       if (!gerda || st.caught) return st.caught; const Hj = HEIGHT * SC * st.s;
       if (gst.cupOpen && st.inCup && Math.hypot(st.pos.x - gst.x, st.pos.z - gst.z) < 60) return true;
@@ -189,6 +191,47 @@ function run(G, W, opts) {
       if (gerda) { scene.remove(gerda.root); }
       G.castleResult = 'hidden'; $('cwObjt').style.display = 'none'; $('cwObjt').textContent = 'She has gone.'; $('cwObjt').style.display = 'block'; await G.wait(2.5); await finish('hidden');
     }
+    const gbody = (x, z) => !hitBody(x, z, 7, 4, 44), hitBody = (x, z, r, y0, y1) => { for (const e of C.near(x, z, r + 1)) { if (e.low || e.y1 <= y0 || e.y0 >= y1) continue; const cx = clamp(x, e.x0, e.x1), cz = clamp(z, e.z0, e.z1); if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r) return true; } return false; };
+    const gseg = (a1, b1) => { const n = Math.ceil(Math.hypot(b1[0] - a1[0], b1[1] - a1[1]) / 3); for (let i = 1; i <= n; i++) if (!gbody(a1[0] + (b1[0] - a1[0]) * i / n, a1[1] + (b1[1] - a1[1]) * i / n)) return false; return true; };
+    function gnav(sx, sz, tx, tz) {                                                                          // her way across the kitchen without going through anything: a short search over a grid of floor she can stand on
+      const S = [sx, sz], T = [tx, tz]; if (gseg(S, T)) return [T]; const nodes = [S, T]; for (let x = 100; x <= 238; x += 14) for (let z = -98; z <= 46; z += 14) if (gbody(x, z)) nodes.push([x, z]);
+      const dist = new Array(nodes.length).fill(1e9), prev = new Array(nodes.length).fill(-1), done = new Array(nodes.length).fill(false); dist[0] = 0;
+      for (let k = 0; k < nodes.length; k++) { let u = -1; for (let i = 0; i < nodes.length; i++) if (!done[i] && (u < 0 || dist[i] < dist[u])) u = i; if (u < 0 || dist[u] >= 1e9) break; done[u] = true; if (u === 1) break;
+        for (let i = 0; i < nodes.length; i++) if (!done[i]) { const d = Math.hypot(nodes[i][0] - nodes[u][0], nodes[i][1] - nodes[u][1]); if (dist[u] + d < dist[i] && d < 60 && gseg(nodes[u], nodes[i])) { dist[i] = dist[u] + d; prev[i] = u; } } }
+      const out = []; let i = 1; while (i > 0) { out.unshift(nodes[i]); i = prev[i]; } return out.length && i === 0 ? out : [T]; }
+    async function ending(follow, cam) {
+      const jc = () => jackOut.torso.localToWorld(new V3(0, 6, 0)), hd = () => gerda.neck.localToWorld(new V3(0, 4, 0)), face = e => W.paintJack(jackOut, { expr: e });
+      const shotFace = () => { const h = hd(), j = jc(), d = j.clone().sub(h).normalize(); G.cut({ pos: j.clone().add(d.clone().multiplyScalar(3.4)).add(new V3(0, 1.2, 0)), look: h.clone().add(new V3(0, -0.4, 0)), fov: 44 }); };
+      const shotJack = () => { const h = hd(), j = jc(), d = j.clone().sub(h).normalize(), side = new V3(-d.z, 0, d.x).multiplyScalar(5); G.cut({ pos: h.clone().add(d.clone().multiplyScalar(5.5)).add(side).add(new V3(0, 2.6, 0)), look: j, fov: 26 }); };
+      face(1);                                                                                              // wincing, whenever he is not speaking
+      shotFace(); await G.say('gerda', 'Well. Not so badly put together. A little wild at the edges. A little soft in the jaw.');
+      for (let i = 1; i <= 16; i++) { gst.sniff = 0.35 * Math.sin(Math.PI * i / 16); placeGerda(); await G.wait(0.04); } gst.sniff = 0;
+      await G.say('gerda', 'Sweat, and sap. And underneath it, something like home.');
+      shotJack(); await G.wait(0.7);
+      shotFace(); await G.say('gerda', 'Now then. What small creature walks into my kitchen and helps himself?');
+      shotJack(); face(3); await G.say('jack', 'I didn’t take a thing! I was only looking!'); face(1);
+      shotFace(); await G.say('gerda', 'Only looking. Of course you were. A curious little mouse.');
+      shotJack(); face(3); await G.say('jack', 'I’m no mouse! Put me down!'); face(1);
+      shotFace(); await G.say('gerda', 'No? Then a boy, perhaps.');
+      shotJack(); face(2); await G.wait(0.5); await G.say('jack', 'I’m a man.'); face(1); await G.wait(0.6);
+      shotFace(); await G.say('gerda', 'Are you. We’ll see.');
+      // to the cupboard, with him in her hand
+      const bx = M.items.keepsakeBox.g, box = bx.userData.box, tgt = new V3(124, 0, -92); const route = gnav(gst.x, gst.z, tgt.x, tgt.z);
+      for (const [wx, wz] of route) { const x0 = gst.x, z0 = gst.z, d = Math.hypot(wx - x0, wz - z0), n = Math.max(2, Math.ceil(d / 1.2)), h1 = Math.atan2(wx - x0, wz - z0); for (let i = 1; i <= n; i++) { const k = i / n; gst.x = x0 + (wx - x0) * k; gst.z = z0 + (wz - z0) * k; gst.h += angDiff(h1, gst.h) * 0.3; gst.ph += 0.4; gst.walk = 1; placeGerda(); follow(); cam(); await G.wait(0.04); } }
+      gst.walk = 0; for (let i = 0; i < 14; i++) { gst.h += angDiff(-Math.PI / 2, gst.h) * 0.3; placeGerda(); follow(); cam(); await G.wait(0.04); }
+      // she opens the box with her free hand
+      for (let i = 1; i <= 20; i++) { const k = i / 20; gst.lreach = 1.3 * k; box.lid.rotation.x = -1.95 * k; placeGerda(); follow(); cam(); await G.wait(0.04); }
+      // and gives him up to it: he is eased down and laid on the velvet
+      for (let i = 1; i <= 18; i++) { gst.give = i / 18; placeGerda(); follow(); cam(); await G.wait(0.04); }
+      bx.attach(jackOut.root); st.inHand = true; const p0 = jackOut.root.position.clone(), q0 = jackOut.root.quaternion.clone(), qL = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0)), pIn = new V3(0, 1.45, 1.4), pAbove = new V3(0, 4.2, 0.4);
+      const bs = jackOut.root.scale.x; for (let i = 1; i <= 26; i++) { const k = i / 26, e = k * k * (3 - 2 * k), up = Math.sin(Math.PI * k) * 0.0; const tgtP = k < 0.5 ? p0.clone().lerp(pAbove, k / 0.5) : pAbove.clone().lerp(pIn, (k - 0.5) / 0.5); jackOut.root.position.copy(tgtP); jackOut.root.quaternion.copy(q0).slerp(qL, e); gst.give = 1 - 0.35 * k; placeGerda(); follow(); G.cut({ pos: bx.localToWorld(new V3(10, 14, 14)), look: bx.localToWorld(new V3(0, 3, 0)), fov: 42 }); await G.wait(0.04); }
+      face(3); for (let r = 0; r < 2; r++) { for (let i = 1; i <= 16; i++) { const k = Math.sin(Math.PI * i / 16); jackOut.root.quaternion.copy(qL).slerp(new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.9, 0, 0)), k * 0.8); jackOut.root.position.set(0, 1.45 + 0.5 * k, 1.4 - 0.5 * k); await G.wait(0.04); } await G.wait(0.15); }
+      face(1); jackOut.root.quaternion.copy(qL); jackOut.root.position.copy(pIn);
+      G.cut({ pos: bx.localToWorld(new V3(0, 16, 18)), look: bx.localToWorld(new V3(0, 2, 0)), fov: 36 }); await G.say('gerda', 'A magic stalk, a stranger’s house, a plate that was never yours. And you thought no one would notice.');
+      await G.say('gerda', 'That isn’t a man’s doing, little one. That’s mischief. And mischief gets put somewhere safe.');
+      face(3); await G.say('jack', 'I’m not—');
+      for (let i = 1; i <= 14; i++) { box.lid.rotation.x = -1.95 * (1 - i / 14); gst.lreach = 1.3 * (1 - i / 14); placeGerda(); await G.wait(0.04); } A && A.thud && A.thud(0.4); await G.wait(1.2);
+    }
     async function caught() {
       if (st.caught) return; st.caught = true; st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwPrompt').style.display = 'none'; $('cwObjt').style.display = 'none'; st.walkN = 0; st.cl = null; st.mant = null; st.vy = 0;
       const cam = () => { const mx = (gst.x + st.pos.x) / 2, mz = (gst.z + st.pos.z) / 2, px = -(gst.z - st.pos.z), pz = gst.x - st.pos.x, pl = Math.hypot(px, pz) || 1; G.cut({ pos: v(mx + px / pl * 52, 40, mz + pz / pl * 52), look: v(mx, 24, mz), fov: 54 }); };      // (from above the height of the table, so nothing stands between)
@@ -217,7 +260,8 @@ function run(G, W, opts) {
         gerda.wrist.add(jackOut.root); jackOut.root.scale.setScalar(SC * st.s / GS); st.inHand = true;
         const follow = () => { gerda.root.updateMatrixWorld(true); const wp2 = new V3(); jackOut.root.getWorldPosition(wp2); st.pos.set(wp2.x, 0, wp2.z); st.y = wp2.y; };
         for (let i = 1; i <= 30; i++) { const k = i / 30; gst.hold = k; gst.bend *= 0.96; gst.reach *= 0.96; jackOut.root.position.set(lerp(lp.x, PJ.px, k), lerp(lp.y, PJ.py, k), lerp(lp.z, PJ.pz, k)); jackOut.root.rotation.set(lerp(le.x, PJ.rx, k), lerp(le.y, PJ.ry, k), lerp(le.z, PJ.rz, k)); placeGerda(); follow(); cam(); await G.wait(0.04); }
-        gsay('Well now. Aren’t you a small one?'); for (let i = 0; i < 40; i++) { jackOut.root.position.set(PJ.px, PJ.py, PJ.pz); jackOut.root.rotation.set(PJ.rx, PJ.ry, PJ.rz); placeGerda(); follow(); cam(); await G.wait(0.04); } }
+        for (let i = 0; i < 6; i++) { jackOut.root.position.set(PJ.px, PJ.py, PJ.pz); jackOut.root.rotation.set(PJ.rx, PJ.ry, PJ.rz); placeGerda(); follow(); cam(); await G.wait(0.04); }
+        await ending(follow, cam); }
       await finish('caught');
     }
     async function finish(res) { G.castleResult = res; await G.fade(true, 2.2); await G.wait(0.3); cleanup(); G.mode = 'end'; document.body.classList.remove('cutscene'); resolve({ result: res }); }

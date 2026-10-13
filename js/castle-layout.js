@@ -42,6 +42,7 @@ root.CastleLayout = {
   chandelier7: { x: -160, z: -226, ry: 0 },
   stove: { x: 101, z: -63, ry: -1.571 },
   pantry: { x: 100, z: -92, ry: 1.571 },
+  keepsakeBox: { x: 100, z: -92, ry: 1.571 },
   kitchenTable: { x: 169, z: -36, ry: 0 },
   tallStool: { x: 165, z: -22, ry: 0 },
   drawers: { x: 102, z: 22, ry: 1.571 },
