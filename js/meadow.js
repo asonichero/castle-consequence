@@ -10,14 +10,15 @@ const v = (x, y, z) => new V3(x, y, z), clamp = (x, a, b) => Math.max(a, Math.mi
 const angDiff = (a, b) => { let d = (a - b) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; };
 const SC = 0.95, K0 = 0.25, K1 = 0.10;
 const START_Z = 40, GATE_Z = -700, TRIGGER_Z = -672;                    // (the walk runs along -z, from the edge of the cloud to the castle's gate)
-const kOf = z => lerp(K0, K1, clamp((START_Z - z) / (START_Z - TRIGGER_Z), 0, 1));
+const KFIX = (/[?&]meadowk=([0-9.]+)/.exec(typeof location !== 'undefined' ? location.search : '') || [])[1];            // (a test: ?meadowk=1 puts Jack at full size the whole way, to judge the flora against him)
+const kOf = z => KFIX ? +KFIX : lerp(K0, K1, clamp((START_Z - z) / (START_Z - TRIGGER_Z), 0, 1));
 // The way to the castle: a footpath at full size (about 14 across), meandering gently, and straight to the gate.
 const pathX = z => 22 * Math.sin(z * 0.009) * clamp((40 - z) / 90, 0, 1) * clamp((z + 620) / 160, 0, 1);
 const rnd = (() => { let s = 777; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; })();
 
 function canvasTex(w, h, paint, rx, ry) { const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.wrapS = t.wrapT = THREE.RepeatWrapping; if (rx) t.repeat.set(rx, ry); return t; }
 const mossTex = () => canvasTex(64, 64, (g, w, h) => { g.fillStyle = '#d3ddcd'; g.fillRect(0, 0, w, h); const cols = ['#c8d6c2', '#e1ead9', '#bccfb8', '#d6e2c8', '#e8eee0']; for (let i = 0; i < 700; i++) { g.fillStyle = cols[Math.floor(rnd() * cols.length)]; g.fillRect(Math.floor(rnd() * w), Math.floor(rnd() * h), 2, 2); } }, 260, 260);
-const stoneTex = (rx, ry) => canvasTex(64, 64, (g, w, h) => { g.fillStyle = '#d9d3bd'; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y += 16) { g.fillStyle = '#b9b39c'; g.fillRect(0, y, w, 2); for (let x = (y / 16) % 2 ? 0 : 16; x < w; x += 32) g.fillRect(x, y, 2, 16); } for (let i = 0; i < 160; i++) { g.fillStyle = rnd() < 0.5 ? '#f4f0e2' : '#dcd6c0'; g.fillRect(Math.floor(rnd() * w), Math.floor(rnd() * h), 2, 2); } }, rx, ry);
+const stoneTex = (rx, ry) => canvasTex(64, 64, (g, w, h) => { g.fillStyle = '#d9d3bd'; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y += 16) { g.fillStyle = '#b9b39c'; g.fillRect(0, y, w, 2); for (let x = (y / 16) % 2 ? 0 : 16; x < w; x += 32) g.fillRect(x, y, 2, 16); } for (let i = 0; i < 120; i++) { g.fillStyle = rnd() < 0.5 ? '#f4f0e2' : '#dcd6c0'; g.fillRect(Math.floor(rnd() * w), Math.floor(rnd() * h), 2, 2); } }, rx, ry);
 
 function build() {
   const scene = new THREE.Scene(), sky = new THREE.Color(0xe6e4ee);
@@ -38,7 +39,7 @@ function build() {
   const ribbon = (z0, amp, ph) => { let px = -520, pz = z0 + amp * Math.sin(px * 0.012 + ph); for (let x = -500; x <= 520; x += 14) { const z = z0 + amp * Math.sin(x * 0.012 + ph), len = Math.hypot(14, z - pz), m = box(len + 1, 0.5, 24 + 6 * Math.sin(x * 0.03), silver, (x + px) / 2, 0.22, (z + pz) / 2, scene); m.rotation.y = -Math.atan2(z - pz, 14); px = x; pz = z; } };
   ribbon(-210, 40, 0.5); ribbon(-430, 55, 2.1); ribbon(-90, 120, 4.0);
   // The flora, all of it built as it would stand beside a full-size Jack (about 30 high: tufts to his shin, flowers to his thigh and waist, tall spikes above his head, shrubs, small trees),
-  // so that Jack, at a quarter of his size and then a tenth, walks through it as through a forest.
+  // so that a full-size Jack would wade a meadow that comes to his thigh and waist, with only the odd spike reaching his chest (test it: ?meadowk=1 puts him at full size the whole way).
   const dummy = new THREE.Object3D(), inst = (geo, mat, n, place) => { const m = new THREE.InstancedMesh(geo, mat, n); const col = new THREE.Color(); for (let i = 0; i < n; i++) { const c = place(dummy, col, i); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); if (c) m.setColorAt(i, c); } m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; scene.add(m); return m; };
   const C = a => a.map(c => new THREE.Color(c));
   const tuftCols = C(['#cfe0c8', '#bcd4b8', '#e4eedc', '#c4dcc0']), bloomCols = C(['#f4f0ff', '#e8d8f8', '#ffe8c8', '#dff0ff', '#fff6d8', '#f8d8e4']), spikeCols = C(['#d8c8f0', '#f0d8e8', '#cfe0f8', '#f8e8c0']), bushCols = C(['#b4cdb0', '#a4c0a2', '#c2d8b8']);
@@ -48,13 +49,13 @@ function build() {
   // Tufts of grass: ankle to knee.
   { const P = field(14000, true, 0.3, 8), H = P.map(() => 1.8 + rnd() * 3.6); inst(new THREE.BoxGeometry(0.45, 1, 0.45), new THREE.MeshLambertMaterial({ color: 0xffffff }), P.length, (d, c, i) => { d.position.set(P[i][0], H[i] / 2, P[i][1]); d.scale.set(1, H[i], 1); d.rotation.set((rnd() - 0.5) * 0.3, rnd() * 3, 0); return tuftCols[i % 4]; }); }
   // Wildflowers: thigh to waist, each a stem and a bloom.
-  { const P = field(6500, true, 0.3), H = P.map(() => 6 + rnd() * 9); for (const q of P) solids.push([q[0], q[1], 0.6]); inst(new THREE.BoxGeometry(0.4, 1, 0.4), new THREE.MeshLambertMaterial({ color: 0x9fc08a }), P.length, (d, c, i) => { d.position.set(P[i][0], H[i] / 2, P[i][1]); d.scale.set(1, H[i], 1); d.rotation.set(0, rnd() * 3, 0); return null; });
+  { const P = field(3500, true, 0.3), H = P.map(() => 6 + rnd() * 9); for (const q of P) solids.push([q[0], q[1], 0.6]); inst(new THREE.BoxGeometry(0.4, 1, 0.4), new THREE.MeshLambertMaterial({ color: 0x9fc08a }), P.length, (d, c, i) => { d.position.set(P[i][0], H[i] / 2, P[i][1]); d.scale.set(1, H[i], 1); d.rotation.set(0, rnd() * 3, 0); return null; });
     inst(new THREE.BoxGeometry(2.2, 1.3, 2.2), new THREE.MeshLambertMaterial({ color: 0xffffff }), P.length, (d, c, i) => { d.position.set(P[i][0], H[i] + 0.3, P[i][1]); d.scale.set(1, 1, 1); d.rotation.set(0, rnd() * 3, 0); return bloomCols[i % bloomCols.length]; }); }
-  // Tall spiked flowers: a head to well over his head.
-  { const P = field(1500, true, 0.35), H = P.map(() => 22 + rnd() * 18); for (const q of P) solids.push([q[0], q[1], 0.8]); inst(new THREE.BoxGeometry(0.6, 1, 0.6), new THREE.MeshLambertMaterial({ color: 0x8fb27c }), P.length, (d, c, i) => { d.position.set(P[i][0], H[i] / 2, P[i][1]); d.scale.set(1, H[i], 1); return null; });
-    inst(new THREE.BoxGeometry(1.7, 1, 1.7), new THREE.MeshLambertMaterial({ color: 0xffffff }), P.length, (d, c, i) => { const h = 7 + rnd() * 5; d.position.set(P[i][0], H[i] - h / 2 + 1, P[i][1]); d.scale.set(1, h, 1); return spikeCols[i % 4]; }); }
+  // Tall spiked flowers: waist to chest.
+  { const P = field(500, true, 0.35), H = P.map(() => 14 + rnd() * 8); for (const q of P) solids.push([q[0], q[1], 0.8]); inst(new THREE.BoxGeometry(0.6, 1, 0.6), new THREE.MeshLambertMaterial({ color: 0x8fb27c }), P.length, (d, c, i) => { d.position.set(P[i][0], H[i] / 2, P[i][1]); d.scale.set(1, H[i], 1); return null; });
+    inst(new THREE.BoxGeometry(1.7, 1, 1.7), new THREE.MeshLambertMaterial({ color: 0xffffff }), P.length, (d, c, i) => { const h = 4.5 + rnd() * 3; d.position.set(P[i][0], H[i] - h / 2 + 1, P[i][1]); d.scale.set(1, h, 1); return spikeCols[i % 4]; }); }
   // Bushes and ferns: waist to shoulder, built of a few blocks.
-  for (let i = 0; i < 160; i++) { const [x, z] = spot(true, 0.45, 30), w = 10 + rnd() * 12; solids.push([x, z, w * 0.55]); const ww = w, h = 9 + rnd() * 9, m = new THREE.MeshLambertMaterial({ color: bushCols[i % 3] }); box(w, h, w * 0.9, m, x, h / 2, z, scene).rotation.y = rnd() * 3; box(w * 0.65, h * 0.7, w * 0.6, m, x + w * 0.2, h * 0.9, z - w * 0.1, scene); }
+  for (let i = 0; i < 160; i++) { const [x, z] = spot(true, 0.45, 30), w = 9 + rnd() * 9; solids.push([x, z, w * 0.55]); const ww = w, h = 8 + rnd() * 6, m = new THREE.MeshLambertMaterial({ color: bushCols[i % 3] }); box(w, h, w * 0.9, m, x, h / 2, z, scene).rotation.y = rnd() * 3; box(w * 0.65, h * 0.7, w * 0.6, m, x + w * 0.2, h * 0.9, z - w * 0.1, scene); }
   // Great pale stones and a few fallen stems, for the eye to measure against.
   for (let i = 0; i < 40; i++) { const [x, z] = spot(true, 0.4, 24), w = 6 + rnd() * 10; solids.push([x, z, w * 0.55]); box(w, w * 0.6, w * 0.8, new THREE.MeshLambertMaterial({ color: 0xcfd0c8 }), x, w * 0.3, z, scene).rotation.y = rnd() * 3; }
   // The beanstalk's top, rising out of a ring of cloud behind where Jack arrives.
