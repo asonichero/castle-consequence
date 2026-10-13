@@ -1,7 +1,7 @@
 // Climbing Toward Consequence — the climb, Chapter Three: Jack goes up the beanstalk.
 //   One path winds up the stalk, of handholds (knots of bark); he moves hand over hand to the next, reading the stalk as he goes; his grip is limited by stamina, and the path rests on the broad leaves it crosses.
 //   Lower stalk: every hold is sound, the reachable ones glow, and the way teaches grip, stamina and rest.
-//   Middle stalk: it resists: holds slide about, some are slick with sap (reach through them quickly), leaves curl away when he lingers, and gusts come (shown first by the leaves and a rush at the screen's edge).
+//   Middle stalk: it resists: some holds are slick with sap (reach through them quickly), leaves curl away when he lingers, and gusts come (shown first by the leaves and a rush at the screen's edge).
 //   Upper stalk: the thin air narrows his sight and drains his strength faster; a vast shadow slides through the clouds overhead from time to time.
 //   The top: a blanket of cloud, a ceiling the camera cannot pass; he goes up through it. As he climbs he is scaled down to a quarter, with the camera kept to him, so the stalk seems to grow.
 // Controls: WASD / arrows (or the stick) to reach for a hold; hold Space (or the Grip button) to brace; drag to turn the view.
@@ -47,7 +47,7 @@ function run(G, W) {
       good: new THREE.MeshLambertMaterial({ color: 0xc9a862 }), glow: new THREE.MeshBasicMaterial({ color: 0xffeaa0 }), faint: new THREE.MeshLambertMaterial({ color: 0xe0c47a, emissive: 0x3a2e10 }),
       slick: new THREE.MeshPhongMaterial({ color: 0xa8d890, emissive: 0x2a5a3a, shininess: 120, specular: 0xffffff }), moving: new THREE.MeshLambertMaterial({ color: 0xb48a58 }), leaf: new THREE.MeshLambertMaterial({ color: 0x5aa84c }), rim: new THREE.MeshBasicMaterial({ color: 0xfff2a0, transparent: true, opacity: 0.45 }),
     };
-    let y = 5, rung = 0, sinceLedge = 0, a0 = 0;
+    let y = 38, rung = 0, sinceLedge = 0, a0 = Math.PI * 0.5;       // (the first knot is a standing reach above the ground, so he never hangs below the floor)
     const holdPos = h => { if (h.lf) return v(h.lf.x + Math.cos(h.a) * h.r, h.y, h.lf.z + Math.sin(h.a) * h.r); const c = centre(h.y); return v(c.x + Math.cos(h.a) * h.r, h.y, c.z + Math.sin(h.a) * h.r); };
     // One path, winding up the stalk. It crosses some of the stalk's own broad leaves (the ledges), and there he rests; now and again a slick hold has a sound one beside it.
     const make = (a, hy, kind, s) => {
@@ -69,11 +69,11 @@ function run(G, W) {
       if (lf && yStand - y <= 8 * s * 1.15) {                                // the path comes to the leaf, and crosses it
         a0 = a0 + angDiff(lfA, a0);
         const h = { y: yStand, a: a0, r: d, kind: 'ledge', s: sOf(yStand), base: { y: yStand, a: a0 }, ph: rnd() * 6.28, mesh: null, leaf: lf.g, curl: 0, curlT: 0, gone: 0, L: 0, lf };
-        lf.g.userData.hold = h; h.rim = box(lf.L * 0.9, 0.35, 12, mats.rim, lf.w / 2 + lf.L / 2, 0.95, 0, lf.g); holds.push(h); lf = null; targetY = yStand + (z === 'lower' ? 125 : z === 'middle' ? 95 : 70); y = yStand + 8 * s; a0 += 10.5 * s / Math.max(surfR(y, a0), surfR(y + 8 * s, a0), 4); continue;
+        lf.g.userData.hold = h; h.rim = box(lf.L * 0.9, 0.35, 12, mats.rim, lf.w / 2 + lf.L / 2, 0.95, 0, lf.g); holds.push(h); lf = null; targetY = yStand + (z === 'lower' ? 125 : z === 'middle' ? 95 : 70); y = yStand + 38 * s; a0 += 10.5 * s / Math.max(surfR(y, a0), surfR(y + 8 * s, a0), 4); continue;
       }
       let kind = 'good';
-      if (z === 'middle' && rnd() < 0.3) kind = rnd() < 0.55 ? 'slick' : 'moving';
-      else if (z === 'upper' && rnd() < 0.34) kind = rnd() < 0.5 ? 'slick' : 'moving';
+      if (z === 'middle' && rnd() < 0.3) kind = 'slick';
+      else if (z === 'upper' && rnd() < 0.34) kind = 'slick';
       make(a0, y, kind, s);
       if (kind === 'slick') make(a0 - 0.42, y + 0.8 * s, 'good', s);
       let da = step;
@@ -81,7 +81,7 @@ function run(G, W) {
       a0 += da; y += 8 * s; rung++;
     }
     holds.sort((p, q) => p.y - q.y);
-    const GROUND = { y: -2, a: Math.PI * 0.5, r: 16, kind: 'ground', s: 1, base: { y: -2, a: Math.PI * 0.5 }, ph: 0, mesh: null };
+    const GROUND = { y: 0, a: Math.PI * 0.5, r: 16, kind: 'ground', s: 1, base: { y: 0, a: Math.PI * 0.5 }, ph: 0, mesh: null };
     const place = h => {            // where a hold is now (some of them move)
       if (h.kind === 'moving') { const t = G.t; h.y = h.base.y + 2 * h.s * Math.sin(t * 0.7 + h.ph); h.a = h.base.a + 0.3 * Math.sin(t * 0.45 + h.ph * 1.7); }
       if (h.kind === 'moving') h.r = surfR(h.y, h.a) + 0.6 * h.s; const p = holdPos(h); if (h.mesh) { h.mesh.position.copy(p); h.mesh.rotation.y = -h.a; } return p;
@@ -143,21 +143,22 @@ function run(G, W) {
     root.addEventListener('keydown', kd); root.addEventListener('keyup', ku);
     const gb = $('clGrip'); gb.onpointerdown = () => { keys.grip = true; }; gb.onpointerup = gb.onpointerleave = gb.onpointercancel = () => { keys.grip = false; };
     const drags = new Map();
-    const pd = e => drags.set(e.pointerId, { x: e.clientX, y: e.clientY }), pm = e => { const d = drags.get(e.pointerId); if (!d) return; st.camA -= (e.clientX - d.x) * 0.007; st.pitch = clamp(st.pitch + (e.clientY - d.y) * 0.004, -0.1, 0.9); d.x = e.clientX; d.y = e.clientY; }, pu = e => drags.delete(e.pointerId);
+    const pd = e => drags.set(e.pointerId, { x: e.clientX, y: e.clientY }), pm = e => { const d = drags.get(e.pointerId); if (!d) return; st.camA -= (e.clientX - d.x) * 0.007; st.pitch = clamp(st.pitch + (e.clientY - d.y) * 0.005, -0.9, 1.45); d.x = e.clientX; d.y = e.clientY; }, pu = e => drags.delete(e.pointerId);
     el.addEventListener('pointerdown', pd); el.addEventListener('pointermove', pm); el.addEventListener('pointerup', pu); el.addEventListener('pointercancel', pu);
     { const sEl = $('clStick'), k = $('clKnob'); let id = null; const set = e => { const r = sEl.getBoundingClientRect(); let dx = (e.clientX - r.left - r.width / 2) / (r.width / 2), dy = (e.clientY - r.top - r.height / 2) / (r.height / 2); const m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; } stick.x = dx; stick.y = dy; k.style.transform = `translate(${dx * 34}px, ${dy * 34}px)`; };
       sEl.addEventListener('pointerdown', e => { id = e.pointerId; sEl.setPointerCapture(id); set(e); }); sEl.addEventListener('pointermove', e => { if (e.pointerId === id) set(e); }); const end = e => { if (e.pointerId === id) { id = null; stick.x = stick.y = 0; k.style.transform = ''; } }; sEl.addEventListener('pointerup', end); sEl.addEventListener('pointercancel', end); }
 
     // ── Reaching. ──
     const reachOf = h => 17 * (h.s || 1) * (h === GROUND ? 1.5 : 1);
-    const arcTo = (p, q) => { const rr = o => (o.kind === 'ledge' ? 7 : o.r), dth = angDiff(q.a, p.a), r = (rr(p) + rr(q)) / 2; return { right: -dth * Math.min(r, 12), up: q.y - p.y }; };
-    const reachable = (from, h) => { if (h === from || h.gone > 0.5) return false; const d = arcTo(from, h); return Math.hypot(d.right, d.up) <= reachOf(from) && h.y > -1; };
+    const yFrom = p => (p.kind === 'ledge' || p.kind === 'ground' ? p.y + 30 * (p.s || 1) : p.y);        // (hands, from a standing place)
+    const arcTo = (p, q) => { const rr = o => (o.kind === 'ledge' ? 7 : o.r), dth = angDiff(q.a, p.a), r = (rr(p) + rr(q)) / 2; return { right: -dth * Math.min(r, 12), up: q.y - yFrom(p) }; };
+    const reachable = (from, h) => { if (h === from || h.gone > 0.5) return false; const d = arcTo(from, h); return Math.hypot(d.right, d.up) <= reachOf(from) && h.y > 1; };
     const input = () => { let ix = (keys.right ? 1 : 0) - (keys.left ? 1 : 0), iy = (keys.up ? 1 : 0) - (keys.down ? 1 : 0); if (Math.hypot(stick.x, stick.y) > 0.3) { ix += stick.x; iy -= stick.y; } const m = Math.hypot(ix, iy); return m > 0.3 ? { x: ix / m, y: iy / m } : null; };
     function pick(from, inp) {
       let best = null, bs = -9;
-      for (const h of holds) { if (Math.abs(h.y - from.y) > 40) continue; if (!reachable(from, h)) continue; const d = arcTo(from, h), L = Math.hypot(d.right, d.up) || 1, dth = angDiff(h.a, from.a), tm = from.a + dth / 2, sx = d.right * Math.cos(tm - st.camA), sy = d.up, M = Math.hypot(sx, sy) || 1, cos = (sx * inp.x + sy * inp.y) / M; if (cos < 0.25) continue; const sc = cos * 2 - L / reachOf(from); if (sc > bs) { bs = sc; best = h; } }
+      for (const h of holds) { if (Math.abs(h.y - yFrom(from)) > 60) continue; if (!reachable(from, h)) continue; const d = arcTo(from, h), L = Math.hypot(d.right, d.up) || 1, dth = angDiff(h.a, from.a), tm = from.a + dth / 2, sx = d.right * Math.cos(tm - st.camA), sy = d.up, M = Math.hypot(sx, sy) || 1, cos = (sx * inp.x + sy * inp.y) / M; if (cos < 0.25) continue; const sc = cos * 2 - L / reachOf(from); if (sc > bs) { bs = sc; best = h; } }
       if (!best && Math.abs(inp.y) > 0.5) {                 // (up or down on its own: the nearest sound way that way, whichever side of the stalk it winds to)
-        let bd = 1e9; for (const h of holds) { if (h === from || h.gone > 0.5 || Math.abs(h.y - from.y) > 40 || !reachable(from, h)) continue; const dy = (h.y - from.y) * inp.y; if (dy < 0.5) continue; const dd = Math.hypot(arcTo(from, h).right, h.y - from.y); if (dd < bd) { bd = dd; best = h; } }
+        let bd = 1e9; for (const h of holds) { if (h === from || h.gone > 0.5 || Math.abs(h.y - yFrom(from)) > 60 || !reachable(from, h)) continue; const dy = (h.y - yFrom(from)) * inp.y; if (dy < 0.5) continue; const dd = Math.hypot(arcTo(from, h).right, h.y - from.y); if (dd < bd) { bd = dd; best = h; } }
       }
       return best;
     }
@@ -183,7 +184,7 @@ function run(G, W) {
     const tick = dt => {
       if (ended) return;
       const t = G.t, h0 = st.cur, k = SC * sOf(st.y);
-      st.zone = zoneOf(st.y); if (st.zone !== st.lastZone) { st.lastZone = st.zone; scheduleGust(); if (st.zone === 'middle') { mutter('It’s fighting me... the knots are moving.', true); toast('The stalk resists: knots drift, sap makes holds slick, leaves curl away, and gusts come.', 6000); } else if (st.zone === 'upper') { mutter('The air is so thin... everything is harder.', true); toast('Thin air: your sight narrows and your strength drains faster.', 6000); } }
+      st.zone = zoneOf(st.y); if (st.zone !== st.lastZone) { st.lastZone = st.zone; scheduleGust(); if (st.zone === 'middle') { mutter('It’s fighting me... the bark is slick with sap.', true); toast('The stalk resists: sap makes some holds slick, leaves curl away, and gusts come.', 6000); } else if (st.zone === 'upper') { mutter('The air is so thin... everything is harder.', true); toast('Thin air: your sight narrows and your strength drains faster.', 6000); } }
       for (const h of holds) if (h.kind === 'moving' && Math.abs(h.y - st.y) < 80) place(h);
       // The leaves that curl away.
       for (const h of holds) if (h.kind === 'ledge' && h.leaf) {
@@ -211,7 +212,7 @@ function run(G, W) {
         if (st.stamina <= 0 && st.cur !== GROUND) { drop('Your arms give out! You slide, and catch yourself below.'); }
         else { // slick holds: leave them quickly
           if (st.cur.kind === 'slick') { st.slip += dt; if (st.slip > 0.75) { st.slip = 0; st.stamina = Math.max(0, st.stamina - 10); drop('Slick with sap! Your hands slide off.'); } } else st.slip = 0;
-          st.cool -= dt; const inp = input();
+          st.cool -= dt; if (st.lock > 0) { st.lock -= dt; if (st.lock <= 0) toast('Rested. Climb on whenever you are ready.', 2600); } const inp = st.lock > 0 ? null : input();
           if (inp && st.cool <= 0 && !st.grip && st.mode === 'idle') { const h = pick(st.cur, inp); if (h) startMove(h); else st.cool = 0.12; }
         }
         // He trails the hold he's on if it moves.
@@ -219,7 +220,7 @@ function run(G, W) {
       } else if (st.mode === 'move' || st.mode === 'drop') {
         const dur = st.mode === 'drop' ? 0.75 : 0.42; st.mt += dt / dur; const u = clamp(st.mt, 0, 1), e = st.mode === 'drop' ? u * u : u * u * (3 - 2 * u), p = poseAt(st.to);
         const da = angDiff(st.to.a, st.from.a); st.y = lerp(st.from.y, p.y, e); st.a = st.from.a + da * e; st.r = lerp(st.from.r, p.r, e); st.eMove = e;
-        if (u >= 1) { st.cur = st.to; st.mode = 'idle'; st.cool = 0.14; pose.fall = 0; st.best = Math.max(st.best, st.cur.y); st.ledgeT = 0; if (st.cur.kind === 'ledge' && !st.restedOnce) { st.restedOnce = true; mutter('A broad leaf. I can rest here.'); } }
+        if (u >= 1) { st.cur = st.to; st.mode = 'idle'; st.cool = 0.14; pose.fall = 0; st.best = Math.max(st.best, st.cur.y); st.ledgeT = 0; if (st.cur.kind === 'ledge' && !st.restedOnce) { st.restedOnce = true; st.lock = 4.5; st.stamina = Math.min(st.stamina, 55); st.capAt = 0; mutter('A broad leaf. I can rest here.', true); toast('Where the path crosses a leaf, you rest. Your strength returns while you stand on it.', 5200); } }
       }
       pose.stand = lerp(pose.stand, st.cur.kind === 'ledge' || st.cur === GROUND ? (st.mode === 'move' ? 0.5 : 1) : 0, Math.min(1, dt * 9));
       if (st.mode === 'drop') pose.stand = 0;
@@ -252,10 +253,10 @@ function run(G, W) {
       $('clBar').firstChild.style.width = st.stamina + '%'; $('clBar').classList.toggle('low', st.stamina < 25);
       if (st.toastAt && performance.now() > st.toastAt) { $('clToast').style.opacity = 0; st.toastAt = 0; }
       // The camera: outside him, at his own scale (so as he shrinks the stalk looms), held under the cloud.
-      const kk = sOf(st.y); if (keys.camL) st.camA += 1.7 * dt; if (keys.camR) st.camA -= 1.7 * dt; { const off = angDiff(st.a, st.camA); if (Math.abs(off) > 2.2) st.camA += off * Math.min(1, dt * 1.2); }      // (free to look round; it only turns by itself if he is quite hidden behind the stalk)
+      const kk = sOf(st.y); if (keys.camL) st.camA += 1.7 * dt; if (keys.camR) st.camA -= 1.7 * dt;       // (the view is the player's: all the way round and up and down, never turned for him; only the cloud ceiling and the ground hold it back)
       const d = (88 + 14 * (st.zone === 'upper' ? 1 : 0)) * kk, at = v(tp.x + Math.cos(st.a) * st.r * 0.4, st.y + (st.cur.kind === 'ledge' ? 14 : -4) * kk * 0.95, tp.z + Math.sin(st.a) * st.r * 0.4);
       const want = v(at.x + Math.cos(st.camA) * d * Math.cos(st.pitch), at.y + Math.sin(st.pitch) * d * 0.9 + 6 * kk, at.z + Math.sin(st.camA) * d * Math.cos(st.pitch));
-      want.y = Math.min(want.y, CLOUD_Y - 8); at.y = Math.min(at.y, CLOUD_Y - 2);
+      want.y = clamp(want.y, 3, CLOUD_Y - 8); at.y = Math.min(at.y, CLOUD_Y - 2);
       if (st.shake > 0) { want.x += (Math.random() - 0.5) * 2.2 * kk; want.y += (Math.random() - 0.5) * 1.6 * kk; st.shake = Math.max(0, st.shake - dt * 3); }
       if (camPos.lengthSq() === 0) camPos.copy(want); else camPos.lerp(want, Math.min(1, dt * 8)); camLook.copy(at);
       fovCur = lerp(fovCur, g.phase === 'blow' ? 56 : 50, Math.min(1, dt * 4));
