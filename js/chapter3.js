@@ -82,6 +82,7 @@ async function run(G, W, opts) {
       a.rotation.x = lerp(P.armX + (sg > 0 ? -sw : sw) * 0.9, 0.34 + 0.05 * Math.sin(t * 5 + sg), P.rub); a.rotation.z = lerp(sg * P.armZ, -sg * 0.3, P.rub);
     }
     r.torso.rotation.set(P.torso + br, 0, 0); r.neck.rotation.set(P.neckX, P.neckY, 0);
+    if (ja.air) { r.armL.rotation.x = r.armR.rotation.x = -2.5; r.legL.thigh.rotation.x = -0.5; r.legR.thigh.rotation.x = 0.25; r.legR.knee.rotation.x = 0.5; }       // (the leap)
     if (coverOn) fitBlanket();
   };
   const hipsLocal = v(0, 12 * SC, 0);
@@ -145,9 +146,9 @@ async function run(G, W, opts) {
     const toast = (t, ms = 3000) => { $('cToast').textContent = t; $('cToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
     const objective = () => { $('cObj').innerHTML = `<span class="${st.dressed ? 'done' : ''}">Dress (the wardrobe)</span> &nbsp;·&nbsp; <span class="${st.knife ? 'done' : ''}">Take Father’s knife (the chest of drawers)</span>`; };
     const mutter = (text, force) => { if (!force && performance.now() < st.capAt) return; st.capAt = performance.now() + 6500; G.caption('jack', text); };
-    const keys = {}, ui = root.TouchUI.create({ keys, run: true, act: true, cam: true }), stick = ui.stick, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', Shift: 'run' };
+    const keys = {}, ui = root.TouchUI.create({ keys, run: true, jump: true, act: true, cam: true }), stick = ui.stick, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', Shift: 'run' };
     const typing = e => e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
-    const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } if (e.repeat) return; if (e.key === 'e' || e.key === 'E') interact(); else if (e.key === 'v' || e.key === 'V') zoom(); };
+    const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } if (e.repeat) return; if (e.key === 'e' || e.key === 'E') interact(); else if (e.key === 'v' || e.key === 'V') zoom(); else if (e.key === ' ') { e.preventDefault(); ui.on.jump(); } };
     const ku = e => { const k = KM[e.key]; if (k) keys[k] = false; };
     root.addEventListener('keydown', kd); root.addEventListener('keyup', ku);
     const drags = new Map();
@@ -156,7 +157,7 @@ async function run(G, W, opts) {
     const wheel = e => { e.preventDefault(); zoom(e.deltaY > 0 ? 1 : -1); }; el.addEventListener('wheel', wheel, { passive: false });
     const camIcon = () => ui.set('cam', { icon: 'camera', title: 'Camera: ' + ZOOMS[st.zoom].name });
     function zoom(dir) { st.zoom = (st.zoom + (dir || 1) + ZOOMS.length) % ZOOMS.length; camIcon(); }
-    camIcon(); ui.on.cam = () => zoom(); ui.on.act = () => interact();
+    camIcon(); ui.on.cam = () => zoom(); ui.on.act = () => interact(); const hop = { y: 0, vy: 0 }, canHop = () => !st.act && !st.leaving && hop.y <= 0.01; ui.on.jump = () => { if (canHop()) hop.vy = 112 * SC; };
 
     const near = (p, r) => Math.hypot(st.pos.x - p.x, st.pos.z - p.z) < r;
     const act = (dur, then) => { st.act = { t: 0, dur, then }; ja.speed = 0; };
@@ -199,7 +200,8 @@ async function run(G, W, opts) {
           if (!blocked(nx, st.pos.z)) st.pos.x = nx; if (!blocked(st.pos.x, nz)) st.pos.z = nz; ja.speed = 24; ja.phase += sp * dt * 0.42 / 0.95;
         } else ja.speed = 0;
       }
-      jackIn.root.position.set(st.pos.x, 0, st.pos.z); jackIn.root.quaternion.setFromAxisAngle(v(0, 1, 0), st.heading);
+      if (hop.y > 0 || hop.vy > 0) { hop.vy -= 420 * SC * dt; hop.y += hop.vy * dt; if (hop.y <= 0) { hop.y = 0; hop.vy = 0; } } ja.air = hop.y > 0.01; ui.set('jump', { label: 'Jump', icon: 'jump', enabled: canHop() });
+      jackIn.root.position.set(st.pos.x, hop.y, st.pos.z); jackIn.root.quaternion.setFromAxisAngle(v(0, 1, 0), st.heading);
       const atStairs = near(STAIRS, 17); if (atStairs && !st.stairsNear) mutter('Quietly... I mustn’t wake Mother.'); st.stairsNear = atStairs;
       if (st.pos.z > 66 && Math.abs(st.pos.x - 34) < 10) {
         if (st.dressed && st.knife) { leave(); return; }

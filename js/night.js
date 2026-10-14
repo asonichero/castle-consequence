@@ -59,6 +59,7 @@ function build(G) {
     }
     r.neck.rotation.x = 0.28 * a.bow + 0.03 * Math.sin(a.t * 0.9); r.neck.rotation.y = a.look; r.torso.rotation.x = 0.06 * a.bow;
     r.hips.position.y = 12 + Math.abs(Math.sin(a.phase)) * 0.5 * clamp(a.speed / 20, 0, 1);
+    if (a.air) { r.armL.rotation.x = r.armR.rotation.x = -2.5; r.legL.thigh.rotation.x = -0.5; r.legR.thigh.rotation.x = 0.25; r.legR.knee.rotation.x = 0.5; }       // (the leap, as in Chapter One)
     if (a.hitch) {      // pulling his trousers up: he bends to take them at the knee (0 to 0.4), holds a beat, then gives them a hitch as he straightens (0.55 on) and settles
       const p = a.hitch, bend = p < 0.4 ? p / 0.4 : p < 0.55 ? 1 : Math.max(0, 1 - (p - 0.55) / 0.3), tug = p > 0.55 && p < 0.85 ? Math.sin(Math.PI * (p - 0.55) / 0.3) : 0, ease = bend * bend * (3 - 2 * bend);
       r.torso.rotation.x = 0.06 * a.bow + 0.62 * ease; r.neck.rotation.x = 0.28 * a.bow - 0.2 * ease; r.hips.position.y = 12 - 0.7 * ease + 0.5 * tug;

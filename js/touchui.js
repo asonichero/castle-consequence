@@ -1,6 +1,6 @@
 // Climbing Toward Consequence — the touch controls, one set for every walking scene.
-//   Left thumb: the stick, with Run and Sneak (latching toggles) just above it.  Right thumb: Jump / Climb (big, lowest), Action / Pick up beside it, Drop above it.
-//   Top right, under the Menu button: the camera button (the same round camera as the correction scenes), which steps through the zooms and first person.
+//   Left thumb: the stick, with Sneak (a latching toggle) just above it.  Right thumb: Jump / Climb (big, lowest), Action / Pick up beside it, Drop above it, and Run (held while pressed) between them.
+//   Every button is always on screen, greyed out when the scene has no use for it or it would do nothing.  Top right, under the Menu button: the camera button (the same round camera as the correction scenes), which steps through the zooms and first person.
 //   Every button has an icon; Jump and Action also carry a small label for what a tap will do now. A button that would do nothing is greyed out and ignores taps.
 // Use:  const ui = TouchUI.create({ run: true, sneak: true, jump: true, act: true, drop: true, cam: true });
 //       ui.stick ({x, y}, -1..1); ui.run / ui.sneak (booleans); ui.on = { jump, jumpUp, act, drop, cam, run, sneak };
@@ -30,14 +30,14 @@ const CSS = `
   #tJump { right: 22px; bottom: 24px; width: 78px; height: 78px; } #tJump svg { width: 34px; height: 34px; }
   #tAct { right: 112px; bottom: 34px; width: 66px; height: 66px; } #tAct svg { width: 28px; height: 28px; }
   #tDrop { right: 37px; bottom: 112px; width: 58px; height: 58px; } #tDrop svg { width: 22px; height: 22px; }
-  #tRun { left: 24px; bottom: 170px; width: 54px; height: 54px; } #tSneak { left: 90px; bottom: 170px; width: 54px; height: 54px; } #tRun svg, #tSneak svg { width: 25px; height: 25px; }
-  #tCam { right: 12px; top: 52px; width: 56px; height: 56px; z-index: 36; } #tCam svg { width: 30px; height: 30px; }
+  #tRun { right: 106px; bottom: 104px; width: 54px; height: 54px; } #tSneak { left: 52px; bottom: 170px; width: 54px; height: 54px; } #tRun svg, #tSneak svg { width: 25px; height: 25px; }
+  #tCam { right: 12px; top: 72px; width: 56px; height: 56px; z-index: 36; } #tCam svg { width: 30px; height: 30px; }
   #tStick { position: absolute; left: 22px; bottom: 26px; width: 130px; height: 130px; border-radius: 50%; background: rgba(20,22,28,0.45); border: 2px solid rgba(230,196,106,0.55); touch-action: none; display: none; pointer-events: auto; }
   #tKnob { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: rgba(230,196,106,0.75); pointer-events: none; }
   @media (pointer: coarse) { #tui.hasStick #tStick { display: block; } #tui .tb.touch.vis { display: flex; } }
   #tui.force.hasStick #tStick { display: block; } #tui.force .tb.touch.vis { display: flex; }
   #tui .tb.vis:not(.touch) { display: flex; }
-  @media (max-height: 420px) { #tJump { width: 68px; height: 68px; right: 18px; bottom: 18px; } #tAct { right: 98px; bottom: 26px; width: 58px; height: 58px; } #tDrop { right: 28px; bottom: 98px; width: 54px; height: 54px; } #tStick { width: 112px; height: 112px; left: 16px; bottom: 18px; } #tRun { left: 16px; bottom: 140px; width: 48px; height: 48px; } #tSneak { left: 72px; bottom: 140px; width: 48px; height: 48px; } #tCam { top: 46px; width: 48px; height: 48px; } }`;
+  @media (max-height: 420px) { #tJump { width: 68px; height: 68px; right: 18px; bottom: 18px; } #tAct { right: 98px; bottom: 26px; width: 58px; height: 58px; } #tDrop { right: 28px; bottom: 98px; width: 54px; height: 54px; } #tStick { width: 112px; height: 112px; left: 16px; bottom: 18px; } #tRun { right: 94px; bottom: 92px; width: 48px; height: 48px; } #tSneak { left: 44px; bottom: 140px; width: 48px; height: 48px; } #tCam { top: 66px; width: 48px; height: 48px; } }`;
 let UI = null;
 const svg = name => '<svg viewBox="0 0 24 24">' + (ICONS[name] || '') + '</svg>';
 function build() {
@@ -63,8 +63,10 @@ function build() {
     const up = e => { b.classList.remove('down'); if (held) { held = false; fire(k + 'Up'); } };
     b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('contextmenu', e => e.preventDefault());
   }
-  B.run.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); if (ui.state.run.enabled === false) return; const on = !ui.run; ui.setRun(on); if (on && ui.sneak) { ui.setSneak(false); fire('sneak', false); } fire('run', on); });
-  B.sneak.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); if (ui.state.sneak.enabled === false) return; const on = !ui.sneak; ui.setSneak(on); if (on && ui.run) { ui.setRun(false); fire('run', false); } fire('sneak', on); });
+  { const b = B.run; let held = false;                                                                // (Run is held, like Shift: it applies while the thumb is on it, and stops a sneak)
+    b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); if (ui.state.run.enabled === false) return; held = true; b.setPointerCapture && b.setPointerCapture(e.pointerId); b.classList.add('down'); if (ui.sneak) { ui.setSneak(false); fire('sneak', false); } ui.setRun(true); fire('run', true); });
+    const up = () => { b.classList.remove('down'); if (held) { held = false; ui.setRun(false); fire('run', false); } }; b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('lostpointercapture', up); b.addEventListener('contextmenu', e => e.preventDefault()); }
+  B.sneak.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); if (ui.state.sneak.enabled === false) return; const on = !ui.sneak; ui.setSneak(on); fire('sneak', on); });
   { const sEl = $('tStick'), knob = $('tKnob'); let id = null;
     const set = e => { const r = sEl.getBoundingClientRect(); let dx = (e.clientX - r.left - r.width / 2) / (r.width / 2), dy = (e.clientY - r.top - r.height / 2) / (r.height / 2); const m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; } ui.stick.x = dx; ui.stick.y = dy; knob.style.transform = `translate(${dx * 36}px, ${dy * 36}px)`; };
     sEl.addEventListener('pointerdown', e => { if (id !== null) return; id = e.pointerId; sEl.setPointerCapture(id); set(e); e.preventDefault(); e.stopPropagation(); });
@@ -72,7 +74,7 @@ function build() {
     const end = e => { if (e.pointerId === id) { id = null; ui.stick.x = ui.stick.y = 0; knob.style.transform = ''; } }; sEl.addEventListener('pointerup', end); sEl.addEventListener('pointercancel', end); }
   ui.reset = o => {
     o = o || {}; ui.destroy(); ui.keys = o.keys || null; ui.run = ui.sneak = false;
-    for (const k in DEF) { const want = k === 'cam' ? o.cam !== false && o.cam !== undefined : !!o[k]; ui.state[k] = { icon: DEF[k][0], label: DEF[k][1], enabled: true, on: false, title: '' }; if (o[k] && typeof o[k] === 'object') Object.assign(ui.state[k], o[k]); draw(k); B[k].classList.toggle('vis', want); }
+    for (const k in DEF) { const want = true; ui.state[k] = { icon: DEF[k][0], label: DEF[k][1], enabled: k === 'cam' ? o.cam !== false : !!o[k], on: false, title: '' }; if (o[k] && typeof o[k] === 'object') Object.assign(ui.state[k], o[k]); draw(k); B[k].classList.toggle('vis', want); }
     el.classList.toggle('hasStick', o.stick !== false); el.style.display = 'block'; return ui; };
   return ui;
 }

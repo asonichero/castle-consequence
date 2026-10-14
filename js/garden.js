@@ -83,10 +83,10 @@ function run(G, W, tier) {
     const $ = id => document.getElementById(id);
     BEANS.forEach(([n, c]) => { const i = document.createElement('i'); i.style.background = '#' + c.toString(16).padStart(6, '0'); i.title = n; $('gBeans').appendChild(i); });
     const toast = (t, ms = 3200) => { $('gToast').textContent = t; $('gToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
-    const keys = {}, ui = root.TouchUI.create({ keys, run: true, act: true, drop: true, cam: true }), stick = ui.stick;
+    const keys = {}, ui = root.TouchUI.create({ keys, run: true, jump: true, act: true, drop: true, cam: true }), stick = ui.stick;
     const KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', Shift: 'run' };
     const typing = e => e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
-    const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } if (e.repeat) return; if (e.key === 'e' || e.key === 'E') interact(); else if (e.key === 'q' || e.key === 'Q') putDown(); else if (e.key === 'v' || e.key === 'V') cycleZoom(); };
+    const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } if (e.repeat) return; if (e.key === 'e' || e.key === 'E') interact(); else if (e.key === 'q' || e.key === 'Q') putDown(); else if (e.key === 'v' || e.key === 'V') cycleZoom(); else if (e.key === ' ') { e.preventDefault(); ui.on.jump(); } };
     const ku = e => { const k = KM[e.key]; if (k) keys[k] = false; };
     root.addEventListener('keydown', kd); root.addEventListener('keyup', ku);
     const drags = new Map();
@@ -95,7 +95,7 @@ function run(G, W, tier) {
     const wheel = e => { e.preventDefault(); cycleZoom(e.deltaY > 0 ? 1 : -1); }; el.addEventListener('wheel', wheel, { passive: false });
     const camIcon = () => ui.set('cam', { icon: 'camera', title: 'Camera: ' + ZOOMS[st.zoom].name });
     function cycleZoom(dir) { st.zoom = (st.zoom + (dir || 1) + ZOOMS.length) % ZOOMS.length; camIcon(); }
-    camIcon(); ui.on.cam = () => cycleZoom(); ui.on.act = () => interact(); ui.on.drop = () => putDown();
+    camIcon(); ui.on.cam = () => cycleZoom(); ui.on.act = () => interact(); ui.on.drop = () => putDown(); const hop = { y: 0, vy: 0 }, canHop = () => !st.act && !st.inside && st.hold !== 'rock' && hop.y <= 0.01; ui.on.jump = () => { if (canHop()) hop.vy = 112 * SC; };
 
     // ── What he can do. ──
     const near = (p, r) => Math.hypot(st.pos.x - p.x, st.pos.z - p.z) < r;
@@ -240,7 +240,9 @@ function run(G, W, tier) {
         } else st.speedN = 0;
         aOut.speed = st.speedN; aOut.phase += st.speedN * SC * dt * 0.42 / 0.95;
       }
-      if (!st.inside) { jackOut.root.position.set(st.pos.x, 0, st.pos.z); jackOut.root.rotation.y = st.heading; }
+      if (hop.y > 0 || hop.vy > 0) { hop.vy -= 420 * SC * dt; hop.y += hop.vy * dt; if (hop.y <= 0) { hop.y = 0; hop.vy = 0; } } aOut.air = hop.y > 0.01;
+      ui.set('jump', { label: 'Jump', icon: 'jump', enabled: canHop() });
+      if (!st.inside) { jackOut.root.position.set(st.pos.x, hop.y, st.pos.z); jackOut.root.rotation.y = st.heading; }
       // The hint, for what E would do.
       let hint = '';
       if (!st.act && !st.inside) {

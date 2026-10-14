@@ -366,7 +366,7 @@ function run(G, W, opts) {
         st.pos.x = best.qx + nx * 6.5 * s; st.pos.z = best.qz + nz * 6.5 * s; st.heading = Math.atan2(-nx, -nz); st.y = best.e.y1; st.cl = { e: best.e, down: true, top: best.e.y1 }; st.vy = 0; st.perch = null; st.stam = 1; };
       if (busy) { st.walkN = 0; } else if (dir.lengthSq() > 0) {
         dir.normalize(); const want = Math.atan2(dir.x, dir.z); st.heading += angDiff(want, st.heading) * Math.min(1, dt * 9);
-        const off = Math.abs(angDiff(want, st.heading)), ease = clamp(1 - off / Math.PI * 0.8, 0.2, 1), sp = (keys.sneak ? 11 : keys.run ? 50 : 26) * SC * Math.pow(s, 0.6) * ease, nx = st.pos.x + Math.sin(st.heading) * sp * dt, nz = st.pos.z + Math.cos(st.heading) * sp * dt;
+        const off = Math.abs(angDiff(want, st.heading)), ease = clamp(1 - off / Math.PI * 0.8, 0.2, 1), sp = (keys.run ? 50 : keys.sneak ? 11 : 26) * SC * Math.pow(s, 0.6) * ease, nx = st.pos.x + Math.sin(st.heading) * sp * dt, nz = st.pos.z + Math.cos(st.heading) * sp * dt;
         const dropBad = (x, z) => { if (st.standY === undefined || st.y < st.standY - 0.5 * s && st.vy < 0) return false; const lo = floorAt(x, z, st.y); if (lo >= st.standY - 2 * Hj) return false; edge(x, z); return true; };       // (never off anything more than twice his height: walking or leaping)
         if (!blockedAt(nx, st.pos.z, st.y) && !dropBad(nx, st.pos.z)) st.pos.x = nx; if (!st.cl && !blockedAt(st.pos.x, nz, st.y) && !dropBad(st.pos.x, nz)) st.pos.z = nz; st.walkN = 1; st.walkPh += 10.9 * Math.pow(s, -0.35) * 0.55 * dt * 1.4 * (keys.run ? 1.5 : keys.sneak ? 0.6 : 1);
       } else st.walkN = Math.max(0, st.walkN - dt * 6);
