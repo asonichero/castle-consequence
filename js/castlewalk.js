@@ -449,7 +449,7 @@ function run(G, W, opts) {
       jackOut.root.visible = false; gst.bend = 0.3; gst.reach = 1.15; gst.lreach = 1.15; placeGerda(); await G.wait(0.7); A && A.latch && A.latch(0.6);
       for (let i = 1; i <= 64; i++) { const k = ease(i / 64); box.lid.rotation.x = -1.95 * k; f.style.opacity = 1 - Math.min(1, k * 1.2); gst.bend = W3(0.3, 0.1, k); placeGerda(); await G.wait(0.04); }
       f.style.transition = ''; f.style.opacity = 0;
-      await G.say('gerda', 'Stay where you are. And touch nothing.');
+      await G.say('gerda', 'Stay put, little one. Touch nothing until I return.');
       for (let i = 1; i <= 14; i++) { gst.reach = 1.15 * (1 - i / 14); gst.lreach = 1.15 * (1 - i / 14); gst.bend = 0.1 * (1 - i / 14); gst.h += angDiff(Math.PI / 2 - 0.4, gst.h) * 0.25; placeGerda(); await G.wait(0.04); }
       // 3. outside: she leaves by the parlour doors, which pull to behind her; he sits up and rubs his eyes, then looks about
       jackOut.root.visible = true; G.cut({ pos: v(150, 98, 12), look: v(198, 22, -48), fov: 50 });
