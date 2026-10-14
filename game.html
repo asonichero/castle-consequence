@@ -47,17 +47,14 @@
   #subChoices { display: none; margin-top: 8px; } #subChoices .choice { display: block; width: 100%; text-align: left; margin: 6px 0 0; padding: 10px 14px; font-size: clamp(14px, 1.9vw, 17px); background: rgba(40,44,56,0.9); }
   #subGate { display: none; margin: 10px 0 0; float: right; font-size: 18px; padding: 10px 30px; }
   /* Chapter One's HUD (Market Day) */
-  .mhud { position: fixed; inset: 0; pointer-events: none; z-index: 12; } .mhud button, .mhud .mstick { pointer-events: auto; }
+  .mhud { position: fixed; inset: 0; pointer-events: none; z-index: 12; } 
   .mobj { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(10,12,16,0.78); border: 1px solid #4a4d58; border-radius: 8px; padding: 8px 16px; font-size: clamp(13px, 1.9vw, 17px); max-width: 80vw; text-align: center; }
   .mpace { position: absolute; top: 56px; left: 50%; transform: translateX(-50%); font-size: 13px; opacity: .85; text-shadow: 0 1px 4px #000; } .mpace.warn { color: #f0a090; opacity: 1; }
   .mtrust { position: absolute; left: 14px; top: 12px; width: min(230px, 40vw); background: rgba(10,12,16,0.78); border: 1px solid #4a4d58; border-radius: 8px; padding: 6px 10px; font-size: 13px; }
   .mtb { height: 10px; background: #1c1f27; border: 1px solid #454a58; border-radius: 4px; overflow: hidden; margin-top: 4px; } .mtb i { display: block; height: 100%; width: 90%; background: linear-gradient(90deg, #5a8a4a, #c9a84c); } .mtb i.full { background: #7fd070; }
   .mhint { position: absolute; left: 50%; bottom: 18vh; transform: translateX(-50%); background: rgba(10,12,16,0.85); border: 1px solid #c9a84c; color: #f0d98a; padding: 6px 14px; border-radius: 6px; font-size: 15px; display: none; }
   .mtoast { position: absolute; left: 50%; bottom: 7vh; transform: translateX(-50%); background: rgba(10,12,16,0.85); border: 1px solid #4a4d58; padding: 8px 16px; border-radius: 8px; font-size: 14px; max-width: 86vw; text-align: center; opacity: 0; transition: opacity .4s; }
-  .mbtns { position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 6px; align-items: flex-end; } .mbtns button { margin: 0; padding: 9px 14px; font-size: 14px; background: rgba(20,22,30,0.85); } .mbtns button.on { background: #6b5a2a; border-color: #c9a84c; }
-  .mstick { position: absolute; left: 22px; bottom: 26px; width: 130px; height: 130px; border-radius: 50%; background: rgba(20,22,28,0.45); border: 2px solid rgba(230,196,106,0.55); touch-action: none; display: none; }
-  #mKnob { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: rgba(230,196,106,0.75); pointer-events: none; }
-  .touchonly { display: none; } @media (pointer: coarse) { .mstick { display: block; } .touchonly { display: block; } }
+  .touchonly { display: none; } @media (pointer: coarse) { .touchonly { display: block; } }
   #dbgBar { position: fixed; left: 50%; top: 10px; transform: translateX(-50%); z-index: 36; display: none; align-items: center; gap: 4px; background: rgba(10,12,16,.82); border: 1px solid #4a4d58; border-radius: 8px; padding: 3px 8px; font-size: 12px; } body.dbg #dbgBar { display: flex; }
   #dbgBar button { margin: 0; padding: 4px 11px; font-size: 14px; } #dbgInfo { opacity: .7; margin-left: 6px; min-width: 64px; }
   #menuBtn { position: fixed; right: 12px; top: 10px; z-index: 37; margin: 0; padding: 7px 14px; font-size: 14px; background: rgba(20,22,30,0.85); display: none; } body.inplay #menuBtn { display: block; } body.pm #menuBtn { display: none; }
@@ -94,7 +91,7 @@
 </div>
 <div id="chCard"><div id="chNum"></div><div id="chRule"></div><div id="chTitle"></div></div>
 <div id="dev" class="screen-dev"><a href="level.html">Test level: the golden hen</a><a href="lap.html">Lap scene</a><a href="blocky.html">Models</a><select id="levelSel" title="Level select (does not touch your save)"><option value="">Level select&hellip;</option><option value="opening">Prologue: the opening</option><option value="market">Chapter One: Market Day &mdash; the cow</option><option value="road">Chapter One: the market road</option><option value="cart">Chapter One: the Peddler's cart</option><option value="nightH">Chapter One: night, humble</option><option value="nightC">Chapter One: night, cheeky</option><option value="nightB">Chapter One: night, brash (the birch)</option><option value="corrH">Chapter One: the correction, humble</option><option value="corrC">Chapter One: the correction, cheeky</option><option value="corrB">Chapter One: the correction, brash (the birch)</option><option value="gardenH">Chapter One: planting, humble</option><option value="gardenC">Chapter One: planting, cheeky</option><option value="gardenB">Chapter One: planting, brash</option><option value="ch3">Chapter Two: The Climb &mdash; waking, through to the end</option><option value="ch3d">Chapter Two: dress and the knife</option><option value="climb">Chapter Two: the climb itself</option><option value="meadow">Chapter Two: the cloud meadow</option><option value="castlehall">Chapter Two: inside the castle (the hall)</option><option value="castlecatch">Chapter Two: Gerda catches Jack (the capture)</option><option value="castle">Test: explore the castle</option><option value="ch3open">Chapter Three: the kitchen (the box on the table)</option><option value="cards">Test: the chapter title cards</option></select></div>
-<div id="ver">v0.4.1 &middot; build 116 &middot; 2026-10-14</div>
+<div id="ver">v0.4.1 &middot; build 117 &middot; 2026-10-14</div>
 
 <div id="settings" class="screen">
   <div class="card narrow">

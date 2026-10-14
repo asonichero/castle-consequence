@@ -136,20 +136,16 @@ async function run(G, W, opts) {
     css.textContent = `#cHud { position: fixed; inset: 0; pointer-events: none; z-index: 12; font-family: Georgia, serif; color: #ece8df; }
       #cObj { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(10,12,16,0.78); border: 1px solid #4a4d58; border-radius: 8px; padding: 8px 16px; font-size: clamp(13px, 1.9vw, 17px); text-align: center; max-width: 80vw; } #cObj .done { opacity: .5; text-decoration: line-through; }
       #cHint { position: absolute; left: 50%; bottom: 18vh; transform: translateX(-50%); background: rgba(10,12,16,0.85); border: 1px solid #c9a84c; color: #f0d98a; padding: 6px 14px; border-radius: 6px; font-size: 15px; display: none; }
-      #cToast { position: absolute; left: 50%; bottom: 8vh; transform: translateX(-50%); background: rgba(10,12,16,0.85); border: 1px solid #4a4d58; padding: 8px 16px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .4s; }
-      #cBtns { position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 6px; align-items: flex-end; pointer-events: auto; } #cBtns button { margin: 0; padding: 9px 14px; font-size: 14px; background: rgba(20,22,30,0.85); }
-      #cStick { position: absolute; left: 22px; bottom: 26px; width: 120px; height: 120px; border-radius: 50%; background: rgba(20,22,28,0.45); border: 2px solid rgba(230,196,106,0.55); touch-action: none; display: none; pointer-events: auto; }
-      #cKnob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(230,196,106,0.75); pointer-events: none; } @media (pointer: coarse) { #cStick { display: block; } }`;
+      #cToast { position: absolute; left: 50%; bottom: 8vh; transform: translateX(-50%); background: rgba(10,12,16,0.85); border: 1px solid #4a4d58; padding: 8px 16px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .4s; }`;
     document.head.appendChild(css);
     const hud = document.createElement('div'); hud.id = 'cHud';
-    hud.innerHTML = '<div id="cObj"></div><div id="cHint"></div><div id="cToast"></div><div id="cStick"><div id="cKnob"></div></div><div id="cBtns"><button id="cAct">Do (E)</button><button id="cZoom">Zoom</button></div>';
+    hud.innerHTML = '<div id="cObj"></div><div id="cHint"></div><div id="cToast"></div>';
     document.body.appendChild(hud);
     const $ = id => document.getElementById(id), el = G.renderer.domElement;
     const toast = (t, ms = 3000) => { $('cToast').textContent = t; $('cToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
     const objective = () => { $('cObj').innerHTML = `<span class="${st.dressed ? 'done' : ''}">Dress (the wardrobe)</span> &nbsp;·&nbsp; <span class="${st.knife ? 'done' : ''}">Take Father’s knife (the chest of drawers)</span>`; };
     const mutter = (text, force) => { if (!force && performance.now() < st.capAt) return; st.capAt = performance.now() + 6500; G.caption('jack', text); };
-    const keys = {}, stick = { x: 0, y: 0 }, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', Shift: 'run' };
-    const runB = document.createElement('button'); runB.textContent = 'Run'; runB.className = 'touchonly'; runB.onpointerdown = () => { keys.run = true; }; runB.onpointerup = runB.onpointerleave = runB.onpointercancel = () => { keys.run = false; }; document.getElementById('cBtns').appendChild(runB);
+    const keys = {}, ui = root.TouchUI.create({ keys, run: true, act: true, cam: true }), stick = ui.stick, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', Shift: 'run' };
     const typing = e => e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
     const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } if (e.repeat) return; if (e.key === 'e' || e.key === 'E') interact(); else if (e.key === 'v' || e.key === 'V') zoom(); };
     const ku = e => { const k = KM[e.key]; if (k) keys[k] = false; };
@@ -158,10 +154,9 @@ async function run(G, W, opts) {
     const pd = e => drags.set(e.pointerId, { x: e.clientX, y: e.clientY }), pm = e => { const d = drags.get(e.pointerId); if (!d) return; st.yaw -= (e.clientX - d.x) * 0.006; st.pitch = clamp(st.pitch + (e.clientY - d.y) * 0.005, 0.1, 1.35); d.x = e.clientX; d.y = e.clientY; }, pu = e => drags.delete(e.pointerId);
     el.addEventListener('pointerdown', pd); el.addEventListener('pointermove', pm); el.addEventListener('pointerup', pu); el.addEventListener('pointercancel', pu);
     const wheel = e => { e.preventDefault(); zoom(e.deltaY > 0 ? 1 : -1); }; el.addEventListener('wheel', wheel, { passive: false });
-    function zoom(dir) { st.zoom = (st.zoom + (dir || 1) + ZOOMS.length) % ZOOMS.length; $('cZoom').textContent = 'Zoom: ' + ZOOMS[st.zoom].name; }
-    $('cAct').onclick = () => interact(); $('cZoom').onclick = () => zoom(); $('cZoom').textContent = 'Zoom: ' + ZOOMS[st.zoom].name;
-    { const sEl = $('cStick'), k = $('cKnob'); let id = null; const set = e => { const r = sEl.getBoundingClientRect(); let dx = (e.clientX - r.left - r.width / 2) / (r.width / 2), dy = (e.clientY - r.top - r.height / 2) / (r.height / 2); const m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; } stick.x = dx; stick.y = dy; k.style.transform = `translate(${dx * 34}px, ${dy * 34}px)`; };
-      sEl.addEventListener('pointerdown', e => { id = e.pointerId; sEl.setPointerCapture(id); set(e); }); sEl.addEventListener('pointermove', e => { if (e.pointerId === id) set(e); }); const end = e => { if (e.pointerId === id) { id = null; stick.x = stick.y = 0; k.style.transform = ''; } }; sEl.addEventListener('pointerup', end); sEl.addEventListener('pointercancel', end); }
+    const camIcon = () => ui.set('cam', { icon: 'camera', title: 'Camera: ' + ZOOMS[st.zoom].name });
+    function zoom(dir) { st.zoom = (st.zoom + (dir || 1) + ZOOMS.length) % ZOOMS.length; camIcon(); }
+    camIcon(); ui.on.cam = () => zoom(); ui.on.act = () => interact();
 
     const near = (p, r) => Math.hypot(st.pos.x - p.x, st.pos.z - p.z) < r;
     const act = (dur, then) => { st.act = { t: 0, dur, then }; ja.speed = 0; };
@@ -180,13 +175,13 @@ async function run(G, W, opts) {
     }
     let resolveDress; const done = new Promise(r => { resolveDress = r; });
     async function leave() {
-      st.leaving = true; $('cHint').style.display = 'none'; hud.style.display = 'none'; st.act = null; ja.speed = 0;
+      st.leaving = true; $('cHint').style.display = 'none'; hud.style.display = 'none'; ui.show(false); st.act = null; ja.speed = 0;
       st.heading = 0; jackIn.root.quaternion.setFromAxisAngle(v(0, 1, 0), 0); await tween(0.8, (k, e) => { int.doorLeaf.rotation.y = lerp(0, -1.9, e); }); A_ && A_.latch && A_.latch();
       while (st.pos.z < 86) { st.pos.z += 0.7; jackIn.root.position.set(st.pos.x, 0, st.pos.z); ja.speed = 22; ja.phase += 0.3; await G.wait(0.04); }
       jackIn.root.visible = false; ja.speed = 0; await G.wait(0.6);
       A_ && A_.stopMusic && A_.stopMusic(2.5); await G.fade(true, 1.8); A_ && A_.ambience({ wind: 0, birds: 0, fire: 0 });
       root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu); el.removeEventListener('wheel', wheel);
-      G.updaters = G.updaters.filter(u => u !== tick); hud.remove(); css.remove(); G.mode = 'end'; resolveDress();
+      G.updaters = G.updaters.filter(u => u !== tick); hud.remove(); css.remove(); ui.destroy(); G.mode = 'end'; resolveDress();
     }
     const camPos = new V3(), camLook = new V3();
     const tick = dt => {
@@ -215,6 +210,7 @@ async function run(G, W, opts) {
       }
       let hint = ''; if (!st.act) { if (near(WARD, 20)) hint = st.dressed ? '' : 'E: dress'; else if (near(DRAW, 20)) hint = st.knife ? '' : 'E: take Father’s knife'; }
       $('cHint').textContent = hint; $('cHint').style.display = hint ? 'block' : 'none';
+      ui.set('act', hint ? { label: hint === 'E: dress' ? 'Dress' : 'Take knife', enabled: true } : { label: 'Do', enabled: false });
       if (st.toastAt && performance.now() > st.toastAt) { $('cToast').style.opacity = 0; st.toastAt = 0; }
       const d = ZOOMS[st.zoom].d, p = st.pitch, at = v(st.pos.x, 15 * SC, st.pos.z);
       const want = v(clamp(at.x + Math.sin(st.yaw) * Math.cos(p) * d, -70, 70), clamp(at.y + Math.sin(p) * d, 4, 56), clamp(at.z + Math.cos(st.yaw) * Math.cos(p) * d, -70, 70));

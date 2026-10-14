@@ -125,7 +125,7 @@ async function run(G, W, M) {
 function playLoop(G, W, M) {
   const { ext, jack, ja, hanging, held, cord, halter, dropped } = M, cowM = ext.cow, ui = hud(), scene = ext.scene;
   return new Promise(resolve => {
-    const keys = {}, prints = [], st = { y: 0, vy: 0, grounded: true, wet: 0, stride: 0, foot: 1, boost: 0, climb: null, jumpReq: false, leadDropped: false, pos: v(DOOR.x, 0, DOOR.z + 30), heading: Math.PI, speedN: 0, sneak: false, yaw: -Math.PI / 2, pitch: 0.5, zoom: 1, hasLead: false, stick: { x: 0, y: 0 }, hint: '', toastAt: 0, startled: 0, shownTip: false, attached: false };
+    const keys = {}, prints = [], tu = root.TouchUI.create({ keys, run: true, sneak: true, jump: true, act: true, drop: true, cam: true }), st = { y: 0, vy: 0, grounded: true, wet: 0, stride: 0, foot: 1, boost: 0, climb: null, jumpReq: false, leadDropped: false, pos: v(DOOR.x, 0, DOOR.z + 30), heading: Math.PI, speedN: 0, sneak: false, yaw: -Math.PI / 2, pitch: 0.5, zoom: 1, hasLead: false, stick: tu.stick, hint: '', toastAt: 0, startled: 0, shownTip: false, attached: false };
     const cow = { pos: v(186, 0, 24), target: v(186, 0, 24), mode: 'graze', timer: 2, trust: 90, cool: 0, heading: -2.2, t: 0, flee: 0 };
     jack.root.position.copy(st.pos); st.heading = Math.PI;
     const camPos = new V3(), look = new V3(), spec = { pos: camPos, look, fov: 48 };
@@ -141,10 +141,13 @@ function playLoop(G, W, M) {
     const pd = e => drags.set(e.pointerId, { x: e.clientX, y: e.clientY }), pm = e => { const d = drags.get(e.pointerId); if (!d) return; st.yaw -= (e.clientX - d.x) * 0.006; st.pitch = clamp(st.pitch + (e.clientY - d.y) * 0.005, 0.08, 1.35); d.x = e.clientX; d.y = e.clientY; }, pu = e => drags.delete(e.pointerId);
     el.addEventListener('pointerdown', pd); el.addEventListener('pointermove', pm); el.addEventListener('pointerup', pu); el.addEventListener('pointercancel', pu);
     const wheel = e => { e.preventDefault(); cycleZoom(e.deltaY > 0 ? 1 : -1); }; el.addEventListener('wheel', wheel, { passive: false });
-    function cycleZoom(dir) { st.zoom = (st.zoom + (dir || 1) + ZOOMS.length) % ZOOMS.length; ui.zoom.textContent = 'Zoom: ' + ZOOMS[st.zoom].name; }
-    function toggleSneak() { st.sneak = !st.sneak; ui.sneak.classList.toggle('on', st.sneak); toast(st.sneak ? 'Sneaking: slow and quiet.' : 'Walking.'); }
-    ui.zoom.onclick = () => cycleZoom(); ui.sneak.onclick = toggleSneak; ui.act.onclick = () => interact(); ui.drop.onclick = () => drop(); ui.jump.onpointerdown = e => { e.preventDefault(); st.jumpReq = true; }; ui.zoom.textContent = 'Zoom: ' + ZOOMS[st.zoom].name; ui.sneak.classList.remove('on');
-    ui.bindStick(st.stick);
+    const camIcon = () => tu.set('cam', { icon: 'camera', title: 'Camera: ' + ZOOMS[st.zoom].name });
+    function cycleZoom(dir) { st.zoom = (st.zoom + (dir || 1) + ZOOMS.length) % ZOOMS.length; camIcon(); }
+    function setSneak(on) { st.sneak = on; tu.setSneak(on); if (on && tu.run) tu.setRun(false); toast(on ? 'Sneaking: slow and quiet.' : 'Walking.'); }              // (the C key and the on-screen Sneak button share this)
+    function toggleSneak() { setSneak(!st.sneak); }
+    ui.tu = tu; camIcon();
+    tu.on.cam = () => cycleZoom(); tu.on.jump = () => { st.jumpReq = true; }; tu.on.act = () => interact(); tu.on.drop = () => drop(); tu.on.sneak = on => { st.sneak = on; toast(on ? 'Sneaking: slow and quiet.' : 'Walking.'); };
+    const findBar = () => OBJECTS.find(o => o.climb && st.y < o.top - 1 && inBox(o, st.pos.x, st.pos.z, 9) && Math.cos(st.heading) * ((o.z0 + o.z1) / 2 - st.pos.z) + Math.sin(st.heading) * ((o.x0 + o.x1) / 2 - st.pos.x) > 0);   // (the barrel Jack is beside and facing)
     const toast = (t, ms = 3200) => { ui.toast.textContent = t; ui.toast.style.opacity = 1; st.toastAt = performance.now() + ms; };
     const near = (p, r) => Math.hypot(st.pos.x - p.x, st.pos.z - p.z) < r;
 
@@ -168,7 +171,7 @@ function playLoop(G, W, M) {
       cow.mode = 'calm'; ui.show(false); cleanup();
       resolve({ startles: st.startled, trust: cow.trust });
     }
-    function cleanup() { root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu); el.removeEventListener('wheel', wheel); G.updaters = G.updaters.filter(u => u !== tick); for (const p of prints) scene.remove(p.m); prints.length = 0; M.state = { pos: st.pos.clone(), heading: st.heading, cow }; }
+    function cleanup() { tu.destroy(); ui.tu = null; root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu); el.removeEventListener('wheel', wheel); G.updaters = G.updaters.filter(u => u !== tick); for (const p of prints) scene.remove(p.m); prints.length = 0; M.state = { pos: st.pos.clone(), heading: st.heading, cow }; }
 
     const scold = () => { const lines = ['Where do you think you’re going, Jack? You can’t go to market without Milky-White.', 'Idiot. Mother said to take the cow. Go and get the cow.', 'Not without the cow, Jack. Think!']; const t = lines[st.scolds++ % lines.length]; toast('Jack: “' + t + '”', 4200); A && A.speak('jack', t, 3, {}); st.scoldAt = performance.now() + 7000; };
     const inBox = (o, x, z, m) => x > o.x0 - m && x < o.x1 + m && z > o.z0 - m && z < o.z1 + m;
@@ -190,7 +193,7 @@ function playLoop(G, W, M) {
       if (st.jumpReq) {
         st.jumpReq = false;
         if (st.grounded && !st.climb) {
-          const bar = OBJECTS.find(o => o.climb && st.y < o.top - 1 && inBox(o, st.pos.x, st.pos.z, 9) && Math.cos(st.heading) * ((o.z0 + o.z1) / 2 - st.pos.z) + Math.sin(st.heading) * ((o.x0 + o.x1) / 2 - st.pos.x) > 0);
+          const bar = findBar();
           if (bar) st.climb = { t: 0, dur: 0.6, from: v(st.pos.x, st.y, st.pos.z), to: v(clamp(st.pos.x, bar.x0 + 4, bar.x1 - 4), bar.top, clamp(st.pos.z, bar.z0 + 4, bar.z1 - 4)) };
           else { st.vy = JUMP_V; st.grounded = false; st.boost = 0.5; }
         }
@@ -252,6 +255,12 @@ function playLoop(G, W, M) {
       const h = !st.hasLead && (hanging.visible && near(LEADSPOT, 20) || st.leadDropped && Math.hypot(st.pos.x - dropped.position.x, st.pos.z - dropped.position.z) < 18) ? 'E: take the lead' : st.hasLead && gap < 16 ? (cow.trust >= 99.5 ? 'E: put the lead on her' : 'She is still jumpy. Stay slow, stay close.') : '';
       ui.hint.textContent = h; ui.hint.style.display = h ? 'block' : 'none';
       if (st.toastAt && performance.now() > st.toastAt) { ui.toast.style.opacity = 0; st.toastAt = 0; }
+      // The touch buttons say what a tap will do now, and grey out when it would do nothing (the same conditions as the keys above).
+      { const bar = !st.climb && st.grounded && findBar(), ground = st.grounded && !st.climb && !st.attached;
+        tu.set('jump', bar ? { label: 'Climb', icon: 'climb', enabled: ground } : { label: 'Jump', icon: 'jump', enabled: ground });
+        const lead = !st.hasLead && hanging.visible && near(LEADSPOT, 20), dropd = !st.hasLead && st.leadDropped && Math.hypot(st.pos.x - dropped.position.x, st.pos.z - dropped.position.z) < 18;
+        tu.set('act', st.attached ? { label: 'Do', enabled: false } : lead ? { label: 'Take', enabled: true } : dropd ? { label: 'Pick up', enabled: true } : st.hasLead && gap < 16 ? { label: 'Use', enabled: true } : { label: 'Do', enabled: false });
+        tu.set('drop', { label: st.hasLead && near(LEADSPOT, 24) && st.y < 16 ? 'Hang up' : 'Drop', enabled: st.hasLead && !st.attached }); }
     };
     st.scolds = 0; st.scoldAt = 0;
     M.play = { st, cow, interact, toggleSneak, cycleZoom, drop };                                                                       // (for the tests)
@@ -278,7 +287,7 @@ async function closing(G, W, M) {
   G.mode = 'end'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine();
 }
 
-// ── The HUD (built once): objective, hint, toast, cow trust, pace, and the buttons and joystick for touch screens. ──
+// ── The HUD (built once): objective, hint, toast, cow trust, pace, (the touch controls are TouchUI's, set up by each scene). ──
 let HUD = null;
 function hud() {
   if (HUD) return HUD;
@@ -287,18 +296,8 @@ function hud() {
   const obj = mk('div', 'mObj', 'mobj', root_), pace = mk('div', 'mPace', 'mpace', root_), trustWrap = mk('div', 'mTrust', 'mtrust', root_);
   trustWrap.innerHTML = '<div class="mtl">Milky-White trusts you <b id="mTrustVal">90%</b></div><div class="mtb"><i id="mTrustBar"></i></div>';
   const hint = mk('div', 'mHint', 'mhint', root_), toast = mk('div', 'mToast', 'mtoast', root_);
-  const btns = mk('div', 'mBtns', 'mbtns', root_), zoom = mk('button', 'mZoom', '', btns), sneak = mk('button', 'mSneak', '', btns), act = mk('button', 'mAct', '', btns);
-  sneak.textContent = 'Sneak (C)'; act.textContent = 'Take / use (E)'; const drop = mk('button', 'mDrop', 'touchonly', btns), jump = mk('button', 'mJump', 'touchonly', btns); drop.textContent = 'Drop'; jump.textContent = 'Jump'; for (const b of [zoom, sneak, act, drop, jump]) b.addEventListener('mousedown', e => e.preventDefault());
-  const stick = mk('div', 'mStick', 'mstick', root_); stick.innerHTML = '<div id="mKnob"></div>'; const knob = stick.firstChild;
-  HUD = { root: root_, obj, pace, trustWrap, trustBar: document.getElementById('mTrustBar'), trustVal: document.getElementById('mTrustVal'), hint, toast, zoom, sneak, act, drop, jump,
-    show(on) { root_.style.display = on ? 'block' : 'none'; document.body.classList.toggle('playing', on); },
-    bindStick(vec) {
-      let id = null, R = 60; const move = e => { const r = stick.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2), m = Math.hypot(dx, dy) || 1, k = Math.min(1, m / R);
-        vec.x = dx / m * k; vec.y = dy / m * k; knob.style.transform = `translate(${vec.x * R * 0.7}px,${vec.y * R * 0.7}px)`; };
-      stick.onpointerdown = e => { if (id !== null) return; id = e.pointerId; stick.setPointerCapture(e.pointerId); move(e); e.preventDefault(); };
-      stick.onpointermove = e => { if (e.pointerId === id) move(e); };
-      stick.onpointerup = stick.onpointercancel = e => { if (e.pointerId !== id) return; id = null; vec.x = vec.y = 0; knob.style.transform = ''; };
-    } };
+  HUD = { root: root_, obj, pace, trustWrap, trustBar: document.getElementById('mTrustBar'), trustVal: document.getElementById('mTrustVal'), hint, toast, tu: null,
+    show(on) { root_.style.display = on ? 'block' : 'none'; document.body.classList.toggle('playing', on); if (HUD.tu) HUD.tu.show(on); } };   // (the touch controls, TouchUI's, are shown and hidden with the HUD)
   return HUD;
 }
 

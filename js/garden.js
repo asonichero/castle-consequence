@@ -75,19 +75,15 @@ function run(G, W, tier) {
       #gObj { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(10,12,16,0.78); border: 1px solid #4a4d58; border-radius: 8px; padding: 8px 16px; font-size: clamp(13px, 1.9vw, 17px); max-width: 80vw; text-align: center; }
       #gHint { position: absolute; left: 50%; bottom: 18vh; transform: translateX(-50%); background: rgba(10,12,16,0.85); border: 1px solid #c9a84c; color: #f0d98a; padding: 6px 14px; border-radius: 6px; font-size: 15px; display: none; }
       #gToast { position: absolute; left: 50%; bottom: 8vh; transform: translateX(-50%); background: rgba(10,12,16,0.85); border: 1px solid #4a4d58; padding: 8px 16px; border-radius: 8px; font-size: 14px; max-width: 86vw; text-align: center; opacity: 0; transition: opacity .4s; }
-      #gBeans { position: absolute; top: 56px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; } #gBeans i { width: 14px; height: 14px; border-radius: 3px; border: 1px solid #000; opacity: .35; } #gBeans i.on { opacity: 1; }
-      #gBtns { position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 6px; align-items: flex-end; pointer-events: auto; } #gBtns button { margin: 0; padding: 9px 14px; font-size: 14px; background: rgba(20,22,30,0.85); }
-      #gStick { position: absolute; left: 22px; bottom: 26px; width: 120px; height: 120px; border-radius: 50%; background: rgba(20,22,28,0.45); border: 2px solid rgba(230,196,106,0.55); touch-action: none; display: none; pointer-events: auto; }
-      #gKnob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(230,196,106,0.75); pointer-events: none; } @media (pointer: coarse) { #gStick { display: block; } }`;
+      #gBeans { position: absolute; top: 56px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; } #gBeans i { width: 14px; height: 14px; border-radius: 3px; border: 1px solid #000; opacity: .35; } #gBeans i.on { opacity: 1; }`;
     document.head.appendChild(css);
     const hud = document.createElement('div'); hud.id = 'gHud';
-    hud.innerHTML = '<div id="gObj"></div><div id="gBeans"></div><div id="gHint"></div><div id="gToast"></div><div id="gStick"><div id="gKnob"></div></div><div id="gBtns"><button id="gAct">Do (E)</button><button id="gDrop">Put down (Q)</button><button id="gZoom">Zoom</button></div>';
+    hud.innerHTML = '<div id="gObj"></div><div id="gBeans"></div><div id="gHint"></div><div id="gToast"></div>';
     document.body.appendChild(hud);
     const $ = id => document.getElementById(id);
     BEANS.forEach(([n, c]) => { const i = document.createElement('i'); i.style.background = '#' + c.toString(16).padStart(6, '0'); i.title = n; $('gBeans').appendChild(i); });
     const toast = (t, ms = 3200) => { $('gToast').textContent = t; $('gToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
-    const keys = {}, stick = { x: 0, y: 0 };
-    const runB = document.createElement('button'); runB.textContent = 'Run'; runB.className = 'touchonly'; runB.onpointerdown = () => { keys.run = true; }; runB.onpointerup = runB.onpointerleave = runB.onpointercancel = () => { keys.run = false; }; document.getElementById('gBtns').appendChild(runB);
+    const keys = {}, ui = root.TouchUI.create({ keys, run: true, act: true, drop: true, cam: true }), stick = ui.stick;
     const KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', Shift: 'run' };
     const typing = e => e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
     const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } if (e.repeat) return; if (e.key === 'e' || e.key === 'E') interact(); else if (e.key === 'q' || e.key === 'Q') putDown(); else if (e.key === 'v' || e.key === 'V') cycleZoom(); };
@@ -97,10 +93,9 @@ function run(G, W, tier) {
     const pd = e => drags.set(e.pointerId, { x: e.clientX, y: e.clientY }), pm = e => { const d = drags.get(e.pointerId); if (!d) return; st.yaw -= (e.clientX - d.x) * 0.006; st.pitch = clamp(st.pitch + (e.clientY - d.y) * 0.005, 0.08, 1.35); d.x = e.clientX; d.y = e.clientY; }, pu = e => drags.delete(e.pointerId);
     el.addEventListener('pointerdown', pd); el.addEventListener('pointermove', pm); el.addEventListener('pointerup', pu); el.addEventListener('pointercancel', pu);
     const wheel = e => { e.preventDefault(); cycleZoom(e.deltaY > 0 ? 1 : -1); }; el.addEventListener('wheel', wheel, { passive: false });
-    function cycleZoom(dir) { st.zoom = (st.zoom + (dir || 1) + ZOOMS.length) % ZOOMS.length; $('gZoom').textContent = 'Zoom: ' + ZOOMS[st.zoom].name; }
-    $('gAct').onclick = () => interact(); $('gDrop').onclick = () => putDown(); $('gZoom').onclick = () => cycleZoom(); $('gZoom').textContent = 'Zoom: ' + ZOOMS[st.zoom].name;
-    { const s = $('gStick'), k = $('gKnob'); let id = null; const set = e => { const r = s.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2; let dx = (e.clientX - cx) / (r.width / 2), dy = (e.clientY - cy) / (r.height / 2); const m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; } stick.x = dx; stick.y = dy; k.style.transform = `translate(${dx * 34}px, ${dy * 34}px)`; };
-      s.addEventListener('pointerdown', e => { id = e.pointerId; s.setPointerCapture(id); set(e); }); s.addEventListener('pointermove', e => { if (e.pointerId === id) set(e); }); const end = e => { if (e.pointerId === id) { id = null; stick.x = stick.y = 0; k.style.transform = ''; } }; s.addEventListener('pointerup', end); s.addEventListener('pointercancel', end); }
+    const camIcon = () => ui.set('cam', { icon: 'camera', title: 'Camera: ' + ZOOMS[st.zoom].name });
+    function cycleZoom(dir) { st.zoom = (st.zoom + (dir || 1) + ZOOMS.length) % ZOOMS.length; camIcon(); }
+    camIcon(); ui.on.cam = () => cycleZoom(); ui.on.act = () => interact(); ui.on.drop = () => putDown();
 
     // ── What he can do. ──
     const near = (p, r) => Math.hypot(st.pos.x - p.x, st.pos.z - p.z) < r;
@@ -197,7 +192,7 @@ function run(G, W, tier) {
       st.act = null; st.phase = 'home'; setObjective(); toast('Back to the cottage door.', 3600);
     }
     async function goInside() {
-      st.inside = true; st.act = { kind: 'idle', t: 0, dur: 99 }; $('gHint').style.display = 'none'; hud.style.display = 'none';
+      st.inside = true; st.act = { kind: 'idle', t: 0, dur: 99 }; $('gHint').style.display = 'none'; hud.style.display = 'none'; ui.show(false);
       // The door opens; he steps in.
       const t0 = G.t; while (G.t - t0 < 0.8) { ext.doorLeaf.rotation.y = lerp(0, -1.9, clamp((G.t - t0) / 0.8, 0, 1)); await G.wait(0.03); }
       A && A.latch && A.latch();
@@ -217,7 +212,7 @@ function run(G, W, tier) {
     }
     function cleanup() {
       root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu); el.removeEventListener('wheel', wheel);
-      G.updaters = G.updaters.filter(u => u !== tick); hud.remove(); css.remove(); scene.remove(glow); G.mode = 'end';
+      G.updaters = G.updaters.filter(u => u !== tick); hud.remove(); css.remove(); ui.destroy(); scene.remove(glow); G.mode = 'end';
     }
 
     // ── Each frame. ──
@@ -258,6 +253,10 @@ function run(G, W, tier) {
         if (!hint && st.hold !== 'hoe' && st.hold !== 'rock' && st.phase !== 'plant' && st.phase !== 'home') { const hp = hoe.getWorldPosition(new V3()); if (hoe.parent !== holder && Math.hypot(st.pos.x - hp.x, st.pos.z - hp.z) < 16) hint = 'E: take the hoe'; }
       }
       $('gHint').textContent = hint; $('gHint').style.display = hint ? 'block' : 'none';
+      { const L = { 'E: open the door': 'Open', 'E: put the stone down': 'Put down', 'E: lift the stone': 'Pick up', 'E: pull the weed': 'Pull weed', 'E: till this square': 'Till', 'E: plant a bean': 'Plant', 'E: take the hoe': 'Pick up' }[hint];
+        ui.set('act', L ? { label: L, enabled: true } : { label: 'Do', enabled: false });
+        const can = !st.act && !st.inside && (st.hold === 'hoe' || (st.hold === 'rock' && !inPlot(st.pos, 3)));
+        ui.set('drop', { label: st.hold ? 'Put down' : 'Drop', enabled: can }); }
       if (st.toastAt && performance.now() > st.toastAt) { $('gToast').style.opacity = 0; st.toastAt = 0; }
       // The camera: round Jack, as in Chapter One.
       if (!st.inside) {

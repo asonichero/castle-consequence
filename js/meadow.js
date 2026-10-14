@@ -132,30 +132,26 @@ function run(G, W) {
     const css = document.createElement('style');
     css.textContent = `#mwHud { position: fixed; inset: 0; pointer-events: none; z-index: 12; font-family: Georgia, serif; color: #ece8df; }
       #mwObj { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(10,12,16,0.7); border: 1px solid #4a4d58; border-radius: 8px; padding: 8px 16px; font-size: clamp(13px, 1.9vw, 17px); text-align: center; display: none; }
-      #mwToast { position: absolute; left: 50%; bottom: 22vh; transform: translateX(-50%); background: rgba(10,12,16,0.8); border: 1px solid #4a4d58; padding: 7px 15px; border-radius: 8px; font-size: 14px; max-width: 80vw; text-align: center; opacity: 0; transition: opacity .5s; }
-      #mwBtns { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 6px; pointer-events: auto; } #mwBtns button { margin: 0; padding: 12px 18px; font-size: 15px; background: rgba(20,22,30,0.85); touch-action: none; }
-      #mwStick { position: absolute; left: 22px; bottom: 26px; width: 120px; height: 120px; border-radius: 50%; background: rgba(20,22,28,0.45); border: 2px solid rgba(230,196,106,0.55); touch-action: none; display: none; pointer-events: auto; }
-      #mwKnob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(230,196,106,0.75); pointer-events: none; } @media (pointer: coarse) { #mwStick { display: block; } }`;
+      #mwToast { position: absolute; left: 50%; bottom: 22vh; transform: translateX(-50%); background: rgba(10,12,16,0.8); border: 1px solid #4a4d58; padding: 7px 15px; border-radius: 8px; font-size: 14px; max-width: 80vw; text-align: center; opacity: 0; transition: opacity .5s; }`;
     document.head.appendChild(css);
     const hud = document.createElement('div'); hud.id = 'mwHud'; hud.style.display = 'none';
-    hud.innerHTML = '<div id="mwObj">Walk to the castle.</div><div id="mwToast"></div><div id="mwStick"><div id="mwKnob"></div></div><div id="mwBtns"><button id="mwJump" class="touchonly">Jump</button><button id="mwZoom">Zoom</button></div>';
+    hud.innerHTML = '<div id="mwObj">Walk to the castle.</div><div id="mwToast"></div>';
     document.body.appendChild(hud);
     const $ = id => document.getElementById(id);
     const toast = (t, ms = 5000) => { $('mwToast').textContent = t; $('mwToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
-    const keys = {}, stick = { x: 0, y: 0 }, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', Shift: 'run' };
-    const runB = document.createElement('button'); runB.textContent = 'Run'; runB.className = 'touchonly'; runB.onpointerdown = () => { keys.run = true; }; runB.onpointerup = runB.onpointerleave = runB.onpointercancel = () => { keys.run = false; }; document.getElementById('mwBtns').appendChild(runB);
+    const keys = {}, ui = root.TouchUI.create({ keys, run: true, jump: true, cam: true }), stick = ui.stick, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', Shift: 'run' };
+    ui.show(false);                                                                  // (shown only while he walks)
     const typing = e => e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
     const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } if (e.key === ' ') e.preventDefault(); if (e.repeat) return; if (e.key === ' ') st.jumpReq = true; if (e.key === 'v' || e.key === 'V') cycleZoom(); }, ku = e => { const k = KM[e.key]; if (k) keys[k] = false; };
     root.addEventListener('keydown', kd); root.addEventListener('keyup', ku);
     const ZOOMS = [{ name: 'Close', d: 52 }, { name: 'Medium', d: 92 }, { name: 'Far', d: 150 }];                  // (as in Chapter One, in units of his full size)
-    function cycleZoom(dir) { st.zoom = (st.zoom + (dir || 1) + ZOOMS.length) % ZOOMS.length; $('mwZoom').textContent = 'Zoom: ' + ZOOMS[st.zoom].name; }
-    $('mwZoom').onclick = () => cycleZoom(); $('mwZoom').textContent = 'Zoom: ' + ZOOMS[st.zoom].name; $('mwJump').onpointerdown = e => { e.preventDefault(); st.jumpReq = true; };
+    const camIcon = () => ui.set('cam', { icon: 'camera', title: 'Camera: ' + ZOOMS[st.zoom].name });
+    function cycleZoom(dir) { st.zoom = (st.zoom + (dir || 1) + ZOOMS.length) % ZOOMS.length; camIcon(); }
+    camIcon(); ui.on.cam = () => cycleZoom(); ui.on.jump = () => { st.jumpReq = true; };
     const drags = new Map();
     const pd = e => drags.set(e.pointerId, { x: e.clientX, y: e.clientY }), pm = e => { const d = drags.get(e.pointerId); if (!d || !st.free) return; st.camA += (e.clientX - d.x) * 0.006; st.pitch = clamp(st.pitch + (e.clientY - d.y) * 0.005, 0.08, 1.35); d.x = e.clientX; d.y = e.clientY; }, pu = e => drags.delete(e.pointerId);
     const wheel = e => { e.preventDefault(); if (st.free) cycleZoom(e.deltaY > 0 ? 1 : -1); };
     el.addEventListener('wheel', wheel, { passive: false }); el.addEventListener('pointerdown', pd); el.addEventListener('pointermove', pm); el.addEventListener('pointerup', pu); el.addEventListener('pointercancel', pu);
-    { const sEl = $('mwStick'), k = $('mwKnob'); let id = null; const set = e => { const r = sEl.getBoundingClientRect(); let dx = (e.clientX - r.left - r.width / 2) / (r.width / 2), dy = (e.clientY - r.top - r.height / 2) / (r.height / 2); const m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; } stick.x = dx; stick.y = dy; k.style.transform = `translate(${dx * 34}px, ${dy * 34}px)`; };
-      sEl.addEventListener('pointerdown', e => { id = e.pointerId; sEl.setPointerCapture(id); set(e); }); sEl.addEventListener('pointermove', e => { if (e.pointerId === id) set(e); }); const end = e => { if (e.pointerId === id) { id = null; stick.x = stick.y = 0; k.style.transform = ''; } }; sEl.addEventListener('pointerup', end); sEl.addEventListener('pointercancel', end); }
 
     // ── Each frame: the walk, and the camera when it is the player's. ──
     const camPos = new V3(), camLook = new V3();
@@ -174,6 +170,7 @@ function run(G, W) {
           const off = Math.abs(angDiff(want, st.heading)), ease = clamp(1 - off / Math.PI * 0.8, 0.2, 1), sp = (keys.run ? 50 : 26) * SC * Math.pow(st.kk, 0.6) * ease, nx = st.pos.x + Math.sin(st.heading) * sp * dt, nz = st.pos.z + Math.cos(st.heading) * sp * dt;     // (Chapter One's pace, his stride shortening as he shrinks, though not as fast as his size)
           if (!blocked(nx, st.pos.z)) st.pos.x = nx; if (!blocked(st.pos.x, nz)) st.pos.z = nz; st.walkN = 1; st.walkPh += 10.9 * Math.pow(st.kk / SC, -0.35) * 0.55 * dt * 1.4 * (keys.run ? 1.5 : 1);
         } else st.walkN = Math.max(0, st.walkN - dt * 6);
+        ui.set('jump', { label: 'Jump', icon: 'jump', enabled: st.free && st.y <= st.gy + 0.01 });
         if (st.jumpReq) { st.jumpReq = false; if (st.y <= st.gy + 0.01) st.vy = 112 * st.kk; }           // (Space jumps, exactly as in Chapter One, in proportion to his size: the same height for his body, the same time in the air)
         st.gy = M.groundY(st.pos.x, st.pos.z); const fall = st.vy <= 0 && st.y <= st.gy + 0.4 * st.kk;
         if (fall) { st.y += (st.gy - st.y) * Math.min(1, dt * 22); st.vy = 0; } else { st.vy -= 420 * st.kk * dt; st.y += st.vy * dt; if (st.y < st.gy) { st.y = st.gy; st.vy = 0; } }
@@ -195,7 +192,7 @@ function run(G, W) {
         if (camPos.lengthSq() === 0) camPos.copy(want); else camPos.lerp(want, Math.min(1, dt * 8)); camLook.copy(at); G.cut({ pos: camPos, look: camLook, fov: 48 });
       }
     };
-    const cleanup = () => { root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('wheel', wheel); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu); G.updaters = G.updaters.filter(u => u !== tick); hud.remove(); css.remove(); jackOut.after = null; jackOut.root.scale.setScalar(SC); camera.near = nearOld; camera.updateProjectionMatrix(); };
+    const cleanup = () => { root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('wheel', wheel); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu); G.updaters = G.updaters.filter(u => u !== tick); hud.remove(); css.remove(); ui.destroy(); jackOut.after = null; jackOut.root.scale.setScalar(SC); camera.near = nearOld; camera.updateProjectionMatrix(); };
     place(); G.updaters.push(tick); G.meadow = { st, blocked, pathX };
 
     // ── The opening: the beanstalk climbing out of the cloud behind him, and the castle a long way off; then Jack, with something to say; then round behind him, and the walk. ──
@@ -218,11 +215,11 @@ function run(G, W) {
     // Round behind him, and the walk is his.
     { const kk = K0, d = 92 * kk, c = Math.cos(0.5); await G.shot({ pos: v(0, 15 * SC * kk + Math.sin(0.5) * d, S().z + d * c), look: v(0, 15 * SC * kk, S().z), fov: 48 }, 1.8, 'inOut'); }
     G.skipping = false; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); st.heading = Math.PI; st.look = 0; st.camA = Math.PI / 2; camPos.set(0, 0, 0);
-    st.free = true; st.mode = 'walk'; hud.style.display = 'block'; $('mwObj').style.display = 'block'; toast('WASD or the stick to walk · Shift to run · Space to jump · drag to look round · V or the wheel to zoom', 6500);
+    st.free = true; st.mode = 'walk'; hud.style.display = 'block'; ui.show(true); $('mwObj').style.display = 'block'; toast('WASD or the stick to walk · Shift to run · Space to jump · drag to look round · V or the wheel to zoom', 6500);
 
     // ── At the gate. ──
     async function arrive() {
-      st.free = false; st.walkN = 0; st.bob = 0; hud.style.display = 'none'; G.mode = 'cutscene'; document.body.classList.add('cutscene'); st.pos.x = clamp(st.pos.x, -30, 30); st.heading = Math.PI;
+      st.free = false; st.walkN = 0; st.bob = 0; hud.style.display = 'none'; ui.show(false); G.mode = 'cutscene'; document.body.classList.add('cutscene'); st.pos.x = clamp(st.pos.x, -30, 30); st.heading = Math.PI;
       const zJ = st.pos.z; G.cut({ pos: v(st.pos.x + 5, 2.4, zJ + 34), look: v(0, 30, DOOR_Z), fov: 56 }); st.look = -0.7; st.craned = 1;
       await G.shot({ pos: v(st.pos.x + 4, 1.4, zJ + 26), look: v(0, 72, DOOR_Z), fov: 64 }, 6.5, 'inOut'); await wait(0.8);
       G.cut({ pos: v(st.pos.x - 3, 3.4, zJ - 10), look: v(st.pos.x, 2.5, zJ), fov: 36 }); st.look = 0.1; st.craned = 0; W.paintJack(jackOut, { expr: 4 });

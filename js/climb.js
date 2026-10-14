@@ -138,34 +138,29 @@ function run(G, W) {
       #clBar { height: 12px; background: #1c1f27; border: 1px solid #454a58; border-radius: 5px; overflow: hidden; margin-top: 3px; } #clBar i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, #c9a84c, #7ab85a); transition: background .2s; } #clBar.low i { background: #c0503a; }
       #clHint { position: absolute; left: 50%; bottom: 22vh; transform: translateX(-50%); background: rgba(10,12,16,0.85); border: 1px solid #c9a84c; color: #f0d98a; padding: 5px 14px; border-radius: 6px; font-size: 14px; opacity: 0; }
       #clToast { position: absolute; left: 50%; bottom: 12vh; transform: translateX(-50%); background: rgba(10,12,16,0.85); border: 1px solid #4a4d58; padding: 8px 16px; border-radius: 8px; font-size: 14px; max-width: 80vw; text-align: center; opacity: 0; transition: opacity .4s; }
-      #clBtns { position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 6px; align-items: flex-end; pointer-events: auto; } #clBtns button { margin: 0; padding: 12px 18px; font-size: 15px; background: rgba(20,22,30,0.85); touch-action: none; } #clBtns button.on { background: #6b5a2a; border-color: #c9a84c; }
-      #clStick { position: absolute; left: 22px; bottom: 26px; width: 120px; height: 120px; border-radius: 50%; background: rgba(20,22,28,0.45); border: 2px solid rgba(230,196,106,0.55); touch-action: none; display: none; pointer-events: auto; }
-      #clKnob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(230,196,106,0.75); pointer-events: none; } @media (pointer: coarse) { #clStick { display: block; } }
       #clVig { position: absolute; inset: 0; opacity: 0; } #clGust { position: absolute; inset: 0; opacity: 0; background: linear-gradient(90deg, rgba(255,255,255,.55), transparent 22%, transparent 78%, rgba(255,255,255,.55)); }
       #clGustTxt { position: absolute; top: 18%; left: 50%; transform: translateX(-50%); font-size: 20px; letter-spacing: .3em; color: #fff; text-shadow: 0 0 10px #000; opacity: 0; }`;
     document.head.appendChild(css);
     const hud = document.createElement('div'); hud.id = 'clHud';
-    hud.innerHTML = '<div id="clVig"></div><div id="clGust"></div><div id="clGustTxt">WIND</div><div id="clAlt"></div><div id="clObj">Climb the beanstalk.</div><div id="clSt"><span>Stamina</span><div id="clBar"><i></i></div></div><div id="clToast"></div><div id="clHint"></div><div id="clStick"><div id="clKnob"></div></div><div id="clBtns"><button id="clGrip">Grip (Space)</button><button id="clZoom">Zoom</button></div>';
+    hud.innerHTML = '<div id="clVig"></div><div id="clGust"></div><div id="clGustTxt">WIND</div><div id="clAlt"></div><div id="clObj">Climb the beanstalk.</div><div id="clSt"><span>Stamina</span><div id="clBar"><i></i></div></div><div id="clToast"></div><div id="clHint"></div>';
     document.body.appendChild(hud);
     const $ = id => document.getElementById(id);
     const toast = (t, ms = 3600) => { $('clToast').textContent = t; $('clToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
     const mutter = (t, force) => { if (!force && performance.now() < st.capAt) return; st.capAt = performance.now() + 7000; G.caption('jack', t); };
-    const keys = {}, stick = { x: 0, y: 0 }, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', ' ': 'grip', Shift: 'run' };
-    const runB = document.createElement('button'); runB.textContent = 'Run'; runB.className = 'touchonly'; runB.onpointerdown = () => { keys.run = true; }; runB.onpointerup = runB.onpointerleave = runB.onpointercancel = () => { keys.run = false; }; document.getElementById('clBtns').appendChild(runB);
+    const keys = {}, ui = root.TouchUI.create({ keys, run: true, jump: { icon: 'grip', label: 'Grip' }, cam: true }), stick = ui.stick, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', ' ': 'grip', Shift: 'run' };
     const typing = e => e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
     const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow') || e.key === ' ') e.preventDefault(); } if (e.repeat) return; if (e.key === 'v' || e.key === 'V') cycleZoom(); };
     const ku = e => { const k = KM[e.key]; if (k) keys[k] = false; };
     root.addEventListener('keydown', kd); root.addEventListener('keyup', ku);
-    const gb = $('clGrip'); gb.onpointerdown = () => { keys.grip = true; }; gb.onpointerup = gb.onpointerleave = gb.onpointercancel = () => { keys.grip = false; };
+    ui.on.jump = () => { keys.grip = true; }; ui.on.jumpUp = () => { keys.grip = false; };                     // (the big button is Space: hold it to brace; a tap climbs on, jumps, or takes the stalk)
     const ZOOMS = [{ name: 'Close', d: 52 }, { name: 'Medium', d: 92 }, { name: 'Far', d: 150 }], ZF = [52 / 92, 1, 150 / 92];      // (as in Chapter One)
-    function cycleZoom(dir) { st.zoom = (st.zoom + (dir || 1) + ZOOMS.length) % ZOOMS.length; $('clZoom').textContent = 'Zoom: ' + ZOOMS[st.zoom].name; }
-    $('clZoom').onclick = () => cycleZoom(); $('clZoom').textContent = 'Zoom: Medium';
+    const camIcon = () => ui.set('cam', { icon: 'camera', title: 'Camera: ' + ZOOMS[st.zoom].name });
+    function cycleZoom(dir) { st.zoom = (st.zoom + (dir || 1) + ZOOMS.length) % ZOOMS.length; camIcon(); }
+    camIcon(); ui.on.cam = () => cycleZoom();
     const drags = new Map();
     const pd = e => drags.set(e.pointerId, { x: e.clientX, y: e.clientY }), pm = e => { const d = drags.get(e.pointerId); if (!d) return; const walkingNow = st.mode === 'walk' || st.mode === 'mount'; st.camA += (e.clientX - d.x) * 0.006; st.pitch = clamp(st.pitch + (e.clientY - d.y) * 0.005, walkingNow ? 0.08 : -0.9, walkingNow ? 1.35 : 1.45); d.x = e.clientX; d.y = e.clientY; }, pu = e => { drags.delete(e.pointerId); };
     const wheel = e => { e.preventDefault(); cycleZoom(e.deltaY > 0 ? 1 : -1); }; el.addEventListener('wheel', wheel, { passive: false });
     el.addEventListener('pointerdown', pd); el.addEventListener('pointermove', pm); el.addEventListener('pointerup', pu); el.addEventListener('pointercancel', pu);
-    { const sEl = $('clStick'), k = $('clKnob'); let id = null; const set = e => { const r = sEl.getBoundingClientRect(); let dx = (e.clientX - r.left - r.width / 2) / (r.width / 2), dy = (e.clientY - r.top - r.height / 2) / (r.height / 2); const m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; } stick.x = dx; stick.y = dy; k.style.transform = `translate(${dx * 34}px, ${dy * 34}px)`; };
-      sEl.addEventListener('pointerdown', e => { id = e.pointerId; sEl.setPointerCapture(id); set(e); }); sEl.addEventListener('pointermove', e => { if (e.pointerId === id) set(e); }); const end = e => { if (e.pointerId === id) { id = null; stick.x = stick.y = 0; k.style.transform = ''; } }; sEl.addEventListener('pointerup', end); sEl.addEventListener('pointercancel', end); }
 
     // ── Reaching. ──
     const reachOf = h => 20 * (h.s || 1) * (h.kind === 'ground' ? 1.5 : 1);
@@ -259,7 +254,11 @@ function run(G, W) {
         if (u >= 1) { st.cur = gn; st.fr = m.k; st.y = 0; st.a = gn.a; st.r = gn.r; st.xf = false; st.mode = 'idle'; st.walkN = 0; startMove(gn.first); }
       }
       // Strength.
-      st.grip = !!keys.grip && st.mode === 'idle'; gb.classList.toggle('on', st.grip); st.gripPrev = !!keys.grip;
+      { const gl = { label: 'Grip', icon: 'grip', enabled: false };                       // (what the big button does now: jump or take a stalk on the ground, climb on from a leaf, brace on a hold)
+        if (st.mode === 'walk') { if (nearVineNow()) { gl.label = 'Climb'; gl.icon = 'climb'; gl.enabled = true; } else { gl.label = 'Jump'; gl.icon = 'jump'; gl.enabled = st.wy <= 0.01; } }
+        else if (st.mode === 'idle') { if (st.cur.kind === 'ledge') { gl.label = 'Climb on'; gl.icon = 'climb'; gl.enabled = st.lock <= 0; } else gl.enabled = st.stamina > 0; }
+        ui.set('jump', gl); }
+      st.grip = !!keys.grip && st.mode === 'idle'; st.gripPrev = !!keys.grip;
       if (st.mode === 'idle') {
         const onLedge = st.cur.kind === 'ledge', onBurl = st.cur.kind === 'burl';
         if (onLedge) st.stamina = Math.min(100, st.stamina + 16 * dt);
@@ -330,7 +329,7 @@ function run(G, W) {
     };
     async function finish() {
       // The last leaf: a breath, a line, and then straight up the stalk and into the cloud.
-      const h = st.cur, kk = sOf(st.y), d0 = st.r; G.mode = 'cutscene'; document.body.classList.add('cutscene'); st.mode = 'cut'; st.lock = 0; st.gust = { phase: 'wait', t: 9999 }; hud.style.display = 'none'; A && A.ambience({ wind: 0.5, birds: 0, fire: 0 });
+      const h = st.cur, kk = sOf(st.y), d0 = st.r; G.mode = 'cutscene'; document.body.classList.add('cutscene'); st.mode = 'cut'; st.lock = 0; st.gust = { phase: 'wait', t: 9999 }; hud.style.display = 'none'; ui.show(false); A && A.ambience({ wind: 0.5, birds: 0, fire: 0 });
       const jp = () => { const c = centreOf(4, st.y); return v(c.x + Math.cos(st.a) * st.r, st.y, c.z + Math.sin(st.a) * st.r); };
       const side = h.a + Math.PI / 2, setCine = (dist, below, lookUp, fov) => { const j = jp(); st.cine = { pos: v(j.x + Math.cos(side) * dist * kk, j.y + below * kk, j.z + Math.sin(side) * dist * kk), look: v(j.x, j.y + lookUp * kk, j.z), fov }; };
       setCine(120, 6, 14, 42); await G.wait(1.6);
@@ -348,7 +347,7 @@ function run(G, W) {
     // (a tick-mode of 'rise' lets the frame code above keep placing him as st.y changes)
     function cleanup() {
       ended = true; root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('wheel', wheel); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu);
-      G.updaters = G.updaters.filter(u => u !== tick); hud.remove(); css.remove(); E.remove(stage); E.fog = fogOld; E.background = bgOld; for (const [l, i0] of lights) l.intensity = i0; jackOut.after = null; jackOut.root.scale.setScalar(SC); camera.near = nearOld;
+      G.updaters = G.updaters.filter(u => u !== tick); hud.remove(); css.remove(); ui.destroy(); E.remove(stage); E.fog = fogOld; E.background = bgOld; for (const [l, i0] of lights) l.intensity = i0; jackOut.after = null; jackOut.root.scale.setScalar(SC); camera.near = nearOld;
     }
     camera.near = 0.3; camera.updateProjectionMatrix();
     G.updaters.push(tick); G.climb = { st, holds, drop, pick, reachable, grounds };           // (for tools and tests)

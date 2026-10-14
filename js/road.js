@@ -260,10 +260,10 @@ async function run(G, opts) {
 }
 
 function playLoop(G, W, opts) {
-  const { R, items, ties, canopy, trunks, forest, jack, cowM, ja, cord } = W, ui = Mk.hud(), scene = W.scene, el = G.renderer.domElement;
+  const { R, items, ties, canopy, trunks, forest, jack, cowM, ja, cord } = W, ui = Mk.hud(), keys = {}, tu = root.TouchUI.create({ keys, run: true, sneak: true, jump: true, act: true, drop: true, cam: true }), scene = W.scene, el = G.renderer.domElement;
   return new Promise(resolve => {
     const c0 = R.at(14), h0 = Math.atan2(c0.tx, c0.tz);
-    const st = { y: 0, vy: 0, grounded: true, pos: v(c0.x, 0, c0.z), heading: h0, speedN: 0, sneak: false, yaw: h0 + Math.PI, pitch: 0.8, zoom: 1, boost: 0, jumpReq: false, stick: { x: 0, y: 0 }, toastAt: 0, carry: null, soothes: 0, plants: 0, runSecs: 0, soothedAt: 0, tips: {}, soothN: 0, done: false, dragAt: 0 };
+    const st = { y: 0, vy: 0, grounded: true, pos: v(c0.x, 0, c0.z), heading: h0, speedN: 0, sneak: false, yaw: h0 + Math.PI, pitch: 0.8, zoom: 1, boost: 0, jumpReq: false, stick: tu.stick, toastAt: 0, carry: null, soothes: 0, plants: 0, runSecs: 0, soothedAt: 0, tips: {}, soothN: 0, done: false, dragAt: 0 };
     if (opts.cart) { const c1 = R.at(R.len - 140); st.pos.set(c1.x, 0, c1.z); st.heading = Math.atan2(c1.tx, c1.tz); st.yaw = st.heading + Math.PI; }
     const cow = { pos: v(c0.x - c0.tx * 34, 0, c0.z - c0.tz * 34), heading: h0, trust: 100, mode: 'follow', tree: null, blockedT: 0, planted: false, moved: false };
     if (opts.cart) { cow.pos.set(st.pos.x - Math.sin(st.heading) * 34, 0, st.pos.z - Math.cos(st.heading) * 34); cow.heading = st.heading; }
@@ -275,7 +275,7 @@ function playLoop(G, W, opts) {
     const toast = (t, ms = 3600) => { ui.toast.textContent = t; ui.toast.style.opacity = 1; st.toastAt = performance.now() + ms; };
     const tip = (k, t, ms) => { if (st.tips[k]) return; st.tips[k] = true; toast(t, ms || 6500); };
     // Input.
-    const keys = {}, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', Shift: 'run' };
+    const KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', Shift: 'run' };
     const kd = e => { if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); }
       if (e.key === ' ') e.preventDefault(); if (e.repeat) return; if (e.key === 'c' || e.key === 'C') toggleSneak(); if (e.key === 'e' || e.key === 'E') interact(); if (e.key === 'q' || e.key === 'Q') putDown(); if (e.key === ' ') st.jumpReq = true; if (e.key === 'v' || e.key === 'V') cycleZoom(); };
     const ku = e => { const k = KM[e.key]; if (k) keys[k] = false; };
@@ -284,10 +284,11 @@ function playLoop(G, W, opts) {
     const pm = e => { const d = drags.get(e.pointerId); if (!d) return; st.dragAt = performance.now(); st.yaw -= (e.clientX - d.x) * 0.006; st.pitch = clamp(st.pitch + (e.clientY - d.y) * 0.005, 0.08, 1.35); d.x = e.clientX; d.y = e.clientY; };
     el.addEventListener('pointerdown', pd); el.addEventListener('pointermove', pm); el.addEventListener('pointerup', pu); el.addEventListener('pointercancel', pu);
     const wheel = e => { e.preventDefault(); cycleZoom(e.deltaY > 0 ? 1 : -1); }; el.addEventListener('wheel', wheel, { passive: false });
-    function cycleZoom(dir) { st.zoom = (st.zoom + (dir || 1) + ZOOMS.length) % ZOOMS.length; ui.zoom.textContent = 'Zoom: ' + ZOOMS[st.zoom].name; }
-    function toggleSneak() { st.sneak = !st.sneak; ui.sneak.classList.toggle('on', st.sneak); toast(st.sneak ? 'Sneaking: slow and quiet.' : 'Walking.'); }
-    ui.zoom.onclick = () => cycleZoom(); ui.sneak.onclick = toggleSneak; ui.act.onclick = () => interact(); ui.drop.onclick = () => putDown(); ui.jump.onpointerdown = e => { e.preventDefault(); st.jumpReq = true; };
-    ui.zoom.textContent = 'Zoom: ' + ZOOMS[st.zoom].name; ui.sneak.classList.remove('on'); ui.bindStick(st.stick);
+    const camIcon = () => tu.set('cam', { icon: 'camera', title: 'Camera: ' + ZOOMS[st.zoom].name });
+    function cycleZoom(dir) { st.zoom = (st.zoom + (dir || 1) + ZOOMS.length) % ZOOMS.length; camIcon(); }
+    function toggleSneak() { st.sneak = !st.sneak; tu.setSneak(st.sneak); if (st.sneak && tu.run) tu.setRun(false); toast(st.sneak ? 'Sneaking: slow and quiet.' : 'Walking.'); }              // (the C key; the on-screen Sneak button sets st.sneak itself and keeps Run off)
+    ui.tu = tu; camIcon();
+    tu.on.cam = () => cycleZoom(); tu.on.jump = () => { st.jumpReq = true; }; tu.on.act = () => interact(); tu.on.drop = () => putDown(); tu.on.sneak = on => { st.sneak = on; toast(on ? 'Sneaking: slow and quiet.' : 'Walking.'); };
     const mark = document.createElement('i'); mark.style.cssText = 'position:absolute;left:' + PLANT + '%;top:-2px;bottom:-2px;width:2px;background:#f0b0a0;opacity:.9'; ui.trustBar.parentElement.style.position = 'relative'; ui.trustBar.parentElement.appendChild(mark);
 
     // The world as Jack and the cow meet it.
@@ -424,6 +425,17 @@ function playLoop(G, W, opts) {
       const h = st.carry ? 'Q / E: put it down' : it ? 'E: pick up the ' + it.kind : t ? (cow.mode === 'tied' && cow.tree === t ? 'E: untie Milky-White' : cow.mode === 'follow' ? 'E: tie Milky-White to the tree' : '') : gapCow() < 18 && cow.trust < 100 ? 'E: speak softly to her' : '';
       ui.hint.textContent = h; ui.hint.style.display = h ? 'block' : 'none';
       if (st.toastAt && performance.now() > st.toastAt) { ui.toast.style.opacity = 0; st.toastAt = 0; }
+      // The touch buttons say what a tap will do now, and grey out when it would do nothing (the same conditions as the keys above).
+      { const tie = nearTie(16), item = !st.carry && nearestItem(13), facing = (x, z) => { const dx = x - st.pos.x, dz = z - st.pos.z, m = Math.hypot(dx, dz) || 1; return (dx * Math.sin(st.heading) + dz * Math.cos(st.heading)) / m; };
+        tu.set('jump', { label: 'Jump', icon: 'jump', enabled: st.grounded && !st.carry });
+        let act = null;
+        if (st.carry) act = 'Put down';
+        else if (item && !(tie && facing(tie.x, tie.z) > facing(item.x, item.z))) act = 'Pick up';
+        else if (tie && cow.mode === 'tied' && cow.tree === tie) act = 'Untie';
+        else if (tie && cow.mode === 'follow') act = 'Tie up';
+        else if (gapCow() < 18) act = 'Speak';
+        tu.set('act', act ? { label: act, enabled: true } : { label: 'Do', enabled: false });
+        tu.set('drop', { label: st.carry ? 'Put down' : 'Drop', enabled: !!st.carry }); }
       // The end of the road.
       if (Math.hypot(st.pos.x - W.peddler.root.position.x, st.pos.z - W.peddler.root.position.z) < 64) {
         if (cow.mode === 'follow' && Math.hypot(cow.pos.x - W.peddler.root.position.x, cow.pos.z - W.peddler.root.position.z) < 100 && !st.carry) finish();
@@ -434,7 +446,7 @@ function playLoop(G, W, opts) {
     let cullFrame = 0;
     function cleanup() {
       root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu); el.removeEventListener('wheel', wheel);
-      G.updaters = G.updaters.filter(u => u !== tick); mark.remove(); ui.show(false); ui.toast.style.opacity = 0;
+      G.updaters = G.updaters.filter(u => u !== tick); mark.remove(); ui.show(false); tu.destroy(); ui.tu = null; ui.toast.style.opacity = 0;
       for (const c of canopy) c.m.visible = true; for (const tr of trunks) tr.m.visible = true;
     }
     function finish() {
