@@ -1,6 +1,6 @@
 {
   "name": "consequence",
-  "version": "0.2.0",
+  "version": "0.4.1",
   "private": true,
   "description": "Climbing Toward Consequence: a blocky Jack and the Beanstalk game. Jack, shrunk on arrival, must regain his size one level at a time.",
   "scripts": {

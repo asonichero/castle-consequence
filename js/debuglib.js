@@ -12,7 +12,7 @@ const LIB = {
     ['lap.html', 'Lap scene', 'Across the Lap: the pose editor and scene for the lap.'],
     ['level.html', 'Test level: the golden hen', 'Jack looks after the golden hen: the first test level.'],
   ],
-  data: ['js/castle-layout.js', 'js/farm-layout.js', 'js/gerda-pose.js', 'js/lap-poses.js'],
+  data: ['js/capture-cams.js', 'js/castle-layout.js', 'js/farm-layout.js', 'js/gerda-pose.js', 'js/lap-poses.js'],
   files: ['js/game.js', 'js/menus.js', 'js/debuglib.js', 'js/buildbadge.js', 'js/blocky.js', 'js/cast.js', 'js/audio.js', 'js/pain.js', 'js/farm.js', 'js/opening.js', 'js/market.js', 'js/road.js', 'js/night.js', 'js/correction.js', 'js/garden.js',
     'js/chapter3.js', 'js/climb.js', 'js/meadow.js', 'js/castle.js', 'js/castlewalk.js', 'js/lap.js', 'js/level.js'],
 };
