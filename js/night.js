@@ -43,7 +43,7 @@ function build(G) {
   const mk = () => {
     const j = B.makeJack(); j.root.scale.setScalar(SC); paintJack(j); B.setPose(j, 'stand'); for (let i = 0; i < 30; i++) B.step(j, 0.1); return j;
   };
-  const ja = { t: 0, phase: 0, speed: 0, bare: 0, hold: 0, cover: 0, bow: 0, look: 0, fist: 0, shuffle: 0, rub: 0 };
+  const ja = { t: 0, phase: 0, speed: 0, bare: 0, hold: 0, cover: 0, bow: 0, look: 0, fist: 0, shuffle: 0, rub: 0, hitch: 0 };
   const hold = (rig, st) => { rig.after = r => st(r); return rig; };
   const jackOut = mk(), jackIn = mk();                       // outside under the stars, and in the room
   const poseJack = (rig, a) => r => {
@@ -59,6 +59,12 @@ function build(G) {
     }
     r.neck.rotation.x = 0.28 * a.bow + 0.03 * Math.sin(a.t * 0.9); r.neck.rotation.y = a.look; r.torso.rotation.x = 0.06 * a.bow;
     r.hips.position.y = 12 + Math.abs(Math.sin(a.phase)) * 0.5 * clamp(a.speed / 20, 0, 1);
+    if (a.hitch) {      // pulling his trousers up: he bends to take them at the knee (0 to 0.4), holds a beat, then gives them a hitch as he straightens (0.55 on) and settles
+      const p = a.hitch, bend = p < 0.4 ? p / 0.4 : p < 0.55 ? 1 : Math.max(0, 1 - (p - 0.55) / 0.3), tug = p > 0.55 && p < 0.85 ? Math.sin(Math.PI * (p - 0.55) / 0.3) : 0, ease = bend * bend * (3 - 2 * bend);
+      r.torso.rotation.x = 0.06 * a.bow + 0.62 * ease; r.neck.rotation.x = 0.28 * a.bow - 0.2 * ease; r.hips.position.y = 12 - 0.7 * ease + 0.5 * tug;
+      r.legL.thigh.rotation.x = r.legR.thigh.rotation.x = -0.1 * ease; r.legL.knee.rotation.x = r.legR.knee.rotation.x = 0.2 * ease;
+      for (const [arm, sg] of [[r.armL, 1], [r.armR, -1]]) { arm.rotation.x = -0.35 * ease - 0.45 * tug; arm.rotation.z = sg * 0.06 * ease; }
+    }
     // The garden's work: carrying a stone in both arms; crouching to a weed, a furrow, a bean; swinging the hoe overhead and down.
     if (a.carry) { r.armL.rotation.x = r.armR.rotation.x = -1.15 * a.carry; r.armL.rotation.z = 0.18 * a.carry; r.armR.rotation.z = -0.18 * a.carry; }
     if (a.crouch) { const c = a.crouch; r.hips.position.y = 12 - 5 * c; r.legL.thigh.rotation.x = r.legR.thigh.rotation.x = -1.1 * c; r.legL.knee.rotation.x = r.legR.knee.rotation.x = 1.5 * c; r.torso.rotation.x = 0.5 * c; r.armL.rotation.x = -1.3 * c + 0.12 * c * Math.sin(a.t * 9); r.armR.rotation.x = -1.3 * c - 0.12 * c * Math.sin(a.t * 9); }

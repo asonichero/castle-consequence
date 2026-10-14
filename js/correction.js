@@ -112,7 +112,9 @@ async function run(G, W, tier, opts) {
   const closing = async () => {
     await say('mother', tier === 0 ? 'Pull your trousers up.' : 'Pull your trousers up, and wipe your face.');
     await say('jack', 'Yes, Mother.');
-    W.paintJack(jackIn, { expr: 1, trousers: 'up', drawers: 'up' }); W.jackGl.mesh.visible = false; ja.rub = 0; ja.bow = 0.3; await wait(0.8);        // his britches go up
+    ja.rub = 0; ja.bow = 0.3; W.paintJack(jackIn, { expr: 1, trousers: 'down', drawers: tier >= 1 ? 'down' : 'up', marks: lap.st.marks });
+    for (let i = 1; i <= 34; i++) { ja.hitch = i / 34; if (i === 20) { W.paintJack(jackIn, { expr: 1, trousers: 'up', drawers: 'up' }); W.jackGl.mesh.visible = false; A && A.blip && A.blip(); } await wait(0.04); }        // he bends, takes them at the knee, and hitches them up
+    ja.hitch = 0; await wait(0.5);
     await say('mother', 'Go and plant them, then. If they’re so powerful. We will see what comes up.');
     await wait(0.6);
   };
