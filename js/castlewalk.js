@@ -46,6 +46,9 @@ function run(G, W, opts) {
     if (ch3) {                                                                                              // Chapter Three opens in the kitchen: the table is cleared, and the keepsake box stands in the middle of it
       const tgp = M.items.kitchenTable.g, gone = []; tgp.traverse(o => { if (o.userData && o.userData.item) gone.push(o); }); for (const o of gone) if (o.parent) o.parent.remove(o);
       const b0 = M.items.keepsakeBox.g; b0.position.set(tgp.position.x, 25.5, tgp.position.z); b0.rotation.y = 0; b0.userData.box.lid.rotation.x = 0;
+      for (const d of M.doors) if (d.axis === 'z' && Math.abs(d.fixed + 111) < 3 && Math.abs(d.c - 162) < 6) { d.openAng = d.lg.rotation.y; d.lg.rotation.y = 0; d.og.userData.noCollide = false; }       // the garden door is shut
+      for (const h of M.hallLeaves) h.lf.rotation.y = 0;                                                                                                                                               // and so are the great doors, with the crack he came in by still to be seen at their foot
+      { const crack = new THREE.Mesh(new THREE.BoxGeometry(3.4, 4.6, 0.5), new THREE.MeshBasicMaterial({ color: 0xfff1c4 })); crack.position.set(0, 2.3, 108.5); M.scene.add(crack); }
     }
     const C = collect(M.room, ceiling, M.items.pantry && M.items.pantry.g);
     const things = []; if (story) { M.room.updateMatrixWorld(true); M.room.traverse(o => { if (o.userData && o.userData.item) { const w = new V3(); o.getWorldPosition(w); things.push(Object.assign({ o, pos: w }, o.userData.item)); } }); }
@@ -111,6 +114,7 @@ function run(G, W, opts) {
     const blockedAt = (x, z, y) => { const r = 4 * st.s, top = y + HEIGHT * st.s * 0.98, up = y + step(); if (x < M.bounds.x0 || x > M.bounds.x1 || z < M.bounds.z0 || z > M.bounds.z1) return true;
       if (open && !open.some(q => x > q[0] && x < q[1] && z > q[2] && z < q[3])) return true;
       if (st.perch && (x < st.perch.x0 || x > st.perch.x1 || z < st.perch.z0 || z > st.perch.z1)) return true;                      // (on a rung he cannot walk off: only jump)
+      if (ch3 && x > 234 && z > -98 && z < -52) return true;                                                 // (he stops short of the parlour doors)
       if (story && st.bread && x < -83.5 && z > -43 && z < -8) return true;                                  // (once he has smelt it, the narrow corridor's doors are as far as he goes)
       for (const e of C.near(x, z, r)) { if (e.low || e.y1 <= up || e.y0 >= top) continue; const cx = clamp(x, e.x0, e.x1), cz = clamp(z, e.z0, e.z1); if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r) return true; } return false; };
     const floorAt = (x, z, y) => { const r = 1.2 * st.s, up = y + step() + 0.5; let g = 0; for (const e of C.near(x, z, r)) { if (e.y1 > up || e.y1 <= g) continue; const cx = clamp(x, e.x0, e.x1), cz = clamp(z, e.z0, e.z1); if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r) g = e.y1; } return g; };
@@ -417,7 +421,19 @@ function run(G, W, opts) {
 
     // ── Chapter Three: The Measure of a Man. It opens in the kitchen: Jack in the box on the table, at a quarter of his size, and Gerda in her work clothes. ──
     const ch3Items = { clothes: null };
-    function ch3Tick() { const pr = promptEl(); pr.style.display = 'none'; st.actReq = false; }                  // (nothing in the kitchen can be used yet)
+    const zoneSeen = {}, zoneIn = {}, zoneN = {}; let lastRemark = 0;
+    const ZONES = {
+      door: { in: p => p.z > 90 && Math.abs(p.x) < 30, first: ['That’s the crack I came in by. I’d never squeeze through it now.', 'And I can’t go home with nothing to show for it. Mother’s been frantic since morning, and I know what waits for a son who comes back empty-handed.'], again: ['Maybe there’s another way out.', 'There has to be some other way out of here.', 'Still too big for it. Another way, then.'] },
+      parlour: { in: p => p.x > 222 && Math.abs(p.z + 75) < 28, first: ['That’s the way she went. I’m in no hurry to run into her again.'], again: ['Not that way. Not while she’s about.', 'She’s still through there. I’ll keep clear.', 'Best to leave her to it.'] },
+    };
+    function ch3Tick() {
+      promptEl().style.display = 'none'; st.actReq = false; if (st.scene) return;
+      for (const k in ZONES) { const z = ZONES[k], here = z.in(st.pos);
+        if (here && !zoneIn[k]) { zoneIn[k] = true; const now = performance.now();
+          if (!zoneSeen[k]) { zoneSeen[k] = true; lastRemark = now; z.first.reduce((pr, t) => pr.then(() => say(t)), Promise.resolve()); }
+          else if (now - lastRemark > 4000) { lastRemark = now; zoneN[k] = (zoneN[k] || 0) + 1; say(z.again[(zoneN[k] - 1) % z.again.length]); } }
+        else if (!here) zoneIn[k] = false; }
+    }
     async function ch3Open() {
       const f = $('fade'), tgp = M.items.kitchenTable.g, TOP = 25.5, bx = M.items.keepsakeBox.g, box = bx.userData.box, tc = bx.position.clone(), bs = SC * st.s;
       $('cwPanel').style.display = 'none'; G.mode = 'cutscene'; document.body.classList.add('cutscene'); st.scene = true; st.boxed = true; G.save({ step: 'ch3' }); f.style.transition = 'none'; f.style.opacity = 1;
