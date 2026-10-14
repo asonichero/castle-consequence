@@ -444,7 +444,7 @@ function run(G, W, opts) {
       // the folded clothes on the table (his day clothes), to be seen later
       const mk = (w, h, d, col, x, y, z, par) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color: col })); m.position.set(x, y, z); par.add(m); return m; };
       const clothes = new THREE.Group(); clothes.position.set(tc.x + 16, TOP, tc.z + 1); scene.add(clothes); ch3Items.clothes = clothes;
-      mk(7, 1.2, 5, '#5a7a3e', 0, 0.6, 0, clothes); mk(6.4, 0.9, 4.4, '#6d5233', 0.2, 1.65, 0, clothes); mk(0.7, 0.5, 5.2, '#8a6a42', -1.8, 2.3, 0, clothes); mk(1.7, 1.6, 3.4, '#3a2616', 4.6, 0.8, -0.8, clothes); mk(1.7, 1.6, 3.4, '#3a2616', 4.6, 0.8, 2.6, clothes);
+      mk(2.7, 0.7, 2.2, '#5a7a3e', 0, 0.35, 0, clothes); mk(0.9, 0.22, 0.5, '#e8dcb8', -0.4, 0.76, -0.8, clothes); mk(2.1, 0.5, 2.8, '#6d5233', 0.1, 0.95, 0.1, clothes); mk(0.3, 0.2, 2.3, '#8a6a42', -0.6, 1.3, 0.1, clothes); mk(0.9, 0.8, 2.1, '#3a2616', 2.1, 0.4, -0.6, clothes); mk(0.9, 0.8, 2.1, '#3a2616', 2.1, 0.4, 1.0, clothes);      // (his day clothes, folded, at the size of him now: a quarter, the tunic about as wide as his shoulders and a half again)
       // Jack, lying in the box on his back, head to the back of it, pressed in
       bx.add(jackOut.root); jackOut.root.scale.setScalar(bs); const qL = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0)), qSit = new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.2, 0, 0)), qUp = new THREE.Quaternion();
       const pL = new V3(0, 1.2 + 2.6 * st.s, 3.5), pSit = new V3(0, 1.9, 0.7).sub(new V3(0, 12 * bs, 0).applyQuaternion(qSit)), pUp = new V3(0, 1.2, 0.7);
@@ -487,8 +487,8 @@ function run(G, W, opts) {
       for (let i = 1; i <= 14; i++) { jackOut.root.rotation.y = (Math.PI / 2) * ease(i / 14); await G.wait(0.04); }
       scene.attach(jackOut.root); const wp = new V3(); jackOut.root.getWorldPosition(wp); st.pos.set(wp.x, 0, wp.z); st.y = TOP; st.heading = Math.PI / 2; jackOut.root.quaternion.identity(); jackOut.root.rotation.y = Math.PI / 2; jackOut.root.scale.setScalar(bs); st.boxed = false; st.pose = { armLx: -0.15, armLz: 0.3, armRx: -0.15, armRz: -0.3, torso: 0, neckX: 0, neckY: 0 };
       // 5. the clothes on the table: he notices them now, and goes to look
-      G.cut({ pos: v(tc.x + 2, TOP + 11, tc.z + 26), look: v(tc.x + 11, TOP + 3.5, tc.z + 2), fov: 40 });
-      { const x0 = st.pos.x, x1 = clothes.position.x - 7, n = 40; for (let i = 1; i <= n; i++) { st.pos.x = x0 + (x1 - x0) * ease(i / n); st.walkN = 1; st.walkPh += 0.5; await G.wait(0.04); } st.walkN = 0; }
+      G.cut({ pos: v(tc.x + 8, TOP + 8, tc.z + 19), look: v(tc.x + 13, TOP + 2.2, tc.z + 2), fov: 38 });
+      { const x0 = st.pos.x, x1 = clothes.position.x - 3.3, n = 40; for (let i = 1; i <= n; i++) { st.pos.x = x0 + (x1 - x0) * ease(i / n); st.walkN = 1; st.walkPh += 0.5; await G.wait(0.04); } st.walkN = 0; }
       await G.wait(0.4);
       for (let i = 1; i <= 16; i++) { const k = ease(i / 16); st.pose.neckX = 0.45 * k; st.pose.armRx = W3(-0.15, -0.9, k); st.pose.armRz = W3(-0.3, -0.05, k); await G.wait(0.04); }       // (he takes the tunic's collar between finger and thumb)
       await G.say('jack', 'Linen. Stitched by careful hands.');
