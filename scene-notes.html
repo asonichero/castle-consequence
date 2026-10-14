@@ -139,6 +139,7 @@ function userEdited() {                                    // the camera was mov
   if (o && same(c, o)) delete kept.cams[view]; else kept.cams[view] = c; save(); refresh();
 }
 controls.addEventListener('end', userEdited);
+let liveT = null; controls.addEventListener('change', () => { showCam(); clearTimeout(liveT); liveT = setTimeout(userEdited, 250); });       // (the numbers follow the camera as it moves, and it is kept as soon as it settles, not only when the mouse is released)
 for (const k of keys) inputs[k].onchange = () => { const v = keys.map(q => +inputs[q].value); fc.position.set(v[0], v[1], v[2]); controls.target.set(v[3], v[4], v[5]); fc.fov = v[6]; fc.updateProjectionMatrix(); controls.update(); userEdited(); };
 $('resetCam').onclick = () => { delete kept.cams[view]; save(); const o = (info[view] || {}).cam; if (o) { fc.position.set(...o.pos); controls.target.set(...o.look); fc.fov = o.fov; fc.updateProjectionMatrix(); controls.update(); } refresh(); };
 $('note').oninput = () => { if ($('note').value.trim()) kept.notes[view] = $('note').value; else delete kept.notes[view]; save(); refresh(); };
