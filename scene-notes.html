@@ -89,7 +89,7 @@ const r1 = x => Math.round(x * 10) / 10, same = (a, b) => a.pos.every((v, i) => 
 
 // ── The free camera: the renderer is handed this one, which follows the scene's cuts and moves, and stays where you put it. ──
 const fc = new THREE.PerspectiveCamera(50, 1, 0.5, 4000), controls = new THREE.OrbitControls(fc, G.renderer.domElement);
-controls.enableDamping = false;
+controls.enableDamping = false; window.__fc = fc; window.__ctl = controls;
 const render = G.renderer.render.bind(G.renderer); let lastStory = null;
 G.renderer.render = (scene) => {
   const w = G.renderer.domElement.clientWidth || innerWidth, h = G.renderer.domElement.clientHeight || innerHeight;
