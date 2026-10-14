@@ -71,7 +71,7 @@ async function run(G, W, opts) {
   W.paintJack(jackIn, { outfit: 'Night', expr: 1 });
   jackIn.root.visible = true; jackIn.root.scale.setScalar(SC); W.mother.root.visible = false; int.chair.visible = true;
   const blanket = new THREE.Group(); const bl = F.box(32, 2.4, 18.4, F.plain('#6a4a3a'), 0, 0, 0, blanket); F.box(32.2, 2.5, 4, F.plain('#8a6a4a'), 0, 0.1, -7, blanket); I.add(blanket);
-  const drape = F.box(32, 10, 0.9, F.plain('#5a3e30'), 0, -6, -9.2, blanket); drape.visible = false; let coverOn = false;      // (while he sleeps the blanket is fitted to him each frame: from his shoulders to past his feet, over the top of him, and falling to the bed on the room's side)
+  const drapes = [F.box(32, 10, 0.9, F.plain('#5a3e30'), 0, -6, -9.2, blanket), F.box(32, 10, 0.9, F.plain('#5a3e30'), 0, -6, 9.2, blanket), F.box(0.9, 10, 18.4, F.plain('#5a3e30'), -16, -6, 0, blanket), F.box(0.9, 10, 18.4, F.plain('#5a3e30'), 16, -6, 0, blanket)]; drapes.forEach(d => { d.visible = false; }); let coverOn = false;      // (while he sleeps the blanket is fitted to him each frame: from his shoulders to past his feet, over the top of him, and falling to the bed on the room's side)
   // ── Jack's body: limbs by a few numbers, the whole of him placed by the point of his hips and which way up he lies. ──
   const P = { thigh: -0.25, knee: 0.5, armX: 0.2, armZ: 0.12, torso: 0.1, neckX: 0.15, neckY: 0, rub: 0, lie: 1 };
   jackIn.after = r => {
@@ -88,12 +88,12 @@ async function run(G, W, opts) {
   const setBody = (Q, p) => { jackIn.root.quaternion.copy(Q); jackIn.root.position.copy(p).sub(hipsLocal.clone().applyQuaternion(Q)); };
   const tween = async (secs, fn) => { if (G.skipping) { fn(1, 1); return; } const t0 = G.t; for (;;) { const k = clamp((G.t - t0) / secs, 0, 1); fn(k, ease(k)); if (k >= 1) break; await G.wait(0.03); } };
   const BED_Y = 6.2, HIPS_SIDE = v(-28.5, BED_Y + 4.2, 62.5), HIPS_BACK = v(-28.5, BED_Y + 2.4, 62), HIPS_SIT = v(-34, BED_Y + 2.2, 62);
-  const placeBlanket = (x, y, z, sx) => { blanket.position.set(x, y, z); blanket.scale.set(sx == null ? 1 : sx, 1, 1); coverOn = false; drape.visible = false; };
+  const placeBlanket = (x, y, z, sx) => { blanket.position.set(x, y, z); blanket.scale.set(sx == null ? 1 : sx, 1, 1); coverOn = false; drapes.forEach(d => { d.visible = false; }); };
   const fitBlanket = () => {
     jackIn.root.updateMatrixWorld(true); const bb = new THREE.Box3().setFromObject(jackIn.root), nk = new THREE.Vector3(), hp = new THREE.Vector3(); jackIn.neck.getWorldPosition(nk); jackIn.hips.getWorldPosition(hp);
     const dir = Math.sign(nk.x - hp.x) || -1, head = dir < 0 ? bb.min.x : bb.max.x, feet = dir < 0 ? bb.max.x : bb.min.x, a = head - dir * 8.5, b = feet - dir * 1.5, x0 = Math.min(a, b), x1 = Math.max(a, b);
     const top = bb.max.y + 1.35, zc = (bb.min.z + bb.max.z) / 2, sz = clamp((bb.max.z - bb.min.z + 9) / 18.4, 0.55, 1), H = Math.max(2, top - 1.2 - BED_Y + 0.3);
-    blanket.position.set((x0 + x1) / 2, top, zc); blanket.scale.set(Math.max(0.2, (x1 - x0) / 32), 1, sz); drape.visible = true; drape.scale.y = H / 10; drape.position.y = -1.2 - H / 2;
+    blanket.position.set((x0 + x1) / 2, top, zc); blanket.scale.set(Math.max(0.2, (x1 - x0) / 32), 1, sz); for (const d of drapes) { d.visible = true; d.scale.y = H / 10; d.position.y = -1.2 - H / 2; }
   };
   const sleeping = () => { P.lie = 1; P.thigh = -0.25; P.knee = 0.55; P.armX = 0.25; P.armZ = 0.1; P.torso = 0.12; P.neckX = 0.1; P.neckY = 0; P.rub = 0; ja.speed = 0; setBody(Q_SIDE, HIPS_SIDE); placeBlanket(-31, 11.2, 62.2, 1); coverOn = true; };
   const cams = {
