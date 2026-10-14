@@ -30,12 +30,20 @@ $('noticeYes').onclick = () => { G.store.set(G.NOTICE_KEY, true); if (A) { A.ini
 $('noticeNo').onclick = () => { location.href = 'about:blank'; };
 
 // Menu. (A tap here is also what lets the browser start the sound.)
+// A black title card for each chapter: its number and name, faded up, held, and faded down (a tap or a key moves it on).
+async function titleCard(num, title) {
+  const el = $('chCard'); if (!el || G.skipping) return; $('chNum').textContent = 'Chapter ' + num; $('chTitle').textContent = title;
+  const wait = ms => new Promise(r => { let done = false; const fin = () => { if (done) return; done = true; el.removeEventListener('pointerdown', fin); root.removeEventListener('keydown', onKey); r(); }, onKey = e => { if (e.key === ' ' || e.key === 'Enter') fin(); }; el.addEventListener('pointerdown', fin); root.addEventListener('keydown', onKey); setTimeout(fin, ms); });
+  el.style.transition = 'none'; el.style.display = 'flex'; el.style.opacity = 0; void el.offsetWidth; el.style.transition = 'opacity 1.2s ease'; el.style.opacity = 1;
+  await wait(1300 + 3000); el.style.transition = 'opacity 1s ease'; el.style.opacity = 0; await wait(1000); el.style.display = 'none';
+}
 const wake = () => { if (A) { A.init(); A.startMusic(); A.ambience({ wind: 0.5, birds: 0.5 }); } };
 async function playOpening() {
   G.rerun = () => { rebuildWorlds(); return playOpening(); };       // (debug rewind: the opening runs again on fresh worlds)
   hideAll(); $('dev').style.display = 'none'; wake();
   await root.Opening.run(G, W);
   G.skipping = false; G.save({ step: 'market-day', opening: true, size: 0.8 }); snap(W.ext);
+  await titleCard('One', 'Market Day');
   await playMarket();
 }
 // Chapter One, Market Day (the first part): the dialogue at the cottage door, the cow to wrangle, the closing scene. (It starts from black.)
@@ -65,7 +73,7 @@ async function playNight(choices) {
   G.skipping = false; G.save({ step: 'planted', night: { tier: res.tier, brash: res.brash } }); snap(res.world.world);
   if (root.Correction && res.world) await root.Correction.run(G, res.world, res.tier);
   if (root.Garden && res.world) { G.save({ step: 'garden', night: { tier: res.tier, brash: res.brash } }); await root.Garden.run(G, res.world, res.tier); G.save({ step: 'garden-done' }); snap(res.world.world); }
-  if (root.Chapter3 && res.world) { await root.Chapter3.run(G, res.world); G.save({ step: 'beanstalk' }); snap(res.world.world, STALK_VIEW); if (root.Climb) { await root.Climb.run(G, res.world); G.save({ step: 'climb-done' }); if (root.Meadow) { await root.Meadow.run(G, res.world); G.save({ step: 'meadow-done' }); if (root.CastleWalk) { G.save({ step: 'castle' }); await root.CastleWalk.run(G, res.world, { story: true }); } } } }
+  if (root.Chapter3 && res.world) { await titleCard('Two', 'The Climb'); await root.Chapter3.run(G, res.world); G.save({ step: 'beanstalk' }); snap(res.world.world, STALK_VIEW); if (root.Climb) { await root.Climb.run(G, res.world); G.save({ step: 'climb-done' }); if (root.Meadow) { await root.Meadow.run(G, res.world); G.save({ step: 'meadow-done' }); if (root.CastleWalk) { G.save({ step: 'castle' }); await root.CastleWalk.run(G, res.world, { story: true }); await titleCard('Three', 'The Measure of a Man'); } } } }
   showEnd();
 }
 // Debug: the correction on its own, with Jack standing before his Mother as the night scene leaves him.
@@ -90,7 +98,7 @@ async function playClimb() {
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
   W.jackOut.root.visible = true; W.jackOut.root.position.set(CLIMB_BASE.x, 0, CLIMB_BASE.z);
-  await root.Climb.run(G, W); G.save({ step: 'climb-done' }); if (root.Meadow) { await root.Meadow.run(G, W); G.save({ step: 'meadow-done' }); if (root.CastleWalk) { G.save({ step: 'castle' }); await root.CastleWalk.run(G, W, { story: true }); } }
+  await root.Climb.run(G, W); G.save({ step: 'climb-done' }); if (root.Meadow) { await root.Meadow.run(G, W); G.save({ step: 'meadow-done' }); if (root.CastleWalk) { G.save({ step: 'castle' }); await root.CastleWalk.run(G, W, { story: true }); await titleCard('Three', 'The Measure of a Man'); } }
   showEnd();
 }
 const CLIMB_BASE = { x: 0, z: 0 };
@@ -98,7 +106,7 @@ const CLIMB_BASE = { x: 0, z: 0 };
 async function playMeadow() {
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
-  await root.Meadow.run(G, W); G.save({ step: 'meadow-done' }); if (root.CastleWalk) { G.save({ step: 'castle' }); await root.CastleWalk.run(G, W, { story: true }); }
+  await root.Meadow.run(G, W); G.save({ step: 'meadow-done' }); if (root.CastleWalk) { G.save({ step: 'castle' }); await root.CastleWalk.run(G, W, { story: true }); await titleCard('Three', 'The Measure of a Man'); }
   showEnd();
 }
 // Test level: walk about the castle at any size.
@@ -109,9 +117,10 @@ async function playCastle(story, extra) {
 }
 async function playChapter3(only) {
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
+  if (!only) await titleCard('Two', 'The Climb');
   const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
   await root.Chapter3.run(G, W, only ? { only } : null); G.save({ step: 'beanstalk' }); snap(W.world, STALK_VIEW);
-  if (root.Climb) { await root.Climb.run(G, W); G.save({ step: 'climb-done' }); if (root.Meadow) { await root.Meadow.run(G, W); G.save({ step: 'meadow-done' }); if (root.CastleWalk) { G.save({ step: 'castle' }); await root.CastleWalk.run(G, W, { story: true }); } } }
+  if (root.Climb) { await root.Climb.run(G, W); G.save({ step: 'climb-done' }); if (root.Meadow) { await root.Meadow.run(G, W); G.save({ step: 'meadow-done' }); if (root.CastleWalk) { G.save({ step: 'castle' }); await root.CastleWalk.run(G, W, { story: true }); await titleCard('Three', 'The Measure of a Man'); } } }
   showEnd();
 }
 function showEnd() {
@@ -138,6 +147,7 @@ $('levelSel').onchange = async () => {
     else if (k === 'meadow') await playMeadow();
     else if (k === 'castle') await playCastle();
     else if (k === 'castlehall') await playCastle(true);
+    else if (k === 'cards') { hideAll(); $('dev').style.display = 'none'; wake(); for (const [n, t] of [['One', 'Market Day'], ['Two', 'The Climb'], ['Three', 'The Measure of a Man']]) await titleCard(n, t); toTitle(); }
     else if (k === 'castlecatch') { G.noSave = true; await playCastle(true, { capture: true }); }
     else if (k === 'corrH' || k === 'corrC' || k === 'corrB') await playCorrection(k === 'corrH' ? 0 : k === 'corrC' ? 1 : 2);
   } finally { G.noSave = false; G.debugCtl = false; }
