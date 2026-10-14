@@ -205,7 +205,7 @@ function run(G, W, opts) {
     const KIT = [93.5, 246, -107, 49, 84];                                                                  // the kitchen's walls and ceiling: a camera is never put outside them
     const cutIn = sp => { const p = sp.pos.clone(), l = sp.look; for (let i = 0; i < 40 && (p.x < KIT[0] || p.x > KIT[1] || p.z < KIT[2] || p.z > KIT[3] || p.y > KIT[4]); i++) p.lerp(l, 0.1); p.y = Math.max(p.y, 3); G.cut({ pos: p, look: sp.look, fov: sp.fov }); };
     if (story) { makeG(); gst.x = 268; gst.z = -75; gst.h = -Math.PI / 2; placeGerda(); }                   // she is in the parlour from the start, behind its shut doors
-    const swing = d => { const a = d.openAng || 1.75; d.lg.rotation.y = a; d.og.updateMatrixWorld(true); const p = d.lg.localToWorld(new V3(10, 0, 0)); d.lg.rotation.y = 0; return p.x < d.fixed ? a : -a; };   // which way the leaf swings to open into the kitchen
+    const swing = d => { const a = Math.abs(d.openAng || 1.75), bx = new THREE.Box3(), r0 = d.lg.rotation.y; d.lg.rotation.y = a; d.og.updateMatrixWorld(true); bx.setFromObject(d.lg); const cx = (bx.min.x + bx.max.x) / 2; d.lg.rotation.y = r0; d.og.updateMatrixWorld(true); return cx < d.fixed ? a : -a; };   // which way the leaf swings to open into the kitchen (judged by where the leaf itself ends up, as the two leaves are hung opposite ways)
     async function gerdaScene() {
       if (st.scene || st.caught) return; const doors = M.doors.filter(d => d.axis === 'x' && Math.abs(d.fixed - 250) < 3 && Math.abs(d.c + 75) < 6);
       for (const d of doors) d.ang = swing(d);
@@ -378,6 +378,7 @@ function run(G, W, opts) {
       if (story) storyTick(dt);
       if (ch3) ch3Tick(dt);
       const gy = floorAt(st.pos.x, st.pos.z, st.y), rj = 4 * s;
+      if (!busy && !st.scene && st.y <= gy + 0.5 * s && blockedAt(st.pos.x, st.pos.z, st.y)) { let bd = 1e9, to = null; for (let r = 1; r <= 60; r += 1) { for (let k = 0; k < 24; k++) { const a = k * Math.PI / 12, x = st.pos.x + Math.cos(a) * r * s, z = st.pos.z + Math.sin(a) * r * s; if (!blockedAt(x, z, gy) && floorAt(x, z, gy) <= gy + 0.01 && r < bd) { bd = r; to = [x, z]; } } if (to) break; } if (to) { st.pos.x = to[0]; st.pos.z = to[1]; st.y = gy; } }       // (if he is ever wedged in something, as under a rung, he is put to the nearest clear spot)
       // Wood he can get his hands to: a short step up (to three quarters of his height) is a mantle; anything taller, a climb, which tires him fast (about a height and a half) unless there is a rung to rest on, and a rung or a top he can pull onto within one more height.
       const pointOn = (e, x, z) => [clamp(x, e.x0, e.x1), clamp(z, e.z0, e.z1)];
       const landingFor = e => { const mx = Math.min(rj * 0.8, (e.x1 - e.x0) / 2), mz = Math.min(rj * 0.8, (e.z1 - e.z0) / 2), x0 = e.x0 + mx, x1 = e.x1 - mx, z0 = e.z0 + mz, z1 = e.z1 - mz;

@@ -133,7 +133,7 @@ function interior() {
   // the long table, set for one, and its chair
   { const g = at(0, 0, 0); B(76, 3, 24, '#5a3c26', 0, 24, 0, g); for (const sx of [-1, 1]) for (const sz of [-1, 1]) B(4, 24, 4, '#3a2a20', sx * 32, 12, sz * 9, g); B(80, 1, 28, '#7a1f3a', 0, 25.4, 0, g);
     B(8, 0.8, 8, '#f4f0e8', -28, 26.2, 0, g); B(2.6, 5, 2.6, '#c9a23c', -22, 28, -4, g); B(0.7, 0.4, 7, '#c8ccd4', -33, 26, 0, g); B(0.7, 0.4, 7, '#c8ccd4', -23.5, 26, 0, g); B(1.6, 7, 1.6, '#e8dcc0', -14, 29, 5, g); B(2, 1, 2, '#ffd870', -14, 33, 5, g);
-    B(16, 3, 16, '#6a2860', -46, 12, 0, g); B(3, 24, 16, '#5a2052', -54, 20, 0, g); movable('longTable', 'Long table, set for one', g, { x: 2, z: 9, ry: 0 }); }
+    B(16, 3, 16, '#6a2860', -46, 12, 0, g); B(3, 24, 16, '#5a2052', -54, 20, 0, g); for (const sx of [-1, 1]) for (const sz of [-1, 1]) B(2, 10.5, 2, '#3a2a20', -46 + sx * 6.5, 5.25, sz * 6.5, g); movable('longTable', 'Long table, set for one', g, { x: 2, z: 9, ry: 0 }); }
   { const g = at(0, 0, 0); B(44, 20, 15, '#4a3626', 0, 10, 0, g); B(46, 2, 16, '#5a4630', 0, 21, 0, g); B(18, 14, 0.8, '#6a5036', -10, 10, 7.8, g); B(18, 14, 0.8, '#6a5036', 10, 10, 7.8, g); B(2, 2, 1, '#c9a23c', -2, 10, 8.4, g); B(2, 2, 1, '#c9a23c', 2, 10, 8.4, g); B(5, 9, 5, '#8a9ab0', -12, 26, 0, g); B(3, 5, 3, '#c9a23c', 8, 24, 0, g); movable('lowCupboard', 'Low cupboard (by the table)', g, { x: -58, z: -85, ry: 0 }); }
   const chandelier = (k, x, z, label, hh) => { hh = hh || H;                                                // they sway with no wind
     const g = at(x, hh, z), ex = hh - H; B(0.8, 14 + ex, 0.8, '#5a5a62', 0, -7 - ex / 2, 0, g); const ring = at(0, -16 - ex, 0); g.add(ring); B(20, 1.6, 1.6, '#c9a23c', 0, 0, 0, ring); B(1.6, 1.6, 20, '#c9a23c', 0, 0, 0, ring); B(14, 1.2, 14, '#b8923a', 0, -1, 0, ring);
@@ -151,7 +151,7 @@ function interior() {
   slab(-273, -43, -90, -8, stone, boneM);                                                // corridor A, the rug
   wall('z', -43, -273, -90, boneM, []); wall('z', -8, -273, -90, boneM, []);
   { const g = at(0, 0, 0); box(166, 0.5, 28, rugTex(), 0, 0.3, 0, g); B(166, 0.4, 2.6, '#c9a23c', 0, 0.55, 12, g); B(166, 0.4, 2.6, '#c9a23c', 0, 0.55, -12, g); movable('rugA', 'The great rug (gold and violet)', g, { x: -180, z: -26, ry: 0 }); }
-  { const g = at(0, 0, 0); B(3.4, 1.4, 3.4, '#c9a23c', 0, 1, 0, g); B(2.8, 3.4, 2.8, '#c9a23c', 3, 1.8, 0, g).rotation.z = 1.4; B(8, 0.15, 6, '#7a1020', 6, 0.2, 1, g); movable('goblet', 'Fallen goblet', g, { x: -140, z: -27, ry: 0.5 }); }
+  { const g = at(0, 0, 0); B(16, 3, 16, '#6a2860', 0, 12, 0, g); B(3, 24, 16, '#5a2052', -8, 20, 0, g); for (const sx of [-1, 1]) for (const sz of [-1, 1]) B(2, 10.5, 2, '#3a2a20', sx * 6.5, 5.25, sz * 6.5, g); movable('nurseryChair', 'Straight-backed chair (by the cot)', g, { x: -125, z: -247, ry: Math.PI / 2 }); }       // (beside the cot, facing it)
   { const g = at(-215, 0, -40.4); room.add(g); B(24, 40, 0.8, '#26324a', 0, 24, 0, g); B(26, 2, 1, '#c9a23c', 0, 44.5, 0, g); B(26, 2, 1, '#c9a23c', 0, 3.5, 0, g);         // the woman in silver
     B(10, 18, 1, '#cfd4de', 0, 18, 0.8, g); B(12, 10, 1, '#e8ecf4', 0, 29, 0.8, g); B(7, 5, 1, '#e8c8a8', 0, 37, 0.9, g);
     const head = at(0, 41, 1.4); g.add(head); B(7, 7, 7, '#e8c8a8', 0, 0, 0, head); B(8, 3, 8, '#cfd4de', 0, 4, 0, head); B(1.3, 1.3, 0.6, '#2a3a60', -1.8, 0.6, 3.5, head); B(1.3, 1.3, 0.6, '#2a3a60', 1.8, 0.6, 3.5, head); B(3, 0.8, 0.6, '#9a4a4a', 0, -1.8, 3.5, head);

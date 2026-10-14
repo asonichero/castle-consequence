@@ -9,7 +9,6 @@ root.CastleLayout = {
   chandelier2: { x: 0, z: 10, ry: 0 },
   chandelier3: { x: 40, z: -50, ry: 0 },
   rugA: { x: -180, z: -26, ry: 0 },
-  goblet: { x: -140, z: -27, ry: 0.5 },
   urn1: { x: -306, z: -142, ry: 0 },
   urn2: { x: -306, z: -78, ry: 0 },
   urn3: { x: -306, z: -21, ry: 0 },
