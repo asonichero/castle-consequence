@@ -23,3 +23,9 @@ test('the manifest is installable', () => {
   const sizes = m.icons.map(i => i.sizes); assert.ok(sizes.includes('192x192') && sizes.includes('512x512'));
   for (const i of m.icons) assert.ok(fs.existsSync(path.join(root, i.src)), i.src);
 });
+
+test('the debug library lists every script and every page', () => {
+  const lib = read('js/debuglib.js'), listed = f => lib.includes("'" + f + "'") || lib.includes("'" + f + "?");
+  for (const f of fs.readdirSync(path.join(root, 'js')).filter(n => n.endsWith('.js'))) assert.ok(listed('js/' + f), `debuglib lists js/${f}`);
+  for (const f of fs.readdirSync(root).filter(n => n.endsWith('.html') && n !== 'index.html' && n !== 'game.html')) assert.ok(listed(f), `debuglib lists ${f}`);
+});
