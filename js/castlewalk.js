@@ -36,7 +36,7 @@ function run(G, W, opts) {
     // In the story, only some rooms are his: the others' doors are shut, and the walls of the rest keep him in. (Jack comes in under the great door, at the size he left the meadow: a tenth.)
     const open = story ? (opts.rooms || ['hall', 'kitchen', 'hallKitchenDoor']).map(k => ROOMS[k]) : null;
     if (story) { const near = (d, r) => { const x = d.axis === 'z' ? d.c : d.fixed, z = d.axis === 'z' ? d.fixed : d.c, e = 6; return x > r[0] - e && x < r[1] + e && z > r[2] - e && z < r[3] + e && !(x > r[0] + e && x < r[1] - e && z > r[2] + e && z < r[3] - e); };
-      const STATES = opts.doors || [['x', -90, -25.5, 'ajar'], ['x', 90, -25, 'open'], ['z', -111, 162, 'closed'], ['x', 250, -75, 'closed']];     // the narrow corridor's doors pulled to; the kitchen's open; the garden's and the parlour's shut
+      const STATES = opts.doors || [['x', -90, -25.5, 'ajar'], ['x', 90, -25, 'open'], ['z', -111, 162, 'closed'], ['x', 250, -75, 'closed'], ['x', -273, -100, 'closed']];     // the narrow corridor's doors pulled to; the kitchen's open; the garden's and the parlour's shut
       for (const d of M.doors) { const sp = STATES.find(q => q[0] === d.axis && Math.abs(q[1] - d.fixed) < 3 && Math.abs(q[2] - d.c) < 6);
         if (sp && sp[3] === 'open') continue; if (sp && sp[3] === 'ajar') { d.lg.rotation.y = Math.sign(d.lg.rotation.y || 1) * 0.42; d.og.userData.noCollide = false; continue; }
         if (sp || open.some(r => near(d, r))) { d.openAng = d.lg.rotation.y; d.lg.rotation.y = 0; d.og.userData.noCollide = false; } } for (const h of M.hallLeaves) h.lf.rotation.y = 0; }
@@ -47,6 +47,7 @@ function run(G, W, opts) {
       const tgp = M.items.kitchenTable.g, gone = []; tgp.traverse(o => { if (o.userData && o.userData.item) gone.push(o); }); for (const o of gone) if (o.parent) o.parent.remove(o);
       const b0 = M.items.keepsakeBox.g; b0.position.set(tgp.position.x, 25.5, tgp.position.z); b0.rotation.y = 0; b0.userData.box.lid.rotation.x = 0;
       for (const d of M.doors) if (d.axis === 'z' && Math.abs(d.fixed + 111) < 3 && Math.abs(d.c - 162) < 6) { d.openAng = d.lg.rotation.y; d.lg.rotation.y = 0; d.og.userData.noCollide = false; }       // the garden door is shut
+      for (const d of M.doors) if (d.axis === 'x' && Math.abs(d.fixed + 273) < 3 && Math.abs(d.c + 100) < 6) { d.openAng = d.lg.rotation.y; d.lg.rotation.y = 0; d.og.userData.noCollide = false; }       // (the library door is shut)
       for (const d of M.doors) if (d.axis === 'x' && Math.abs(d.fixed + 90) < 3 && Math.abs(d.c + 25.5) < 8) { d.og.visible = false; d.og.userData.noCollide = true; }       // (no doors where the narrow corridor meets the corridor with the urns)
       for (const h of M.hallLeaves) h.lf.rotation.y = 0;                                                                                                                                               // and so are the great doors, with the crack he came in by still to be seen at their foot
       { const crack = new THREE.Mesh(new THREE.BoxGeometry(3.4, 4.6, 0.5), new THREE.MeshBasicMaterial({ color: 0xfff1c4 })); crack.position.set(0, 2.3, 108.5); M.scene.add(crack); }
