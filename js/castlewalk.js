@@ -187,6 +187,8 @@ function run(G, W, opts) {
       gst.walk = 0; return true; }
     async function gLook(secs, bend) { const n = Math.round(secs / 0.04); for (let i = 1; i <= n; i++) { const k = Math.sin(Math.PI * i / n); gst.bend = bend * Math.min(1, k * 2.2); gst.look = 0.25 * Math.sin(i * 0.2); placeGerda(); if (seen()) { gst.bend = bend; return false; } await G.wait(0.04); } gst.bend = 0; gst.look = 0; return true; }
     const quick = d => new Promise(r => setTimeout(r, d));
+    const KIT = [93.5, 246, -107, 49, 84];                                                                  // the kitchen's walls and ceiling: a camera is never put outside them
+    const cutIn = sp => { const p = sp.pos.clone(), l = sp.look; for (let i = 0; i < 40 && (p.x < KIT[0] || p.x > KIT[1] || p.z < KIT[2] || p.z > KIT[3] || p.y > KIT[4]); i++) p.lerp(l, 0.1); p.y = Math.max(p.y, 3); G.cut({ pos: p, look: sp.look, fov: sp.fov }); };
     if (story) { makeG(); gst.x = 268; gst.z = -75; gst.h = -Math.PI / 2; placeGerda(); }                   // she is in the parlour from the start, behind its shut doors
     const swing = d => { const a = d.openAng || 1.75; d.lg.rotation.y = a; d.og.updateMatrixWorld(true); const p = d.lg.localToWorld(new V3(10, 0, 0)); d.lg.rotation.y = 0; return p.x < d.fixed ? a : -a; };   // which way the leaf swings to open into the kitchen
     async function gerdaScene() {
@@ -218,9 +220,9 @@ function run(G, W, opts) {
       gst.alive = 1;
       const jc = () => jackOut.torso.localToWorld(new V3(0, 6, 0)), hd = () => gerda.neck.localToWorld(new V3(0, 4, 0)), face = e => W.paintJack(jackOut, { expr: e });
       const fwd = () => new V3(Math.sin(gst.h), 0, Math.cos(gst.h)), side = f => new V3(f.z, 0, -f.x);
-      const shotFace = () => { const h = hd(), j = jc(), f = fwd(), mid = h.clone().lerp(j, 0.5); G.cut({ pos: mid.clone().add(f.clone().multiplyScalar(44)).add(side(f).multiplyScalar(9)).add(new V3(0, 3, 0)), look: mid, fov: 38 }); };      // (on Gerda, from in front and a little to one side, wide enough to have Jack in her fist in the frame)
-      const shotJack = () => { const h = hd(), j = jc(), f = fwd(), s2 = side(f), sg = Math.sign(j.clone().sub(h).dot(s2)) || 1; G.cut({ pos: h.clone().sub(f.clone().multiplyScalar(18)).add(s2.multiplyScalar(sg * 11)).add(new V3(0, 5, 0)), look: j.clone().add(new V3(0, 0.6, 0)), fov: 30 }); };      // (on Jack, from over her shoulder: behind her, on the side his hand is, so the line to him passes her shoulder and not her head)
-      const shotBoxJack = () => { const f = fwd(), h = hd(), s2 = side(f); G.cut({ pos: h.clone().sub(f.clone().multiplyScalar(10)).add(s2.multiplyScalar(8)).add(new V3(0, 2, 0)), look: bx.localToWorld(new V3(0, 2.4, 0.6)), fov: 26 }); };          // (and on him in the box, from over her shoulder)
+      const shotFace = () => { const h = hd(), j = jc(), f = fwd(), mid = h.clone().lerp(j, 0.5); cutIn({ pos: mid.clone().add(f.clone().multiplyScalar(44)).add(side(f).multiplyScalar(9)).add(new V3(0, 3, 0)), look: mid, fov: 38 }); };      // (on Gerda, from in front and a little to one side, wide enough to have Jack in her fist in the frame)
+      const shotJack = () => { const h = hd(), j = jc(), f = fwd(), s2 = side(f), sg = Math.sign(j.clone().sub(h).dot(s2)) || 1; cutIn({ pos: h.clone().sub(f.clone().multiplyScalar(18)).add(s2.multiplyScalar(sg * 11)).add(new V3(0, 5, 0)), look: j.clone().add(new V3(0, 0.6, 0)), fov: 30 }); };      // (on Jack, from over her shoulder: behind her, on the side his hand is, so the line to him passes her shoulder and not her head)
+      const shotBoxJack = () => { const f = fwd(), h = hd(), s2 = side(f); cutIn({ pos: h.clone().sub(f.clone().multiplyScalar(10)).add(s2.multiplyScalar(8)).add(new V3(0, 2, 0)), look: bx.localToWorld(new V3(0, 2.4, 0.6)), fov: 26 }); };          // (and on him in the box, from over her shoulder)
       face(1);                                                                                              // wincing, whenever he is not speaking
       shotFace(); await gspeak('gerda', 'Well. Not so badly put together. A little wild at the edges. A little soft in the jaw.');
       await G.wait(0.4);
@@ -241,7 +243,7 @@ function run(G, W, opts) {
       shotFace(); await gspeak('gerda', 'Are you. We’ll see.');
       // to the cupboard, with him in her hand
       const bx = M.items.keepsakeBox.g, box = bx.userData.box, tgt = new V3(114.5, 0, -92); const route = gnav(gst.x, gst.z, tgt.x, tgt.z);
-      { const mx = (gst.x + tgt.x) / 2, mz = (gst.z + tgt.z) / 2, sp = Math.hypot(gst.x - tgt.x, gst.z - tgt.z); G.cut({ pos: v(mx + 10, 62 + sp * 0.2, mz + 70 + sp * 0.3), look: v(mx, 22, mz), fov: 56 }); }                    // (the walk across the kitchen, from above and to the side)
+      { const mx = (gst.x + tgt.x) / 2, mz = (gst.z + tgt.z) / 2, sp = Math.hypot(gst.x - tgt.x, gst.z - tgt.z); cutIn({ pos: v(mx + 10, 62 + sp * 0.2, mz + 70 + sp * 0.3), look: v(mx, 22, mz), fov: 56 }); }                    // (the walk across the kitchen, from above and to the side)
       for (const [wx, wz] of route) { const x0 = gst.x, z0 = gst.z, d = Math.hypot(wx - x0, wz - z0), n = Math.max(2, Math.ceil(d / 1.2)), h1 = Math.atan2(wx - x0, wz - z0); for (let i = 1; i <= n; i++) { const k = i / n; gst.x = x0 + (wx - x0) * k; gst.z = z0 + (wz - z0) * k; gst.h += angDiff(h1, gst.h) * 0.3; gst.ph += 0.4; gst.walk = 1; placeGerda(); follow(); cam(); await G.wait(0.04); } }
       gst.walk = 0; for (let i = 0; i < 14; i++) { gst.h += angDiff(-Math.PI / 2, gst.h) * 0.3; placeGerda(); follow(); cam(); await G.wait(0.04); }
       // the least she need lean, and how high she need raise her arm, for her hand to be over the open box
@@ -251,12 +253,12 @@ function run(G, W, opts) {
         if (!bestG) bestG = { tq: 0.3, ar: -1.5, e: 99 };
         gst.give = 0; gst.gTorso = bestG.tq; gst.gArm = bestG.ar; G.castleWalk.giveSolve = bestG; G.castleWalk.giveHead = (() => { const q = gerda.neck.localToWorld(new V3(0, 4, 0)); return [q.x, q.y, q.z, T.x, T.y, T.z]; })(); placeGerda(); }
       // she opens the box with her free hand
-      G.cut({ pos: bx.localToWorld(new V3(-26, 28, 24)), look: bx.localToWorld(new V3(10, 8, 0)), fov: 50 });
+      cutIn({ pos: bx.localToWorld(new V3(-26, 28, 24)), look: bx.localToWorld(new V3(10, 8, 0)), fov: 50 });
       for (let i = 1; i <= 20; i++) { const k = i / 20; gst.lreach = 1.3 * k; box.lid.rotation.x = -1.95 * k; placeGerda(); follow(); cam(); await G.wait(0.04); }
       // and gives him up to it: he is eased down and laid on the velvet
       for (let i = 1; i <= 18; i++) { gst.give = i / 18; placeGerda(); follow(); cam(); await G.wait(0.04); }
       st.wriggle = 0; bx.attach(jackOut.root); st.inHand = true; const p0 = jackOut.root.position.clone(), q0 = jackOut.root.quaternion.clone(), qL = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0)), pIn = new V3(0, 1.45, 1.4), pAbove = new V3(0, 4.2, 0.4);
-      G.cut({ pos: bx.localToWorld(new V3(-13, 15, 10)), look: bx.localToWorld(new V3(0, 3, 0)), fov: 42 });
+      cutIn({ pos: bx.localToWorld(new V3(-13, 15, 10)), look: bx.localToWorld(new V3(0, 3, 0)), fov: 42 });
       face(3); G.caption('jack', 'AAAAAAH—!'); if (A && A.voice) { A.voice(1.4, 5, 0, 1.4); setTimeout(() => A.voice(1.5, 5, 0, 1.4), 520); }                         // (he screams as she lowers him)
       const bs = jackOut.root.scale.x; for (let i = 1; i <= 26; i++) { const k = i / 26, e = k * k * (3 - 2 * k), up = Math.sin(Math.PI * k) * 0.0; const tgtP = k < 0.5 ? p0.clone().lerp(pAbove, k / 0.5) : pAbove.clone().lerp(pIn, (k - 0.5) / 0.5); jackOut.root.position.copy(tgtP); jackOut.root.quaternion.copy(q0).slerp(qL, e); gst.give = 1 - 0.35 * k; placeGerda(); follow(); await G.wait(0.04); }
       // beat 13: he sits up in the box; she leans over it with her free hand poised on its lid, ready to close it
@@ -267,7 +269,7 @@ function run(G, W, opts) {
         for (let tq = 0.15; tq <= 0.7; tq += 0.07) for (let lx = -2.6; lx <= -0.6; lx += 0.15) for (const lz of [-0.2, 0, 0.2, 0.4]) { gst.l2T = tq; gst.l2X = lx; gst.l2Z = lz; placeGerda(); root.Blocky.step(gerda, 0); gerda.root.updateMatrixWorld(true); gerda.neck.localToWorld(hd2.set(0, 4, 0)); const e = gerda.armL.localToWorld(new V3(0, -11, 0)).distanceTo(T) + 3 * Math.abs(tq - 0.4) + 1.5 * Math.max(0, 9 - Math.hypot(hd2.x - cx.x, hd2.z - cx.z)); if (!b3 || e < b3.e) b3 = { tq, lx, lz, e }; }
         if (!b3) b3 = { tq: 0.5, lx: -1.5, lz: 0, e: 99 }; gst.l2T = b3.tq; gst.l2X = b3.lx; gst.l2Z = b3.lz; gst.l2 = 0; placeGerda(); G.castleWalk.lidSolve = b3; }
       for (let i = 1; i <= 24; i++) { gst.l2 = i / 24; gst.give = 0.65 - 0.4 * (i / 24); box.lid.rotation.x = -1.95 + (LA + 1.95) * (i / 24); placeGerda(); await G.wait(0.04); }
-      G.cut({ pos: bx.localToWorld(new V3(0, 3.6, -3.9)), look: hd().clone().add(new V3(0, 2, 0)), fov: 62 });                                          // (from behind him, in the box: her face looking down through the top)
+      cutIn({ pos: bx.localToWorld(new V3(0, 3.6, -3.9)), look: hd().clone().add(new V3(0, 2, 0)), fov: 62 });                                          // (from behind him, in the box: her face looking down through the top)
       await gspeak('gerda', 'A magic stalk, a stranger’s house, a plate that was never yours. And you thought no one would notice.');
       await gspeak('gerda', 'That isn’t a man’s doing, little one. That’s mischief. And mischief gets put somewhere safe.'); await sitUp;
       shotBoxJack(); face(3); await gspeak('jack', 'I’m not—');
@@ -276,7 +278,7 @@ function run(G, W, opts) {
     async function caught() {
       if (st.caught) return; st.caught = true; st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwPrompt').style.display = 'none'; $('cwObjt').style.display = 'none'; st.walkN = 0; st.cl = null; st.mant = null; st.vy = 0;
       const wasSkip = G.skipping; if (opts.capture) G.skipping = true;                                      // (in the capture, finding him and picking him up belong to the level: they are run through unseen, and the cutscene proper begins with her holding him)
-      const wide = () => { if (opts.capture) return; const mx = (gst.x + st.pos.x) / 2, mz = (gst.z + st.pos.z) / 2, px = -(gst.z - st.pos.z), pz = gst.x - st.pos.x, pl = Math.hypot(px, pz) || 1, dd = Math.max(52, pl * 0.9); G.cut({ pos: v(mx + px / pl * dd, 58 + Math.max(0, dd - 52) * 0.4, mz + pz / pl * dd), look: v(mx, 26, mz), fov: 54 }); };      // (one angle per beat, from above the height of the table so nothing stands between; the scene-notes tool can then move it)
+      const wide = () => { if (opts.capture) return; const mx = (gst.x + st.pos.x) / 2, mz = (gst.z + st.pos.z) / 2, px = -(gst.z - st.pos.z), pz = gst.x - st.pos.x, pl = Math.hypot(px, pz) || 1, dd = Math.max(52, pl * 0.9); cutIn({ pos: v(mx + px / pl * dd, 58 + Math.max(0, dd - 52) * 0.4, mz + pz / pl * dd), look: v(mx, 26, mz), fov: 54 }); };      // (one angle per beat, from above the height of the table so nothing stands between; the scene-notes tool can then move it)
       const cam = () => {};
       const jx = st.pos.x, jz = st.pos.z, jy = st.y;
       st.heading = Math.atan2(gst.x - jx, gst.z - jz);                                                   // he freezes, and turns his face to her
@@ -319,11 +321,9 @@ function run(G, W, opts) {
         { const clear = (x, z) => !hit(x, z, 15, 4, 50, 0), pathOk = (x, z) => !hit(x, z, 8, 4, 50, 0); let sp = null, bd = 1e9;
           const front = (x, z, h) => { const fx = Math.sin(h), fz = Math.cos(h); for (const d of [12, 22, 32, 42, 52]) for (const l of [-16, 0, 16]) if (hit(x + fx * d + fz * l, z + fz * d - fx * l, 6, 4, 60, 0)) return false; return true; };      // (clear ground in front of her, where the cameras will be, as well as around her)
           for (let r = 0; r <= 110; r += 5) for (let k = 0; k < 36; k++) { const a2 = k * Math.PI / 18, x = gst.x + Math.cos(a2) * r, z = gst.z + Math.sin(a2) * r; if (!clear(x, z) || x < 100 || x > 236 || z < -100 || z > 44) continue;
-            const n = Math.ceil(r / 3); let ok = true; for (let i = 1; i <= n && ok; i++) if (!pathOk(gst.x + (x - gst.x) * i / n, gst.z + (z - gst.z) * i / n)) ok = false; if (!ok) continue;
             for (let m = 0; m < 16; m++) { const psi = m * Math.PI / 8; if (!front(x, z, psi)) continue; const cost = r + Math.abs(angDiff(psi, gst.h)) * 9; if (cost < bd) { bd = cost; sp = [x, z, psi]; } } }
           G.castleWalk.back = { from: [gst.x, gst.z], sp };
-          if (sp) { const x0 = gst.x, z0 = gst.z, n = Math.max(2, Math.ceil(Math.hypot(sp[0] - x0, sp[1] - z0) / 0.9)); if (Math.hypot(sp[0] - x0, sp[1] - z0) > 1) { for (let i = 1; i <= n; i++) { const k = i / n; gst.x = x0 + (sp[0] - x0) * k; gst.z = z0 + (sp[1] - z0) * k; gst.ph -= 0.4; gst.walk = 0.7; placeGerda(); follow(); cam(); await G.wait(0.04); } gst.walk = 0; }
-            const h0 = gst.h; for (let i = 1; i <= 16; i++) { gst.h = h0 + angDiff(sp[2], h0) * (i / 16); placeGerda(); follow(); await G.wait(0.04); } gst.h = sp[2]; placeGerda(); follow(); } }
+          if (sp) { gst.x = sp[0]; gst.z = sp[1]; gst.h = sp[2]; gst.walk = 0; placeGerda(); follow(); } }                // (the cutscene opens with her already in the open space: nothing of her walking there is seen)
         if (opts.capture) { root.Blocky.step(gerda, 0); root.Blocky.step(jackOut, 0); gerda.root.updateMatrixWorld(true); G.skipping = wasSkip; }       // (and from here it is seen)
         await ending(follow, cam); }
       await finish('caught');
