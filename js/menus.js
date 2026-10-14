@@ -103,7 +103,7 @@ async function playMeadow() {
 }
 // Test level: walk about the castle at any size.
 async function playCastle(story, extra) {
-  hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
+  G.skipping = false; hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
   await root.CastleWalk.run(G, W, story ? Object.assign({ story: true }, extra) : undefined); if (story) showEnd();
 }
