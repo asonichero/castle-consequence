@@ -82,7 +82,7 @@ function run(G, W, tier) {
     document.body.appendChild(hud);
     const $ = id => document.getElementById(id);
     BEANS.forEach(([n, c]) => { const i = document.createElement('i'); i.style.background = '#' + c.toString(16).padStart(6, '0'); i.title = n; $('gBeans').appendChild(i); });
-    const toast = (t, ms = 3200) => { $('gToast').textContent = t; $('gToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
+    const toast = (t, ms = 3200) => { $('gToast').textContent = root.Tips.clean(t); $('gToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
     const keys = {}, ui = root.TouchUI.create({ keys, run: true, jump: true, act: true, drop: true, cam: true }), stick = ui.stick;
     const KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', Shift: 'run' };
     const typing = e => e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
@@ -138,7 +138,7 @@ function run(G, W, tier) {
         let bw = null, wd = 10; for (const w of weeds) if (!w.gone) { const d = Math.hypot(st.pos.x - w.g.position.x, st.pos.z - w.g.position.z); if (d < wd) { wd = d; bw = w; } }
         if (best && (!bw || bd <= wd)) {                                                                // (whichever is nearer)
           if (st.hold === 'hoe') layHoe();
-          doAct('lift', 0.7, () => { st.hold = 'rock'; st.rockObj = best; stage.remove(best.g); rockInHand.visible = true; aOut.carry = 1; toast('Carry it off the plot, and put it down (E).'); A && A.blip && A.blip(); });
+          doAct('lift', 0.7, () => { st.hold = 'rock'; st.rockObj = best; stage.remove(best.g); rockInHand.visible = true; aOut.carry = 1; toast('Carry it off the plot, and put it down.'); A && A.blip && A.blip(); });
           return;
         }
         if (bw) {
@@ -254,6 +254,7 @@ function run(G, W, tier) {
         else if (st.phase === 'plant') { const c = cellOf(), pip = c && pipAt(c[0], c[1]); if (pip && pip.tilled && !pip.bean) hint = 'E: plant a bean'; }
         if (!hint && st.hold !== 'hoe' && st.hold !== 'rock' && st.phase !== 'plant' && st.phase !== 'home') { const hp = hoe.getWorldPosition(new V3()); if (hoe.parent !== holder && Math.hypot(st.pos.x - hp.x, st.pos.z - hp.z) < 16) hint = 'E: take the hoe'; }
       }
+      if (!hint && st.hold === 'hoe' && !st.act && !st.inside) hint = 'Q: lay the hoe down';
       $('gHint').textContent = hint; $('gHint').style.display = hint ? 'block' : 'none';
       { const L = { 'E: open the door': 'Open', 'E: lift the stone': 'Pick up', 'E: pull the weed': 'Pull weed', 'E: till this square': 'Till', 'E: plant a bean': 'Plant', 'E: take the hoe': 'Pick up' }[hint];
         ui.set('act', L ? { label: L, enabled: true } : { label: 'Do', enabled: false });
@@ -270,7 +271,7 @@ function run(G, W, tier) {
     };
     G.updaters.push(tick); G.garden = { st, rocks, weeds, pips, interact, putDown, hoe, cellAt };      // (for tools and tests)
     setObjective(); G.fade(false, 1.4);
-    toast('The beans are in your pocket. Clear a plot in the garden to the west (E to lift, pull and dig).', 6000);
+    toast('The beans are in your pocket. Clear a plot in the garden to the west.', 6000);
   });
 }
 

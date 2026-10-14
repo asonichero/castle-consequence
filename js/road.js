@@ -272,12 +272,12 @@ function playLoop(G, W, opts) {
     const camPos = new V3(), look = new V3(), spec = { pos: camPos, look, fov: 48 };
     const camGoal = () => { const d = ZOOMS[st.zoom].d, p = st.pitch; look.set(st.pos.x, st.y + 15 * SC, st.pos.z); return new V3(look.x + Math.sin(st.yaw) * Math.cos(p) * d, Math.max(3, look.y + Math.sin(p) * d), look.z + Math.cos(st.yaw) * Math.cos(p) * d); };
     camPos.copy(camGoal()); G.cut(spec);
-    const toast = (t, ms = 3600) => { ui.toast.textContent = t; ui.toast.style.opacity = 1; st.toastAt = performance.now() + ms; };
+    const toast = (t, ms = 3600) => { ui.toast.textContent = root.Tips.clean(t); ui.toast.style.opacity = 1; st.toastAt = performance.now() + ms; };
     const tip = (k, t, ms) => { if (st.tips[k]) return; st.tips[k] = true; toast(t, ms || 6500); };
     // Input.
     const KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', Shift: 'run' };
     const kd = e => { if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); }
-      if (e.key === ' ') e.preventDefault(); if (e.repeat) return; if (e.key === 'c' || e.key === 'C') toggleSneak(); if (e.key === 'e' || e.key === 'E') interact(); if (e.key === 'q' || e.key === 'Q') putDown(); if (e.key === ' ') st.jumpReq = true; if (e.key === 'v' || e.key === 'V') cycleZoom(); };
+      if (e.key === ' ') e.preventDefault(); if (e.repeat) return; if (e.key === 'c' || e.key === 'C' || e.key === 'x' || e.key === 'X') toggleSneak(); if (e.key === 'e' || e.key === 'E') interact(); if (e.key === 'q' || e.key === 'Q') putDown(); if (e.key === ' ') st.jumpReq = true; if (e.key === 'v' || e.key === 'V') cycleZoom(); };
     const ku = e => { const k = KM[e.key]; if (k) keys[k] = false; };
     root.addEventListener('keydown', kd); root.addEventListener('keyup', ku);
     const drags = new Map(), pd = e => drags.set(e.pointerId, { x: e.clientX, y: e.clientY }), pu = e => drags.delete(e.pointerId);
@@ -321,7 +321,7 @@ function playLoop(G, W, opts) {
       const it = nearestItem(13), tt0 = nearTie(16), facing = (x, z) => { const dx = x - st.pos.x, dz = z - st.pos.z, m = Math.hypot(dx, dz) || 1; return (dx * Math.sin(st.heading) + dz * Math.cos(st.heading)) / m; };   // (what he is facing wins when both are in reach)
       if (it && !(tt0 && facing(tt0.x, tt0.z) > facing(it.x, it.z))) {
         if (cow.mode === 'follow') { toast('Your hands are full with the lead. Tie Milky-White to a tree first.'); return; }
-        st.carry = it; it.carried = true; ja.carry = 1; ja.lead = false; toast('You pick up the ' + (it.kind === 'limb' ? 'limb' : it.kind) + '. Q puts it down.'); return;
+        st.carry = it; it.carried = true; ja.carry = 1; ja.lead = false; toast('You pick up the ' + (it.kind === 'limb' ? 'limb' : it.kind) + '.'); return;
       }
       const t = nearTie(16);
       if (t) {
@@ -419,10 +419,10 @@ function playLoop(G, W, opts) {
       // The HUD.
       const t = nearTie(16), it = !st.carry && nearestItem(13), pace = st.speedN < 0.5 ? 'Still' : running ? 'Running' : st.sneak ? 'Sneaking' : 'Walking';
       const blockedNow = cow.blockedT > 0.8;
-      ui.obj.textContent = st.carry ? 'Find somewhere to put it down (Q).' : cow.mode === 'tied' ? 'Clear the way, then untie Milky-White (E at the tree) and go on.' : blockedNow ? 'Milky-White can’t follow: tie her to a tree (E), then move what’s in the way.' : cow.planted ? 'Milky-White has stopped. Stand by her and speak softly (E).' : 'Lead Milky-White along the road to market.';
+      ui.obj.textContent = root.Tips.clean(st.carry ? 'Find somewhere to put it down (Q).' : cow.mode === 'tied' ? 'Clear the way, then untie Milky-White (E at the tree) and go on.' : blockedNow ? 'Milky-White can’t follow: tie her to a tree (E), then move what’s in the way.' : cow.planted ? 'Milky-White has stopped. Stand by her and speak softly (E).' : 'Lead Milky-White along the road to market.');
       ui.trustWrap.style.display = 'block'; ui.trustBar.style.width = cow.trust + '%'; ui.trustVal.textContent = Math.round(cow.trust) + '%'; ui.trustBar.classList.toggle('full', cow.trust >= 99.5);
       ui.pace.textContent = pace + (running ? ' — she won’t like that!' : ''); ui.pace.classList.toggle('warn', running);
-      const h = st.carry ? 'Q / E: put it down' : it ? 'E: pick up the ' + it.kind : t ? (cow.mode === 'tied' && cow.tree === t ? 'E: untie Milky-White' : cow.mode === 'follow' ? 'E: tie Milky-White to the tree' : '') : gapCow() < 18 && cow.trust < 100 ? 'E: speak softly to her' : '';
+      const h = st.carry ? 'Q: put it down' : it ? 'E: pick up the ' + it.kind : t ? (cow.mode === 'tied' && cow.tree === t ? 'E: untie Milky-White' : cow.mode === 'follow' ? 'E: tie Milky-White to the tree' : '') : gapCow() < 18 && cow.trust < 100 ? 'E: speak softly to her' : '';
       ui.hint.textContent = h; ui.hint.style.display = h ? 'block' : 'none';
       if (st.toastAt && performance.now() > st.toastAt) { ui.toast.style.opacity = 0; st.toastAt = 0; }
       // The touch buttons say what a tap will do now, and grey out when it would do nothing (the same conditions as the keys above).
@@ -456,7 +456,6 @@ function playLoop(G, W, opts) {
     }
     W.play = { st, cow, items, ties, interact, putDown, soothe, tick, finish, toast, cowBlocked, jackBlocked, haltPt };                                                   // (for the tests)
     G.updaters.push(tick); ui.show(true); G.mode = 'play'; document.body.classList.remove('cutscene'); G.fade(false, 1.8);
-    toast('Lead Milky-White along the road. WASD to walk, drag to turn the camera, V to zoom.', 7000);
   });
 }
 

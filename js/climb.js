@@ -146,7 +146,8 @@ function run(G, W) {
     hud.innerHTML = '<div id="clVig"></div><div id="clGust"></div><div id="clGustTxt">WIND</div><div id="clAlt"></div><div id="clObj">Climb the beanstalk.</div><div id="clSt"><span>Stamina</span><div id="clBar"><i></i></div></div><div id="clToast"></div><div id="clHint"></div>';
     document.body.appendChild(hud);
     const $ = id => document.getElementById(id);
-    const toast = (t, ms = 3600) => { $('clToast').textContent = t; $('clToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
+    const tipToast = (t, ms) => { if (!root.Tips.mobile()) toast(t, ms); };       // (the how-to tips are for the keyboard: the touch buttons say what they do)
+    const toast = (t, ms = 3600) => { $('clToast').textContent = root.Tips.clean(t); $('clToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
     const mutter = (t, force) => { if (!force && performance.now() < st.capAt) return; st.capAt = performance.now() + 7000; G.caption('jack', t); };
     const keys = {}, ui = root.TouchUI.create({ keys, run: true, jump: { icon: 'grip', label: 'Grip' }, cam: true }), stick = ui.stick, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', ' ': 'grip', Shift: 'run' };
     const typing = e => e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
@@ -268,7 +269,7 @@ function run(G, W) {
         if (st.stamina <= 0) { drop('Your arms give out! You slide, and catch yourself below.'); }
         else { // slick holds: leave them quickly
           if (st.cur.kind === 'slick') { st.slip += dt; if (st.slip > 0.75) { st.slip = 0; st.stamina = Math.max(0, st.stamina - 10); drop('Slick with sap! Your hands slide off.'); } } else st.slip = 0;
-          st.cool -= dt; if (st.lock > 0) { st.lock -= dt; if (st.lock <= 0) toast('Rested. Press Space to climb on.', 2600); } const inp = st.lock > 0 ? null : input();
+          st.cool -= dt; if (st.lock > 0) { st.lock -= dt; if (st.lock <= 0) tipToast('Rested. Press Space to climb on.', 2600); } const inp = st.lock > 0 ? null : input();
           if (st.cur.kind === 'ledge') { if (edge && st.lock <= 0 && st.cool <= 0) { const h = pick(st.cur, { x: 0, y: 1 }); if (h) startMove(h); } }       // (a leaf is a stop: out on it, away from the stalk, he climbs on only when told: Space)
           else if (inp && st.cool <= 0 && !st.grip && st.mode === 'idle') { const h = pick(st.cur, inp); if (h) startMove(h); else st.cool = 0.12; }
         }
@@ -286,10 +287,10 @@ function run(G, W) {
       pose.stand = lerp(pose.stand, st.mode === 'rise' ? 0 : walking || st.mode === 'walk' || st.cur.kind === 'ledge' ? (st.mode === 'move' ? 0.5 : 1) : 0, Math.min(1, dt * 9));
       if (st.mode === 'drop') pose.stand = 0;
       // Teaching.
-      if (st.tut === 0 && t > 1.0) { st.tut = 1; toast('Walk up to one of the four outer stalks, then press Space to climb. Any of them will do.', 7000); }
-      else if (st.tut === 1 && st.mode === 'idle' && st.cur.kind !== 'ground') { st.tut = 2; st.tutAt = t; mutter('Hand over hand. Up we go.'); toast('Reach for a glowing handhold: W A S D, or the stick.', 6000); }
-      else if (st.tut === 2 && t > st.tutAt + 8) { st.tut = 3; toast('Hanging tires you. Hold Space to grip and steady yourself; it costs less strength.', 7000); }
-      else if (st.tut === 3 && st.stamina < 65) { st.tut = 4; toast('Watch the stamina bar. Where the path crosses a broad leaf you rest and recover; press Space to climb on when you are ready.', 7000); }
+      if (st.tut === 0 && t > 1.0) { st.tut = 1; tipToast('Walk up to one of the four outer stalks, then press Space to climb. Any of them will do.', 7000); }
+      else if (st.tut === 1 && st.mode === 'idle' && st.cur.kind !== 'ground') { st.tut = 2; st.tutAt = t; mutter('Hand over hand. Up we go.'); tipToast('Reach for a glowing handhold: W A S D, or the stick.', 6000); }
+      else if (st.tut === 2 && t > st.tutAt + 8) { st.tut = 3; tipToast('Hanging tires you. Hold Space to grip and steady yourself; it costs less strength.', 7000); }
+      else if (st.tut === 3 && st.stamina < 65) { st.tut = 4; tipToast('Watch the stamina bar. Where the path crosses a broad leaf you rest and recover; press Space to climb on when you are ready.', 7000); }
       if (st.best > TOP - 70 && !st.near) { st.near = true; mutter('Cloud! I can see the cloud above!', true); }
       { const tgt = st.mode === 'idle' ? st.cur : st.to, hang = tgt && tgt.kind !== 'ground' && tgt.kind !== 'ledge' && !st.xf;
         if (hang && st.mode !== 'rise') { const kz = sOf(st.y), rj = Math.max(surfRf(st.fr, st.y, st.a), surfRf(st.fr, st.y + 18 * kz, st.a), surfRf(st.fr, st.y + 32 * kz, st.a)) + 3 * SC * kz; st.r = st.mode === 'idle' ? rj : lerp(st.from.r, rj, st.eMove || 0); } }

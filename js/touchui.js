@@ -18,9 +18,11 @@ const ICONS = {
   sneak: '<circle cx="14" cy="5" r="2"/><path d="M13 8.500 9.500 12 12 14.500l-1 5.500"/><path d="M9.500 12 6 11M12 14.500 16.500 16l2.500 4"/>',
   camera: '<path d="M3 8h4l1.600-2.400h6.800L17 8h4v11H3z"/><circle cx="12" cy="13.200" r="3.600"/>',
   eye: '<path d="M2 12s4-6.500 10-6.500S22 12 22 12s-4 6.500-10 6.500S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  keys: '<rect x="2.500" y="6" width="19" height="12" rx="2"/><path d="M6 10h1M10 10h1M14 10h1M18 10h1M7 14h10"/>',
   grip: '<path d="M7 11V8a1.500 1.500 0 0 1 3 0v-1.500a1.500 1.500 0 0 1 3 0V8a1.500 1.500 0 0 1 3 0v6c0 4-2.500 6-5.500 6S6 17.500 6 14.500V12"/>',
 };
 const CSS = `
+  @media (pointer: coarse) { #cwPrompt, #cHint, #gHint, #clHint, .mhint { display: none !important; } } body.touchmode #cwPrompt, body.touchmode #cHint, body.touchmode #gHint, body.touchmode #clHint, body.touchmode .mhint { display: none !important; }       /* (no key prompts on a touch screen) */
   #tui { position: fixed; inset: 0; pointer-events: none; z-index: 12; display: none; -webkit-touch-callout: none; }
   #tui .tb { position: absolute; pointer-events: auto; margin: 0; padding: 0; border-radius: 50%; border: 2.5px solid rgba(255,255,255,0.85); background: rgba(20,22,30,0.72); color: #fff; display: none; flex-direction: column; align-items: center; justify-content: center; touch-action: none; -webkit-tap-highlight-color: transparent; font: 600 10.5px/1 Georgia, serif; letter-spacing: .02em; }
   #tui .tb svg { fill: none; stroke: #fff; stroke-width: 2.1; stroke-linejoin: round; stroke-linecap: round; }
@@ -36,18 +38,37 @@ const CSS = `
   #tKnob { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: rgba(230,196,106,0.75); pointer-events: none; }
   @media (pointer: coarse) { #tui.hasStick #tStick { display: block; } #tui .tb.touch.vis { display: flex; } }
   #tui.force.hasStick #tStick { display: block; } #tui.force .tb.touch.vis { display: flex; }
-  #tui .tb.vis:not(.touch) { display: flex; }
+  #tui .tb.vis:not(.touch):not(.desk) { display: flex; }
+  #tHelp { right: 12px; bottom: 12px; width: 48px; height: 48px; z-index: 36; } #tHelp svg { width: 26px; height: 26px; } @media (pointer: fine) { #tui:not(.force) #tHelp { display: flex; } }
+  #tSheet { position: fixed; inset: 0; z-index: 60; display: none; align-items: center; justify-content: center; background: rgba(6,8,12,0.62); pointer-events: auto; font: 15px/1.5 Georgia, serif; color: #ece8df; }
+  #tSheet.open { display: flex; } #tSheet .card { background: rgba(20,22,30,0.96); border: 2.5px solid rgba(255,255,255,0.85); border-radius: 14px; padding: 18px 26px 16px; min-width: 340px; max-width: 92vw; }
+  #tSheet h3 { margin: 0 0 8px; font-size: 18px; font-weight: 600; } #tSheet table { border-collapse: collapse; width: 100%; } #tSheet td { padding: 4px 0; vertical-align: top; } #tSheet td:first-child { padding-right: 22px; white-space: nowrap; }
+  #tSheet kbd { font: 600 13px Georgia, serif; background: #2c303d; border: 1px solid #5a5f72; border-bottom-width: 2px; border-radius: 5px; padding: 1px 7px; margin-right: 3px; } #tSheet .x { margin-top: 10px; font-size: 12.5px; opacity: .65; text-align: right; }
   @media (max-height: 420px) { #tJump { width: 68px; height: 68px; right: 18px; bottom: 18px; } #tAct { right: 98px; bottom: 26px; width: 58px; height: 58px; } #tDrop { right: 94px; bottom: 92px; width: 54px; height: 54px; } #tStick { width: 112px; height: 112px; left: 16px; bottom: 18px; } #tRun { right: 28px; bottom: 98px; width: 48px; height: 48px; } #tSneak { left: 44px; bottom: 140px; width: 48px; height: 48px; } #tCam { top: 66px; width: 48px; height: 48px; } }`;
 let UI = null;
+// ── Tips and prompts: shown on desktop only (the touch buttons say what they do). `Tips.once(key, show)` runs `show` the first time a control is needed, once ever; `Tips.clean(text)` drops key names from a line on touch screens. ──
+const coarse = () => !!(root.matchMedia && root.matchMedia('(pointer: coarse)').matches) || /[?&]touch\b/.test(root.location ? root.location.search : '');
+const TIPKEY = 'castle-consequence:tips:v1'; let seen = null;
+const load = () => { if (seen) return seen; try { seen = JSON.parse(root.localStorage.getItem(TIPKEY) || '{}') || {}; } catch (e) { seen = {}; } return seen; };
+const Tips = { mobile: coarse,
+  clean: s => coarse() && typeof s === 'string' ? s.replace(/\s*\((?:E|Q|C|V|Space|Shift)(?:\s*(?:or|\/)\s*(?:E|Q|C|V|Space))*(?: at the tree)?\)/g, '') : s,
+  once(key, show) { if (coarse()) return false; const m = load(); if (m[key]) return false; m[key] = 1; try { root.localStorage.setItem(TIPKEY, JSON.stringify(m)); } catch (e) {} show(); return true; } };
 const svg = name => '<svg viewBox="0 0 24 24">' + (ICONS[name] || '') + '</svg>';
 function build() {
   const st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
   const el = document.createElement('div'); el.id = 'tui';
-  if (/[?&]touch\b/.test(root.location ? root.location.search : '')) el.classList.add('force');
+  if (/[?&]touch\b/.test(root.location ? root.location.search : '')) { el.classList.add('force'); document.body.classList.add('touchmode'); }
   el.innerHTML = '<div id="tStick"><div id="tKnob"></div></div>' +
+    '<button id="tHelp" class="tb desk vis" title="Controls" aria-label="Controls"></button>' +
     '<button id="tJump" class="tb touch"></button><button id="tAct" class="tb touch"></button><button id="tDrop" class="tb touch"></button><button id="tRun" class="tb touch"></button><button id="tSneak" class="tb touch"></button><button id="tCam" class="tb"></button>';
   document.body.appendChild(el);
+  const sheet = document.createElement('div'); sheet.id = 'tSheet';
+  sheet.innerHTML = '<div class="card"><h3>Controls</h3><table>' + [['<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows', 'Move'], ['<kbd>Shift</kbd> (hold)', 'Run'], ['<kbd>X</kbd>', 'Sneak (slow and quiet)'], ['<kbd>Space</kbd>', 'Jump; at wood or a ledge, climb (hold to keep going)'], ['<kbd>E</kbd>', 'Action: pick up, use, open, talk'], ['<kbd>Q</kbd>', 'Drop or put down what you carry'], ['<kbd>V</kbd> or wheel', 'Camera zoom'], ['<kbd>C</kbd>', 'First person (in the castle)'], ['Drag', 'Look around']].map(r => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>').join('') + '</table><div class="x">Click anywhere or press Esc to close</div></div>';
+  document.body.appendChild(sheet);
+  const toggleSheet = on => sheet.classList.toggle('open', on === undefined ? !sheet.classList.contains('open') : on);
+  sheet.addEventListener('pointerdown', () => toggleSheet(false)); root.addEventListener('keydown', e => { if (e.key === 'Escape' && sheet.classList.contains('open')) { toggleSheet(false); e.stopPropagation(); } }, true);
   const $ = id => document.getElementById(id), B = { jump: $('tJump'), act: $('tAct'), drop: $('tDrop'), run: $('tRun'), sneak: $('tSneak'), cam: $('tCam') };
+  document.getElementById('tHelp').innerHTML = svg('keys'); document.getElementById('tHelp').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); toggleSheet(); });
   const ui = { el, stick: { x: 0, y: 0 }, run: false, sneak: false, on: {}, keys: null, B, state: {} };
   const DEF = { jump: ['jump', 'Jump'], act: ['act', 'Do'], drop: ['drop', 'Drop'], run: ['run', 'Run'], sneak: ['sneak', 'Sneak'], cam: ['camera', ''] };
   const draw = k => { const s = ui.state[k], b = B[k]; if (!s) return; b.innerHTML = svg(s.icon) + (s.label && (k === 'jump' || k === 'act' || k === 'drop' || k === 'run' || k === 'sneak') ? '<span>' + s.label + '</span>' : ''); b.title = s.title || s.label || ''; b.classList.toggle('off', !s.enabled); b.classList.toggle('on', !!s.on); b.setAttribute('aria-disabled', s.enabled ? 'false' : 'true'); };
@@ -78,5 +99,5 @@ function build() {
     el.classList.toggle('hasStick', o.stick !== false); el.style.display = 'block'; return ui; };
   return ui;
 }
-root.TouchUI = { create(o) { if (!UI) UI = build(); return UI.reset(o); }, ICONS };
+root.Tips = Tips; root.TouchUI = { create(o) { if (!UI) UI = build(); return UI.reset(o); }, ICONS };
 })(typeof window !== 'undefined' ? window : globalThis);

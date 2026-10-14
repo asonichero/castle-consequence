@@ -85,7 +85,7 @@ function run(G, W, opts) {
     hud.innerHTML = '<div id="cwPanel"><label>Jack’s size: <b id="cwPct">100%</b><br><input id="cwScale" type="range" min="5" max="150" step="1" value="100"></label><select id="cwGo"><option value="">Go to…</option></select></div><div id="cwObjt"></div><div id="cwPrompt"></div><div id="cwStamW"><div id="cwStam"></div></div><div id="cwCross"></div><div id="cwToast"></div>';
     document.body.appendChild(hud);
     const $ = id => document.getElementById(id);
-    const toast = (t, ms = 6000) => { $('cwToast').textContent = t; $('cwToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
+    const toast = (t, ms = 6000) => { $('cwToast').textContent = root.Tips.clean(t); $('cwToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
     const keys = {}, ui = root.TouchUI.create({ keys, run: true, sneak: true, jump: true, act: true, drop: true, cam: true }), stick = ui.stick, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', Shift: 'run', Control: 'sneak', x: 'sneak', X: 'sneak' };
     const typing = e => e.target && /TEXTAREA|SELECT/.test(e.target.tagName) || (e.target && e.target.tagName === 'INPUT' && e.target.type !== 'range');
     const ZOOMS = [{ name: 'Close', d: 52 }, { name: 'Medium', d: 92 }, { name: 'Far', d: 150 }, { name: 'Wide', d: 520 }];
@@ -411,6 +411,7 @@ function run(G, W, opts) {
       }
       if (!st.cl && !st.mant && st.vy <= 0 && st.y <= gy + 0.05 * s + 0.01) st.standY = gy;
       { const cb = !busy && st.y <= gy + 0.01 ? findClimb() : null;
+        if (cb && !st.scene) root.Tips.once('castle-climb', () => toast('Space climbs the wood: hold it to keep going.', 5000));
         if (st.cl) ui.set('jump', { label: 'Climb', icon: 'climb', enabled: true }); else if (st.mant) ui.set('jump', { label: 'Climb', icon: 'climb', enabled: false });
         else if (cb) ui.set('jump', cb.gap <= 0.75 * Hj ? { label: 'Pull up', icon: 'pull', enabled: true } : { label: 'Climb', icon: 'climb', enabled: true });
         else ui.set('jump', { label: 'Jump', icon: 'jump', enabled: st.y <= gy + 0.01 });
@@ -522,12 +523,11 @@ function run(G, W, opts) {
       // out, and on the table: his
       st.pose = null; st.camA = Math.PI; st.pitch = 0.45; st.zoom = 1; camPos.set(0, 0, 0);
       G.skipping = false; st.scene = false; st.jumpReq = st.actReq = st.putReq = false; for (const k in keys) keys[k] = false; stick.x = stick.y = 0; st.walkN = 0; st.vy = 0; st.lockT = 0; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine();
-      $('cwObjt').style.display = 'none'; toast('WASD or the stick to walk \u00b7 Shift runs \u00b7 Space jumps \u00b7 drag to look \u00b7 V or the wheel zooms', 6500);
+      $('cwObjt').style.display = 'none';
     }
-    const toastTxt = story ? 'WASD or the stick to walk \u00b7 Shift runs \u00b7 Space jumps \u00b7 drag to look \u00b7 V or the wheel zooms \u00b7 C for first person' : 'WASD or the stick to walk \u00b7 Shift runs \u00b7 Space jumps \u00b7 drag to look \u00b7 V or the wheel zooms \u00b7 C for first person';
     const f = $('fade');
     if (ch3) { await ch3Open(); return; }
-    if (!story) { G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); toast(toastTxt); f.style.transition = ''; await G.fade(false, 1.2); return; }
+    if (!story) { G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); f.style.transition = ''; await G.fade(false, 1.2); return; }
     // ── The story: the hall, from a few angles, and what it says to him; then it is his. ──
     st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwPanel').style.display = 'none'; G.save({ step: 'castle' });
     const wait = G.wait, walkTo = async (tx, tz, secs) => { const x0 = st.pos.x, z0 = st.pos.z, n = Math.max(2, Math.round(secs / 0.04)); st.heading = Math.atan2(tx - x0, tz - z0); for (let i = 1; i <= n; i++) { const k = i / n; st.pos.x = x0 + (tx - x0) * k; st.pos.z = z0 + (tz - z0) * k; st.walkN = 1; st.walkPh += 10.9 * Math.pow(st.s, -0.35) * 0.55 * 0.04 * 1.4; await wait(0.04); } st.walkN = 0; };
@@ -539,7 +539,7 @@ function run(G, W, opts) {
     G.cut({ pos: v(3, 2.7, 64), look: v(0, 2.7, 76), fov: 32 }); await wait(0.8);
     await G.say('jack', 'There has to be something here I can carry home. Something Mother can’t argue with.');
     await wait(0.4); const kk = st.s, d0 = 92 * kk; await G.shot({ pos: v(0, 15 * SC * kk + Math.sin(0.5) * d0, st.pos.z + d0 * Math.cos(0.5)), look: v(0, 15 * SC * kk, st.pos.z), fov: 48 }, 1.6, 'inOut');
-    await wk; G.skipping = false; st.scene = false; st.jumpReq = st.actReq = st.putReq = false; for (const k in keys) keys[k] = false; stick.x = stick.y = 0; st.walkN = 0; st.vy = 0; st.lockT = 0; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); st.heading = Math.PI; st.camA = Math.PI / 2; camPos.set(0, 0, 0); toast(toastTxt, 6500);
+    await wk; G.skipping = false; st.scene = false; st.jumpReq = st.actReq = st.putReq = false; for (const k in keys) keys[k] = false; stick.x = stick.y = 0; st.walkN = 0; st.vy = 0; st.lockT = 0; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); st.heading = Math.PI; st.camA = Math.PI / 2; camPos.set(0, 0, 0);
   });
 }
 

@@ -139,7 +139,7 @@ function run(G, W) {
     hud.innerHTML = '<div id="mwObj">Walk to the castle.</div><div id="mwToast"></div>';
     document.body.appendChild(hud);
     const $ = id => document.getElementById(id);
-    const toast = (t, ms = 5000) => { $('mwToast').textContent = t; $('mwToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
+    const toast = (t, ms = 5000) => { $('mwToast').textContent = root.Tips.clean(t); $('mwToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
     const keys = {}, ui = root.TouchUI.create({ keys, run: true, jump: true, cam: true }), stick = ui.stick, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', Shift: 'run' };
     ui.show(false);                                                                  // (shown only while he walks)
     const typing = e => e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
@@ -216,7 +216,7 @@ function run(G, W) {
     // Round behind him, and the walk is his.
     { const kk = K0, d = 92 * kk, c = Math.cos(0.5); await G.shot({ pos: v(0, 15 * SC * kk + Math.sin(0.5) * d, S().z + d * c), look: v(0, 15 * SC * kk, S().z), fov: 48 }, 1.8, 'inOut'); }
     G.skipping = false; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); st.heading = Math.PI; st.look = 0; st.camA = Math.PI / 2; camPos.set(0, 0, 0);
-    st.free = true; st.mode = 'walk'; hud.style.display = 'block'; ui.show(true); $('mwObj').style.display = 'block'; toast('WASD or the stick to walk · Shift to run · Space to jump · drag to look round · V or the wheel to zoom', 6500);
+    st.free = true; st.mode = 'walk'; hud.style.display = 'block'; ui.show(true); $('mwObj').style.display = 'block';
 
     // ── At the gate. ──
     async function arrive() {

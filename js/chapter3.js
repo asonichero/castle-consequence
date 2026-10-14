@@ -143,7 +143,7 @@ async function run(G, W, opts) {
     hud.innerHTML = '<div id="cObj"></div><div id="cHint"></div><div id="cToast"></div>';
     document.body.appendChild(hud);
     const $ = id => document.getElementById(id), el = G.renderer.domElement;
-    const toast = (t, ms = 3000) => { $('cToast').textContent = t; $('cToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
+    const toast = (t, ms = 3000) => { $('cToast').textContent = root.Tips.clean(t); $('cToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
     const objective = () => { $('cObj').innerHTML = `<span class="${st.dressed ? 'done' : ''}">Dress (the wardrobe)</span> &nbsp;·&nbsp; <span class="${st.knife ? 'done' : ''}">Take Father’s knife (the chest of drawers)</span>`; };
     const mutter = (text, force) => { if (!force && performance.now() < st.capAt) return; st.capAt = performance.now() + 6500; G.caption('jack', text); };
     const keys = {}, ui = root.TouchUI.create({ keys, run: true, jump: true, act: true, cam: true }), stick = ui.stick, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', Shift: 'run' };
