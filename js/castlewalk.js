@@ -272,7 +272,7 @@ function run(G, W, opts) {
       cutIn({ pos: bx.localToWorld(new V3(0, 3.6, -3.9)), look: hd().clone().add(new V3(0, 2, 0)), fov: 62 });                                          // (from behind him, in the box: her face looking down through the top)
       await gspeak('gerda', 'A magic stalk, a stranger’s house, a plate that was never yours. And you thought no one would notice.');
       await gspeak('gerda', 'That isn’t a man’s doing, little one. That’s mischief. And mischief gets put somewhere safe.'); await sitUp;
-      shotBoxJack(); face(3); await gspeak('jack', 'I’m not—');
+      shotBoxJack(); gerda.root.visible = false; face(3); await gspeak('jack', 'I’m not—');                        // (the last beat is his alone: she is not in it, though the lid still drops on its old timing)
       for (let i = 1; i <= 14; i++) { box.lid.rotation.x = LA * (1 - i / 14); gst.lreach = 1.3 * (1 - i / 14); gst.l2 = 1 - i / 14; placeGerda(); await G.wait(0.04); } A && A.thud && A.thud(0.4); await G.wait(1.2);
     }
     async function caught() {
