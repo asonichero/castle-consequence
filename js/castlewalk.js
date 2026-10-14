@@ -231,7 +231,7 @@ function run(G, W, opts) {
       for (let i = 1; i <= 24; i++) { gst.sniff = 0.3 * Math.sin(Math.PI * i / 24); placeGerda(); await G.wait(0.04); } gst.sniff = 0;
       await gspeak('gerda', 'Sweat, and sap. And underneath it, something like home.');
       for (let i = 15; i >= 0; i--) { gst.nose = i / 16; placeGerda(); await G.wait(0.04); } gst.nose = 0;
-      shotJack(); await G.wait(0.7);
+      shotJack(); face(3); await gspeak('jack', '...'); face(1);
       shotFace(); await gspeak('gerda', 'Now then. What small creature walks into my kitchen and helps himself?');
       shotJack(); face(3); await gspeak('jack', 'I didn’t take a thing! I was only looking!'); face(1);
       shotFace(); await gspeak('gerda', 'Only looking. Of course you were. A curious little mouse.');
@@ -240,7 +240,7 @@ function run(G, W, opts) {
       shotJack(); face(2); await G.wait(0.5); await gspeak('jack', 'I’m a man.'); face(1); await G.wait(0.6);
       shotFace(); await gspeak('gerda', 'Are you. We’ll see.');
       // to the cupboard, with him in her hand
-      const bx = M.items.keepsakeBox.g, box = bx.userData.box, tgt = new V3(119, 0, -92); const route = gnav(gst.x, gst.z, tgt.x, tgt.z);
+      const bx = M.items.keepsakeBox.g, box = bx.userData.box, tgt = new V3(114.5, 0, -92); const route = gnav(gst.x, gst.z, tgt.x, tgt.z);
       { const mx = (gst.x + tgt.x) / 2, mz = (gst.z + tgt.z) / 2, sp = Math.hypot(gst.x - tgt.x, gst.z - tgt.z); G.cut({ pos: v(mx + 10, 62 + sp * 0.2, mz + 70 + sp * 0.3), look: v(mx, 22, mz), fov: 56 }); }                    // (the walk across the kitchen, from above and to the side)
       for (const [wx, wz] of route) { const x0 = gst.x, z0 = gst.z, d = Math.hypot(wx - x0, wz - z0), n = Math.max(2, Math.ceil(d / 1.2)), h1 = Math.atan2(wx - x0, wz - z0); for (let i = 1; i <= n; i++) { const k = i / n; gst.x = x0 + (wx - x0) * k; gst.z = z0 + (wz - z0) * k; gst.h += angDiff(h1, gst.h) * 0.3; gst.ph += 0.4; gst.walk = 1; placeGerda(); follow(); cam(); await G.wait(0.04); } }
       gst.walk = 0; for (let i = 0; i < 14; i++) { gst.h += angDiff(-Math.PI / 2, gst.h) * 0.3; placeGerda(); follow(); cam(); await G.wait(0.04); }
@@ -262,15 +262,16 @@ function run(G, W, opts) {
       // beat 13: he sits up in the box; she leans over it with her free hand poised on its lid, ready to close it
       face(3); const qSit = new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.3, 0, 0)), pSit = new V3(0, 2.0, 0.5).sub(new V3(0, 12 * bs, 0).applyQuaternion(qSit));
       const sitUp = (async () => { for (let i = 1; i <= 34; i++) { const k = i / 34, e = k * k * (3 - 2 * k); jackOut.root.quaternion.copy(qL).slerp(qSit, e); jackOut.root.position.copy(pIn).lerp(pSit, e); st.sit = e; await G.wait(0.04); } })();
-      { const T = box.lid.localToWorld(new V3(0, -0.3, 9.4)), cx = bx.localToWorld(new V3(0, 0, 0)), hd2 = new V3(); let b3 = null; gst.l2 = 1;
-        for (let tq = 0; tq <= 0.9; tq += 0.08) for (let lx = -2.6; lx <= -0.6; lx += 0.15) for (const lz of [-0.2, 0, 0.2, 0.4]) { gst.l2T = tq; gst.l2X = lx; gst.l2Z = lz; placeGerda(); root.Blocky.step(gerda, 0); gerda.root.updateMatrixWorld(true); gerda.neck.localToWorld(hd2.set(0, 4, 0)); if (Math.hypot(hd2.x - cx.x, hd2.z - cx.z) < 7) continue; const e = gerda.armL.localToWorld(new V3(0, -11, 0)).distanceTo(T) + 3 * Math.abs(tq - 0.5); if (!b3 || e < b3.e) b3 = { tq, lx, lz, e }; }
+      const LA = -1.15;                                                                                    // (the lid is brought back to a little past upright for the hand to rest on, not left thrown right back)
+      { box.lid.rotation.x = LA; box.lid.updateMatrixWorld(true); const T = box.lid.localToWorld(new V3(0, -0.3, 9.4)); box.lid.rotation.x = -1.95; box.lid.updateMatrixWorld(true); const cx = bx.localToWorld(new V3(0, 0, 0)), hd2 = new V3(); let b3 = null; gst.l2 = 1;
+        for (let tq = 0.15; tq <= 0.7; tq += 0.07) for (let lx = -2.6; lx <= -0.6; lx += 0.15) for (const lz of [-0.2, 0, 0.2, 0.4]) { gst.l2T = tq; gst.l2X = lx; gst.l2Z = lz; placeGerda(); root.Blocky.step(gerda, 0); gerda.root.updateMatrixWorld(true); gerda.neck.localToWorld(hd2.set(0, 4, 0)); if (Math.hypot(hd2.x - cx.x, hd2.z - cx.z) < 9) continue; const e = gerda.armL.localToWorld(new V3(0, -11, 0)).distanceTo(T) + 3 * Math.abs(tq - 0.4); if (!b3 || e < b3.e) b3 = { tq, lx, lz, e }; }
         if (!b3) b3 = { tq: 0.5, lx: -1.5, lz: 0, e: 99 }; gst.l2T = b3.tq; gst.l2X = b3.lx; gst.l2Z = b3.lz; gst.l2 = 0; placeGerda(); G.castleWalk.lidSolve = b3; }
-      for (let i = 1; i <= 24; i++) { gst.l2 = i / 24; gst.give = 0.65 - 0.4 * (i / 24); placeGerda(); await G.wait(0.04); }
+      for (let i = 1; i <= 24; i++) { gst.l2 = i / 24; gst.give = 0.65 - 0.4 * (i / 24); box.lid.rotation.x = -1.95 + (LA + 1.95) * (i / 24); placeGerda(); await G.wait(0.04); }
       G.cut({ pos: bx.localToWorld(new V3(0, 3.6, -3.9)), look: hd().clone().add(new V3(0, 2, 0)), fov: 62 });                                          // (from behind him, in the box: her face looking down through the top)
       await gspeak('gerda', 'A magic stalk, a stranger’s house, a plate that was never yours. And you thought no one would notice.');
       await gspeak('gerda', 'That isn’t a man’s doing, little one. That’s mischief. And mischief gets put somewhere safe.'); await sitUp;
       shotBoxJack(); face(3); await gspeak('jack', 'I’m not—');
-      for (let i = 1; i <= 14; i++) { box.lid.rotation.x = -1.95 * (1 - i / 14); gst.lreach = 1.3 * (1 - i / 14); gst.l2 = 1 - i / 14; placeGerda(); await G.wait(0.04); } A && A.thud && A.thud(0.4); await G.wait(1.2);
+      for (let i = 1; i <= 14; i++) { box.lid.rotation.x = LA * (1 - i / 14); gst.lreach = 1.3 * (1 - i / 14); gst.l2 = 1 - i / 14; placeGerda(); await G.wait(0.04); } A && A.thud && A.thud(0.4); await G.wait(1.2);
     }
     async function caught() {
       if (st.caught) return; st.caught = true; st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwPrompt').style.display = 'none'; $('cwObjt').style.display = 'none'; st.walkN = 0; st.cl = null; st.mant = null; st.vy = 0;
