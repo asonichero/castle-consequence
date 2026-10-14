@@ -348,7 +348,7 @@ function run(G, W, opts) {
         await ending(follow, cam); }
       await finish('caught');
     }
-    async function finish(res) { G.castleResult = res; await G.fade(true, 2.2); await G.wait(0.3); cleanup(); G.mode = 'end'; document.body.classList.remove('cutscene'); resolve({ result: res }); }
+    async function finish(res) { A && A.stopMusic && A.stopMusic(2.2); G.castleResult = res; await G.fade(true, 2.2); await G.wait(0.3); cleanup(); G.mode = 'end'; document.body.classList.remove('cutscene'); resolve({ result: res }); }
     const tick = dt => {
       if (st.scene || st.caught) ui.show(false); else ui.show(true);
       if (st.scene) { st.jumpReq = st.actReq = st.putReq = false; if (!st.inHand && !st.boxed) { jackOut.root.scale.setScalar(SC * st.s); jackOut.root.position.set(st.pos.x, st.y, st.pos.z); jackOut.root.rotation.y = st.heading; } return; }
@@ -431,6 +431,7 @@ function run(G, W, opts) {
       }
     };
     const cleanup = () => { if (jackOut.root.parent !== scene) { scene.add(jackOut.root); st.inHand = false; } root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('wheel', wheel); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu); G.updaters = G.updaters.filter(u => u !== tick); hud.remove(); css.remove(); ui.destroy(); jackOut.after = null; jackOut.root.scale.setScalar(SC); jackOut.root.visible = true; camera.near = nearOld; camera.updateProjectionMatrix(); };
+    if (!opts.capture && A && A.ctx) { A.startMusic({ theme: 'castle' }); A.duckMusic(0.7, 3); }
     G.updaters.push(tick); G.castleWalk = { st, cleanup, resolve, C, M, gst };
     if (opts.capture) {                                                                                      // the capture, on its own (for scene-notes.html): Jack is hiding in the cupboard, and Gerda has just opened its doors
       if (G.seekTo == null) G.skipping = false;                                                            // (a 'Skip scene' pressed in an earlier scene must not carry over and skip this one)
