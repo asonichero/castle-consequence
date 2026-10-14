@@ -119,6 +119,7 @@ function run(G, W) {
     G.setScene(world); G.drone = null; G.save({ step: 'meadow' });
     camera.near = 0.1; camera.updateProjectionMatrix();
     A && A.ambience({ wind: 0.14, birds: 0, fire: 0 });
+    A && A.ctx && (A.startMusic({ theme: 'meadow' }), A.duckMusic(0.9, 3));
     const st = { pos: v(0, 0, START_Z), heading: Math.PI, walkN: 0, walkPh: 0, mode: 'intro', free: false, camA: Math.PI / 2, pitch: 0.5, zoom: 1, vy: 0, y: 0, jumpReq: false, gy: 0, kk: K0, look: 0, shiver: 0, bob: 0, craned: 0, frown: 0, stillSaid: 0, toastAt: 0, spd: 0, gripPrev: false, air: false };
     // Jack's body: walking, looking, shivering.
     jackOut.after = r => {

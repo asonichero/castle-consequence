@@ -41,6 +41,7 @@ function run(G, W) {
     const C3 = root.Chapter3; C3 && C3.ensureDawn && C3.ensureDawn(E);
     G.setScene(world); G.drone = null; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine();
     A && A.ambience({ wind: 0.35, birds: 0.5, fire: 0 });
+    A && A.ctx && (A.startMusic({ theme: 'climb' }), A.duckMusic(0.8, 3));
     G.save({ step: 'climb' });
     const rnd = (() => { let s = 90210; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; })();
     const stage = new THREE.Group(); E.add(stage);
