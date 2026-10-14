@@ -165,7 +165,7 @@ function create(els) {
   };
   wrapBeat('cut', 'cut'); wrapBeat('shot', 'cut'); wrapBeat('say', 'say'); wrapBeat('choose', 'say');
   const stalled = fn => (...a) => { if (stall) { const g = stall, d = deferred; stall = deferred = null; return g.then(() => { if (d) d(); return fn(...a); }); } return fn(...a); };
-  for (const n of ['shot', 'say', 'choose', 'wait', 'fade']) G[n] = guard(stalled(G[n]));
+  for (const n of ['shot', 'say', 'choose', 'wait', 'fade', 'caption']) G[n] = guard(stalled(G[n]));      // (a caption, like a line, waits for the beat that holds the scene: it began in the previous beat otherwise)
   G.pause = on => { G.paused = on === undefined ? !G.paused : !!on; const A = Audio_; if (A && A.ctx) { try { G.paused ? A.ctx.suspend() : A.ctx.resume(); } catch (e) { /* no audio */ } } return G.paused; };
   G.forward = () => { if (G.mode !== 'cutscene') return; G.pause(false); G.seekTo = G.beat + 1; };
   // Run the current scene again from its start, fast and silent, up to the start of beat `target` (then it plays normally).
