@@ -159,6 +159,7 @@ function run(G, W, opts) {
         r.hips.position.y -= HP.hipsY * h; r.torso.rotation.set(L(r.torso.rotation.x, HP.torsoX), L(0, HP.torsoY), L(0, HP.torsoZ)); r.neck.rotation.set(L(r.neck.rotation.x, HP.neckX), L(0, HP.neckY), 0);
         r.armR.rotation.set(L(r.armR.rotation.x, HP.armRx), 0, L(0, HP.armRz)); r.elbow.rotation.x = L(0, HP.elbowX); r.wrist.rotation.y = L(0, HP.wristY); r.armL.rotation.set(L(r.armL.rotation.x, HP.armLx), 0, L(0, HP.armLz));
         r.legL.thigh.rotation.x = L(w, HP.legLx) + w * h; r.legL.knee.rotation.x = L(0, HP.legLknee); r.legR.thigh.rotation.x = L(-w, HP.legRx) - w * h; r.legR.knee.rotation.x = L(0, HP.legRknee); }
+      if (gst.nose > 0) { const k = gst.nose; r.armR.rotation.x += (gst.nA - r.armR.rotation.x) * k; r.elbow.rotation.x += (gst.nE - r.elbow.rotation.x) * k; }                       // (she brings him up close to her face to smell him)
       if (gst.give > 0) { const k = gst.give, L2 = (a, b) => a + (b - a) * k; r.armR.rotation.x = L2(r.armR.rotation.x, gst.gArm === undefined ? -1.5 : gst.gArm); r.armR.rotation.z = L2(r.armR.rotation.z, 0.05); r.elbow.rotation.x = L2(r.elbow.rotation.x, -0.15); r.torso.rotation.x = L2(r.torso.rotation.x, gst.gTorso === undefined ? 0.5 : gst.gTorso); r.neck.rotation.x = L2(r.neck.rotation.x, 0.25); }
       if (gst.lreach > 0) r.armL.rotation.set(-gst.lreach, 0, 0.05); if (gst.sniff) r.neck.rotation.x += gst.sniff;
       if (gst.alive) { const t = G.t, a = gst.alive, tk = gst.talk || 0, ls = gst.listen || 0;                       // (she is not a statue: she breathes, shifts her weight, turns her head, talks with her free hand, and feels him wriggle)
@@ -221,8 +222,13 @@ function run(G, W, opts) {
       face(1);                                                                                              // wincing, whenever he is not speaking
       shotFace(); await gspeak('gerda', 'Well. Not so badly put together. A little wild at the edges. A little soft in the jaw.');
       await G.wait(0.4);
-      for (let i = 1; i <= 16; i++) { gst.sniff = 0.35 * Math.sin(Math.PI * i / 16); placeGerda(); await G.wait(0.04); } gst.sniff = 0;
+      { const T = hd().clone().add(fwd().multiplyScalar(6.5)).add(new V3(0, -1.5, 0)); let b2 = null;                // (the arm that puts him a hand's breadth from her nose)
+        for (let na = -2.1; na <= -0.9; na += 0.1) for (let ne = -2.3; ne <= -0.6; ne += 0.1) { gst.nA = na; gst.nE = ne; gst.nose = 1; placeGerda(); root.Blocky.step(gerda, 0); gerda.root.updateMatrixWorld(true); const e = gerda.wrist.localToWorld(new V3(0, -5, 0)).distanceTo(T); if (!b2 || e < b2.e) b2 = { na, ne, e }; }
+        gst.nA = b2.na; gst.nE = b2.ne; gst.nose = 0; placeGerda(); }
+      for (let i = 1; i <= 16; i++) { gst.nose = i / 16; placeGerda(); await G.wait(0.04); }
+      for (let i = 1; i <= 24; i++) { gst.sniff = 0.3 * Math.sin(Math.PI * i / 24); placeGerda(); await G.wait(0.04); } gst.sniff = 0;
       await gspeak('gerda', 'Sweat, and sap. And underneath it, something like home.');
+      for (let i = 15; i >= 0; i--) { gst.nose = i / 16; placeGerda(); await G.wait(0.04); } gst.nose = 0;
       shotJack(); await G.wait(0.7);
       shotFace(); await gspeak('gerda', 'Now then. What small creature walks into my kitchen and helps himself?');
       shotJack(); face(3); await gspeak('jack', 'I didn’t take a thing! I was only looking!'); face(1);
@@ -270,12 +276,17 @@ function run(G, W, opts) {
       // Where she can stand and lean without any of her going into anything: her body on the floor, her torso over what is between, her arm down to him.
       const hit = (x, z, r, y0, y1, top) => { for (const e of C.near(x, z, r + 1)) { if (e.low || e.y1 <= y0 || e.y0 >= y1 || (top !== undefined && e.y1 <= top + 0.6)) continue; const cx = clamp(x, e.x0, e.x1), cz = clamp(z, e.z0, e.z1); if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r) return true; } return false; };
       let stance = null;
-      for (const D of [14, 20, 27]) { const cands = []; for (let k = 0; k < 24; k++) { const a = k * Math.PI / 12, sx = jx + Math.cos(a) * D, sz = jz + Math.sin(a) * D; let ok = !hit(sx, sz, 7, 4, 44) && !hit(sx, sz, 7, 4, 44, jy);
-          for (const t of [0.3, 0.6, 0.85]) { const lx = sx + (jx - sx) * t, lz = sz + (jz - sz) * t; if (hit(lx, lz, 3.6, jy + 12, jy + 36, jy)) ok = false; }
-          if (hit(jx, jz, 2.6, jy + 0.9, jy + 12, jy)) ok = false;
-          const n = Math.ceil(Math.hypot(sx - gst.x, sz - gst.z) / 3); for (let i = 1; i <= n && ok; i++) if (hit(gst.x + (sx - gst.x) * i / n, gst.z + (sz - gst.z) * i / n, 7, 4, 44, 0)) ok = false;
-          if (ok) cands.push({ sx, sz, D, d: Math.hypot(sx - gst.x, sz - gst.z) }); }
-        if (cands.length) { cands.sort((p1, p2) => p1.d - p2.d); stance = cands[0]; break; } }
+      // how far from him she can stand and still reach: probed once per distance (her hand, over the grid of bends and reaches, at the height of his feet), so that she can stand clear of a table he is hiding on and lean over it
+      const probe = D => { const sx0 = gst.x, sz0 = gst.z, sh0 = gst.h, sb0 = gst.bend, sr0 = gst.reach; gst.x = 0; gst.z = 0; gst.h = 0; let m = 1e9;
+        for (let bd = 0; bd <= 1.4; bd += 0.1) for (let rc = 0.5; rc <= 2.0; rc += 0.15) { gst.bend = bd; gst.reach = rc; placeGerda(); root.Blocky.step(gerda, 0); gerda.root.updateMatrixWorld(true); const hp = gerda.wrist.localToWorld(new V3(0, -6, 0)); m = Math.min(m, Math.abs(Math.hypot(hp.x, hp.z) - D) + Math.abs(hp.y - (jy + 2)) * 0.8); }
+        gst.x = sx0; gst.z = sz0; gst.h = sh0; gst.bend = sb0; gst.reach = sr0; placeGerda(); return m; };
+      const place = (D, a) => { const sx = jx + Math.cos(a) * D, sz = jz + Math.sin(a) * D; let ok = !hit(sx, sz, 7, 4, 44) && !hit(sx, sz, 7, 4, 44, jy);
+        for (const t of [0.3, 0.6, 0.85]) { const lx = sx + (jx - sx) * t, lz = sz + (jz - sz) * t; if (hit(lx, lz, 3.6, jy + 12, jy + 36, jy)) ok = false; }
+        if (hit(jx, jz, 2.6, jy + 0.9, jy + 12, jy)) ok = false;
+        const n = Math.ceil(Math.hypot(sx - gst.x, sz - gst.z) / 3); for (let i = 1; i <= n && ok; i++) if (hit(gst.x + (sx - gst.x) * i / n, gst.z + (sz - gst.z) * i / n, 7, 4, 44, 0)) ok = false;
+        return ok ? { sx, sz, D, d: Math.hypot(sx - gst.x, sz - gst.z) } : null; };
+      const DS = [12, 16, 20, 24, 28, 32, 36, 40, 44], feas = DS.map(D => probe(D));
+      for (const pass of [true, false]) { for (let i = 0; i < DS.length && !stance; i++) { if (pass && feas[i] > 3.5) continue; const cands = []; for (let k = 0; k < 24; k++) { const c = place(DS[i], k * Math.PI / 12); if (c) cands.push(c); } if (cands.length) { cands.sort((p1, p2) => p1.d - p2.d); stance = cands[0]; } } if (stance) break; }
       if (!stance) { const a = Math.atan2(gst.z - jz, gst.x - jx); stance = { sx: jx + Math.cos(a) * 27, sz: jz + Math.sin(a) * 27, D: 27 }; }
       const faceJ = Math.atan2(jx - stance.sx, jz - stance.sz);
       for (let i = 0; i < 14; i++) { gst.h += angDiff(Math.atan2(jx - gst.x, jz - gst.z), gst.h) * 0.3; placeGerda(); cam(); await G.wait(0.04); }
