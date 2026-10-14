@@ -118,17 +118,18 @@ function run(G, W, opts) {
       const Hj = HEIGHT * SC * st.s, pr = promptEl(); let text = '';
       { const lp = pantryG.worldToLocal(new V3(st.pos.x, st.y, st.pos.z)); st.inCup = Math.abs(lp.x) < 11.6 && lp.z > -6.2 && lp.z < 6.4 && lp.y > -1 && lp.y < 22; }               // (inside the cupboard its walls and doors hold the camera in)
       if (st.hiding) { pr.style.display = 'none'; return; }
+      if (st.busy) { pr.style.display = 'none'; st.actReq = st.putReq = false; return; }                          // (he is saying what he has to say: nothing else can be touched until it is said)
       const onTable = st.y >= 25.3 && Math.abs(st.pos.x - tableG.position.x) <= 25 && Math.abs(st.pos.z - tableG.position.z) <= 13;
       if (onTable && !st.tMount) st.tMount = performance.now();
       if (st.tMount && !st.alarm) { const el = (performance.now() - st.tMount) / 1000; if ((st.loafTaken && el >= 50) || el >= 110) alarm(); }
       const act = st.actReq, put = st.putReq; st.actReq = st.putReq = false;
       if (st.held) {                                                                                       // a crumb in his hand: eat it, or put it back
         text = 'E \u2014 eat it     Q \u2014 put it back';
-        if (act) { st.eaten++; const k = st.held; st.held = null; say(st.eaten === 1 ? 'Mm. Sorry. It was only a crumb.' : 'Mm.'); if (st.eaten >= 4) { later(2600, () => { say('That barely touched it... I’m still hungry.'); st.loafReady = true; }); } }
+        if (act) { st.eaten++; const k = st.held; st.held = null; const mm = say(st.eaten === 1 ? 'Mm. Sorry. It was only a crumb.' : 'Mm.'); if (st.eaten >= 4) { st.busy = true; mm.then(() => say('That barely touched it... I’m still hungry.')).then(() => { st.loafReady = true; st.busy = false; }); } }
         else if (put) { st.held.o.visible = true; st.held = null; say('No. Better to leave it where it was.'); }
       } else {
         let best = null, bd = 1e9;
-        for (const t of things) { if (t.kind === 'crumb' && !t.o.visible) continue; const dx = t.pos.x - st.pos.x, dz = t.pos.z - st.pos.z, d = Math.hypot(dx, dz); if (d < 3.4 * Hj && Math.abs(t.pos.y - st.y) < 1.4 * Hj && d < bd) { best = t; bd = d; } }
+        for (const t of things) { if (t.kind === 'crumb' && !t.o.visible) continue; const dx = t.pos.x - st.pos.x, dz = t.pos.z - st.pos.z, d = Math.hypot(dx, dz); if (d < (t.kind === 'crumb' ? 1.7 : 3.4) * Hj && Math.abs(t.pos.y - st.y) < 1.4 * Hj && d < bd) { best = t; bd = d; } }
         if (best) {
           text = best.kind === 'crumb' ? 'E \u2014 pick up the crumb' : best.kind === 'loaf' ? (st.loafReady ? 'E \u2014 take a crumb of the loaf' : 'E \u2014 look at the loaf') : 'E \u2014 look';
           if (act) {
