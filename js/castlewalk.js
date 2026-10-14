@@ -324,6 +324,7 @@ function run(G, W, opts) {
           G.castleWalk.back = { from: [gst.x, gst.z], sp };
           if (sp) { const x0 = gst.x, z0 = gst.z, n = Math.max(2, Math.ceil(Math.hypot(sp[0] - x0, sp[1] - z0) / 0.9)); if (Math.hypot(sp[0] - x0, sp[1] - z0) > 1) { for (let i = 1; i <= n; i++) { const k = i / n; gst.x = x0 + (sp[0] - x0) * k; gst.z = z0 + (sp[1] - z0) * k; gst.ph -= 0.4; gst.walk = 0.7; placeGerda(); follow(); cam(); await G.wait(0.04); } gst.walk = 0; }
             const h0 = gst.h; for (let i = 1; i <= 16; i++) { gst.h = h0 + angDiff(sp[2], h0) * (i / 16); placeGerda(); follow(); await G.wait(0.04); } gst.h = sp[2]; placeGerda(); follow(); } }
+        if (opts.capture) { root.Blocky.step(gerda, 0); root.Blocky.step(jackOut, 0); gerda.root.updateMatrixWorld(true); G.skipping = wasSkip; }       // (and from here it is seen)
         await ending(follow, cam); }
       await finish('caught');
     }
