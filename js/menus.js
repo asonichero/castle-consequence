@@ -113,7 +113,8 @@ async function playMeadow() {
 async function playCastle(story, extra) {
   G.skipping = false; hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
-  await root.CastleWalk.run(G, W, story ? Object.assign({ story: true }, extra) : undefined); if (story) showEnd();
+  await root.CastleWalk.run(G, W, story ? Object.assign({ story: true }, extra) : undefined);
+  if (story && !(extra && extra.capture)) { await titleCard('Three', 'The Measure of a Man'); await ch3Scene(W); } else if (story) showEnd();       // (the story goes on into Chapter Three; the capture on its own ends at its end card)
 }
 // Chapter Three, The Measure of a Man: it opens in the kitchen, with Jack in the box on the table, at a quarter of his size.
 async function ch3Scene(W) { if (root.CastleWalk) { G.save({ step: 'ch3' }); await root.CastleWalk.run(G, W, { ch3: true, scale: 0.25 }); } }
@@ -165,7 +166,7 @@ if (/[?&]debug\b/.test(location.search)) G.debugCtl = true;
 $('dbgBack').onclick = () => G.rewind(); $('dbgPlay').onclick = () => G.pause(); $('dbgFwd').onclick = () => G.forward();
 setInterval(() => { const on = G.debugCtl && G.mode === 'cutscene'; document.body.classList.toggle('dbg', on); if (on) { $('dbgPlay').textContent = G.paused ? '\u25B6' : '\u275A\u275A'; $('dbgBack').disabled = !G.rerun; $('dbgInfo').textContent = 'beat ' + G.beat + (G.seekTo != null ? ' \u2192 ' + G.seekTo : ''); } }, 150);
 $('bNew').onclick = () => { G.noSave = false; if (G.loadSave() && !confirm('Start a new game? Your saved game will be replaced.')) return; G.clearSave(); playOpening(); };
-$('bContinue').onclick = () => { G.noSave = false; wake(); const sv = G.loadSave() || {}; if (sv.step === 'market-day') playMarket(); else if (sv.step === 'market-road') playRoad(); else if (sv.step === 'garden-done') playChapter3(); else if (sv.step === 'dress') playChapter3('dress'); else if (sv.step === 'beanstalk' || sv.step === 'climb') playClimb(); else if (sv.step === 'climb-done' || sv.step === 'meadow') playMeadow(); else if (sv.step === 'meadow-done' || sv.step === 'castle') playCastle(true); else if (sv.step === 'beans') playNight((sv.choices) || []); else { hideAll(); showEnd(); } };
+$('bContinue').onclick = () => { G.noSave = false; wake(); const sv = G.loadSave() || {}; if (sv.step === 'market-day') playMarket(); else if (sv.step === 'market-road') playRoad(); else if (sv.step === 'garden-done') playChapter3(); else if (sv.step === 'dress') playChapter3('dress'); else if (sv.step === 'beanstalk' || sv.step === 'climb') playClimb(); else if (sv.step === 'climb-done' || sv.step === 'meadow') playMeadow(); else if (sv.step === 'meadow-done' || sv.step === 'castle') playCastle(true); else if (sv.step === 'ch3') playCh3(); else if (sv.step === 'beans') playNight((sv.choices) || []); else { hideAll(); showEnd(); } };
 $('bSettings').onclick = () => { wake(); show('settings'); };
 $('bBack').onclick = () => { G.saveSettings(); if (pmOpen()) pmBack(); else show('title'); };
 $('bTitle').onclick = toTitle;
