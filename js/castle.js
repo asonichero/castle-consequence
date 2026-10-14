@@ -344,6 +344,7 @@ function interior() {
 
   const bounds = { x0: -330, x1: 400, z0: -365, z1: 124 };
   { const into = (d, ok) => { d.og.updateMatrixWorld(true); const B = new THREE.Box3().setFromObject(d.lg); if (!ok((B.min.x + B.max.x) / 2, (B.min.z + B.max.z) / 2)) d.lg.rotation.y = -d.lg.rotation.y; };     // (the doors of the library, the music hall and the nursery open into those rooms, not into the corridors)
+    for (let i = doors.length - 1; i >= 0; i--) { const d = doors[i]; if (d.axis === 'x' && d.fixed === -273 && Math.abs(d.c + 25.5) < 6) { d.og.parent && d.og.parent.remove(d.og); doors.splice(i, 1); } }       // (no doors at the west end of corridor A, where it meets corridor B)
     for (const d of doors) { if (d.axis === 'x' && d.fixed === -273 && (Math.abs(d.c + 100) < 6 || Math.abs(d.c - 44) < 6)) into(d, x => x > -273); else if (d.axis === 'z' && d.fixed === -160 && Math.abs(d.c + 294) < 6) into(d, (x, z) => z < -160); } }
   const views = { front: [[40, 36, 420], [40, 30, 100]], top: [[40, 760, 20], [40, 0, -120]], iso: [[330, 380, 300], [30, 0, -110]], hall: [[0, 40, 104], [0, 22, -60]], hearth: [[0, 40, -96], [0, 20, 40]], west: [[-100, 38, -26], [-270, 20, -26]], corridorB: [[-294, 40, 90], [-294, 18, -150]], library: [[-100, 38, -100], [-240, 14, -110]], playroom: [[-110, 44, -170], [-250, 10, -250]], kitchen: [[100, 40, 48], [190, 12, -30]], roost: [[256, 44, -214], [320, 14, -280]], garden: [[-80, 60, -120], [100, 4, -250]] };
   return {
