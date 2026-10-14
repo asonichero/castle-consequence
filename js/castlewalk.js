@@ -310,14 +310,13 @@ function run(G, W, opts) {
         st.wriggle = 1;                                                                                    // (he wriggles in her fist for as long as he is held)
         // before the scene proper, she steps back into the nearest open space, so that the cameras have room and nothing of hers goes into anything
         { const clear = (x, z) => !hit(x, z, 15, 4, 50, 0), pathOk = (x, z) => !hit(x, z, 8, 4, 50, 0); let sp = null, bd = 1e9;
-          const fx = Math.sin(gst.h), fz = Math.cos(gst.h), front = (x, z) => { for (const d of [12, 22, 32, 42, 52]) for (const l of [-16, 0, 16]) if (hit(x + fx * d + fz * l, z + fz * d - fx * l, 6, 4, 60, 0)) return false; return true; };      // (clear ground in front of her, where the cameras will be, as well as around her)
-          for (const needFront of [true, false]) { for (let r = 0; r <= 110; r += 5) for (let k = 0; k < 36; k++) { const a2 = k * Math.PI / 18, x = gst.x + Math.cos(a2) * r, z = gst.z + Math.sin(a2) * r; if (!clear(x, z) || x < 100 || x > 236 || z < -100 || z > 44 || (needFront && !front(x, z))) continue;
-              const n = Math.ceil(r / 3); let ok = true; for (let i = 1; i <= n && ok; i++) if (!pathOk(gst.x + (x - gst.x) * i / n, gst.z + (z - gst.z) * i / n)) ok = false; if (!ok) continue;
-              const back = Math.cos(a2 - (gst.h + Math.PI)), cost = r + (1 - back) * 25; if (cost < bd) { bd = cost; sp = [x, z]; } }
-            if (sp) break; }
-          G.castleWalk.back = { from: [gst.x, gst.z], sp, clearHere: clear(gst.x, gst.z) };
-          if (sp && Math.hypot(sp[0] - gst.x, sp[1] - gst.z) > 1) { const x0 = gst.x, z0 = gst.z, n = Math.max(2, Math.ceil(Math.hypot(sp[0] - x0, sp[1] - z0) / 0.9)); for (let i = 1; i <= n; i++) { const k = i / n; gst.x = x0 + (sp[0] - x0) * k; gst.z = z0 + (sp[1] - z0) * k; gst.ph -= 0.4; gst.walk = 0.7; placeGerda(); follow(); cam(); await G.wait(0.04); } gst.walk = 0; placeGerda(); follow(); } }
-        if (opts.capture) { root.Blocky.step(gerda, 0); root.Blocky.step(jackOut, 0); gerda.root.updateMatrixWorld(true); G.skipping = wasSkip; }
+          const front = (x, z, h) => { const fx = Math.sin(h), fz = Math.cos(h); for (const d of [12, 22, 32, 42, 52]) for (const l of [-16, 0, 16]) if (hit(x + fx * d + fz * l, z + fz * d - fx * l, 6, 4, 60, 0)) return false; return true; };      // (clear ground in front of her, where the cameras will be, as well as around her)
+          for (let r = 0; r <= 110; r += 5) for (let k = 0; k < 36; k++) { const a2 = k * Math.PI / 18, x = gst.x + Math.cos(a2) * r, z = gst.z + Math.sin(a2) * r; if (!clear(x, z) || x < 100 || x > 236 || z < -100 || z > 44) continue;
+            const n = Math.ceil(r / 3); let ok = true; for (let i = 1; i <= n && ok; i++) if (!pathOk(gst.x + (x - gst.x) * i / n, gst.z + (z - gst.z) * i / n)) ok = false; if (!ok) continue;
+            for (let m = 0; m < 16; m++) { const psi = m * Math.PI / 8; if (!front(x, z, psi)) continue; const cost = r + Math.abs(angDiff(psi, gst.h)) * 9; if (cost < bd) { bd = cost; sp = [x, z, psi]; } } }
+          G.castleWalk.back = { from: [gst.x, gst.z], sp };
+          if (sp) { const x0 = gst.x, z0 = gst.z, n = Math.max(2, Math.ceil(Math.hypot(sp[0] - x0, sp[1] - z0) / 0.9)); if (Math.hypot(sp[0] - x0, sp[1] - z0) > 1) { for (let i = 1; i <= n; i++) { const k = i / n; gst.x = x0 + (sp[0] - x0) * k; gst.z = z0 + (sp[1] - z0) * k; gst.ph -= 0.4; gst.walk = 0.7; placeGerda(); follow(); cam(); await G.wait(0.04); } gst.walk = 0; }
+            const h0 = gst.h; for (let i = 1; i <= 16; i++) { gst.h = h0 + angDiff(sp[2], h0) * (i / 16); placeGerda(); follow(); await G.wait(0.04); } gst.h = sp[2]; placeGerda(); follow(); } }
         await ending(follow, cam); }
       await finish('caught');
     }
