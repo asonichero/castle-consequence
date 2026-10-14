@@ -79,10 +79,10 @@ function build() {
   const castle = new THREE.Group(); scene.add(castle);
   const CZ = -790;                                                         // the hall's front face
   let castleExt;
-  { const cache = {}; castleExt = root.Castle.exterior(castle, { stone: (rx, ry) => { const k = Math.round(rx) + ':' + Math.round(ry); return cache[k] || (cache[k] = stone(Math.round(rx), Math.round(ry))); }, win, glints, rnd, ox: 0, oz: CZ - 112, gateZ: CZ + 104, sideX: 140 }); for (const so of castleExt.solids) solids.push(so); }
+  { const cache = {}; castleExt = root.Castle.exterior(castle, { stone: (rx, ry) => { const k = Math.round(rx) + ':' + Math.round(ry); return cache[k] || (cache[k] = stone(Math.round(rx), Math.round(ry))); }, win, glints, rnd, ox: 0, oz: CZ - 112, gateZ: CZ + 104, sideX: 92 }); for (const so of castleExt.solids) solids.push(so); }
   // The forecourt: quiet paving, edged with a low kerb, from where the path ends to the great door; and the great door itself.
   const pave = new THREE.MeshLambertMaterial({ map: stoneTex(26, 11), color: 0xaaa798 }), kerb = new THREE.MeshLambertMaterial({ map: stoneTex(30, 1), color: 0xbab6a6 });
-  box(280, 0.6, 104, pave, 0, 0.3, CZ + 52, castle); for (const sx of [-1, 1]) { box(126, 1.4, 2, kerb, sx * 77, 0.7, CZ + 104, castle); box(2, 1.4, 104, kerb, sx * 140, 0.7, CZ + 52, castle); }
+  box(184, 0.6, 104, pave, 0, 0.3, CZ + 52, castle); for (const sx of [-1, 1]) { box(78, 1.4, 2, kerb, sx * 53, 0.7, CZ + 104, castle); box(2, 1.4, 104, kerb, sx * 92, 0.7, CZ + 52, castle); }       // (the forecourt reaches only as far as the hall's turrets)
   const wood = new THREE.MeshLambertMaterial({ color: 0x3a2a20 }), iron = new THREE.MeshPhongMaterial({ color: 0x2b2d36, shininess: 70, specular: 0x667088 });
   box(33, 75, 3, wood, -18.5, 37.5, CZ + 1.5, castle); box(33, 75, 3, wood, 18.5, 37.5, CZ + 1.5, castle); box(4, 68.4, 3, wood, 0, 40.8, CZ + 1.5, castle); box(4, 2.4, 3, pave, 0, 1.2, CZ + 1.5, castle);           // the great door, with a crack at its foot just wide enough for him
   { const gl = new THREE.Mesh(new THREE.PlaneGeometry(4, 4.2), new THREE.MeshBasicMaterial({ color: 0x6a4824, fog: false })); gl.position.set(0, 4.5, CZ + 0.08); castle.add(gl); }                                       // (a dim warm light beyond it)
@@ -92,12 +92,12 @@ function build() {
   // What he stands on: the path, the shallow stream and the paving are floor, at their own heights.
   const groundY = (x, z) => {
     if (z < CZ + 21 && z > CZ + 3 && Math.abs(x) < 39) return 1.2 + 0.6 * Math.floor((CZ + 21 - z) / 6);
-    if (z < CZ + 104 && z > CZ && Math.abs(x) < 140) return 0.6;
+    if (z < CZ + 104 && z > CZ && Math.abs(x) < 92) return 0.6;
     for (const q of streams) { const zs = q[0] + q[1] * Math.sin(x * 0.012 + q[2]); if (Math.abs(z - zs) < 11) return 0.47; }
     if (z < 60 && z > CZ + 104 && Math.abs(x - pathX(z)) < 7.5) return 0.31;
     return 0;
   };
-  const kerbed = (x, z) => ((Math.abs(z - (CZ + 104)) < 1.4 && Math.abs(x) > 14 && Math.abs(x) < 140) || (Math.abs(Math.abs(x) - 140) < 1.4 && z < CZ + 104 && z > CZ));
+  const kerbed = (x, z) => ((Math.abs(z - (CZ + 104)) < 1.4 && Math.abs(x) > 14 && Math.abs(x) < 92) || (Math.abs(Math.abs(x) - 92) < 1.4 && z < CZ + 104 && z > CZ));
   return { scene, glints, solids, groundY, kerbed, sun, hemi: scene.children.find(o => o.isHemisphereLight), update(dt, t) { castleExt.update(t, dt); for (const g of glints) g.m.opacity = 0.08 + 0.12 * (0.5 + 0.5 * Math.sin(t * 0.6 + g.ph)) * (0.5 + 0.5 * Math.sin(t * 0.23 + g.ph * 3)); } };
 }
 
