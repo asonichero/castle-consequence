@@ -417,11 +417,7 @@ function run(G, W, opts) {
 
     // ── Chapter Three: The Measure of a Man. It opens in the kitchen: Jack in the box on the table, at a quarter of his size, and Gerda in her work clothes. ──
     const ch3Items = { clothes: null };
-    function ch3Tick() {
-      const pr = promptEl(), c = ch3Items.clothes; let text = ''; st.actReq0 = st.actReq; const act = st.actReq; st.actReq = false;
-      if (c && c.visible && !st.scene) { const Hj = HEIGHT * SC * st.s, d = Math.hypot(c.position.x - st.pos.x, c.position.z - st.pos.z); if (d < 2.6 * Hj && Math.abs(st.y - 25.5) < 2 * Hj) { text = 'E — put on your clothes'; if (act) { c.visible = false; st.dressed = true; W.paintJack(jackOut, { expr: 0, outfit: 'Day' }); G.caption('jack', 'Clean, and pressed. Someone has looked after these.'); $('cwObjt').style.display = 'none'; } } }
-      pr.textContent = text; pr.style.display = text ? 'block' : 'none';
-    }
+    function ch3Tick() { const pr = promptEl(); pr.style.display = 'none'; st.actReq = false; }                  // (nothing in the kitchen can be used yet)
     async function ch3Open() {
       const f = $('fade'), tgp = M.items.kitchenTable.g, TOP = 25.5, bx = M.items.keepsakeBox.g, box = bx.userData.box, tc = bx.position.clone(), bs = SC * st.s;
       $('cwPanel').style.display = 'none'; G.mode = 'cutscene'; document.body.classList.add('cutscene'); st.scene = true; st.boxed = true; G.save({ step: 'ch3' }); f.style.transition = 'none'; f.style.opacity = 1;
@@ -456,33 +452,41 @@ function run(G, W, opts) {
       const gGo = async (wx, wz) => { const x0 = gst.x, z0 = gst.z, d = Math.hypot(wx - x0, wz - z0), n = Math.max(2, Math.ceil(d / 1.1)), h1 = Math.atan2(wx - x0, wz - z0); for (let i = 1; i <= n; i++) { const k = i / n; gst.x = x0 + (wx - x0) * k; gst.z = z0 + (wz - z0) * k; gst.h += angDiff(h1, gst.h) * 0.3; gst.ph += 0.4; gst.walk = 1; placeGerda(); await G.wait(0.04); } };
       const leave = (async () => { for (const [wx, wz] of gnav(gst.x, gst.z, 238, -75)) await gGo(wx, wz); await gGo(264, -75); gst.walk = 0; for (let i = 1; i <= 30; i++) { for (const d of pdoors) d.lg.rotation.y = d.ang + (Math.sign(d.ang) * 0.42 - d.ang) * ease(i / 30); await G.wait(0.04); } gerda.root.visible = false; })();
       const wake = (async () => {
-        await G.wait(1.0); const t0 = G.t;
-        for (let i = 1; i <= 30; i++) { const k = ease(i / 30); jackOut.root.quaternion.copy(qL).slerp(qSit, k); jackOut.root.position.copy(pL).lerp(pSit, k); st.pose.thigh = W3(0, -1.3, k); st.pose.knee = W3(0, 1.5, k); st.pose.armLz = W3(0.25, 0.5, k); st.pose.armRz = W3(-0.25, -0.5, k); st.pose.armLx = st.pose.armRx = W3(0.05, -0.15, k); st.pose.neckX = W3(-0.1, 0.1, k); await G.wait(0.04); }
+        await G.wait(1.0);
+        for (let i = 1; i <= 30; i++) { const k = ease(i / 30); jackOut.root.quaternion.copy(qL).slerp(qUp, k); jackOut.root.position.copy(pL).lerp(pUp, k); st.pose.thigh = 0; st.pose.knee = 0; st.pose.armLz = W3(0.25, 0.5, k); st.pose.armRz = W3(-0.25, -0.5, k); st.pose.armLx = st.pose.armRx = W3(0.05, -0.15, k); st.pose.neckX = W3(-0.1, 0.1, k); await G.wait(0.04); }      // (he stands up in the box, so that he is seen from outside it)
         W.paintJack(jackOut, { expr: 4 });
         for (let i = 1; i <= 56; i++) { const k = Math.min(1, i / 8), tt = i * 0.04; st.pose.armRx = W3(-0.15, -2.55, k); st.pose.armRz = W3(-0.5, -0.1 + 0.09 * Math.sin(tt * 16), k); st.pose.armLx = W3(-0.15, -2.4, k * 0.8); st.pose.armLz = W3(0.5, 0.15 + 0.07 * Math.sin(tt * 14), k * 0.8); st.pose.neckX = W3(0.1, 0.38, k); await G.wait(0.04); }
         W.paintJack(jackOut, { expr: 0 });
         for (let i = 1; i <= 20; i++) { const k = ease(i / 20); st.pose.armRx = W3(-2.55, -0.15, k); st.pose.armRz = W3(-0.1, -0.5, k); st.pose.armLx = W3(-1.9, -0.15, k); st.pose.armLz = W3(0.15, 0.5, k); st.pose.neckX = W3(0.38, 0.05, k); await G.wait(0.04); }
-        for (let i = 1; i <= 64; i++) { st.pose.neckY = 0.95 * Math.sin(Math.PI * 2 * i / 64 * 1.0) * (i < 32 ? 1 : 0.6); await G.wait(0.04); } st.pose.neckY = 0;
+        for (let i = 1; i <= 64; i++) { st.pose.neckY = 0.95 * Math.sin(Math.PI * 2 * i / 64) * (i < 32 ? 1 : 0.6); await G.wait(0.04); } st.pose.neckY = 0;
       })();
       await Promise.all([leave, wake]);
-      // 4. the clothes on the table: he turns his head to them
-      G.cut({ pos: v(tc.x + 4, TOP + 12, tc.z + 28), look: v(tc.x + 9, TOP + 3.5, tc.z + 1), fov: 42 });
-      for (let i = 1; i <= 18; i++) { st.pose.neckY = 0.9 * ease(i / 18); await G.wait(0.04); }
-      await G.say('jack', 'My clothes.'); await G.wait(0.4);
-      // 5. he stands in the box and climbs out, into the playable beat
+      // 4. he climbs out of the box, over its front, and down onto the table
       G.cut({ pos: v(tc.x - 12, TOP + 15, tc.z + 24), look: v(tc.x, TOP + 6, tc.z + 1.5), fov: 44 });
-      for (let i = 1; i <= 22; i++) { const k = ease(i / 22); st.pose.neckY = 0.9 * (1 - k); jackOut.root.quaternion.copy(qSit).slerp(qUp, k); jackOut.root.position.copy(pSit).lerp(pUp, k); st.pose.thigh = W3(-1.3, 0, k); st.pose.knee = W3(1.5, 0, k); st.pose.neckX = W3(0.05, -0.3, k); await G.wait(0.04); }
-      await G.wait(0.5);
-      for (let i = 1; i <= 26; i++) { const k = ease(i / 26); st.pose.armLx = st.pose.armRx = W3(-0.15, -2.9, k); st.pose.armLz = W3(0.5, 0.25, k); st.pose.armRz = W3(-0.5, -0.25, k); st.pose.neckX = W3(-0.3, -0.5, k); await G.wait(0.04); }
+      await G.wait(0.4);
+      for (let i = 1; i <= 26; i++) { const k = ease(i / 26); st.pose.armLx = st.pose.armRx = W3(-0.15, -2.9, k); st.pose.armLz = W3(0.5, 0.25, k); st.pose.armRz = W3(-0.5, -0.25, k); st.pose.neckX = W3(0.05, -0.5, k); await G.wait(0.04); }
       for (let i = 1; i <= 40; i++) { const k = ease(i / 40), sw = Math.sin(i * 0.9); jackOut.root.position.set(0, W3(1.2, 6.4, k), W3(0.7, 4.0, k)); st.pose.thigh = -0.9 - 0.4 * sw; st.pose.knee = 0.8 + 0.4 * sw; await G.wait(0.04); }
       for (let i = 1; i <= 24; i++) { const k = ease(i / 24); jackOut.root.position.set(0, W3(6.4, 7.3, k), W3(4.0, 5.2, k)); jackOut.root.quaternion.copy(qUp).slerp(new THREE.Quaternion().setFromEuler(new THREE.Euler(0.9, 0, 0)), k); st.pose.thigh = W3(-0.9, -0.4, k); st.pose.knee = W3(0.8, 0.2, k); st.pose.torso = 0; await G.wait(0.04); }
       for (let i = 1; i <= 24; i++) { const k = ease(i / 24); jackOut.root.position.set(0, W3(7.3, 0, k * k), W3(5.2, 7.2, k)); jackOut.root.quaternion.copy(new THREE.Quaternion().setFromEuler(new THREE.Euler(0.9, 0, 0))).slerp(qUp, k); st.pose.armLx = st.pose.armRx = W3(-2.9, -0.4, k); st.pose.thigh = W3(-0.4, -0.25, k); st.pose.knee = W3(0.2, 0.3, k); st.pose.neckX = W3(-0.5, 0, k); await G.wait(0.04); }
-      // out, and on the table: his
       for (let i = 1; i <= 14; i++) { jackOut.root.rotation.y = (Math.PI / 2) * ease(i / 14); await G.wait(0.04); }
-      scene.attach(jackOut.root); const wp = new V3(); jackOut.root.getWorldPosition(wp); st.pos.set(wp.x, 0, wp.z); st.y = TOP; st.heading = Math.PI / 2; jackOut.root.quaternion.identity(); jackOut.root.rotation.y = Math.PI / 2; jackOut.root.scale.setScalar(bs);
-      st.pose = null; st.boxed = false; st.camA = Math.PI; st.pitch = 0.45; st.zoom = 1; camPos.set(0, 0, 0);
+      scene.attach(jackOut.root); const wp = new V3(); jackOut.root.getWorldPosition(wp); st.pos.set(wp.x, 0, wp.z); st.y = TOP; st.heading = Math.PI / 2; jackOut.root.quaternion.identity(); jackOut.root.rotation.y = Math.PI / 2; jackOut.root.scale.setScalar(bs); st.boxed = false; st.pose = { armLx: -0.15, armLz: 0.3, armRx: -0.15, armRz: -0.3, torso: 0, neckX: 0, neckY: 0 };
+      // 5. the clothes on the table: he notices them now, and goes to look
+      G.cut({ pos: v(tc.x + 2, TOP + 11, tc.z + 26), look: v(tc.x + 11, TOP + 3.5, tc.z + 2), fov: 40 });
+      { const x0 = st.pos.x, x1 = clothes.position.x - 7, n = 40; for (let i = 1; i <= n; i++) { st.pos.x = x0 + (x1 - x0) * ease(i / n); st.walkN = 1; st.walkPh += 0.5; await G.wait(0.04); } st.walkN = 0; }
+      await G.wait(0.4);
+      for (let i = 1; i <= 16; i++) { const k = ease(i / 16); st.pose.neckX = 0.45 * k; st.pose.armRx = W3(-0.15, -0.9, k); st.pose.armRz = W3(-0.3, -0.05, k); await G.wait(0.04); }       // (he takes the tunic's collar between finger and thumb)
+      await G.say('jack', 'Linen. Stitched by careful hands.');
+      W.paintJack(jackOut, { expr: 1 });
+      await G.say('jack', 'A child’s tunic. Laces at the collar, a round neck, the seams doubled for wear.');
+      await G.say('jack', 'It isn’t the size. It’s the cut. Soft green, and made so that someone else can do it up for you.');
+      await G.say('jack', 'Someone not trusted with buttons or belts. Someone like me, in her eyes.');
+      for (let i = 1; i <= 12; i++) { const k = i / 12; st.pose.armRx = W3(-0.9, -0.15, k); st.pose.neckX = W3(0.45, -0.1, k); await G.wait(0.04); }
+      A && A.blip && A.blip(); await G.wait(0.5);
+      await G.say('jack', 'I won’t be treated that way.');
+      // out, and on the table: his
+      st.pose = null; st.camA = Math.PI; st.pitch = 0.45; st.zoom = 1; camPos.set(0, 0, 0);
       G.skipping = false; st.scene = false; st.jumpReq = st.actReq = st.putReq = false; for (const k in keys) keys[k] = false; stick.x = stick.y = 0; st.walkN = 0; st.vy = 0; st.lockT = 0; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine();
-      $('cwObjt').textContent = 'Put on your clothes.'; $('cwObjt').style.display = 'block'; toast('WASD or the stick to walk · Shift runs · Space jumps · drag to look · V or the wheel zooms · E uses', 6500);
+      $('cwObjt').style.display = 'none'; toast('WASD or the stick to walk \u00b7 Shift runs \u00b7 Space jumps \u00b7 drag to look \u00b7 V or the wheel zooms', 6500);
     }
     const toastTxt = story ? 'WASD or the stick to walk \u00b7 Shift runs \u00b7 Space jumps \u00b7 drag to look \u00b7 V or the wheel zooms \u00b7 C for first person' : 'WASD or the stick to walk \u00b7 Shift runs \u00b7 Space jumps \u00b7 drag to look \u00b7 V or the wheel zooms \u00b7 C for first person';
     const f = $('fade');
