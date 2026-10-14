@@ -384,14 +384,11 @@ function run(G, W, opts) {
     // ── The story: the hall, from a few angles, and what it says to him; then it is his. ──
     st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwPanel').style.display = 'none'; G.save({ step: 'castle' });
     const wait = G.wait, walkTo = async (tx, tz, secs) => { const x0 = st.pos.x, z0 = st.pos.z, n = Math.max(2, Math.round(secs / 0.04)); st.heading = Math.atan2(tx - x0, tz - z0); for (let i = 1; i <= n; i++) { const k = i / n; st.pos.x = x0 + (tx - x0) * k; st.pos.z = z0 + (tz - z0) * k; st.walkN = 1; st.walkPh += 10.9 * Math.pow(st.s, -0.35) * 0.55 * 0.04 * 1.4; await wait(0.04); } st.walkN = 0; };
-    st.pos.set(0, 0, 94); st.heading = Math.PI; G.cut({ pos: v(-3, 1.6, 101), look: v(0, 24, 62), fov: 58 });
-    f.style.transition = ''; G.fade(false, 1.6);
-    await G.shot({ pos: v(-3, 1.6, 101), look: v(0, 118, 12), fov: 58 }, 6, 'inOut'); await wait(0.5);
-    const wk = walkTo(0, 76, 4.2); G.cut({ pos: v(-34, 1.8, 66), look: v(6, 22, 8), fov: 54 }); await G.shot({ pos: v(-26, 2.2, 50), look: v(14, 20, 6), fov: 54 }, 5, 'inOut');
-    G.cut({ pos: v(4, 2.4, 58), look: v(0, 2.4, 76), fov: 38 }); W.paintJack(jackOut, { expr: 1 }); await wait(1.0);
+    st.pos.set(0, 0, 94); st.heading = Math.PI; G.cut({ pos: v(4, 2.4, 60), look: v(0, 2.4, 86), fov: 34 });                 // (it opens on Jack, coming in; the hall is shown once, when he looks up at it)
+    f.style.transition = ''; G.fade(false, 1.6); W.paintJack(jackOut, { expr: 1 }); const wk = walkTo(0, 76, 4.2); await wait(1.4);
     await G.say('jack', 'Who lives in a place like this?');
-    await G.shot({ pos: v(0, 7, -96), look: v(0, 3, 76), fov: 46 }, 5, 'inOut');
-    await G.say('jack', 'A table set for one, and a hall you could lose a village in.');
+    G.cut({ pos: v(-3, 1.6, 101), look: v(0, 24, 62), fov: 58 }); const rv = G.shot({ pos: v(-3, 1.6, 101), look: v(0, 118, 12), fov: 58 }, 6, 'inOut');
+    await G.say('jack', 'A table set for one, and a hall you could lose a village in.'); await rv;
     G.cut({ pos: v(3, 2.7, 64), look: v(0, 2.7, 76), fov: 32 }); await wait(0.8);
     await G.say('jack', 'There has to be something here I can carry home. Something Mother can’t argue with.');
     await wait(0.4); const kk = st.s, d0 = 92 * kk; await G.shot({ pos: v(0, 15 * SC * kk + Math.sin(0.5) * d0, st.pos.z + d0 * Math.cos(0.5)), look: v(0, 15 * SC * kk, st.pos.z), fov: 48 }, 1.6, 'inOut');
