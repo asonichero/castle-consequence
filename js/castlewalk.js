@@ -159,7 +159,7 @@ function run(G, W, opts) {
         r.hips.position.y -= HP.hipsY * h; r.torso.rotation.set(L(r.torso.rotation.x, HP.torsoX), L(0, HP.torsoY), L(0, HP.torsoZ)); r.neck.rotation.set(L(r.neck.rotation.x, HP.neckX), L(0, HP.neckY), 0);
         r.armR.rotation.set(L(r.armR.rotation.x, HP.armRx), 0, L(0, HP.armRz)); r.elbow.rotation.x = L(0, HP.elbowX); r.wrist.rotation.y = L(0, HP.wristY); r.armL.rotation.set(L(r.armL.rotation.x, HP.armLx), 0, L(0, HP.armLz));
         r.legL.thigh.rotation.x = L(w, HP.legLx) + w * h; r.legL.knee.rotation.x = L(0, HP.legLknee); r.legR.thigh.rotation.x = L(-w, HP.legRx) - w * h; r.legR.knee.rotation.x = L(0, HP.legRknee); }
-      if (gst.nose > 0) { const k = gst.nose; r.armR.rotation.x += (gst.nA - r.armR.rotation.x) * k; r.elbow.rotation.x += (gst.nE - r.elbow.rotation.x) * k; }                       // (she brings him up close to her face to smell him)
+      if (gst.nose > 0) { const k = gst.nose; r.armR.rotation.x += (gst.nA - r.armR.rotation.x) * k; r.armR.rotation.z += (gst.nZ - r.armR.rotation.z) * k; r.elbow.rotation.x += (gst.nE - r.elbow.rotation.x) * k; }                       // (she brings him up close to her face to smell him)
       if (gst.give > 0) { const k = gst.give, L2 = (a, b) => a + (b - a) * k; r.armR.rotation.x = L2(r.armR.rotation.x, gst.gArm === undefined ? -1.5 : gst.gArm); r.armR.rotation.z = L2(r.armR.rotation.z, 0.05); r.elbow.rotation.x = L2(r.elbow.rotation.x, -0.15); r.torso.rotation.x = L2(r.torso.rotation.x, gst.gTorso === undefined ? 0.5 : gst.gTorso); r.neck.rotation.x = L2(r.neck.rotation.x, 0.25); }
       if (gst.lreach > 0) r.armL.rotation.set(-gst.lreach, 0, 0.05); if (gst.sniff) r.neck.rotation.x += gst.sniff;
       if (gst.alive) { const t = G.t, a = gst.alive, tk = gst.talk || 0, ls = gst.listen || 0;                       // (she is not a statue: she breathes, shifts her weight, turns her head, talks with her free hand, and feels him wriggle)
@@ -222,9 +222,9 @@ function run(G, W, opts) {
       face(1);                                                                                              // wincing, whenever he is not speaking
       shotFace(); await gspeak('gerda', 'Well. Not so badly put together. A little wild at the edges. A little soft in the jaw.');
       await G.wait(0.4);
-      { const T = hd().clone().add(fwd().multiplyScalar(6.5)).add(new V3(0, -1.5, 0)); let b2 = null;                // (the arm that puts him a hand's breadth from her nose)
-        for (let na = -2.1; na <= -0.9; na += 0.1) for (let ne = -2.3; ne <= -0.6; ne += 0.1) { gst.nA = na; gst.nE = ne; gst.nose = 1; placeGerda(); root.Blocky.step(gerda, 0); gerda.root.updateMatrixWorld(true); const e = gerda.wrist.localToWorld(new V3(0, -5, 0)).distanceTo(T); if (!b2 || e < b2.e) b2 = { na, ne, e }; }
-        gst.nA = b2.na; gst.nE = b2.ne; gst.nose = 0; placeGerda(); }
+      { const o = gerda.neck.localToWorld(new V3(0, 2.5, 0)), hf = gerda.neck.localToWorld(new V3(0, 2.5, 1)).sub(o).normalize(), T = o.clone().add(hf.multiplyScalar(6.5)).add(new V3(0, -0.8, 0)), HP = root.GerdaHold.gerda, jn = new V3(); let b2 = null;      // (the least change of her arm that brings his head to just in front of her nose, wherever her own head is turned)
+        for (let na = -1.9; na <= -0.8; na += 0.1) for (let ne = -2.0; ne <= -0.5; ne += 0.1) for (const nz of [-0.5, -0.3, -0.1, 0.1]) { gst.nA = na; gst.nE = ne; gst.nZ = nz; gst.nose = 1; placeGerda(); root.Blocky.step(gerda, 0); gerda.root.updateMatrixWorld(true); jackOut.neck.getWorldPosition(jn); const e = jn.distanceTo(T) + 2 * (Math.abs(na - HP.armRx) + Math.abs(ne - HP.elbowX) + Math.abs(nz - HP.armRz)); if (!b2 || e < b2.e) b2 = { na, ne, nz, e }; }
+        gst.nA = b2.na; gst.nE = b2.ne; gst.nZ = b2.nz; gst.nose = 0; placeGerda(); }
       for (let i = 1; i <= 16; i++) { gst.nose = i / 16; placeGerda(); await G.wait(0.04); }
       for (let i = 1; i <= 24; i++) { gst.sniff = 0.3 * Math.sin(Math.PI * i / 24); placeGerda(); await G.wait(0.04); } gst.sniff = 0;
       await gspeak('gerda', 'Sweat, and sap. And underneath it, something like home.');
