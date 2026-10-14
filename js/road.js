@@ -1,7 +1,7 @@
 // Climbing Toward Consequence — Chapter One, "Market Day" (the market road): a tutorial in leading, carrying and tying off.
 //   Jack leads Milky-White along a winding forest road, the trees leaning in overhead. She follows fine at a walk; running costs her trust and she drags on the lead, until at 60% she
 //   plants her hooves. Standing close does not win her back in this chapter: E beside her (and not by a tying-off tree) lets Jack talk her round, +15%. Three obstacles block the road
-//   to her but not to Jack (a fallen limb, rocks, crates): tie her to the nearby tree with E, pick the obstacle up with E, put it down with Q or E, untie her and go on.
+//   to her but not to Jack (a fallen limb, rocks, crates): tie her to the nearby tree with E, pick the obstacle up with E, put it down with Q, untie her and go on.
 //   At the end of the road, the Peddler's crooked cart: a short dialogue tree in Jack's voice (cocky, hopeful, sure his luck is about to turn); every branch ends with the trade.
 (function (root) {
 'use strict';
@@ -317,11 +317,11 @@ function playLoop(G, W, opts) {
     const nearTie = r => { for (const t of ties) if (Math.hypot(st.pos.x - t.x, st.pos.z - t.z) < r) return t; return null; };
     function interact() {
       if (st.done) return;
-      if (st.carry) { putDown(); return; }
+      if (st.carry) { toast('Put it down first (Q).', 1800); return; }
       const it = nearestItem(13), tt0 = nearTie(16), facing = (x, z) => { const dx = x - st.pos.x, dz = z - st.pos.z, m = Math.hypot(dx, dz) || 1; return (dx * Math.sin(st.heading) + dz * Math.cos(st.heading)) / m; };   // (what he is facing wins when both are in reach)
       if (it && !(tt0 && facing(tt0.x, tt0.z) > facing(it.x, it.z))) {
         if (cow.mode === 'follow') { toast('Your hands are full with the lead. Tie Milky-White to a tree first.'); return; }
-        st.carry = it; it.carried = true; ja.carry = 1; ja.lead = false; toast('You pick up the ' + (it.kind === 'limb' ? 'limb' : it.kind) + '. Q or E puts it down.'); return;
+        st.carry = it; it.carried = true; ja.carry = 1; ja.lead = false; toast('You pick up the ' + (it.kind === 'limb' ? 'limb' : it.kind) + '. Q puts it down.'); return;
       }
       const t = nearTie(16);
       if (t) {
@@ -419,7 +419,7 @@ function playLoop(G, W, opts) {
       // The HUD.
       const t = nearTie(16), it = !st.carry && nearestItem(13), pace = st.speedN < 0.5 ? 'Still' : running ? 'Running' : st.sneak ? 'Sneaking' : 'Walking';
       const blockedNow = cow.blockedT > 0.8;
-      ui.obj.textContent = st.carry ? 'Find somewhere to put it down (Q or E).' : cow.mode === 'tied' ? 'Clear the way, then untie Milky-White (E at the tree) and go on.' : blockedNow ? 'Milky-White can’t follow: tie her to a tree (E), then move what’s in the way.' : cow.planted ? 'Milky-White has stopped. Stand by her and speak softly (E).' : 'Lead Milky-White along the road to market.';
+      ui.obj.textContent = st.carry ? 'Find somewhere to put it down (Q).' : cow.mode === 'tied' ? 'Clear the way, then untie Milky-White (E at the tree) and go on.' : blockedNow ? 'Milky-White can’t follow: tie her to a tree (E), then move what’s in the way.' : cow.planted ? 'Milky-White has stopped. Stand by her and speak softly (E).' : 'Lead Milky-White along the road to market.';
       ui.trustWrap.style.display = 'block'; ui.trustBar.style.width = cow.trust + '%'; ui.trustVal.textContent = Math.round(cow.trust) + '%'; ui.trustBar.classList.toggle('full', cow.trust >= 99.5);
       ui.pace.textContent = pace + (running ? ' — she won’t like that!' : ''); ui.pace.classList.toggle('warn', running);
       const h = st.carry ? 'Q / E: put it down' : it ? 'E: pick up the ' + it.kind : t ? (cow.mode === 'tied' && cow.tree === t ? 'E: untie Milky-White' : cow.mode === 'follow' ? 'E: tie Milky-White to the tree' : '') : gapCow() < 18 && cow.trust < 100 ? 'E: speak softly to her' : '';
@@ -429,7 +429,7 @@ function playLoop(G, W, opts) {
       { const tie = nearTie(16), item = !st.carry && nearestItem(13), facing = (x, z) => { const dx = x - st.pos.x, dz = z - st.pos.z, m = Math.hypot(dx, dz) || 1; return (dx * Math.sin(st.heading) + dz * Math.cos(st.heading)) / m; };
         tu.set('jump', { label: 'Jump', icon: 'jump', enabled: st.grounded && !st.carry });
         let act = null;
-        if (st.carry) act = 'Put down';
+        if (st.carry) act = null;
         else if (item && !(tie && facing(tie.x, tie.z) > facing(item.x, item.z))) act = 'Pick up';
         else if (tie && cow.mode === 'tied' && cow.tree === tie) act = 'Untie';
         else if (tie && cow.mode === 'follow') act = 'Tie up';

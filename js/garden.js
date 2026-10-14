@@ -133,7 +133,7 @@ function run(G, W, tier) {
       if (st.phase === 'home' && near(DOOR, 20)) { goInside(); return; }
       // Rocks, and weeds, while the ground is being cleared.
       if (st.phase === 'clear') {
-        if (st.hold === 'rock') { putDown(); return; }
+        if (st.hold === 'rock') { toast('Put the stone down first (Q).'); return; }
         let best = null, bd = 12; for (const r of rocks) if (!r.out && r.g.parent === stage && inPlot(r.g.position, 8)) { const d = Math.hypot(st.pos.x - r.g.position.x, st.pos.z - r.g.position.z); if (d < bd) { bd = d; best = r; } }
         let bw = null, wd = 10; for (const w of weeds) if (!w.gone) { const d = Math.hypot(st.pos.x - w.g.position.x, st.pos.z - w.g.position.z); if (d < wd) { wd = d; bw = w; } }
         if (best && (!bw || bd <= wd)) {                                                                // (whichever is nearer)
@@ -155,7 +155,7 @@ function run(G, W, tier) {
           doAct('lift', 0.5, () => { scene.remove(hoe); handHoe(true); st.hold = 'hoe'; aOut.carry = 0; toast(st.phase === 'clear' ? 'You take the hoe. Clear the ground first.' : 'You take the hoe.'); A && A.blip && A.blip(); });
           return;
         }
-      } else if (st.hold === 'rock') { if (st.phase !== 'clear') putDown(); }
+      }
       // Tilling.
       if (st.phase === 'till' && st.hold === 'hoe') {
         const c = cellOf(); const pip = c && pipAt(c[0], c[1]);
@@ -248,14 +248,14 @@ function run(G, W, tier) {
       if (!st.act && !st.inside) {
         if (st.phase === 'home' && near(DOOR, 20)) hint = 'E: open the door';
         else if (st.phase === 'clear') {
-          if (st.hold === 'rock') hint = inPlot(st.pos, 3) ? 'Carry it off the plot' : 'E: put the stone down';
+          if (st.hold === 'rock') hint = inPlot(st.pos, 3) ? 'Carry it off the plot' : 'Q: put the stone down';
           else { for (const r of rocks) if (!r.out && r.g.parent === stage && Math.hypot(st.pos.x - r.g.position.x, st.pos.z - r.g.position.z) < 12 && inPlot(r.g.position, 8)) hint = 'E: lift the stone'; if (!hint) for (const w of weeds) if (!w.gone && Math.hypot(st.pos.x - w.g.position.x, st.pos.z - w.g.position.z) < 10) hint = 'E: pull the weed'; }
         } else if (st.phase === 'till' && st.hold === 'hoe') { const c = cellOf(), pip = c && pipAt(c[0], c[1]); if (pip && !pip.tilled) hint = 'E: till this square'; }
         else if (st.phase === 'plant') { const c = cellOf(), pip = c && pipAt(c[0], c[1]); if (pip && pip.tilled && !pip.bean) hint = 'E: plant a bean'; }
         if (!hint && st.hold !== 'hoe' && st.hold !== 'rock' && st.phase !== 'plant' && st.phase !== 'home') { const hp = hoe.getWorldPosition(new V3()); if (hoe.parent !== holder && Math.hypot(st.pos.x - hp.x, st.pos.z - hp.z) < 16) hint = 'E: take the hoe'; }
       }
       $('gHint').textContent = hint; $('gHint').style.display = hint ? 'block' : 'none';
-      { const L = { 'E: open the door': 'Open', 'E: put the stone down': 'Put down', 'E: lift the stone': 'Pick up', 'E: pull the weed': 'Pull weed', 'E: till this square': 'Till', 'E: plant a bean': 'Plant', 'E: take the hoe': 'Pick up' }[hint];
+      { const L = { 'E: open the door': 'Open', 'E: lift the stone': 'Pick up', 'E: pull the weed': 'Pull weed', 'E: till this square': 'Till', 'E: plant a bean': 'Plant', 'E: take the hoe': 'Pick up' }[hint];
         ui.set('act', L ? { label: L, enabled: true } : { label: 'Do', enabled: false });
         const can = !st.act && !st.inside && (st.hold === 'hoe' || (st.hold === 'rock' && !inPlot(st.pos, 3)));
         ui.set('drop', { label: st.hold ? 'Put down' : 'Drop', enabled: can }); }

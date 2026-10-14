@@ -1,5 +1,5 @@
 // Climbing Toward Consequence — the touch controls, one set for every walking scene.
-//   Left thumb: the stick, with Sneak (a latching toggle) just above it.  Right thumb: Jump / Climb (big, lowest), Action / Pick up beside it, Drop above it, and Run (held while pressed) between them.
+//   Left thumb: the stick, with Sneak (a latching toggle) just above it.  Right thumb: Jump / Climb (big, lowest), Action / Pick up beside it, Run (held while pressed) above it, and Drop between them.
 //   Every button is always on screen, greyed out when the scene has no use for it or it would do nothing.  Top right, under the Menu button: the camera button (the same round camera as the correction scenes), which steps through the zooms and first person.
 //   Every button has an icon; Jump and Action also carry a small label for what a tap will do now. A button that would do nothing is greyed out and ignores taps.
 // Use:  const ui = TouchUI.create({ run: true, sneak: true, jump: true, act: true, drop: true, cam: true });
@@ -29,15 +29,15 @@ const CSS = `
   #tui .tb.off { opacity: 0.32; filter: grayscale(1); }
   #tJump { right: 22px; bottom: 24px; width: 78px; height: 78px; } #tJump svg { width: 34px; height: 34px; }
   #tAct { right: 112px; bottom: 34px; width: 66px; height: 66px; } #tAct svg { width: 28px; height: 28px; }
-  #tDrop { right: 37px; bottom: 112px; width: 58px; height: 58px; } #tDrop svg { width: 22px; height: 22px; }
-  #tRun { right: 106px; bottom: 104px; width: 54px; height: 54px; } #tSneak { left: 52px; bottom: 170px; width: 54px; height: 54px; } #tRun svg, #tSneak svg { width: 25px; height: 25px; }
+  #tDrop { right: 106px; bottom: 104px; width: 58px; height: 58px; } #tDrop svg { width: 22px; height: 22px; }
+  #tRun { right: 37px; bottom: 112px; width: 54px; height: 54px; } #tSneak { left: 52px; bottom: 170px; width: 54px; height: 54px; } #tRun svg, #tSneak svg { width: 25px; height: 25px; }
   #tCam { right: 12px; top: 72px; width: 56px; height: 56px; z-index: 36; } #tCam svg { width: 30px; height: 30px; }
   #tStick { position: absolute; left: 22px; bottom: 26px; width: 130px; height: 130px; border-radius: 50%; background: rgba(20,22,28,0.45); border: 2px solid rgba(230,196,106,0.55); touch-action: none; display: none; pointer-events: auto; }
   #tKnob { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: rgba(230,196,106,0.75); pointer-events: none; }
   @media (pointer: coarse) { #tui.hasStick #tStick { display: block; } #tui .tb.touch.vis { display: flex; } }
   #tui.force.hasStick #tStick { display: block; } #tui.force .tb.touch.vis { display: flex; }
   #tui .tb.vis:not(.touch) { display: flex; }
-  @media (max-height: 420px) { #tJump { width: 68px; height: 68px; right: 18px; bottom: 18px; } #tAct { right: 98px; bottom: 26px; width: 58px; height: 58px; } #tDrop { right: 28px; bottom: 98px; width: 54px; height: 54px; } #tStick { width: 112px; height: 112px; left: 16px; bottom: 18px; } #tRun { right: 94px; bottom: 92px; width: 48px; height: 48px; } #tSneak { left: 44px; bottom: 140px; width: 48px; height: 48px; } #tCam { top: 66px; width: 48px; height: 48px; } }`;
+  @media (max-height: 420px) { #tJump { width: 68px; height: 68px; right: 18px; bottom: 18px; } #tAct { right: 98px; bottom: 26px; width: 58px; height: 58px; } #tDrop { right: 94px; bottom: 92px; width: 54px; height: 54px; } #tStick { width: 112px; height: 112px; left: 16px; bottom: 18px; } #tRun { right: 28px; bottom: 98px; width: 48px; height: 48px; } #tSneak { left: 44px; bottom: 140px; width: 48px; height: 48px; } #tCam { top: 66px; width: 48px; height: 48px; } }`;
 let UI = null;
 const svg = name => '<svg viewBox="0 0 24 24">' + (ICONS[name] || '') + '</svg>';
 function build() {
