@@ -47,6 +47,7 @@ function run(G, W, opts) {
       const tgp = M.items.kitchenTable.g, gone = []; tgp.traverse(o => { if (o.userData && o.userData.item) gone.push(o); }); for (const o of gone) if (o.parent) o.parent.remove(o);
       const b0 = M.items.keepsakeBox.g; b0.position.set(tgp.position.x, 25.5, tgp.position.z); b0.rotation.y = 0; b0.userData.box.lid.rotation.x = 0;
       for (const d of M.doors) if (d.axis === 'z' && Math.abs(d.fixed + 111) < 3 && Math.abs(d.c - 162) < 6) { d.openAng = d.lg.rotation.y; d.lg.rotation.y = 0; d.og.userData.noCollide = false; }       // the garden door is shut
+      for (const d of M.doors) if (d.axis === 'x' && Math.abs(d.fixed + 90) < 3 && Math.abs(d.c + 25.5) < 8) { d.og.visible = false; d.og.userData.noCollide = true; }       // (no doors where the narrow corridor meets the corridor with the urns)
       for (const h of M.hallLeaves) h.lf.rotation.y = 0;                                                                                                                                               // and so are the great doors, with the crack he came in by still to be seen at their foot
       { const crack = new THREE.Mesh(new THREE.BoxGeometry(3.4, 4.6, 0.5), new THREE.MeshBasicMaterial({ color: 0xfff1c4 })); crack.position.set(0, 2.3, 108.5); M.scene.add(crack); }
     }
@@ -356,10 +357,17 @@ function run(G, W, opts) {
       const Hj = HEIGHT * SC * s, busy = !!(st.cl || st.mant);
       const dir = v(0, 0, 0).addScaledVector(f, (keys.up ? 1 : 0) - (keys.down ? 1 : 0)).addScaledVector(r, (keys.right ? 1 : 0) - (keys.left ? 1 : 0));
       if (Math.hypot(stick.x, stick.y) > 0.2) dir.addScaledVector(f, -stick.y).addScaledVector(r, stick.x);
+      const edge = (x, z) => { if (st.cl || st.mant) return; let best = null;
+        for (const e of C.near(x, z, Hj + 4)) { if (!e.wood || e.low || e.y1 >= st.y - 0.05 || e.y1 < st.y - 0.8 * Hj || e.y0 > st.y - 2 * Hj) continue; const qx = clamp(x, e.x0, e.x1), qz = clamp(z, e.z0, e.z1), d = Math.hypot(qx - x, qz - z); if (d > 0.9 * Hj) continue; if (!best || d < best.d) best = { e, qx, qz, d }; }
+        if (!st.dropSaid) { st.dropSaid = true; G.caption('jack', best ? 'Too far to jump. But I could climb down that.' : 'Too far to jump. I\u2019d break my neck.'); }
+        if (!best || st.y > st.standY + 0.5 * s) return;
+        let nx = x - best.qx, nz = z - best.qz; const nl = Math.hypot(nx, nz); if (nl < 0.01) { nx = Math.sin(st.heading); nz = Math.cos(st.heading); } else { nx /= nl; nz /= nl; }
+        st.pos.x = best.qx + nx * 6.5 * s; st.pos.z = best.qz + nz * 6.5 * s; st.heading = Math.atan2(-nx, -nz); st.y = best.e.y1; st.cl = { e: best.e, down: true, top: best.e.y1 }; st.vy = 0; st.perch = null; st.stam = 1; };
       if (busy) { st.walkN = 0; } else if (dir.lengthSq() > 0) {
         dir.normalize(); const want = Math.atan2(dir.x, dir.z); st.heading += angDiff(want, st.heading) * Math.min(1, dt * 9);
         const off = Math.abs(angDiff(want, st.heading)), ease = clamp(1 - off / Math.PI * 0.8, 0.2, 1), sp = (keys.run ? 50 : 26) * SC * Math.pow(s, 0.6) * ease, nx = st.pos.x + Math.sin(st.heading) * sp * dt, nz = st.pos.z + Math.cos(st.heading) * sp * dt;
-        if (!blockedAt(nx, st.pos.z, st.y)) st.pos.x = nx; if (!blockedAt(st.pos.x, nz, st.y)) st.pos.z = nz; st.walkN = 1; st.walkPh += 10.9 * Math.pow(s, -0.35) * 0.55 * dt * 1.4 * (keys.run ? 1.5 : 1);
+        const dropBad = (x, z) => { if (st.standY === undefined || st.y < st.standY - 0.5 * s && st.vy < 0) return false; const lo = floorAt(x, z, st.y); if (lo >= st.standY - 2 * Hj) return false; edge(x, z); return true; };       // (never off anything more than twice his height: walking or leaping)
+        if (!blockedAt(nx, st.pos.z, st.y) && !dropBad(nx, st.pos.z)) st.pos.x = nx; if (!st.cl && !blockedAt(st.pos.x, nz, st.y) && !dropBad(st.pos.x, nz)) st.pos.z = nz; st.walkN = 1; st.walkPh += 10.9 * Math.pow(s, -0.35) * 0.55 * dt * 1.4 * (keys.run ? 1.5 : 1);
       } else st.walkN = Math.max(0, st.walkN - dt * 6);
       if (story && !st.loaf && st.pos.x > 96 && st.pos.z > -109 && st.pos.z < 51) { st.loaf = true; st.lockT = 1.8; st.lockH = Math.atan2(175 - st.pos.x, -36 - st.pos.z); G.caption('jack', 'A loaf! A freshly baked loaf, right there on the table.'); setTimeout(() => G.caption('jack', 'It must be miles up... I wonder if I could climb to it.'), 3400); }
       if (story) { const near = st.pos.x < -82.5 && st.pos.z > -43 && st.pos.z < -8;                                   // (right up at the narrow corridor's doors, where the smell of bread comes through the gap)
@@ -388,7 +396,9 @@ function run(G, W, opts) {
         else { const q = (k - 0.5) / 0.5, e2 = q * q * (3 - 2 * q); st.pos.x = m.from.x + (m.to.x - m.from.x) * e2; st.pos.z = m.from.z + (m.to.z - m.from.z) * e2; st.y = rise + (m.to.y - rise) * e2; }
         if (k >= 1) { st.y = m.to.y; st.mant = null; st.vy = 0; st.stam = 1; st.perch = m.e && Math.min(m.e.x1 - m.e.x0, m.e.z1 - m.e.z0) < 20 * s ? m.e : null; } }
       else if (st.cl) {
-        st.climbPh += dt * 9; if (!keys.space || st.stam <= 0) { st.cl = null; }
+        st.climbPh += dt * 9;
+        if (st.cl.down) { st.y -= 0.8 * Hj * dt; let g = 0; for (const e of C.near(st.pos.x, st.pos.z, 3 * s + 2)) { if (e.y1 > st.cl.top - 0.01 || e.y1 <= g) continue; const cx = clamp(st.pos.x, e.x0, e.x1), cz = clamp(st.pos.z, e.z0, e.z1); if ((st.pos.x - cx) ** 2 + (st.pos.z - cz) ** 2 < (1.2 * s) ** 2) g = e.y1; } if (st.y <= g) { st.y = g; st.cl = null; st.vy = 0; } }
+        else if (!keys.space || st.stam <= 0) { st.cl = null; }
         else { const sp = 0.8 * Hj; st.y += sp * dt; st.stam -= sp * dt / (1.6 * Hj); let plat = null;
           for (const e of C.near(st.pos.x, st.pos.z, 1.2 * Hj + 3)) { if (!e.wood || e.low || e.y1 <= st.y + 0.3 * Hj || e.y1 > st.y + 1.3 * Hj) continue; const [qx, qz] = pointOn(e, st.pos.x, st.pos.z); if (Math.hypot(qx - st.pos.x, qz - st.pos.z) > 0.8 * Hj) continue; if (!landingFor(e)) continue; if (!plat || e.y1 > plat.y1) plat = e; }
           if (plat) startMantle(plat, landingFor(plat)); }
@@ -396,6 +406,7 @@ function run(G, W, opts) {
       if (!busy || (!st.cl && !st.mant)) {
         if (st.vy <= 0 && st.y <= gy + 0.4 * s && !st.cl && !st.mant) { st.y += (gy - st.y) * Math.min(1, dt * 22); st.vy = 0; } else if (!st.cl && !st.mant) { st.vy -= 420 * s * dt; st.y += st.vy * dt; if (st.y < gy) { st.y = gy; st.vy = 0; } else if (st.vy > 0 && blockedAt(st.pos.x, st.pos.z, st.y)) st.vy = 0; }
       }
+      if (!st.cl && !st.mant && st.vy <= 0 && st.y <= gy + 0.05 * s + 0.01) st.standY = gy;
       st.air = !st.cl && !st.mant && (st.vy > 1 || st.y > gy + 0.5 * s); if (!st.air && !st.cl && !st.mant) st.stam = 1;
       $('cwStamW').style.display = st.cl ? 'block' : 'none'; $('cwStam').style.width = Math.max(0, st.stam * 100) + '%';
       jackOut.root.scale.setScalar(SC * s); jackOut.root.position.set(st.pos.x, st.y, st.pos.z); jackOut.root.rotation.y = st.heading;
