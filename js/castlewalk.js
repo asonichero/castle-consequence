@@ -270,7 +270,7 @@ function run(G, W, opts) {
       await gspeak('gerda', 'A magic stalk, a stranger’s house, a plate that was never yours. And you thought no one would notice.');
       await gspeak('gerda', 'That isn’t a man’s doing, little one. That’s mischief. And mischief gets put somewhere safe.'); await sitUp;
       shotBoxJack(); face(3); await gspeak('jack', 'I’m not—');
-      for (let i = 1; i <= 14; i++) { box.lid.rotation.x = -1.95 * (1 - i / 14); gst.lreach = 1.3 * (1 - i / 14); gst.l2 = 1 - i / 14; st.sit = 1 - 0.4 * (i / 14); placeGerda(); await G.wait(0.04); } A && A.thud && A.thud(0.4); await G.wait(1.2);
+      for (let i = 1; i <= 14; i++) { box.lid.rotation.x = -1.95 * (1 - i / 14); gst.lreach = 1.3 * (1 - i / 14); gst.l2 = 1 - i / 14; placeGerda(); await G.wait(0.04); } A && A.thud && A.thud(0.4); await G.wait(1.2);
     }
     async function caught() {
       if (st.caught) return; st.caught = true; st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwPrompt').style.display = 'none'; $('cwObjt').style.display = 'none'; st.walkN = 0; st.cl = null; st.mant = null; st.vy = 0;
