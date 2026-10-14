@@ -91,7 +91,7 @@ async function run(G, W, opts) {
   const placeBlanket = (x, y, z, sx) => { blanket.position.set(x, y, z); blanket.scale.set(sx == null ? 1 : sx, 1, 1); coverOn = false; drape.visible = false; };
   const fitBlanket = () => {
     jackIn.root.updateMatrixWorld(true); const bb = new THREE.Box3().setFromObject(jackIn.root), nk = new THREE.Vector3(), hp = new THREE.Vector3(); jackIn.neck.getWorldPosition(nk); jackIn.hips.getWorldPosition(hp);
-    const dir = Math.sign(nk.x - hp.x) || -1, head = dir < 0 ? bb.min.x : bb.max.x, feet = dir < 0 ? bb.max.x : bb.min.x, a = head - dir * -8.5, b = feet + dir * -1.5, x0 = Math.min(a, b), x1 = Math.max(a, b);
+    const dir = Math.sign(nk.x - hp.x) || -1, head = dir < 0 ? bb.min.x : bb.max.x, feet = dir < 0 ? bb.max.x : bb.min.x, a = head - dir * 8.5, b = feet - dir * 1.5, x0 = Math.min(a, b), x1 = Math.max(a, b);
     const top = bb.max.y + 1.35, zc = (bb.min.z + bb.max.z) / 2, sz = clamp((bb.max.z - bb.min.z + 9) / 18.4, 0.55, 1), H = Math.max(2, top - 1.2 - BED_Y + 0.3);
     blanket.position.set((x0 + x1) / 2, top, zc); blanket.scale.set(Math.max(0.2, (x1 - x0) / 32), 1, sz); drape.visible = true; drape.scale.y = H / 10; drape.position.y = -1.2 - H / 2;
   };
