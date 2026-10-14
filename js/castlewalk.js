@@ -29,7 +29,7 @@ function collect(room, ceiling, pantry) {
 }
 
 function run(G, W, opts) {
-  opts = opts || {}; const story = !!opts.story, ROOMS = { hall: [-88, 88, -108, 108], kitchen: [92, 248, -109, 51], hallKitchenDoor: [86, 94, -45, -5] };
+  opts = opts || {}; const ch3 = !!opts.ch3, story = !!opts.story, ROOMS = { hall: [-88, 88, -108, 108], kitchen: [92, 248, -109, 51], hallKitchenDoor: [86, 94, -45, -5] };
   return new Promise(async resolve => {
     const { jackOut, aOut } = W, el = G.renderer.domElement, camera = G.camera, nearOld = camera.near;
     const M = root.Castle.interior(), scene = M.scene, ceiling = M.ceiling;
@@ -43,13 +43,17 @@ function run(G, W, opts) {
     let gerda = null; const world = { scene, update(dt, t) { M.update(dt, t); aOut.t += dt; if (st && st.wriggle && st.inHand && gerda && jackOut.root.parent === gerda.wrist && root.GerdaHold) { const J = root.GerdaHold.jack, w = t * 1; jackOut.root.rotation.set(J.rx + 0.045 * Math.sin(w * 3.1), J.ry + 0.06 * Math.sin(w * 2.3 + 1), J.rz + 0.04 * Math.sin(w * 3.7 + 2)); jackOut.root.position.set(J.px + 0.02 * Math.sin(w * 2.9), J.py + 0.025 * Math.sin(w * 3.3 + 1), J.pz + 0.02 * Math.sin(w * 2.1)); }
       root.Blocky.step(jackOut, dt); if (gerda) root.Blocky.step(gerda, dt); } };
     // two more horses' worth of toys are not wanted here: one rocking horse is all the nursery has (see castle.js)
+    if (ch3) {                                                                                              // Chapter Three opens in the kitchen: the table is cleared, and the keepsake box stands in the middle of it
+      const tgp = M.items.kitchenTable.g, gone = []; tgp.traverse(o => { if (o.userData && o.userData.item) gone.push(o); }); for (const o of gone) if (o.parent) o.parent.remove(o);
+      const b0 = M.items.keepsakeBox.g; b0.position.set(tgp.position.x, 25.5, tgp.position.z); b0.rotation.y = 0; b0.userData.box.lid.rotation.x = 0;
+    }
     const C = collect(M.room, ceiling, M.items.pantry && M.items.pantry.g);
     const things = []; if (story) { M.room.updateMatrixWorld(true); M.room.traverse(o => { if (o.userData && o.userData.item) { const w = new V3(); o.getWorldPosition(w); things.push(Object.assign({ o, pos: w }, o.userData.item)); } }); }
     scene.add(jackOut.root); jackOut.root.visible = true; W.paintJack(jackOut, { expr: 0 }); root.Meadow && root.Meadow.addGear && root.Meadow.addGear(jackOut);
-    G.setScene(world); G.drone = null; if (!story) G.noSave = true;
+    G.setScene(world); G.drone = null; if (!story && !ch3) G.noSave = true;
     camera.near = 0.4; camera.far = 1600; camera.updateProjectionMatrix(); let nearS = 0;
     A && A.ambience({ wind: 0, birds: 0, fire: 0.2 });
-    const st = { pos: v(0, 0, story ? 98 : 70), heading: Math.PI, walkN: 0, walkPh: 0, camA: Math.PI / 2, pitch: 0.35, fpPitch: 0, zoom: 1, vy: 0, y: 0, jumpReq: false, s: story ? (opts.scale || 0.1) : FULL, fp: false, scene: false, actReq: false, putReq: false, eaten: 0, perch: null, air: false, cl: null, mant: null, stam: 1, climbPh: 0, toastAt: 0 };
+    const st = { pos: v(0, 0, story ? 98 : 70), heading: Math.PI, walkN: 0, walkPh: 0, camA: Math.PI / 2, pitch: 0.35, fpPitch: 0, zoom: 1, vy: 0, y: 0, jumpReq: false, s: opts.scale || (story ? 0.1 : FULL), fp: false, scene: false, actReq: false, putReq: false, eaten: 0, perch: null, air: false, cl: null, mant: null, stam: 1, climbPh: 0, toastAt: 0 };
     jackOut.after = r => {
       const w = Math.sin(st.walkPh) * 0.7 * st.walkN;
       r.legL.thigh.rotation.x = w; r.legR.thigh.rotation.x = -w; r.legL.knee.rotation.x = 0; r.legR.knee.rotation.x = 0;
@@ -59,6 +63,7 @@ function run(G, W, opts) {
       else if (st.sit) { const k = st.sit; r.legL.thigh.rotation.x = r.legR.thigh.rotation.x = -1.35 * k; r.legL.knee.rotation.x = r.legR.knee.rotation.x = 0.15 * k; r.armL.rotation.set(-0.2 * k, 0, 0.5 * k); r.armR.rotation.set(-0.2 * k, 0, -0.5 * k); r.torso.rotation.x = -0.05 * k; r.neck.rotation.x = -0.85 * k; }          // (sitting up in the box, his hands braced on the velvet, his head back, looking up at her)
       else if (st.inHand && root.GerdaHold) { const J = root.GerdaHold.jack, wg = st.wriggle ? 0.3 * Math.sin(G.t * 3.4) : 0, wg2 = st.wriggle ? 0.3 * Math.sin(G.t * 2.7 + 1.5) : 0; r.armL.rotation.set(J.armLx + 0.3 * wg, 0, J.armLz + 0.2 * wg2); r.armR.rotation.set(J.armRx - 0.3 * wg, 0, J.armRz - 0.2 * wg2); r.legL.thigh.rotation.x = J.legLx + 0.35 * wg2; r.legR.thigh.rotation.x = J.legRx - 0.35 * wg; r.legL.knee.rotation.x = J.kneeL; r.legR.knee.rotation.x = J.kneeR; r.torso.rotation.x = J.torsoX; r.neck.rotation.x = J.neckX; }
       else if (st.air) { r.armL.rotation.x = r.armR.rotation.x = -2.5; r.legL.thigh.rotation.x = -0.5; r.legR.thigh.rotation.x = 0.25; r.legR.knee.rotation.x = 0.5; }                    // (the leap, as in Chapter One)
+      if (st.pose) { const q = st.pose; if (q.thigh !== undefined) r.legL.thigh.rotation.x = r.legR.thigh.rotation.x = q.thigh; if (q.knee !== undefined) r.legL.knee.rotation.x = r.legR.knee.rotation.x = q.knee; if (q.armLx !== undefined) r.armL.rotation.set(q.armLx, 0, q.armLz || 0); if (q.armRx !== undefined) r.armR.rotation.set(q.armRx, 0, q.armRz || 0); if (q.torso !== undefined) r.torso.rotation.x = q.torso; if (q.neckX !== undefined) r.neck.rotation.x = q.neckX; if (q.neckY !== undefined) r.neck.rotation.y = q.neckY; }       // (a pose set by a scene, over the rest)
     };
     // ── HUD and controls ──
     const css = document.createElement('style');
@@ -155,7 +160,7 @@ function run(G, W, opts) {
     const GS = FULL, gst = { x: 0, z: 0, h: 0, ph: 0, walk: 0, bend: 0, reach: 0, look: 0 }, EYE = 41;
     const gsay = t => G.caption('gerda', t);
     function placeGerda() { gerda.root.position.set(gst.x, 0, gst.z); gerda.root.rotation.y = gst.h; }
-    function makeG() { gerda = root.Blocky.makeGerda('Fine'); gerda.root.scale.setScalar(GS); scene.add(gerda.root); gerda.after = r => { const w = Math.sin(gst.ph) * 0.62 * gst.walk; r.legL.thigh.rotation.x = w; r.legR.thigh.rotation.x = -w; r.armL.rotation.x = -w * 0.7; r.armR.rotation.x = w * 0.7 - gst.reach; r.torso.rotation.x = gst.bend; r.neck.rotation.x = gst.look - gst.bend * 0.6;
+    function makeG(outfit) { gerda = root.Blocky.makeGerda(outfit || 'Fine'); gerda.root.scale.setScalar(GS); scene.add(gerda.root); gerda.after = r => { const w = Math.sin(gst.ph) * 0.62 * gst.walk; r.legL.thigh.rotation.x = w; r.legR.thigh.rotation.x = -w; r.armL.rotation.x = -w * 0.7; r.armR.rotation.x = w * 0.7 - gst.reach; r.torso.rotation.x = gst.bend; r.neck.rotation.x = gst.look - gst.bend * 0.6;
       const h = gst.hold || 0, HP = root.GerdaHold && root.GerdaHold.gerda; if (h > 0 && HP) { const L = (a, b) => a + (b - a) * h;                                  // holding Jack: the pose set in pose-editor.html (js/gerda-pose.js)
         r.hips.position.y -= HP.hipsY * h; r.torso.rotation.set(L(r.torso.rotation.x, HP.torsoX), L(0, HP.torsoY), L(0, HP.torsoZ)); r.neck.rotation.set(L(r.neck.rotation.x, HP.neckX), L(0, HP.neckY), 0);
         r.armR.rotation.set(L(r.armR.rotation.x, HP.armRx), 0, L(0, HP.armRz)); r.elbow.rotation.x = L(0, HP.elbowX); r.wrist.rotation.y = L(0, HP.wristY); r.armL.rotation.set(L(r.armL.rotation.x, HP.armLx), 0, L(0, HP.armLz));
@@ -340,7 +345,7 @@ function run(G, W, opts) {
     }
     async function finish(res) { G.castleResult = res; await G.fade(true, 2.2); await G.wait(0.3); cleanup(); G.mode = 'end'; document.body.classList.remove('cutscene'); resolve({ result: res }); }
     const tick = dt => {
-      if (st.scene) { st.jumpReq = st.actReq = st.putReq = false; if (!st.inHand) { jackOut.root.scale.setScalar(SC * st.s); jackOut.root.position.set(st.pos.x, st.y, st.pos.z); jackOut.root.rotation.y = st.heading; } return; }
+      if (st.scene) { st.jumpReq = st.actReq = st.putReq = false; if (!st.inHand && !st.boxed) { jackOut.root.scale.setScalar(SC * st.s); jackOut.root.position.set(st.pos.x, st.y, st.pos.z); jackOut.root.rotation.y = st.heading; } return; }
       const s = st.s; if (Math.abs(s - nearS) > 0.02) { nearS = s; camera.near = Math.max(0.1, 0.3 * s); camera.updateProjectionMatrix(); }       // (a nearer near plane only as he is small: the depth buffer keeps its precision, so flat surfaces do not shimmer)
       const f = v(-Math.cos(st.camA), 0, -Math.sin(st.camA)), r = v(Math.sin(st.camA), 0, -Math.cos(st.camA));
       if (st.lockT > 0) { st.lockT -= dt; keys.up = keys.down = keys.left = keys.right = false; stick.x = stick.y = 0; st.heading += angDiff(st.lockH, st.heading) * Math.min(1, dt * 5); st.camA += angDiff(Math.atan2(-Math.cos(st.lockH), -Math.sin(st.lockH)), st.camA) * Math.min(1, dt * 3); st.pitch += (0.1 - st.pitch) * Math.min(1, dt * 3); }       // (the camera settles low behind him, so that what he has noticed is in view)
@@ -359,6 +364,7 @@ function run(G, W, opts) {
           else { if (performance.now() - (st.remindAt || 0) > 6000) { st.remindAt = performance.now(); G.caption('jack', 'Not that way. I’m starving, and that bread has to be somewhere close.'); } } }
         else if (!near) st.inZone = false; }
       if (story) storyTick(dt);
+      if (ch3) ch3Tick(dt);
       const gy = floorAt(st.pos.x, st.pos.z, st.y), rj = 4 * s;
       // Wood he can get his hands to: a short step up (to three quarters of his height) is a mantle; anything taller, a climb, which tires him fast (about a height and a half) unless there is a rung to rest on, and a rung or a top he can pull onto within one more height.
       const pointOn = (e, x, z) => [clamp(x, e.x0, e.x1), clamp(z, e.z0, e.z1)];
@@ -408,8 +414,78 @@ function run(G, W, opts) {
       const cd = pantryG.userData.cupDoors; cd.dl.rotation.y = -1.7; cd.dr.rotation.y = 1.7; st.inCup = true;
       st.pos.set(98, 0, -84); st.y = 0; st.scene = true; G.mode = 'cutscene'; $('cwPanel').style.display = 'none'; st.alarm = true; st.heading = Math.PI / 2;
       gst.x = 126; gst.z = -92; gst.h = -Math.PI / 2; gst.bend = 0.5; gst.cupOpen = true; placeGerda(); jackOut.root.scale.setScalar(SC * st.s); jackOut.root.position.set(st.pos.x, 0, st.pos.z); jackOut.root.rotation.y = st.heading; $('fade').style.transition = ''; G.fade(false, 0.8); await caught(); return; }
+
+    // ── Chapter Three: The Measure of a Man. It opens in the kitchen: Jack in the box on the table, at a quarter of his size, and Gerda in her work clothes. ──
+    const ch3Items = { clothes: null };
+    function ch3Tick() {
+      const pr = promptEl(), c = ch3Items.clothes; let text = ''; st.actReq0 = st.actReq; const act = st.actReq; st.actReq = false;
+      if (c && c.visible && !st.scene) { const Hj = HEIGHT * SC * st.s, d = Math.hypot(c.position.x - st.pos.x, c.position.z - st.pos.z); if (d < 2.6 * Hj && Math.abs(st.y - 25.5) < 2 * Hj) { text = 'E — put on your clothes'; if (act) { c.visible = false; st.dressed = true; W.paintJack(jackOut, { expr: 0, outfit: 'Day' }); G.caption('jack', 'Clean, and pressed. Someone has looked after these.'); $('cwObjt').style.display = 'none'; } } }
+      pr.textContent = text; pr.style.display = text ? 'block' : 'none';
+    }
+    async function ch3Open() {
+      const f = $('fade'), tgp = M.items.kitchenTable.g, TOP = 25.5, bx = M.items.keepsakeBox.g, box = bx.userData.box, tc = bx.position.clone(), bs = SC * st.s;
+      $('cwPanel').style.display = 'none'; G.mode = 'cutscene'; document.body.classList.add('cutscene'); st.scene = true; st.boxed = true; G.save({ step: 'ch3' }); f.style.transition = 'none'; f.style.opacity = 1;
+      const ease = k => k * k * (3 - 2 * k), W3 = (a, b, k) => a + (b - a) * k;
+      // the room: the parlour's doors open into the kitchen; every other door stands open as it was built
+      const pdoors = M.doors.filter(d => d.axis === 'x' && Math.abs(d.fixed - 250) < 3 && Math.abs(d.c + 75) < 6); for (const d of pdoors) { d.ang = swing(d); d.lg.rotation.y = d.ang; d.og.userData.noCollide = true; }
+      makeG('Work'); gst.x = tc.x; gst.z = tc.z + 24; gst.h = Math.PI; placeGerda();
+      // the folded clothes on the table (his day clothes), to be seen later
+      const mk = (w, h, d, col, x, y, z, par) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color: col })); m.position.set(x, y, z); par.add(m); return m; };
+      const clothes = new THREE.Group(); clothes.position.set(tc.x + 16, TOP, tc.z + 1); scene.add(clothes); ch3Items.clothes = clothes;
+      mk(7, 1.2, 5, '#5a7a3e', 0, 0.6, 0, clothes); mk(6.4, 0.9, 4.4, '#6d5233', 0.2, 1.65, 0, clothes); mk(0.7, 0.5, 5.2, '#8a6a42', -1.8, 2.3, 0, clothes); mk(1.7, 1.6, 3.4, '#3a2616', 4.6, 0.8, -0.8, clothes); mk(1.7, 1.6, 3.4, '#3a2616', 4.6, 0.8, 2.6, clothes);
+      // Jack, lying in the box on his back, head to the back of it, pressed in
+      bx.add(jackOut.root); jackOut.root.scale.setScalar(bs); const qL = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0)), qSit = new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.2, 0, 0)), qUp = new THREE.Quaternion();
+      const pL = new V3(0, 1.2 + 2.6 * st.s, 3.5), pSit = new V3(0, 1.9, 0.7).sub(new V3(0, 12 * bs, 0).applyQuaternion(qSit)), pUp = new V3(0, 1.2, 0.7);
+      jackOut.root.quaternion.copy(qL); jackOut.root.position.copy(pL); st.pose = { thigh: 0, knee: 0, armLx: 0.05, armLz: 0.25, armRx: 0.05, armRz: -0.25, torso: 0, neckX: -0.1, neckY: 0 }; W.paintJack(jackOut, { expr: 1 });
+      // 1. in the dark: the box is carried and set down; what he notices
+      G.cut({ pos: bx.localToWorld(new V3(0, 3.2, -3.9)), look: bx.localToWorld(new V3(0, 14, 7)), fov: 70 });
+      const carry = (async () => { for (let i = 0; i < 9; i++) { A && A.thud && A.thud(0.22 + 0.04 * (i % 3)); bx.rotation.z = 0.025 * Math.sin(i * 1.7); bx.position.y = TOP + 0.5 * Math.abs(Math.sin(i * 1.3)); await G.wait(0.45); } A && A.thud && A.thud(0.6); bx.rotation.z = 0; bx.position.y = TOP; })();
+      await G.wait(1.2);
+      await G.say('jack', 'Something’s moving. The box... she’s carrying me.');
+      await G.say('jack', 'The sides feel closer than they did. Tighter. As if the box has shrunk around me.');
+      await carry; await G.wait(0.5);
+      await G.say('jack', 'Did I sleep? How long have I been in here?');
+      // 2. from inside the box: the lid is lifted, and the light comes up with it; Gerda, in her work clothes, above
+      jackOut.root.visible = false; gst.bend = 0.3; gst.reach = 1.15; gst.lreach = 1.15; placeGerda(); await G.wait(0.7); A && A.latch && A.latch(0.6);
+      for (let i = 1; i <= 64; i++) { const k = ease(i / 64); box.lid.rotation.x = -1.95 * k; f.style.opacity = 1 - Math.min(1, k * 1.2); gst.bend = W3(0.3, 0.1, k); placeGerda(); await G.wait(0.04); }
+      f.style.transition = ''; f.style.opacity = 0;
+      await G.say('gerda', 'Stay where you are. And touch nothing.');
+      for (let i = 1; i <= 14; i++) { gst.reach = 1.15 * (1 - i / 14); gst.lreach = 1.15 * (1 - i / 14); gst.bend = 0.1 * (1 - i / 14); gst.h += angDiff(Math.PI / 2 - 0.4, gst.h) * 0.25; placeGerda(); await G.wait(0.04); }
+      // 3. outside: she leaves by the parlour doors, which pull to behind her; he sits up and rubs his eyes, then looks about
+      jackOut.root.visible = true; G.cut({ pos: v(150, 68, 38), look: v(205, 22, -52), fov: 54 });
+      const gGo = async (wx, wz) => { const x0 = gst.x, z0 = gst.z, d = Math.hypot(wx - x0, wz - z0), n = Math.max(2, Math.ceil(d / 1.1)), h1 = Math.atan2(wx - x0, wz - z0); for (let i = 1; i <= n; i++) { const k = i / n; gst.x = x0 + (wx - x0) * k; gst.z = z0 + (wz - z0) * k; gst.h += angDiff(h1, gst.h) * 0.3; gst.ph += 0.4; gst.walk = 1; placeGerda(); await G.wait(0.04); } };
+      const leave = (async () => { for (const [wx, wz] of gnav(gst.x, gst.z, 238, -75)) await gGo(wx, wz); await gGo(264, -75); gst.walk = 0; for (let i = 1; i <= 30; i++) { for (const d of pdoors) d.lg.rotation.y = d.ang + (Math.sign(d.ang) * 0.42 - d.ang) * ease(i / 30); await G.wait(0.04); } gerda.root.visible = false; })();
+      const wake = (async () => {
+        await G.wait(1.0); const t0 = G.t;
+        for (let i = 1; i <= 30; i++) { const k = ease(i / 30); jackOut.root.quaternion.copy(qL).slerp(qSit, k); jackOut.root.position.copy(pL).lerp(pSit, k); st.pose.thigh = W3(0, -1.3, k); st.pose.knee = W3(0, 1.5, k); st.pose.armLz = W3(0.25, 0.5, k); st.pose.armRz = W3(-0.25, -0.5, k); st.pose.armLx = st.pose.armRx = W3(0.05, -0.15, k); st.pose.neckX = W3(-0.1, 0.1, k); await G.wait(0.04); }
+        W.paintJack(jackOut, { expr: 4 });
+        for (let i = 1; i <= 56; i++) { const k = Math.min(1, i / 8), tt = i * 0.04; st.pose.armRx = W3(-0.15, -2.55, k); st.pose.armRz = W3(-0.5, -0.1 + 0.09 * Math.sin(tt * 16), k); st.pose.armLx = W3(-0.15, -2.4, k * 0.8); st.pose.armLz = W3(0.5, 0.15 + 0.07 * Math.sin(tt * 14), k * 0.8); st.pose.neckX = W3(0.1, 0.38, k); await G.wait(0.04); }
+        W.paintJack(jackOut, { expr: 0 });
+        for (let i = 1; i <= 20; i++) { const k = ease(i / 20); st.pose.armRx = W3(-2.55, -0.15, k); st.pose.armRz = W3(-0.1, -0.5, k); st.pose.armLx = W3(-1.9, -0.15, k); st.pose.armLz = W3(0.15, 0.5, k); st.pose.neckX = W3(0.38, 0.05, k); await G.wait(0.04); }
+        for (let i = 1; i <= 64; i++) { st.pose.neckY = 0.95 * Math.sin(Math.PI * 2 * i / 64 * 1.0) * (i < 32 ? 1 : 0.6); await G.wait(0.04); } st.pose.neckY = 0;
+      })();
+      await Promise.all([leave, wake]);
+      // 4. the clothes on the table: he turns his head to them
+      G.cut({ pos: v(tc.x + 4, TOP + 12, tc.z + 28), look: v(tc.x + 9, TOP + 3.5, tc.z + 1), fov: 42 });
+      for (let i = 1; i <= 18; i++) { st.pose.neckY = 0.9 * ease(i / 18); await G.wait(0.04); }
+      await G.say('jack', 'My clothes.'); await G.wait(0.4);
+      // 5. he stands in the box and climbs out, into the playable beat
+      G.cut({ pos: v(tc.x - 12, TOP + 15, tc.z + 24), look: v(tc.x, TOP + 6, tc.z + 1.5), fov: 44 });
+      for (let i = 1; i <= 22; i++) { const k = ease(i / 22); st.pose.neckY = 0.9 * (1 - k); jackOut.root.quaternion.copy(qSit).slerp(qUp, k); jackOut.root.position.copy(pSit).lerp(pUp, k); st.pose.thigh = W3(-1.3, 0, k); st.pose.knee = W3(1.5, 0, k); st.pose.neckX = W3(0.05, -0.3, k); await G.wait(0.04); }
+      await G.wait(0.5);
+      for (let i = 1; i <= 26; i++) { const k = ease(i / 26); st.pose.armLx = st.pose.armRx = W3(-0.15, -2.9, k); st.pose.armLz = W3(0.5, 0.25, k); st.pose.armRz = W3(-0.5, -0.25, k); st.pose.neckX = W3(-0.3, -0.5, k); await G.wait(0.04); }
+      for (let i = 1; i <= 40; i++) { const k = ease(i / 40), sw = Math.sin(i * 0.9); jackOut.root.position.set(0, W3(1.2, 6.4, k), W3(0.7, 4.0, k)); st.pose.thigh = -0.9 - 0.4 * sw; st.pose.knee = 0.8 + 0.4 * sw; await G.wait(0.04); }
+      for (let i = 1; i <= 24; i++) { const k = ease(i / 24); jackOut.root.position.set(0, W3(6.4, 7.3, k), W3(4.0, 5.2, k)); jackOut.root.quaternion.copy(qUp).slerp(new THREE.Quaternion().setFromEuler(new THREE.Euler(0.9, 0, 0)), k); st.pose.thigh = W3(-0.9, -0.4, k); st.pose.knee = W3(0.8, 0.2, k); st.pose.torso = 0; await G.wait(0.04); }
+      for (let i = 1; i <= 24; i++) { const k = ease(i / 24); jackOut.root.position.set(0, W3(7.3, 0, k * k), W3(5.2, 7.2, k)); jackOut.root.quaternion.copy(new THREE.Quaternion().setFromEuler(new THREE.Euler(0.9, 0, 0))).slerp(qUp, k); st.pose.armLx = st.pose.armRx = W3(-2.9, -0.4, k); st.pose.thigh = W3(-0.4, -0.25, k); st.pose.knee = W3(0.2, 0.3, k); st.pose.neckX = W3(-0.5, 0, k); await G.wait(0.04); }
+      // out, and on the table: his
+      scene.attach(jackOut.root); const wp = new V3(); jackOut.root.getWorldPosition(wp); st.pos.set(wp.x, 0, wp.z); st.y = TOP; st.heading = 0; jackOut.root.quaternion.identity(); jackOut.root.rotation.y = 0; jackOut.root.scale.setScalar(bs);
+      st.pose = null; st.boxed = false; st.camA = -Math.PI / 2; st.pitch = 0.45; st.zoom = 1; camPos.set(0, 0, 0);
+      G.skipping = false; st.scene = false; st.jumpReq = st.actReq = st.putReq = false; for (const k in keys) keys[k] = false; stick.x = stick.y = 0; st.walkN = 0; st.vy = 0; st.lockT = 0; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine();
+      $('cwObjt').textContent = 'Put on your clothes.'; $('cwObjt').style.display = 'block'; toast('WASD or the stick to walk · Shift runs · Space jumps · drag to look · V or the wheel zooms · E uses', 6500);
+    }
     const toastTxt = story ? 'WASD or the stick to walk \u00b7 Shift runs \u00b7 Space jumps \u00b7 drag to look \u00b7 V or the wheel zooms \u00b7 C for first person' : 'WASD or the stick to walk \u00b7 Shift runs \u00b7 Space jumps \u00b7 drag to look \u00b7 V or the wheel zooms \u00b7 C for first person';
     const f = $('fade');
+    if (ch3) { await ch3Open(); return; }
     if (!story) { G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); toast(toastTxt); f.style.transition = ''; await G.fade(false, 1.2); return; }
     // ── The story: the hall, from a few angles, and what it says to him; then it is his. ──
     st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwPanel').style.display = 'none'; G.save({ step: 'castle' });
