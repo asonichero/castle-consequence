@@ -9,5 +9,5 @@ const b = document.createElement('div'); b.id = 'buildBadge'; b.textContent = 'b
 b.style.cssText = 'color:#e6c46a;background:rgba(10,12,16,0.7);border:1px solid #4a4d58;border-radius:6px;padding:2px 8px;pointer-events:none;opacity:.85';
 bar.appendChild(a); bar.appendChild(b);
 document.addEventListener('DOMContentLoaded', () => document.body.appendChild(bar));
-fetch('sw.js', { cache: 'no-store' }).then(r => r.text()).then(t => { const m = /consequence-v\d+-(\d+)/.exec(t); b.textContent = m ? 'v0.4 · build ' + m[1] : 'build ?'; }).catch(() => { b.textContent = 'build ?'; });
+fetch('sw.js', { cache: 'no-store' }).then(r => r.text()).then(t => { const m = /consequence-v\d+-(\d+)/.exec(t), a = /const APP = '([^']+)'/.exec(t); b.textContent = m ? 'v' + (a ? a[1] : '0.4') + ' · build ' + m[1] : 'build ?'; }).catch(() => { b.textContent = 'build ?'; });
 })();
