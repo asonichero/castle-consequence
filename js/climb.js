@@ -152,7 +152,7 @@ function run(G, W) {
     const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow') || e.key === ' ') e.preventDefault(); } if (e.repeat) return; if (e.key === 'v' || e.key === 'V') cycleZoom(); };
     const ku = e => { const k = KM[e.key]; if (k) keys[k] = false; };
     root.addEventListener('keydown', kd); root.addEventListener('keyup', ku);
-    ui.on.jump = () => { keys.grip = true; }; ui.on.jumpUp = () => { keys.grip = false; };                     // (the big button is Space: hold it to brace; a tap climbs on, jumps, or takes the stalk)
+    ui.on.jump = () => { keys.grip = true; st.gripRel = false; }; ui.on.jumpUp = () => { st.gripRel = true; };                     // (the big button is Space: hold it to brace; a tap climbs on, jumps, or takes the stalk)
     const ZOOMS = [{ name: 'Close', d: 52 }, { name: 'Medium', d: 92 }, { name: 'Far', d: 150 }], ZF = [52 / 92, 1, 150 / 92];      // (as in Chapter One)
     const camIcon = () => ui.set('cam', { icon: 'camera', title: 'Camera: ' + ZOOMS[st.zoom].name });
     function cycleZoom(dir) { st.zoom = (st.zoom + (dir || 1) + ZOOMS.length) % ZOOMS.length; camIcon(); }
@@ -258,7 +258,7 @@ function run(G, W) {
         if (st.mode === 'walk') { if (nearVineNow()) { gl.label = 'Climb'; gl.icon = 'climb'; gl.enabled = true; } else { gl.label = 'Jump'; gl.icon = 'jump'; gl.enabled = st.wy <= 0.01; } }
         else if (st.mode === 'idle') { if (st.cur.kind === 'ledge') { gl.label = 'Climb on'; gl.icon = 'climb'; gl.enabled = st.lock <= 0; } else gl.enabled = st.stamina > 0; }
         ui.set('jump', gl); }
-      st.grip = !!keys.grip && st.mode === 'idle'; st.gripPrev = !!keys.grip;
+      st.grip = !!keys.grip && st.mode === 'idle'; st.gripPrev = !!keys.grip; if (st.gripRel) { st.gripRel = false; keys.grip = false; }
       if (st.mode === 'idle') {
         const onLedge = st.cur.kind === 'ledge', onBurl = st.cur.kind === 'burl';
         if (onLedge) st.stamina = Math.min(100, st.stamina + 16 * dt);
