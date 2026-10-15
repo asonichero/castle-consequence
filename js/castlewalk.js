@@ -598,7 +598,74 @@ function run(G, W, opts) {
       await Promise.all([squirm, jline('No!').then(() => jline('Let me go!'))]);
       putJack(); await G.wait(0.6);
       // her hand settles at the small of his back (the pose holds)
-      await G.wait(2.4);
+      await G.wait(1.2);
+      // ── The discipline: the lap engine (js/lap.js) takes over from the carried pose, in the nursery, with Jack at half size over her knee ──
+      if (!root.Lap) { await finish('discipline'); return; }
+      const LAP_S = 1.4, LAP_Y = 6 * LAP_S;
+      await G.fade(true, 0.7);
+      const lap = root.Lap.create(null, { external: { scene, camera: G.camera, renderer: G.renderer }, table: false, jackFull: 0.95 });
+      lap.giver('gerda'); lap.outfit('gerda', 'Work'); lap.stage.scale.setScalar(LAP_S); lap.stage.position.set(SEATX, LAP_Y, SEATZ); lap.stage.rotation.y = -Math.PI / 2; lap.stage.updateMatrixWorld(true);
+      gerda.root.visible = false; jackOut.root.visible = false; M.items.nurseryChair.g.visible = false;
+      lap.reset(); lap.layers({ trousers: 'up', drawers: 'up' }); lap.armed(false); lap.implement('hand'); lap.place('lap', 0); lap.size(0.5); lap.st.side = 'alt'; lap.st.noRecovery = true; lap.st.sound = true; lap.st.strength = 1.05; lap.st.pace = 1;
+      const lapTick = dt => lap.update(dt); G.updaters.push(lapTick);
+      // (the cameras: the engine's own views, kept inside the room)
+      const LV = { wide: [[26, 24, 38], [-3, 9, 5], 42], back: [[-24, 33, 6], [-6, 9, 5], 40], hand: [[-14, 26, 22], [-3, 11, 6.5], 36], face: [[18, 7, 26], [3, 5, 4], 42], over: [[-6, 30, -22], [-3, 9, 5], 42], side: [[34, 12, 8], [-3, 9, 5], 40] };
+      const lv = n => { const [p0, a, f0] = LV[n], p = p0.map((c, i) => a[i] + (c - a[i]) * 1.35), f = f0 + 12; lap.stage.updateMatrixWorld(true); const P = lap.stage.localToWorld(v(...p)); P.x = clamp(P.x, -302, -110); P.z = clamp(P.z, -282, -178); P.y = Math.min(P.y, 76); G.cut({ pos: P, look: lap.stage.localToWorld(v(...a)), fov: f }); };
+      const smacks = async n => { if (!n) return; lap.run(n); await G.wait(0.4); for (let i = 0; i < 700 && (lap.info().busy || lap.info().running); i++) await G.wait(0.1); };
+      const step = async (line, n) => { const l = line ? G.say(line[0], line[1]) : Promise.resolve(); await Promise.all([l, smacks(n)]); };
+      const ramp = async (key, to, secs) => { const from = lap.st[key] || 0, n = Math.max(1, Math.round(secs / 0.04)); for (let i = 1; i <= n; i++) { lap.st[key] = W3(from, to, ease(i / n)); await G.wait(0.04); } lap.st[key] = to; };
+      lv('wide');
+      await G.fade(false, 0.7); await G.wait(0.5);
+      // over his trousers, to begin with: no more than a humble correction
+      await G.say('gerda', 'When you behave like a child, you’ll be treated like one.');
+      await step(['gerda', 'I told you to stay put, and to touch nothing.'], 6);
+      await step(['jack', 'Ow! I only wanted—'], 4);
+      await step(['gerda', lies === 0 ? 'You told me the truth, at the first asking. That does not make the rest of it right.' : lies === 1 ? 'And you lied to me. “Lost”, you said, when you had climbed four storeys to be here.' : lies === 2 ? 'And you lied to me, twice, with a straight face, to a woman who watched you climb in.' : 'And you lied to me three times over, each one worse than the last, until you had run out of them.'], 8);
+      await step(['jack', 'I’m sorry! I’m sorry!'], 4);
+      // his hand goes for the knife at his belt, and is caught
+      await step(['gerda', 'Into my house, through my door, up my walls and into my chest—'], 4);
+      lv('hand'); await G.wait(0.3);
+      ramp('armReach', 1, 0.45);
+      await G.wait(0.5); await G.say('jack', 'Let me—');
+      await Promise.all([ramp('armReach', 0, 0.35), ramp('armHold', 1, 0.35)]);                      // (she catches his wrist, and takes it into the small of his back)
+      A && A.blip && A.blip(); await G.wait(0.5);
+      await G.say('gerda', 'No, you don’t.');
+      await G.say('jack', 'Ow— my arm—');
+      lv('back');
+      await G.say('gerda', 'Keep it there. You will not be touching that blade, nor anything else in this house.');
+      await G.say('gerda', 'And since you cannot be trusted to take your correction like a man—');
+      lap.layers({ trousers: 'down', drawers: 'down' }); A && A.blip && A.blip(); await G.wait(0.7);                  // (trousers and drawers, in one movement)
+      await G.say('jack', 'No! Wait! You can’t—');
+      lv('over'); lap.st.strength = 1.35;
+      await G.say('gerda', 'I can, and I will.');
+      // the same as the brash correction; and he settles into it once he is past the edge of resistance
+      const GL = [['gerda', 'This is for the door you were told to leave alone.'], ['jack', 'Ow! Ow! Please!'], ['gerda', 'This is for the chest, and the things in it that were never yours.'], ['jack', 'I wasn’t—! Ow! I was only looking!'],
+        ['gerda', lies > 0 ? 'And this is for the “lost”, and the rest of your little stories.' : 'And this is for thinking that a house this rich would not notice what it lost.'], ['jack', 'I’m sorry, I’m sorry, I’m sorry!'], ['gerda', 'You will obey me, or you will answer for it.'], ['jack', 'Yes! Yes, I will!']];
+      lv('back');
+      for (let i = 0; i < GL.length; i++) {
+        if ((lap.bandIndex() >= 4 && i >= 3) || i >= 7) break;
+        await step(GL[i], 6 + (i % 3) * 2); if (i === 3) lv('face'); if (i === 5) lv('side');
+      }
+      lv('over'); W.paintJack(jackOut, { expr: 1 });
+      ramp('settle', 1, 3.2);                                                                                       // (his struggling stops: he is still, apart from what each smack does to him)
+      await step(['gerda', 'There. That is better. Stay just as you are.'], 5);
+      lv('face'); await step(null, 6);
+      await step(['gerda', 'You see how much easier it is, when you stop fighting me.'], 5);
+      await step(['jack', '…I’m sorry.'], 4);
+      lv('back'); await step(null, 5);
+      await G.wait(0.5);
+      await G.say('gerda', 'That will do.');
+      // she puts him right again, gently
+      lv('hand'); await G.wait(0.4);
+      lap.layers({ drawers: 'up' }); A && A.blip && A.blip(); await G.wait(0.9);
+      lap.layers({ trousers: 'up' }); A && A.blip && A.blip(); await G.wait(0.9);
+      await ramp('armHold', 0, 0.8);
+      lv('wide');
+      await G.say('gerda', 'There now. It is over.');
+      await G.wait(0.8);
+      await G.say('gerda', 'The knife stays with me. And you will ask, the next time you want something from my house.');
+      await G.wait(0.8);
+      G.updaters = G.updaters.filter(u => u !== lapTick);
       await finish('discipline');
     }
     function ch3Tick(dt) {

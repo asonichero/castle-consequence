@@ -192,6 +192,8 @@ function create(view, opts) {
   const mkSet = src => JSON.parse(JSON.stringify(src || {}));
   // One set of pose edits for each position (over the knee, bent over the table; the table's are optional in the file as LapPoses.table), at each of the two sizes.
   const SETS = { lap: { 100: mkSet(LP[100] || (LP.gerda ? LP : {})), 50: mkSet(LP[50] || (LP.gerda ? LP : {})) }, table: { 100: mkSet(LP.table && LP.table[100]), 50: mkSet(LP.table && LP.table[50]) } };
+  const ARM_HOLD = Object.assign({ x: 0.2, y: 0.9, z: 0.8, e: 0.3, w: 0 }, opts.armHold || {});      // (tuned in lap.html; see __lap.ARM_HOLD)
+  const ARM_REACH = Object.assign({ x: 0.5, y: 0, z: 0.7, e: 0.25 }, opts.armReach || {});      // (his hand going back for his belt)
   const SIZE_MIN = 0.5;                       // below this the poses do not reach (the lower limit of the position)
   // Editable poses: Hand, Paddle and Birch { rest, raised, contactL, contactR } for Gerda (the contact pose is per cheek, and per implement), and Jack { base, react }.
   const GERDA_BEATS = ['rest', 'raised', 'contactL', 'contactR'], WIELD = ['hand', 'paddle', 'birch'];
@@ -415,7 +417,7 @@ function create(view, opts) {
     applyEdits('gerda', ['torso', 'neck', 'thighL', 'thighR', 'kneeL', 'kneeR'], gw);
     g.root.updateMatrixWorld(true);
     // Left hand rests on Jack's back.
-    const sL = world(g.armL), tL = world(upperBack);
+    const sL = world(g.armL), tL = ((st.armHold || 0) > 0.5 || (st.armReach || 0) > 0.5) && jack.wrist ? (jack.root.updateMatrixWorld(true), jack.wrist.localToWorld(new V3(0, -3.5, 0))) : world(upperBack);
     aim(g.armL, tmpB.copy(tL).sub(sL)); applyEdits('gerda', ['armL'], gw);
     // Right arm: shoulder, elbow and wrist (the forearm's own twist). Contact pose: the hand's forearm end, or the paddle's mount, is brought to where
     // it lands; the raised pose lifts the elbow up and forward. They blend by how far the swing has come.
@@ -489,7 +491,8 @@ function create(view, opts) {
   const STANDING = { standSeat: 1, standTable: 1 };
   jack.after = function (j) {
     glutesTilt.visible = !STANDING[stanceNow()];      // (the glutes block bridges his back and his thighs once they fold: upright, it would only cut into his legs)
-    const k = J.kick, d = clamp(pain.distress(), 0, 1.5), w = Math.sin(J.t * 9) * 0.05 * Math.min(1, d) + Math.sin(J.t * 5.3) * 0.03 * Math.min(1, d), sz = st.size * jackFull;
+    const sf = 1 - 0.72 * (st.settle || 0);      // (settled: he lies still over her lap, and only the contact itself moves him)
+    const k = J.kick * sf, d = clamp(pain.distress(), 0, 1.5) * sf, w = (Math.sin(J.t * 9) * 0.05 * Math.min(1, d) + Math.sin(J.t * 5.3) * 0.03 * Math.min(1, d)) * sf, sz = st.size * jackFull;
     const e = easeIO(clamp(st.blend, 0, 1)), p = mixPose(limbs(st.from, k, d, w, sz), limbs(st.to, k, d, w, sz), e);
     // (Every angle is set afresh: a bone put back from its stored quaternion has its Euler angles worked out again, and a leftover turn about the wrong axis would twist the limb.)
     j.legL.thigh.rotation.set(p.tL, 0, j.legL.sign * p.zL); j.legR.thigh.rotation.set(p.tR, 0, j.legR.sign * -p.zR);
@@ -497,6 +500,11 @@ function create(view, opts) {
     j.neck.rotation.set(p.nx, p.ny, 0);
     j.armL.rotation.set(p.aLx, 0, p.aLz); j.armR.rotation.set(p.aRx, 0, p.aRz);
     j.torso.rotation.set(p.tx, 0, p.tz);
+    const ah = st.armHold || 0, ar = st.armReach || 0;      // his right arm: reaching back to his belt (armReach), or held in the small of his back (armHold): the upper arm back and turned, the forearm across to the middle
+    if (ah > 0 || ar > 0 || st._ah) {
+      const H = ARM_HOLD, R = ARM_REACH, m = (a, b) => a + (b - a) * ah, r = (a, b) => a + (b - a) * ar;
+      j.armR.rotation.set(m(r(p.aRx, R.x), H.x), m(r(0, R.y), H.y), m(r(p.aRz, R.z), H.z)); if (j.elbow) j.elbow.rotation.set(m(r(0, R.e), H.e), 0, 0); if (j.wrist) j.wrist.rotation.set(0, m(0, H.w), 0); st._ah = ah > 0 || ar > 0;
+    }
     applyEdits('jack', ['torso', 'neck', 'glutes', 'armL', 'armR', 'thighL', 'thighR', 'kneeL', 'kneeR'], jackWeights());
   };
 
@@ -742,7 +750,9 @@ function create(view, opts) {
     st.swing = null; st.runLeft = 0; dirty = true;
   }
   const api = {
-    editor, stage, place, PLACES,
+    editor, stage, place, PLACES, ARM_HOLD, ARM_REACH,
+    armReach(v) { st.armReach = v; },
+    armHold(v) { st.armHold = v; }, settle(v) { st.settle = v; },
     scene, floor, camera, controls, renderer, gerda, jack, pain, st, IMPL, BANDS, J,
     on: f => events.push(f),
     update, view: view_, views: VIEWS, smack,
