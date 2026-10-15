@@ -202,6 +202,20 @@ A.moo = function (vol, seconds) {
   for (const [fc, g] of [[300, 1], [820, 0.55]]) { const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.setValueAtTime(fc * 0.8, t); f.frequency.linearRampToValueAtTime(fc * 1.1, t + d * 0.5); f.Q.value = 4; const gg = ctx.createGain(); gg.gain.value = g; o.connect(f); f.connect(gg); gg.connect(out); }
   out.connect(N.sfx); o.start(t); lfo.start(t); o.stop(t + d + 0.1); lfo.stop(t + d + 0.1);
 };
+// The golden hen: 'content' is a soft, bubbling bok-bok; 'frantic' a quick run of sharp clucks; 'squawk' a harsh, rising shriek.
+A.cluck = function (kind, vol) {
+  if (!A.init()) return; const ctx = A.ctx, N = A.nodes, t = ctx.currentTime + 0.02, k = vol == null ? 1 : vol;
+  const note = (start, f0, f1, len, peak, type, vib) => {
+    const o = ctx.createOscillator(), g = ctx.createGain(); o.type = type; o.frequency.setValueAtTime(f0, start); o.frequency.exponentialRampToValueAtTime(Math.max(40, f1), start + len);
+    if (vib) { const l = ctx.createOscillator(), lg = ctx.createGain(); l.frequency.value = vib; lg.gain.value = f0 * 0.06; l.connect(lg); lg.connect(o.frequency); l.start(start); l.stop(start + len + 0.05); }
+    g.gain.setValueAtTime(0.0001, start); g.gain.linearRampToValueAtTime(peak * k, start + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, start + len);
+    for (const [fc, gg] of [[1100, 1], [2400, 0.5]]) { const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = fc; f.Q.value = 3; const q = ctx.createGain(); q.gain.value = gg; o.connect(f); f.connect(q); q.connect(g); }
+    g.connect(N.sfx); o.start(start); o.stop(start + len + 0.05);
+  };
+  if (kind === 'frantic') for (let i = 0; i < 5; i++) note(t + i * 0.07, 900 + Math.random() * 160, 560, 0.05, 0.2, 'sawtooth');
+  else if (kind === 'squawk') { note(t, 720, 1250, 0.18, 0.26, 'sawtooth', 38); note(t + 0.17, 1250, 560, 0.38, 0.26, 'sawtooth', 44); }
+  else { note(t, 560, 430, 0.07, 0.15, 'triangle'); note(t + 0.1, 500, 400, 0.06, 0.12, 'triangle'); }
+};
 // A door latch: the bar lifts with a tick, drops back with a clack, and the door gives a short creak.
 A.latch = function (vol) {
   if (!A.init()) return; const ctx = A.ctx, N = A.nodes, t = ctx.currentTime + 0.02, k = vol == null ? 0.7 : vol;

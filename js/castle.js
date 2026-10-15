@@ -243,9 +243,9 @@ function interior() {
   B(87, 18, 1, '#9fc2cf', 338, 9, -201, room); B(1, 18, 87, '#9fc2cf', 381, 9, -158, room);
   { const g = at(0, 0, 0); B(42, 12, 20, '#f0f0ec', 0, 6, 0, g); B(38, 1, 16, '#9fd0e8', 0, 12, 0, g); for (const sx of [-1, 1]) B(3, 3, 3, '#c9a23c', sx * 18, 1.5, 9, g); movable('tub', 'Bathing tub', g, { x: 355, z: -177, ry: 0 }); }
   { const g = at(0, 0, 0); B(8, 12, 8, '#e8e4d8', 0, 6, 0, g); B(10, 1.2, 10, '#c9a23c', 0, 12.6, 0, g); movable('bathStool', 'Bath stool and towels', g, { x: 367, z: -155, ry: 0 }); }
-  // the indoor roost: x 250..390, z -330..-208
-  slab(250, -330, 390, -208, strawFloor(), warmM); wall('z', -208, 250, 390, warmM, [[258, 288, 0, 52]]); wall('z', -330, 250, 390, warmM, [[300, 316, 44, 58]]); wall('x', 390, -330, -208, warmM, [[-290, -260, 36, 56]]); wall('x', 250, -348, -111, warmM, [[-300, -285, 0, 11], [-240, -220, 38, 56]]);
-  window_('z', -330, 308, 16, 44, 58, 1, true, 1); window_('x', 390, -275, 30, 36, 56, -1, true, 1); window_('x', 250, -230, 20, 38, 56, 1, true, 1);
+  // the indoor roost: x 250..420, z -330..-208
+  slab(250, -330, 420, -208, strawFloor(), warmM); wall('z', -208, 250, 420, warmM, [[258, 288, 0, 52]]); wall('z', -330, 250, 420, warmM, [[300, 316, 44, 58]]); wall('x', 420, -330, -208, warmM, [[-290, -260, 36, 56]]); wall('x', 250, -348, -111, warmM, [[-300, -285, 0, 11], [-240, -220, 38, 56]]);
+  window_('z', -330, 308, 16, 44, 58, 1, true, 1); window_('x', 420, -275, 30, 36, 56, -1, true, 1); window_('x', 250, -230, 20, 38, 56, 1, true, 1);
   B(18, 2, 12, '#a89c84', 308, 41, -336, room); B(22, 1, 14, '#bdb59d', 308, 40, -337, room);                                  // the stone ledge outside the high window: Jack's way out
   // the hen's tunnel, through the wall to the garden: just her size
   { const tl = '#a89c84'; B(10, 1.4, 14, tl, 246, 11.5, -292.5, room); B(10, 1.4, 14, tl, 246, 0.2, -292.5, room); B(10, 12, 1.4, tl, 246, 6, -299.7, room); B(10, 12, 1.4, tl, 246, 6, -285.3, room); B(8, 0.6, 12, '#d6b866', 246, 0.9, -292.5, room); }
@@ -355,14 +355,14 @@ function interior() {
   { const g = put(338, 0, -197, 0); B(46, 2, 7, '#6a4a2e', 0, 30, 0, g); for (const sx of [-1, 1]) B(2, 8, 5, '#4a3420', sx * 21, 26, 0, g); for (let i = 0; i < 4; i++) B(10, 2.6, 5.4, pick(['#f0f0ec', '#e8d8e0', '#d8e8f0']), -15 + i * 10, 32.4, 0, g); for (let i = 0; i < 3; i++) B(9, 2.2, 5, '#f4f0e8', -10 + i * 10, 20, 0, g); }
   { const g = put(307, 0, -190, 0); B(14, 14, 12, '#e8e4d8', 0, 7, 0, g); B(10, 2, 8, '#9fd0e8', 0, 14.2, 0, g); B(2, 6, 2, '#c9a23c', 0, 17, -4, g); B(1.2, 1.2, 4, '#c9a23c', 0, 19.4, -2, g); }
   { const g = put(334, 0, -140, 0); B(26, 0.5, 16, '#c9b8d8', 0, 0.3, 0, g); B(26, 0.5, 1.4, '#e8e0f0', 0, 0.5, 6.5, g); B(26, 0.5, 1.4, '#e8e0f0', 0, 0.5, -6.5, g); }
-  for (let i = 0; i < 3; i++) { const g = at(0, 0, 0); B(14, 3, 12, '#8a6a42', 0, 1.5, 0, g); B(14, 9, 1.4, '#8a6a42', 0, 6, -5.6, g); B(1.4, 9, 12, '#8a6a42', -6.6, 6, 0, g); B(1.4, 9, 12, '#8a6a42', 6.6, 6, 0, g); B(11, 2, 9, '#d6b866', 0, 3.4, 0, g); if (i !== 1) { B(3.2, 2.6, 3.2, '#f4ecd8', -1, 5.4, 0, g); if (i === 2) B(3.2, 2.6, 3.2, '#f4ecd8', 2.4, 5.4, 1.4, g); } movable('layingRoost' + (i + 1), 'Laying roost ' + (i + 1), g, { x: 382, z: -228 - i * 14, ry: -Math.PI / 2 }); }
+  for (let i = 0; i < 3; i++) { const g = at(0, 0, 0); B(14, 3, 12, '#8a6a42', 0, 1.5, 0, g); B(14, 9, 1.4, '#8a6a42', 0, 6, -5.6, g); B(1.4, 9, 12, '#8a6a42', -6.6, 6, 0, g); B(1.4, 9, 12, '#8a6a42', 6.6, 6, 0, g); B(11, 2, 9, '#d6b866', 0, 3.4, 0, g); if (i !== 1) { B(3.2, 2.6, 3.2, '#f4ecd8', -1, 5.4, 0, g); if (i === 2) B(3.2, 2.6, 3.2, '#f4ecd8', 2.4, 5.4, 1.4, g); } movable('layingRoost' + (i + 1), 'Laying roost ' + (i + 1), g, { x: 412, z: -228 - i * 14, ry: -Math.PI / 2 }); }
   let hayN = 0;
   for (const [x, z] of [[330, -232], [352, -222], [268, -322], [352, -246]]) { const g = at(0, 0, 0), hry = R() * 3; B(16, 9, 12, '#d6b866', 0, 4.5, 0, g); for (let i = 0; i < 6; i++) B(1, 6, 1, '#e8cf80', (R() - 0.5) * 14, 11, (R() - 0.5) * 10, g).rotation.z = (R() - 0.5) * 1.4; movable('hay' + (++hayN), 'Hay bale', g, { x, z, ry: hry }); }
   for (let i = 0; i < 2; i++) { const g = at(0, 0, 0); B(1.6, 16, 1.6, '#5a4026', -8, 8, 0, g); B(1.6, 16, 1.6, '#5a4026', 8, 8, 0, g); B(20, 1.6, 1.6, '#6a4a2e', 0, 15, 0, g); B(18, 1.2, 1.2, '#5a4026', 0, 9, 0, g); movable('perch' + (i + 1), 'Perch', g, { x: 344 + i * 22, z: -214, ry: 0 }); }
   let dirtN = 0;
-  { const g = at(0, 0, 0); B(16, 3, 16, '#6a2860', 0, 12, 0, g); B(3, 24, 16, '#5a2052', -8, 20, 0, g); for (const sx of [-1, 1]) for (const sz of [-1, 1]) B(2, 10.5, 2, '#3a2a20', sx * 6.5, 5.25, sz * 6.5, g); movable('roostChair', 'Straight-backed chair (under the east window)', g, { x: 381, z: -275, ry: Math.PI }); }
+  { const g = at(0, 0, 0); B(16, 3, 16, '#6a2860', 0, 12, 0, g); B(3, 24, 16, '#5a2052', -8, 20, 0, g); for (const sx of [-1, 1]) for (const sz of [-1, 1]) B(2, 10.5, 2, '#3a2a20', sx * 6.5, 5.25, sz * 6.5, g); movable('roostChair', 'Straight-backed chair (under the east window)', g, { x: 406, z: -276, ry: Math.PI }); }
   // the dirt to sweep: patches of earth and spilt grain, none within 42 of the door (273, -222), where Gerda and Jack stand to talk
-  for (const [x, z, r] of [[318, -270, 9], [350, -268, 11], [300, -296, 8], [340, -240, 7], [262, -300, 8], [366, -238, 6], [330, -262, 7]]) { const g = at(0, 0, 0); B(r * 2, 0.3, r * 1.6, '#4a3722', 0, 0.2, 0, g); for (let i = 0; i < 5; i++) B(2.2, 0.35, 0.7, '#c9a54a', (i - 2) * r * 0.5, 0.45, ((i * 7) % 5 - 2) * 1.2, g).rotation.y = i; movable('dirt' + (++dirtN), 'Dirt to sweep', g, { x, z, ry: x * 0.1 }); }
+  for (const [x, z, r] of [[318, -270, 9], [350, -268, 11], [300, -296, 8], [340, -240, 7], [262, -300, 8], [366, -238, 6], [330, -262, 7], [392, -304, 8], [330, -312, 7], [372, -262, 7]]) { const g = at(0, 0, 0); B(r * 2, 0.3, r * 1.6, '#4a3722', 0, 0.2, 0, g); for (let i = 0; i < 5; i++) B(2.2, 0.35, 0.7, '#c9a54a', (i - 2) * r * 0.5, 0.45, ((i * 7) % 5 - 2) * 1.2, g).rotation.y = i; movable('dirt' + (++dirtN), 'Dirt to sweep', g, { x, z, ry: x * 0.1 }); }
   // — the garden: stepping-stones, a low bench, barrels, a rain butt, a little fence round the herbs, herbs in pots on the kitchen step —
   for (let i = 0; i < 9; i++) B(12, 1.2, 10, pick(['#b8b09c', '#a8a08c', '#c8c0aa']), 162 + R() * 3, 0.4, -112 - i * 14, room);
   for (let i = 0; i < 9; i++) B(12, 1.2, 10, pick(['#b8b09c', '#a8a08c', '#c8c0aa']), 162 - i * 14, 0.4, -129 - R() * 2, room).rotation.y = (R() - 0.5) * 0.3;
@@ -372,7 +372,7 @@ function interior() {
   for (const [x0, x1, z] of [[-90, -22, -122]]) for (let x = x0; x <= x1; x += 8) { B(1.4, 8 + (x % 3), 1.4, '#6a4a2e', x, 4, z, room); }
   B(70, 1.2, 1.2, '#6a4a2e', -56, 6, -122, room); B(70, 1.2, 1.2, '#6a4a2e', -56, 3, -122, room);
 
-  const bounds = { x0: -330, x1: 400, z0: -365, z1: 124 };
+  const bounds = { x0: -330, x1: 430, z0: -365, z1: 124 };
   { const into = (d, ok) => { d.og.updateMatrixWorld(true); const B = new THREE.Box3().setFromObject(d.lg); if (!ok((B.min.x + B.max.x) / 2, (B.min.z + B.max.z) / 2)) d.lg.rotation.y = -d.lg.rotation.y; };     // (the doors of the library, the music hall and the nursery open into those rooms, not into the corridors)
     for (let i = doors.length - 1; i >= 0; i--) { const d = doors[i]; if (d.axis === 'x' && d.fixed === -273 && Math.abs(d.c + 25.5) < 6) { d.og.parent && d.og.parent.remove(d.og); doors.splice(i, 1); } }       // (no doors at the west end of corridor A, where it meets corridor B)
     for (const d of doors) { if (d.axis === 'x' && d.fixed === -273 && (Math.abs(d.c + 100) < 6 || Math.abs(d.c - 44) < 6)) into(d, x => x > -273); else if (d.axis === 'z' && d.fixed === -160 && Math.abs(d.c + 294) < 6) into(d, (x, z) => z < -160); } }
