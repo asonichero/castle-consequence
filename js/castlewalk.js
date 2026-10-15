@@ -751,7 +751,8 @@ function run(G, W, opts) {
       await aftermath();
       if (!opts.ch3notes) G.save({ step: 'ch3dress' });
       await dressScene(lap.stage);
-      await finish('dressed');
+      await choreScene();
+      await finish('chores');
     }
     // ── Dressed: the playable sequence at the kitchen table. Jack stands on it, Gerda before him at its edge; he cannot move or jump, and the one button answers what she asks of him. ──
     async function dressScene(lapStage) {
@@ -887,18 +888,169 @@ function run(G, W, opts) {
       const zones = [{ hit: p => p.x < 118 && p.z > -56 && p.z < 6, fix: p => { p.x = 118; }, line: 'Jack! No dawdling, now. Come along, and keep being good for me.', n: 0, t: 0 },
         { hit: p => p.x > 299 && p.x < 384 && p.z > -203 && p.z < -114, fix: p => { p.x = 299; }, line: 'Not in there, Jack, no dawdling. Come along, and keep being good.', n: 0, t: 0 }];
       st.guard = () => { const p = st.pos; for (const z of zones) if (z.hit(p)) { z.fix(p); const now = performance.now(); if (now - z.t > 3500) { z.t = now; if (z.n++ === 0) { pen += 0.05; G.caption('gerda', z.line); } else { pen += 0.02; G.caption('gerda', 'Jack!'); } gst.talk = 1; setTimeout(() => { gst.talk = 0; }, 1800); } } };       // (kept from the hall and the bathroom: 5 per cent for the first try, 2 for each after, and never below half)
-      const grow = () => { const here = new V3(st.pos.x, 0, st.pos.z); prog = Math.max(prog, clamp(1 - here.distanceTo(tgt) / D0, 0, 1)); const want = Math.max(0.5, S0 + 0.2 * prog - pen); st.s += (want - st.s) * 0.05; };
+      const grow = () => { const here = new V3(st.pos.x, 0, st.pos.z); prog = Math.max(prog, clamp(1 - here.distanceTo(tgt) / D0, 0, 1)); const want = Math.max(0.5 * FULL, S0 + (0.2 * prog - pen) * FULL); st.s += (want - st.s) * 0.05; };
       const near = () => Math.hypot(st.pos.x - gst.x, st.pos.z - gst.z);
       for (const [wx, wz] of route) { while (Math.hypot(wx - gst.x, wz - gst.z) > 1.2) { grow();
           if (near() > 75) { gst.walk = 0; gst.h += angDiff(Math.atan2(st.pos.x - gst.x, st.pos.z - gst.z), gst.h) * 0.1; } else { const d = Math.hypot(wx - gst.x, wz - gst.z), stp = Math.min(1, d); gst.h += angDiff(Math.atan2(wx - gst.x, wz - gst.z), gst.h) * 0.3; gst.x += (wx - gst.x) / d * stp; gst.z += (wz - gst.z) / d * stp; gst.ph += 0.4; gst.walk = 1; }
           placeGerda(); await G.wait(0.04); } }
       gst.walk = 0; for (let i = 0; i < 12; i++) { gst.h += angDiff(-Math.PI / 2, gst.h) * 0.3; grow(); placeGerda(); await G.wait(0.04); }       // (she stops by the bucket)
       while (near() > 30) { grow(); gst.h += angDiff(Math.atan2(st.pos.x - gst.x, st.pos.z - gst.z), gst.h) * 0.08; placeGerda(); await G.wait(0.04); }       // (and waits for him: the beat ends when he reaches her)
-      st.guard = null; await G.wait(0.5); await G.fade(true, 1.6);
+      st.guard = null; await G.wait(0.5); await G.fade(true, 1.4);
       G.updaters = G.updaters.filter(u => u !== gazeTick && u !== shortsTick); heldShorts.visible = false; st.gaze = null; gst.alive = 0; st.frozen = false; st.dressWait = null; st.fz = null;
+    }
+    // ── The chores: the hen's room. Gerda sets the task and leaves; the mechanics are the test level's (js/level.js), the hen's way of going on the Market Road's cow's. ──
+    async function choreScene() {
+      const ease = k => k * k * (3 - 2 * k), W3 = (a, b, k) => a + (b - a) * k, IT = M.items, gp = k => IT[k].g, FLOOR = 0.5 * FULL;
+      const cushionG = gp('henCushion'), cushion = cushionG.position, hen = cushionG.userData.hen;
+      const roostD = M.doors.find(d => d.axis === 'z' && Math.abs(d.fixed + 208) < 3 && Math.abs(d.c - 273) < 8);
+      const mk = (w, h, d, col, x, y, z, par) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), root.Farm.plain(col)); m.position.set(x, y, z); par.add(m); return m; };
+      G.save({ step: 'ch3chores' });
+      $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; G.mode = 'cutscene'; document.body.classList.add('cutscene'); G.skipping = false; G.cwState = st;
+      { const f = $('fade'); f.style.transition = 'none'; f.style.opacity = 1; }
+      // ── the places: Gerda just inside the door, facing the room; Jack before her, facing her ──
+      st.scene = true; st.frozen = false; st.boxed = false; st.inHand = false; st.guard = null; st.fz = null; st.gaze = null; st.pose = null; st.vy = 0; st.walkN = 0;
+      jackOut.root.visible = gerda.root.visible = true; scene.attach(jackOut.root); jackOut.root.quaternion.identity(); G.captionOff && G.captionOff();
+      if (jackOut.gear) jackOut.gear.knife.visible = jackOut.gear.satchel.visible = jackOut.gear.flask.visible = false;
+      st.pos.set(273, 0, -246); st.y = 0; st.heading = 0; st.standY = 0;
+      Object.assign(gst, { x: 273, z: -222, h: Math.PI, y: 0, seated: 0, walk: 0, reach: 0, lreach: 0, bend: 0, look: 0.2, headY: 0, p50: null, hold: 0, alive: 1 }); placeGerda(); root.Blocky.step(gerda, 0);
+      W.paintJack(jackOut, { outfit: 'Day', trousers: 'up', drawers: 'up', expr: 'shy' });
+      const doorTo = (ang, up) => { const d = roostD; if (!d) return; for (const sg of [1, -1]) { d.lg.rotation.y = sg * ang; d.og.updateMatrixWorld(true); const bb = new THREE.Box3().setFromObject(d.lg); if (((bb.min.z + bb.max.z) / 2 > d.fixed) === up) break; } d.og.userData.noCollide = true; };
+      doorTo(Math.PI / 2, true);       // (open a quarter turn, into the hallway)
+      cushionG.userData.henFree = true; M.room.attach(hen); hen.position.set(cushion.x, 9, cushion.z); hen.rotation.set(0, Math.PI, 0);
+      for (const k of ['henBucket', 'henRack']) gp(k).visible = true;
+      gp('henDish').userData.grain.visible = false; { const w = gp('henTrough').userData.water; w.visible = false; }
+      const rackP = gp('henRack').position, buckP = gp('henBucket').position, binG = gp('henSack'), binP = binG.position, dishP = gp('henDish').position, troughP = gp('henTrough').position, wellP = gp('henWell').position;
+      const nod = async n => { for (let i = 0; i < n; i++) { for (let k = 1; k <= 8; k++) { st.pose = { neckX: 0.4 * Math.sin(Math.PI * k / 8) }; await G.wait(0.04); } await G.wait(0.08); } st.pose = null; };
+      const faceG = async (tx, tz, secs) => { const h0 = gst.h, h1 = Math.atan2(tx - gst.x, tz - gst.z), n = Math.round((secs || 0.5) / 0.04); for (let i = 1; i <= n; i++) { gst.h = h0 + angDiff(h1, h0) * ease(i / n); placeGerda(); await G.wait(0.04); } };
+      if (A && A.ctx) A.startMusic({ theme: 'castle' });
+      await G.fade(false, 1.2);
+      // ── the briefing ──
+      G.cut({ pos: v(350, 46, -230), look: v(273, 32, -236), fov: 52 }); await G.wait(0.6);
+      await sayW('gerda', 'Seeing as sitting patiently didn’t go so well, I have something to keep you in one place this afternoon. Nothing grand. Just care.');
+      await nod(1); await sayW('jack', 'Yes, Gerda.');
+      G.cut({ pos: v(276, 36, -230), look: v(320, 10, -270), fov: 46 }); faceG(cushion.x, cushion.z, 0.8);
+      await sayW('gerda', 'This is the golden hen’s room, and that is she, on her cushion. She is precious, and she frightens very easily.');
+      W.paintJack(jackOut, { outfit: 'Day', trousers: 'up', drawers: 'up', expr: 'smile' });
+      await sayW('jack', 'She’s lovely. I won’t frighten her.');
+      G.cut({ pos: v(322, 42, -240), look: v(rackP.x + 4, 16, (rackP.z + buckP.z) / 2), fov: 52 }); faceG(rackP.x, rackP.z, 0.8);
+      await sayW('gerda', 'Three things want doing. The floor wants sweeping: the broom hangs on that rack, and the bucket stands beside it.');
+      G.cut({ pos: v(binP.x + 22, 40, binP.z - 52), look: v(binP.x, 10, binP.z), fov: 52 }); faceG(binP.x, binP.z, 0.8);
+      await sayW('gerda', 'Her dish wants filling from the feed bin there. Lift the lid, take a scoop, and mind that it shuts again behind you, or she will be in it.');
+      G.cut({ pos: v(264, 54, -226), look: v((dishP.x + wellP.x) / 2, 8, (dishP.z + wellP.z) / 2), fov: 70 }); faceG(troughP.x, troughP.z, 0.8);
+      await sayW('gerda', 'And her trough wants water from the well, carried without spilling a drop. Walk with the bucket, Jack. A boy who runs, spills.');
+      G.cut({ pos: v(350, 46, -230), look: v(273, 32, -236), fov: 52 }); faceG(st.pos.x, st.pos.z, 0.7);
+      await sayW('gerda', 'Sweep, feed, water. Have you got all that?');
+      await nod(2); await sayW('jack', 'Sweep, feed, water. Yes, Gerda.');
+      await sayW('gerda', 'Now, the hen. You do not chase her, you do not clap at her, and you do not run about the room. Run, and she will run from you. Walk, and she will go about her business. If you want her back on her cushion, creep up on her slowly, and she will move on ahead of you. And speak softly to her. She is fond of a gentle voice.');
+      await sayW('gerda', 'Can you be gentle for me, Jack?');
+      await nod(1); await sayW('jack', 'I can. I promise. I’ll do just as I’m told.');
+      await sayW('gerda', 'Good boy. I shall be back before the afternoon is out, and I shall want to see all of it done. Be good.');
+      // she goes, and shuts the door behind her
+      { G.cut({ pos: v(290, 24, -246), look: v(273, 20, -214), fov: 46 }); const wps = [[273, -214], [273, -200]]; for (const [wx, wz] of wps) { while (Math.hypot(wx - gst.x, wz - gst.z) > 1) { const d = Math.hypot(wx - gst.x, wz - gst.z); gst.h += angDiff(Math.atan2(wx - gst.x, wz - gst.z), gst.h) * 0.3; gst.x += (wx - gst.x) / d * Math.min(0.95, d); gst.z += (wz - gst.z) / d * Math.min(0.95, d); gst.ph += 0.4; gst.walk = 1; placeGerda(); st.heading += angDiff(Math.atan2(gst.x - st.pos.x, gst.z - st.pos.z), st.heading) * 0.1; await G.wait(0.04); } }
+        gst.walk = 0; for (let i = 0; i < 10; i++) { gst.h += angDiff(0, gst.h) * 0.3; placeGerda(); await G.wait(0.04); } await G.wait(0.3);
+        if (roostD) { const a0 = roostD.lg.rotation.y; for (let i = 1; i <= 24; i++) { roostD.lg.rotation.y = a0 * (1 - ease(i / 24)); await G.wait(0.04); } roostD.og.userData.noCollide = false; A && A.thud && A.thud(0.5); }
+        gerda.root.visible = false; await G.wait(0.8); }
+      // ── the play ──
+      const sneakSpd = 11, SPILL_ABOVE = 27, RUNNING = 38, ALARM_R = 34;
+      const S = { holding: null, water: 0, spillAcc: 0, spillCool: 0, chores: { sweep: false, dish: false, water: false, trust: false }, troughLevel: 0, speedN: 0, px: st.pos.x, pz: st.pos.z, sweeping: false, sweepT: 99, workP: null, soothedAt: 0, soothN: 0, messN: 0, sTarget: st.s, t: 0, done: false, scooping: false };
+      const patches = []; for (let k = 1; k <= 12; k++) { const it = IT['dirt' + k]; if (!it) break; const g = it.g; patches.push({ g, x: g.position.x, z: g.position.z, amount: 1, r: g.children[0].geometry.parameters.width / 2 }); }
+      const H = { pos: new V3(cushion.x, 0, cushion.z), mode: 'rest', trust: 50, restLeft: 15, target: new V3(), timer: 2, cool: 0, heading: Math.PI, bob: 0, y: 9, scratch: 0, coax: 0 };
+      const restFor = t => t >= 100 ? Infinity : 5 + 0.2 * t;       // (as in the test level: at least five seconds, two more for every ten per cent of trust, and at full trust she stays)
+      H.restLeft = restFor(H.trust);
+      // what he carries hangs from his right hand, in a carrier that cancels his own scale so that it stays the room's size
+      const carrier = new THREE.Group(); carrier.position.y = -10; jackOut.armR.add(carrier);
+      const hBroom = new THREE.Group(), hBr = new THREE.Group(); mk(0.9, 18, 0.9, '#8a6a40', 0, 9, 0, hBr); mk(3.4, 5, 2.2, '#c9b06a', 0, 2.5, 0, hBr); mk(3, 1, 2, '#6a5030', 0, 5.4, 0, hBr); hBr.rotation.x = 0.62; hBr.position.set(0, -9 * Math.cos(0.62), -9 * Math.sin(0.62)); hBroom.add(hBr); hBroom.visible = false; carrier.add(hBroom);
+      const hBucket = new THREE.Group(); mk(4.4, 4, 4.4, '#7a5a38', 0, 2, 0, hBucket); const hWater = mk(3.6, 0.6, 3.6, '#6ab8f6', 0, 3.8, 0, hBucket); mk(0.5, 3, 0.5, '#4a3a2a', 0, 6, 0, hBucket); hBucket.position.set(0, -6, 6); hBucket.visible = false; carrier.add(hBucket);
+      const hGrain = new THREE.Group(); mk(4, 3, 4, '#f0c64a', 0, 0, 0, hGrain); mk(4.6, 1, 4.6, '#7a5a38', 0, -1.8, 0, hGrain); hGrain.position.set(0, -4, 6); hGrain.visible = false; carrier.add(hGrain);
+      const setHeld = what => { S.holding = what; hBroom.visible = what === 'broom'; hBucket.visible = what === 'bucket'; hGrain.visible = what === 'grain'; gp('henRack').userData.broom.visible = what !== 'broom'; gp('henBucket').userData.bucket.visible = what !== 'bucket'; S.water = what === 'bucket' ? S.water : 0; };
+      const shrink = (frac, why) => { S.sTarget = Math.max(FLOOR, S.sTarget - frac * FULL); toast(why + ': −' + Math.round(frac * 100) + '%', 2600); };
+      const hudEl = (() => { let e = $('cwTrustW'); if (!e) { e = document.createElement('div'); e.id = 'cwTrustW'; e.style.cssText = 'position:absolute;left:50%;top:58px;transform:translateX(-50%);width:200px;font-size:13px;text-align:center;background:rgba(10,12,16,0.7);border:1px solid #4a4d58;border-radius:8px;padding:5px 8px;pointer-events:none;color:#ece8df;'; e.innerHTML = 'The hen trusts you <b id="cwTrustV"></b><div style="height:7px;margin-top:4px;background:#222;border-radius:4px;overflow:hidden"><i id="cwTrustB" style="display:block;height:100%;width:0;background:#e6c46a"></i></div>'; $('cwHud') ? $('cwHud').appendChild(e) : document.body.appendChild(e); } return e; })();
+      const updateGoal = () => { const c = S.chores, m = b => b ? '✔ ' : '☐ '; $('cwObjt').textContent = m(c.sweep) + 'Sweep the floor   ' + m(c.dish) + 'Fill her dish   ' + m(c.water) + 'Fill her trough   ' + m(c.trust) + 'Win her trust'; $('cwObjt').style.display = 'block'; };
+      const setTrough = () => { const w = gp('henTrough').userData.water, f = S.troughLevel / 100; w.visible = f > 0; w.scale.y = Math.max(0.2, f); w.position.y = 3.65 + 0.35 * Math.max(0.2, f); };
+      // the hen
+      const onCushion = p => Math.abs(p.x - cushion.x) < 11 && Math.abs(p.z - cushion.z) < 11;
+      const roam = () => new V3(W3(266, 378, Math.random()), 0, W3(-320, -222, Math.random()));
+      const dist = p => Math.hypot(p.x - st.pos.x, p.z - st.pos.z);
+      const startRest = () => { H.mode = 'rest'; H.restLeft = restFor(H.trust); };
+      const flee = from => { const away = H.pos.clone().sub(from); away.y = 0; if (away.lengthSq() < 0.01) away.set(1, 0, 0.3); away.normalize(); const t = H.pos.clone().addScaledVector(away, 34); t.x = clamp(t.x, 266, 378); t.z = clamp(t.z, -320, -222); H.target = t; H.mode = 'flee'; };
+      const nextDirt = () => { let best = null, bd = 1e9; for (const p of patches) { if (p.amount < 0.15 || p === S.workP || Math.hypot(p.x - st.pos.x, p.z - st.pos.z) < 24) continue; const d = Math.hypot(p.x - H.pos.x, p.z - H.pos.z); if (d < bd) { best = p; bd = d; } } return best; };
+      const mess = p => { p.amount = Math.min(1, p.amount + 0.7); if (patches.length < 14 && Math.random() < 0.6) { const g2 = p.g.clone(true); M.room.add(g2); const ang = Math.random() * 6.28, x = clamp(p.x + Math.cos(ang) * 11, 262, 380), z = clamp(p.z + Math.sin(ang) * 11, -322, -222); g2.position.set(x, 0, z); patches.push({ g: g2, x, z, amount: 0.8, r: p.r }); } S.chores.sweep = false;
+        S.messN++; if (S.messN === 1 || S.messN % 4 === 0) G.caption('jack', ['Oh, no. She’s making more of a mess than I’m clearing!', 'She’s undoing it as fast as I sweep!', 'Not there, girl! I only just cleared that.'][(S.messN / 4 | 0) % 3]); };
+      const updateHen = dt => {
+        const d = dist(H.pos), sneaking = S.speedN < 18, running = S.speedN > RUNNING; H.cool = Math.max(0, H.cool - dt); H.bob += dt * (H.mode === 'flee' ? 18 : 5);
+        if (running && d < ALARM_R && H.mode !== 'flee' && H.mode !== 'rest') { flee(st.pos); H.trust = Math.max(0, H.trust - 14); if (H.cool <= 0) { H.cool = 4; shrink(0.01, 'Startling the hen'); } }
+        if (H.mode === 'rest') {
+          const dd = Math.hypot(cushion.x - H.pos.x, cushion.z - H.pos.z); if (dd > 0.5) { H.pos.x += (cushion.x - H.pos.x) / dd * Math.min(dd, 12 * dt); H.pos.z += (cushion.z - H.pos.z) / dd * Math.min(dd, 12 * dt); }
+          H.restLeft = H.trust >= 100 ? Infinity : H.restLeft - dt; if (H.restLeft <= 0) { H.mode = 'wander'; H.timer = 1; H.target = roam(); }
+        } else if (H.mode === 'flee') { const dd = Math.hypot(H.target.x - H.pos.x, H.target.z - H.pos.z); if (dd < 1) { if (onCushion(H.pos)) startRest(); else { H.mode = 'wander'; H.timer = 2; } } else { H.pos.x += (H.target.x - H.pos.x) / dd * Math.min(dd, 34 * dt); H.pos.z += (H.target.z - H.pos.z) / dd * Math.min(dd, 34 * dt); } }
+        else if (H.mode === 'dirt') {
+          if (H.scratch > 0) { H.scratch -= dt; if (H.scratch <= 0 && H.tgtP) { mess(H.tgtP); H.tgtP = null; H.mode = S.sweepT < 10 ? 'dirt' : 'wander'; H.timer = 1.5; H.dirtWait = 1.2; } }
+          else if (H.dirtWait > 0) H.dirtWait -= dt;
+          else { if (!H.tgtP || H.tgtP.amount < 0.15 || H.tgtP === S.workP) H.tgtP = nextDirt(); if (!H.tgtP) H.mode = 'wander'; else { const dd = Math.hypot(H.tgtP.x - H.pos.x, H.tgtP.z - H.pos.z); if (dd < 5) H.scratch = 1.4; else { H.pos.x += (H.tgtP.x - H.pos.x) / dd * Math.min(dd, 11 * dt); H.pos.z += (H.tgtP.z - H.pos.z) / dd * Math.min(dd, 11 * dt); H.heading = Math.atan2(H.tgtP.x - H.pos.x, H.tgtP.z - H.pos.z); } } }
+        } else {                                                                   // wandering
+          H.coax = Math.max(0, H.coax - dt);
+          if (sneaking && S.speedN > 1 && d < ALARM_R) { const away = H.pos.clone().sub(st.pos); away.y = 0; away.normalize(); H.pos.addScaledVector(away, 9 * dt); H.heading = Math.atan2(away.x, away.z); H.coax = 1.2; H.timer = 2; }       // (sneaking up on her, she moves on a little ahead of him: so that he can corral her)
+          else { H.timer -= dt; const dd = Math.hypot(H.target.x - H.pos.x, H.target.z - H.pos.z); if (dd > 1) { H.pos.x += (H.target.x - H.pos.x) / dd * Math.min(dd, 9 * dt); H.pos.z += (H.target.z - H.pos.z) / dd * Math.min(dd, 9 * dt); H.heading = Math.atan2(H.target.x - H.pos.x, H.target.z - H.pos.z); } if (H.timer <= 0) { H.timer = 3 + Math.random() * 5; H.target = roam(); } }
+          if (onCushion(H.pos) && (H.coax > 0 || H.trust >= 100)) startRest();
+        }
+        if (H.mode !== 'rest' && d < 20 && S.speedN < 2) H.trust = Math.min(100, H.trust + 3 * dt);       // (still and close, she warms a little)
+        H.pos.x = clamp(H.pos.x, 264, 380); H.pos.z = clamp(H.pos.z, -322, -222);
+        const rest = H.mode === 'rest', ty = rest ? 9 : 0; H.y += (ty - H.y) * Math.min(1, dt * 9);
+        if (rest) H.heading = Math.atan2(st.pos.x - H.pos.x, st.pos.z - H.pos.z);
+        hen.position.set(H.pos.x, H.y + (H.mode === 'flee' ? 1.2 * Math.abs(Math.sin(H.bob)) : 0), H.pos.z); let dr = H.heading - hen.rotation.y; dr = Math.atan2(Math.sin(dr), Math.cos(dr)); hen.rotation.y += dr * Math.min(1, dt * 8);
+        hen.rotation.z = H.mode === 'flee' ? 0.08 * Math.sin(H.bob * 2) : rest ? 0.02 * Math.sin(H.bob * 0.3) : 0.03 * Math.sin(H.bob);
+      };
+      // doing things
+      const lid = binG.userData.box.lid;
+      const scoop = async () => { if (S.scooping) return; S.scooping = true; for (let i = 1; i <= 10; i++) { lid.rotation.x = -1.15 * ease(i / 10); await G.wait(0.04); } setHeld('grain'); A && A.blip && A.blip(); await G.wait(0.4); for (let i = 1; i <= 10; i++) { lid.rotation.x = -1.15 * (1 - ease(i / 10)); await G.wait(0.04); } lid.rotation.x = 0; A && A.thud && A.thud(0.25); S.scooping = false; };
+      const SOOTHE = ['Easy, now. Easy, girl.', 'There you are. Nothing to be frightened of.', 'That’s it. Nice and quiet, the pair of us.', 'Good girl. You’re all right.', 'Steady. Nobody’s going to hurt you.'];
+      const soothe = () => { const now = performance.now(); if (now < S.soothedAt) return; S.soothedAt = now + 2200; const line = SOOTHE[S.soothN++ % SOOTHE.length]; A && A.speak && A.speak('jack', line, 3, {}); G.caption('jack', line); H.trust = Math.min(100, H.trust + 15); if (H.mode === 'rest') H.restLeft = restFor(H.trust); st.heading += angDiff(Math.atan2(H.pos.x - st.pos.x, H.pos.z - st.pos.z), st.heading) * 0.8; };
+      const pour = () => { const q = Math.min(S.water, 100 - S.troughLevel); S.troughLevel += q; S.water = 0; setTrough(); if (S.troughLevel >= 99.5) { S.chores.water = true; toast('The trough is full. ✔', 2400); } else toast('You pour in some water. The trough is ' + Math.round(S.troughLevel) + '% full: back to the well for more.', 3200); };
+      const patchAt = (p, q) => Math.hypot(p.x - q.x, p.z - q.z);
+      st.chore = { S, H, patches };       // (for tools and tests)
+      st.scene = false; G.mode = 'play'; document.body.classList.remove('cutscene'); st.pose = null; st.camA = 0.15; st.pitch = 0.42; st.zoom = 1; camPos.set(0, 0, 0); st.heading = Math.PI; st.walkN = 0; $('cwObjt').style.display = 'block'; updateGoal(); hudEl.style.display = 'block';
+      G.cut({ pos: v(st.pos.x, 30, st.pos.z + 60), look: v(st.pos.x, 10, st.pos.z), fov: 48 });
+      await new Promise(resolve => {
+        let prevSweeping = false;
+        st.choreTick = dt => {
+          S.t += dt; const sc = SC * st.s; carrier.scale.setScalar(1 / sc);
+          st.s += (S.sTarget - st.s) * Math.min(1, dt * 4);
+          if (st.pos.z > -213) st.pos.z = -213;       // (the door is shut, and he stays in)
+          { const inst = Math.hypot(st.pos.x - S.px, st.pos.z - S.pz) / Math.max(dt, 1e-3) / (SC * Math.pow(st.s, 0.6)); S.speedN += (inst - S.speedN) * Math.min(1, dt * 8); S.px = st.pos.x; S.pz = st.pos.z; }
+          // the broom sweeps what is in front of it
+          S.sweeping = false; S.workP = null;
+          if (S.holding === 'broom') { const f = new V3(st.pos.x + Math.sin(st.heading) * 14, 0, st.pos.z + Math.cos(st.heading) * 14); for (const p of patches) if (p.amount > 0 && patchAt(p, f) < p.r + 8) { S.sweeping = true; S.workP = p; p.amount = Math.max(0, p.amount - dt / 1.1); } }
+          if (S.sweeping) { S.sweepT = 0; if (!prevSweeping && (H.trust < 100 || H.mode !== 'rest')) { H.mode = 'dirt'; H.tgtP = nextDirt(); H.scratch = 0; H.dirtWait = 0.3; } } else S.sweepT += dt; prevSweeping = S.sweeping;
+          for (const p of patches) { p.g.visible = p.amount > 0.02; p.g.scale.setScalar(0.4 + 0.6 * p.amount); }
+          if (!S.chores.sweep && patches.every(p => p.amount <= 0.02)) { S.chores.sweep = true; toast('The floor is swept clean. ✔', 2600); }
+          // the water slops if he runs with it
+          if (S.holding === 'bucket' && S.water > 0 && S.speedN > SPILL_ABOVE) { S.water = Math.max(0, S.water - dt * 18 * (S.speedN - SPILL_ABOVE) / 23); S.spillAcc += dt * 18 * (S.speedN - SPILL_ABOVE) / 23; S.spillCool = Math.max(0, S.spillCool - dt); if (S.spillAcc >= 15 && S.spillCool <= 0) { S.spillAcc -= 15; S.spillCool = 1.5; shrink(0.02, 'Spilling the water'); if (patches.length < 14) { const g2 = patches[0].g.clone(true); M.room.add(g2); g2.position.set(st.pos.x, 0, st.pos.z); patches.push({ g: g2, x: st.pos.x, z: st.pos.z, amount: 0.6, r: patches[0].r }); S.chores.sweep = false; } } }
+          if (S.holding === 'bucket') { hWater.scale.y = Math.max(0.01, S.water / 100); hWater.visible = S.water > 2; }
+          // how he holds it
+          if (S.holding) { const sw = S.sweeping ? 0.25 * Math.sin(S.t * 14) : 0; st.pose = { armRx: (S.holding === 'broom' ? -0.9 : -1.15) + sw, armLx: S.holding === 'broom' ? -0.5 : -1.15, armRz: -0.1, armLz: 0.1 }; hBroom.rotation.z = S.sweeping ? 0.35 * Math.sin(S.t * 14) : 0; } else st.pose = null;
+          updateHen(dt);
+          if (H.trust >= 100 && H.mode === 'rest' && !S.chores.trust) { S.chores.trust = true; toast('The hen settles on her cushion, and lets you near. ✔', 3000); }
+          if (H.trust < 100 && S.chores.trust && H.mode !== 'rest') S.chores.trust = false;
+          // E: the nearest thing he can do
+          const act = st.actReq; st.actReq = st.putReq = false; const pr = promptEl(); let best = null;
+          const add = (p, r, label, fn) => { const d = dist(p); if (d < r && (!best || d < best.d)) best = { d, label, fn }; };
+          if (!S.holding) { add(rackP, 28, 'Take the broom', () => setHeld('broom')); add(buckP, 24, 'Take the bucket', () => { setHeld('bucket'); S.water = 0; }); add(binP, 26, 'Scoop grain', scoop); }
+          if (S.holding === 'broom') add(rackP, 28, 'Hang up the broom', () => setHeld(null));
+          if (S.holding === 'bucket') { add(wellP, 32, S.water < 100 ? 'Fill the bucket' : 'Full', () => { if (S.water < 100) { S.water = 100; S.spillAcc = 0; toast('You fill the bucket. Walk, so that it does not slop.', 2600); } }); if (S.water > 0) add(troughP, 34, 'Pour into the trough', pour); add(buckP, 24, 'Put the bucket back', () => setHeld(null)); }
+          if (S.holding === 'grain') { add(dishP, 22, 'Fill the dish', () => { if (dist(H.pos) < 0 || Math.hypot(H.pos.x - dishP.x, H.pos.z - dishP.z) < 9) { toast('The hen is in the way of the dish.', 2400); return; } gp('henDish').userData.grain.visible = true; setHeld(null); S.chores.dish = true; toast('You fill her dish with grain. ✔', 2600); }); add(binP, 26, 'Tip it back', () => setHeld(null)); }
+          if (!S.scooping) add(H.pos, 30, 'Speak softly', soothe);
+          if (best && !S.scooping) { pr.textContent = 'E — ' + best.label; pr.style.display = 'block'; st.uiAct = best.label; if (act) best.fn(); } else { pr.style.display = 'none'; st.uiAct = null; }
+          // the board
+          updateGoal(); $('cwTrustV').textContent = Math.round(H.trust) + '%'; $('cwTrustB').style.width = H.trust + '%';
+          if (!S.done && CHORES_.every(c => S.chores[c])) { S.done = true; G.caption('jack', 'The floor, the dish, the trough, and she’s settled. That’s everything.'); setTimeout(() => { st.choreTick = null; resolve(); }, 3500); }
+        };
+        const CHORES_ = ['sweep', 'dish', 'water', 'trust'];
+      });
+      $('cwTrustW') && ($('cwTrustW').style.display = 'none'); $('cwObjt').style.display = 'none'; $('cwPrompt').style.display = 'none'; st.pose = null; st.uiAct = null; hBroom.visible = hBucket.visible = hGrain.visible = false;
     }
     function ch3Tick(dt) {
       if (st.guard && !st.frozen) st.guard();       // (the way to the roost: some places he is kept from)
+      if (st.choreTick && !st.scene) { st.choreTick(dt); return; }       // (the hen's room: the chores are played in their own tick)
       if (st.frozen) { const act = st.actReq, pr = promptEl(); st.actReq = st.putReq = st.jumpReq = false;       // (being dressed: the one button answers what she asks)
         if (st.dressWait && !st.scene) { pr.textContent = 'E \u2014 ' + st.dressWait.label; pr.style.display = 'block'; st.uiAct = st.dressWait.label; if (act) { const r = st.dressWait.res; st.dressWait = null; st.uiAct = null; pr.style.display = 'none'; r(); } } else { pr.style.display = 'none'; st.uiAct = null; }
         return; }
@@ -993,7 +1145,8 @@ function run(G, W, opts) {
     }
     const f = $('fade');
     if (ch3) { if (opts.ch3start === 'nursery') { makeG('Work'); gerda.root.visible = false; st.s = 0.35; st.pos.set(-294, 0, -172); st.heading = Math.PI; st.camA = Math.atan2(-Math.cos(st.heading), -Math.sin(st.heading)); st.pitch = 0.45; st.zoom = 1; camPos.set(0, 0, 0); G.skipping = false; st.scene = false; st.pose = null; $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); f.style.transition = ''; await G.fade(false, 1.0); return; }
-      if (opts.ch3dress) { st.scene = true; st.s = 0.7; makeG('Work'); G.gerdaNamed = true; G.mode = 'cutscene'; if (A && A.ctx && !opts.ch3notes) A.startMusic({ theme: 'castle' }); await dressScene(); await finish('dressed'); return; }
+      if (opts.ch3dress) { st.scene = true; st.s = 0.7; makeG('Work'); G.gerdaNamed = true; G.mode = 'cutscene'; if (A && A.ctx && !opts.ch3notes) A.startMusic({ theme: 'castle' }); await dressScene(); await choreScene(); await finish('chores'); return; }
+      if (opts.ch3chores) { st.scene = true; st.s = 0.98; makeG('Work'); G.gerdaNamed = true; G.mode = 'cutscene'; await choreScene(); await finish('chores'); return; }
       if (opts.ch3disc) { st.scene = true; st.s = 0.5; makeG('Work'); st.pos.set(-294, 0, -172); G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; if (A && A.ctx && !opts.ch3notes) A.startMusic({ theme: 'nursery' }); await disciplineScene(opts.ch3lies || 0); return; }       // (the correction is a scene of its own, after the one in which he is put across her knee)
       if (opts.ch3notes === 'close') { st.scene = true; st.s = 0.4; makeG('Work'); gerda.root.visible = false; const cg = M.items.chest.g.position; st.pos.set(cg.x - 12, 0, cg.z + 10); st.heading = Math.PI / 2; $('cwPanel').style.display = 'none'; await chestScene(); return; } await ch3Open(); return; }
     if (!story) { G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); f.style.transition = ''; await G.fade(false, 1.2); return; }
