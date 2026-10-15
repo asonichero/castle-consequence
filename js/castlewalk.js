@@ -524,7 +524,7 @@ function run(G, W, opts) {
       const gwalk = async (wx, wz, spd, onStep) => { const x0 = gst.x, z0 = gst.z, d = Math.hypot(wx - x0, wz - z0), n = Math.max(2, Math.ceil(d / (spd || 1.2))); for (let i = 1; i <= n; i++) { const k = i / n, h1 = Math.atan2(wx - gst.x, wz - gst.z); gst.x = x0 + (wx - x0) * k; gst.z = z0 + (wz - z0) * k; gst.h += angDiff(h1, gst.h) * 0.3; gst.ph += 0.4; gst.walk = 1; placeGerda(); onStep && onStep(); await G.wait(0.04); } gst.walk = 0; };
       const faceJ = () => { gst.h = Math.atan2(st.pos.x - gst.x, st.pos.z - gst.z); placeGerda(); };
       const dirGJ = () => { const dx = gst.x - st.pos.x, dz = gst.z - st.pos.z, d = Math.hypot(dx, dz) || 1; return [dx / d, dz / d]; };
-      const shotG = (dy, dx) => G.cut({ pos: v(st.pos.x + (dx || 10), dy || 3.4, st.pos.z - 6.5), look: v(gst.x + 0.3, 30.8, gst.z + 3), fov: 42 });      // (on Gerda, low, from just behind Jack: looking up at her)
+      const shotG = (dy, dx, dz) => G.cut({ pos: v(st.pos.x + (dx || 10), dy || 3.4, st.pos.z - (dz || 6.5)), look: v(gst.x + 0.3, 30.8, gst.z + 3), fov: 42 });      // (on Gerda, low, from just behind Jack: looking up at her)
       const shotJ = () => G.cut({ pos: v(st.pos.x - 41, 44, st.pos.z - 27), look: v(st.pos.x, 8, st.pos.z), fov: 38 });      // (on Jack, from high behind her)
       const shotSweep = () => G.cut({ pos: v(st.pos.x - 7, 52, st.pos.z - 50), look: v(st.pos.x - 8, 20, st.pos.z - 5), fov: 44 });
       const tx = st.pos.x - 27, tz = st.pos.z - 3, camHere = G.shotNow().pos, come = gwalk(tx, tz, 1.3, () => { if (!(G.camOverride && G.camOverride(G.beat))) G.cutNow({ pos: camHere, look: v(gst.x, 38, gst.z), fov: 54 }); });       // (the camera pans up and across to keep her head in frame as she comes)
@@ -545,12 +545,12 @@ function run(G, W, opts) {
       for (;;) {
         const opts = lies < 3 ? [TRUTH, LIES[lies]] : [TRUTH], k = await G.choose('jack', opts);
         if (k === 0) break;
-        shotJ(); await jline(LIES[lies]); shotG(); await gline(SEE[lies]); lies++;
+        shotJ(); await jline(LIES[lies]); shotG(6.1, 9.1, 5.6); await gline(SEE[lies]); lies++;
       }
       shotJ(); W.paintJack(jackOut, { expr: 2 }); await jline('We’ve nothing at home, and Mother’s frantic. I thought one small thing from a house this rich would make the climb worth it.');
       // the truth is told: he grows, to half her size
       A && A.blip && A.blip(); for (let i = 1; i <= 48; i++) { st.s = W3(0.4, 0.5, ease(i / 48)); await G.wait(0.05); } st.s = 0.5;
-      shotG();
+      shotG(12.3, 15.1, 6.2);
       await gline(['Honest, and at the first asking. I’ll say that for you.', 'The truth, after one fib. It is a start.', 'Two lies, and then the truth. You are getting there, slowly.', 'Three lies, and the truth only when you had run out of the other kind.'][lies]);
       await gline('But I told you to stay put, and to touch nothing, did I not, ' + ['little one', 'little climber', 'little mouse', 'my little thief'][lies] + '?');
       shotJ(); await jline('I’m not a—');
@@ -559,21 +559,22 @@ function run(G, W, opts) {
       st.boxed = true; st.pose = { thigh: -0.3, knee: 0.2, armLx: -0.2, armLz: 0.35, armRx: -0.2, armRz: -0.35, torso: 0, neckX: -0.2, neckY: 0 };
       { const [ux, uz] = dirGJ(); await gwalk(st.pos.x + ux * 11, st.pos.z + uz * 11, 0.8); faceJ(); }
       const Q = (ax, ang) => new THREE.Quaternion().setFromAxisAngle(ax, ang), UP = v(0, 1, 0), RX = v(1, 0, 0);
-      const carryAt = () => { const hip = gerda.root.localToWorld(v(0, 12, 6.5)); return hip; };
-      { const p0 = st.pos.clone(), h0 = st.heading, hold = carryAt().clone(); for (let i = 1; i <= 22; i++) { const k = ease(i / 22); gst.bend = 0.5 * k; gst.reach = 1.2 * k; gst.lreach = 1.2 * k; faceJ(); jackOut.root.position.set(W3(p0.x, carryAt().x, k), W3(0, carryAt().y + 2, k), W3(p0.z, carryAt().z, k)); jackOut.root.quaternion.copy(Q(UP, h0)).slerp(Q(UP, gst.h + Math.PI / 2).multiply(Q(RX, Math.PI / 2)), k); st.pose.thigh = W3(-0.3, -0.1, k); await G.wait(0.04); } gst.reach = 1.2; gst.lreach = 1.2; }
+      let tiltK = 0;                                                                                           // (0: carried upright, between her hands, firm at either hip; 1: across her knee)
+      const upQ = () => Q(UP, gst.h + Math.PI), downQ = () => Q(UP, gst.h + Math.PI / 2).multiply(Q(RX, Math.PI / 2));
+      const carryPos = () => gerda.root.localToWorld(v(0, 9.5, 9)).lerp(gerda.root.localToWorld(v(0, 12, 6.5)).add(v(0, 2, 0)), tiltK);
+      { const p0 = st.pos.clone(), h0 = st.heading; for (let i = 1; i <= 22; i++) { const k = ease(i / 22); gst.bend = 0.35 * k; gst.reach = 1.25 * k; gst.lreach = 1.25 * k; faceJ(); const cp = carryPos(); jackOut.root.position.set(W3(p0.x, cp.x, k), W3(0, cp.y, k), W3(p0.z, cp.z, k)); jackOut.root.quaternion.copy(Q(UP, h0)).slerp(upQ(), k); st.pose.thigh = W3(-0.3, -0.15, k); st.pose.knee = W3(0.2, 0.15, k); st.pose.armLx = W3(-0.2, -0.9, k); st.pose.armRx = W3(-0.2, -0.9, k); await G.wait(0.04); } gst.reach = 1.25; gst.lreach = 1.25; }
       const chair = M.items.nurseryChair.g.position, SEATX = chair.x, SEATZ = chair.z;
-      const carryFrame = () => { faceJ0(); jackOut.root.position.copy(carryAt()).add(v(0, 2, 0)); jackOut.root.quaternion.copy(Q(UP, gst.h + Math.PI / 2).multiply(Q(RX, Math.PI / 2))); };
-      const faceJ0 = () => {};
+      const carryFrame = () => { jackOut.root.position.copy(carryPos()); jackOut.root.quaternion.copy(upQ()).slerp(downQ(), tiltK); };
       const walkCarrying = async (wx, wz, spd) => { const x0 = gst.x, z0 = gst.z, d = Math.hypot(wx - x0, wz - z0), n = Math.max(2, Math.ceil(d / spd)); for (let i = 1; i <= n; i++) { const k = i / n, h1 = Math.atan2(wx - gst.x, wz - gst.z); gst.x = x0 + (wx - x0) * k; gst.z = z0 + (wz - z0) * k; gst.h += angDiff(h1, gst.h) * 0.3; gst.ph += 0.4; gst.walk = 0.6; placeGerda(); carryFrame(); await G.wait(0.04); } gst.walk = 0; };
       G.cut({ pos: v(-160, 40, -240), look: v(SEATX, 14, SEATZ), fov: 46 });
       await walkCarrying(SEATX - 12, SEATZ, 0.9);
       // she turns and sits, with him across her knee
-      { const h0 = gst.h; for (let i = 1; i <= 26; i++) { const k = ease(i / 26); gst.h = h0 + angDiff(-Math.PI / 2, h0) * k; gst.x = W3(SEATX - 12, SEATX, k); gst.sit = k; gst.bend = W3(0.5, 0.05, k); gst.reach = W3(1.2, 0.6, k); gst.lreach = W3(1.2, 0.6, k); gst.y = 5.1 * k; placeGerda(); gerda.root.position.y = gst.y; carryFrame(); await G.wait(0.04); } }
+      { const h0 = gst.h; for (let i = 1; i <= 26; i++) { const k = ease(i / 26); gst.h = h0 + angDiff(-Math.PI / 2, h0) * k; gst.x = W3(SEATX - 12, SEATX, k); gst.sit = k; tiltK = k; gst.bend = W3(0.35, 0.05, k); gst.reach = W3(1.25, 0.6, k); gst.lreach = W3(1.25, 0.6, k); gst.y = 5.1 * k; placeGerda(); gerda.root.position.y = gst.y; carryFrame(); await G.wait(0.04); } }
       root.Blocky.seatFeet && root.Blocky.seatFeet(gerda, 0);
       const lapY = 17.5, lapX = SEATX - 6.5;
       st.pose = { thigh: 0.2, knee: 0.3, armLx: -1.3, armLz: 0.1, armRx: -1.3, armRz: -0.1, torso: 0, neckX: 0.5, neckY: 0 };
       { const q1 = Q(RX, Math.PI / 2), p0 = jackOut.root.position.clone(), q0 = jackOut.root.quaternion.clone(); for (let i = 1; i <= 20; i++) { const k = ease(i / 20); jackOut.root.position.set(W3(p0.x, lapX, k), W3(p0.y, lapY + 1.5, k), W3(p0.z, SEATZ - 7.3, k)); jackOut.root.quaternion.copy(q0).slerp(q1, k); await G.wait(0.04); } }
-      G.cut({ pos: v(SEATX - 48, 20, SEATZ + 44), look: v(lapX, 14, SEATZ - 2), fov: 40 });
+      G.cut({ pos: v(SEATX - 66.4, 21.7, SEATZ + 13), look: v(lapX, 14, SEATZ - 2), fov: 40 });
       W.paintJack(jackOut, { expr: 4 }); await jline('No!');
       for (let i = 1; i <= 36; i++) { const t = i * 0.35; st.pose.thigh = 0.2 + 0.7 * Math.sin(t * 2.3); st.pose.knee = 0.4 + 0.5 * Math.abs(Math.sin(t * 2.3 + 1)); st.pose.armLx = -1.3 + 0.4 * Math.sin(t * 2.9); st.pose.armRx = -1.3 + 0.4 * Math.sin(t * 2.9 + 2); jackOut.root.position.x = lapX + 0.25 * Math.sin(t * 3.1); jackOut.root.position.y = lapY + 1.5 + 0.2 * Math.abs(Math.sin(t * 2.3)); if (i === 8) jline('Let me go!'); await G.wait(0.04); }
       await G.wait(0.6);
