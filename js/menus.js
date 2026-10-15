@@ -117,11 +117,16 @@ async function playCastle(story, extra) {
   if (story && !(extra && extra.capture)) { await titleCard('Three', 'The Measure of a Man'); await ch3Scene(W); } else if (story) showEnd();       // (the story goes on into Chapter Three; the capture on its own ends at its end card)
 }
 // Chapter Three, The Measure of a Man: it opens in the kitchen, with Jack in the box on the table, at a quarter of his size.
-async function ch3Scene(W, extra) { if (root.CastleWalk) { G.save({ step: 'ch3' }); await root.CastleWalk.run(G, W, Object.assign({ ch3: true, scale: 0.25 }, extra || {})); showEnd(); } }
+async function ch3Scene(W, extra) { if (root.CastleWalk) { G.save({ step: 'ch3' }); await root.CastleWalk.run(G, W, Object.assign({ ch3: true, scale: 0.25 }, extra || {})); if (G.castleResult === 'discipline') { await root.CastleWalk.run(G, W, { ch3: true, ch3disc: true, ch3lies: G.ch3lies || 0 }); } showEnd(); } }
 async function playCh3(start) {
   G.skipping = false; hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
   await ch3Scene(W, start === 'nursery' ? { ch3start: 'nursery', scale: 0.35 } : null);
+}
+async function playCh3Disc() {
+  G.skipping = false; hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
+  const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
+  await root.CastleWalk.run(G, W, { ch3: true, ch3disc: true, ch3lies: 1 }); showEnd();
 }
 async function playChapter3(only) {
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
@@ -157,6 +162,7 @@ $('levelSel').onchange = async () => {
     else if (k === 'castlehall') await playCastle(true);
     else if (k === 'ch3open') await playCh3();
     else if (k === 'ch3nursery') await playCh3('nursery');
+    else if (k === 'ch3disc') await playCh3Disc();
     else if (k === 'cards') { hideAll(); $('dev').style.display = 'none'; wake(); for (const [n, t] of [['One', 'Market Day'], ['Two', 'The Climb'], ['Three', 'The Measure of a Man']]) await titleCard(n, t); toTitle(); }
     else if (k === 'castlecatch') { G.noSave = true; await playCastle(true, { capture: true }); }
     else if (k === 'corrH' || k === 'corrC' || k === 'corrB') await playCorrection(k === 'corrH' ? 0 : k === 'corrC' ? 1 : 2);

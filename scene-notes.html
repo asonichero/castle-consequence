@@ -30,7 +30,7 @@
 <div id="panel">
   <div class="sub">Each beat plays once and stops at its end. Move the camera (drag to orbit, right-drag to pan, wheel to zoom) or type numbers; the change is kept for that beat and used the next time it runs.</div>
   <h3>Scene</h3>
-  <div><select id="scene"><option value="night">Cottage at night</option><option value="castle">Castle: Gerda catches Jack</option><option value="ch3open">Chapter Three: waking in the box (opening)</option><option value="ch3close">Chapter Three: the chest in the nursery (closing)</option></select> <span class="sub">scene</span></div>
+  <div><select id="scene"><option value="night">Cottage at night</option><option value="castle">Castle: Gerda catches Jack</option><option value="ch3open">Chapter Three: waking in the box (opening)</option><option value="ch3close">Chapter Three: the chest in the nursery (closing)</option><option value="ch3disc">Chapter Three: the nursery correction</option></select> <span class="sub">scene</span></div>
   <div id="liesRow"><select id="lies"><option value="0">Truth at once</option><option value="1">One lie, then the truth</option><option value="2">Two lies, then the truth</option><option value="3">Three lies, then the truth</option></select> <span class="sub">Jack’s answers</span></div>
   <div id="routeRow"><select id="route"><option value="0,2,0">Brash</option><option value="1,0,1">Cheeky</option><option value="2,1,2">Humble</option></select> <span class="sub">night scene</span></div>
   <h3>Beat <span id="bnum">–</span> <span class="tag" id="btag"></span></h3>
@@ -69,6 +69,7 @@
 <script src="js/pain.js"></script>
 <script src="js/lap-poses.js"></script>
 <script src="js/lap.js"></script>
+<script src="js/correction.js"></script>
 <script src="js/capture-cams.js"></script>
 <script src="js/castlewalk.js"></script>
 <script>
@@ -78,14 +79,14 @@
 'use strict';
 const $ = id => document.getElementById(id), A = window.GameAudio, THREE = window.THREE;
 const params = new URLSearchParams(location.search), route = params.get('c') || '0,2,0', choices = route.split(',').map(Number);
-const SCENE = ['castle', 'ch3open', 'ch3close'].includes(params.get('s')) ? params.get('s') : 'night', SCENE_NAME = { castle: 'Chapter Two, the castle kitchen: Gerda catches Jack', ch3open: 'Chapter Three, opening: Jack wakes in the box', ch3close: 'Chapter Three, closing: the chest in the nursery' }; $('scene').value = SCENE; $('routeRow').style.display = SCENE === 'night' ? '' : 'none'; $('scene').onchange = () => { params.set('s', $('scene').value); location.search = params.toString(); };
-const LIES_N = Math.max(0, Math.min(3, +params.get('l') || 0)); $('liesRow').style.display = SCENE === 'ch3close' ? '' : 'none'; $('lies').value = LIES_N; $('lies').onchange = () => { params.set('l', $('lies').value); location.search = params.toString(); };
+const SCENE = ['castle', 'ch3open', 'ch3close', 'ch3disc'].includes(params.get('s')) ? params.get('s') : 'night', SCENE_NAME = { castle: 'Chapter Two, the castle kitchen: Gerda catches Jack', ch3open: 'Chapter Three, opening: Jack wakes in the box', ch3close: 'Chapter Three, closing: the chest in the nursery', ch3disc: 'Chapter Three: the nursery correction' }; $('scene').value = SCENE; $('routeRow').style.display = SCENE === 'night' ? '' : 'none'; $('scene').onchange = () => { params.set('s', $('scene').value); location.search = params.toString(); };
+const LIES_N = Math.max(0, Math.min(3, +params.get('l') || 0)); $('liesRow').style.display = (SCENE === 'ch3close' || SCENE === 'ch3disc') ? '' : 'none'; $('lies').value = LIES_N; $('lies').onchange = () => { params.set('l', $('lies').value); location.search = params.toString(); };
 $('route').value = route; $('route').onchange = () => { params.set('c', $('route').value); location.search = params.toString(); };
 const G = window.__game = Game.create({ stage: $('stage'), fade: $('fade'), subs: $('subs'), subWho: $('subWho'), subText: $('subText') });
 G.mode = 'free'; G.noSave = true; G.settings.auto = true; G.settings.subtitles = true; G.noFade = true; G.keepLine = true; G.manual = true;   // (no fades to black; the line stays up where the scene holds; no keys or taps move the story: only this panel and the camera do)
 
 // ── What is kept, per beat. ──
-const KEY = 'castle-consequence:scene-notes:' + (SCENE === 'castle' ? 'castle:v1' : SCENE === 'ch3close' ? 'ch3close:' + LIES_N + ':v1' : SCENE !== 'night' ? SCENE + ':v1' : 'night:v2:' + route);       // (v2: beats are camera angles)
+const KEY = 'castle-consequence:scene-notes:' + (SCENE === 'castle' ? 'castle:v1' : (SCENE === 'ch3close' || SCENE === 'ch3disc') ? SCENE + ':' + LIES_N + ':v1' : SCENE !== 'night' ? SCENE + ':v1' : 'night:v2:' + route);       // (v2: beats are camera angles)
 let kept = { cams: {}, notes: {}, lines: {} };
 try { const k = JSON.parse(localStorage.getItem(KEY)); if (k) kept = Object.assign(kept, k); } catch (e) { /* none yet */ }
 if (SCENE === 'castle' && !kept.mig) { delete kept.cams[13]; kept.mig = 1; }
@@ -123,7 +124,7 @@ G.beatGate = beat => {
   heldAt = beat; view = beat - 1; setTimeout(refresh, 0);
   return new Promise(res => { resume = () => { view = beat; res(); }; });
 };
-const startRun = () => { finished = false; resume = null; heldAt = null; (SCENE === 'castle' ? CastleWalk.run(G, Night.build(G), { story: true, capture: true }) : SCENE === 'night' ? Night.run(G, choices) : CastleWalk.run(G, Night.build(G), { ch3: true, scale: 0.25, ch3notes: SCENE === 'ch3open' ? 'open' : 'close', ch3lies: SCENE === 'ch3close' ? LIES_N : undefined })).then(() => { finished = true; refresh(); }); };
+const startRun = () => { finished = false; resume = null; heldAt = null; (SCENE === 'castle' ? CastleWalk.run(G, Night.build(G), { story: true, capture: true }) : SCENE === 'night' ? Night.run(G, choices) : CastleWalk.run(G, Night.build(G), { ch3: true, scale: 0.25, ch3notes: SCENE === 'ch3open' ? 'open' : 'close', ch3disc: SCENE === 'ch3disc', ch3lies: SCENE === 'ch3close' || SCENE === 'ch3disc' ? LIES_N : undefined })).then(() => { finished = true; refresh(); }); };
 G.rerun = startRun;
 const goTo = n => { n = Math.max(1, Math.round(n) || 1); stopAfter = n; view = n; lastStory = null; G.restartAt(n); refresh(); };
 $('next').onclick = () => { if (!resume) return; stopAfter = heldAt; const r = resume; resume = null; heldAt = null; r(); refresh(); };

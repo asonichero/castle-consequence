@@ -567,7 +567,8 @@ function run(G, W, opts) {
       shotJ(); await jline('I’m not a—');
       // she lifts him, and carries him to the chair by the cot
       { const mx = (st.pos.x + gst.x) / 2, mz = (st.pos.z + gst.z) / 2, [ux, uz] = dirGJ(); G.cut({ pos: v(mx - uz * 62, 26, mz + ux * 62), look: v(mx, 14, mz), fov: 46 }); }       // (from the side, so that the lift is seen)
-      st.boxed = true; st.pose = { thigh: -0.3, knee: 0.2, armLx: -0.2, armLz: 0.35, armRx: -0.2, armRz: -0.35, torso: 0, neckX: -0.2, neckY: 0 };
+      st.boxed = true; jackOut.root.scale.setScalar(SC * 0.5 * FULL);       // (at half her size: the same as the lap engine's Jack, which is half of her whole, so that he is not smaller in one scene than the other)
+      st.pose = { thigh: -0.3, knee: 0.2, armLx: -0.2, armLz: 0.35, armRx: -0.2, armRz: -0.35, torso: 0, neckX: -0.2, neckY: 0 };
       let liftAt = { d: 14, b: 0.9 };
       { faceJ(); const [ux, uz] = dirGJ(), hipsPt = v(st.pos.x, 0.5 * HEIGHT * SC * st.s, st.pos.z), mid = () => { root.Blocky.step(gerda, 0); gerda.root.updateMatrixWorld(true); return gerda.wrist.localToWorld(v(0, -6, 0)).add(gerda.armL.localToWorld(v(0, -12, 0))).multiplyScalar(0.5); };
         const sx = gst.x, sz = gst.z, sb = gst.bend, sr = gst.reach, sl = gst.lreach; let best = { e: 1e9, d: 14, b: 0.9 }; gst.reach = gst.lreach = 1.35;
@@ -598,73 +599,88 @@ function run(G, W, opts) {
       await Promise.all([squirm, jline('No!').then(() => jline('Let me go!'))]);
       putJack(); await G.wait(0.6);
       // her hand settles at the small of his back (the pose holds)
-      await G.wait(1.2);
+      G.ch3lies = lies; await finish('discipline');
+    }
+    async function disciplineScene(lies) {
       // ── The discipline: the lap engine (js/lap.js) takes over from the carried pose, in the nursery, with Jack at half size over her knee ──
       if (!root.Lap) { await finish('discipline'); return; }
+      const chair = M.items.nurseryChair.g.position, SEATX = chair.x, SEATZ = chair.z;
       const LAP_S = 1.4, LAP_Y = 6 * LAP_S;
       await G.fade(true, 0.7);
       const lap = root.Lap.create(null, { external: { scene, camera: G.camera, renderer: G.renderer }, table: false, jackFull: 0.95 });
       lap.giver('gerda'); lap.outfit('gerda', 'Work'); lap.stage.scale.setScalar(LAP_S); lap.stage.position.set(SEATX, LAP_Y, SEATZ); lap.stage.rotation.y = -Math.PI / 2; lap.stage.updateMatrixWorld(true);
       gerda.root.visible = false; jackOut.root.visible = false; M.items.nurseryChair.g.visible = false;
       lap.reset(); lap.layers({ trousers: 'up', drawers: 'up' }); lap.armed(false); lap.implement('hand'); lap.place('lap', 0); lap.size(0.5); lap.st.side = 'alt'; lap.st.noRecovery = true; lap.st.sound = true; lap.st.strength = 1.05; lap.st.pace = 1;
+      { const knife = new THREE.Group(), mk = (w, h, d, c, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color: c })); m.position.set(x, y, z); knife.add(m); };
+        mk(1.2, 8, 0.8, 0xb9bfc8, 0, -4.5, 0); mk(1.6, 3.6, 1.2, 0x4a3626, 0, 0, 0); mk(3, 0.7, 1.4, 0xb8923a, 0, -1.8, 0); knife.position.set(-5.6, 2, 0.4); lap.jack.hips.add(knife); }       // (his father's knife at his belt, as in the cottage; no satchel, which would be in the way)
       const lapTick = dt => lap.update(dt); G.updaters.push(lapTick);
       // (the cameras: the engine's own views, kept inside the room)
-      const LV = { wide: [[26, 24, 38], [-3, 9, 5], 42], back: [[-24, 33, 6], [-6, 9, 5], 40], hand: [[-14, 26, 22], [-3, 11, 6.5], 36], face: [[18, 7, 26], [3, 5, 4], 42], over: [[-6, 30, -22], [-3, 9, 5], 42], side: [[34, 12, 8], [-3, 9, 5], 40] };
-      const lv = n => { const [p0, a, f0] = LV[n], p = p0.map((c, i) => a[i] + (c - a[i]) * 1.35), f = f0 + 12; lap.stage.updateMatrixWorld(true); const P = lap.stage.localToWorld(v(...p)); P.x = clamp(P.x, -302, -110); P.z = clamp(P.z, -282, -178); P.y = Math.min(P.y, 76); G.cut({ pos: P, look: lap.stage.localToWorld(v(...a)), fov: f }); };
-      const smacks = async n => { if (!n) return; lap.run(n); await G.wait(0.4); for (let i = 0; i < 700 && (lap.info().busy || lap.info().running); i++) await G.wait(0.1); };
-      const step = async (line, n) => { const l = line ? G.say(line[0], line[1]) : Promise.resolve(); await Promise.all([l, smacks(n)]); };
+      const Co = root.Correction, cam = Co.freeCam(G), panel = Co.ui(), camBtn = document.getElementById('corrCam'), redBtn = document.getElementById('corrRed'), RED = { red: true };
+      let red = false, shown = null;
+      redBtn.onclick = () => { red = true; lap.red(); G.captionOff && G.captionOff(); };
+      const showUI = on => panel.classList.toggle('on', !!on);
+      const stageView = (name, ms) => { const V = lap.views[name]; lap.stage.updateMatrixWorld(true); const P = lap.stage.localToWorld(v(...V.pos)); if (ms === 0) { P.x = clamp(P.x, -302, -110); P.z = clamp(P.z, -282, -178); P.y = Math.min(P.y, 76); } cam.go(P, lap.stage.localToWorld(v(...V.at)), 46, ms == null ? 700 : ms); shown = name; };
+      const SET = ['overview', 'behind', 'shoulder', 'face'];
+      camBtn.onclick = () => stageView(SET[(SET.indexOf(shown) + 1) % SET.length]);       // (one button: each press goes on to the next angle, and the player can drag, pan and zoom as well)
+      const say = async (who, text) => { if (red) throw RED; await G.say(who, text); if (red) throw RED; };
+      const wait = async s => { await G.wait(s); if (red) throw RED; };
+      const smacks = async n => { if (!n) return; lap.run(n); await G.wait(0.4); for (let i = 0; i < 700 && (lap.info().busy || lap.info().running); i++) { await G.wait(0.1); if (red) return; } };
+      const step = async (line, n) => { if (red) throw RED; const l = line ? G.say(line[0], line[1]) : Promise.resolve(); await Promise.all([l, smacks(n)]); if (red) throw RED; };
       const ramp = async (key, to, secs) => { const from = lap.st[key] || 0, n = Math.max(1, Math.round(secs / 0.04)); for (let i = 1; i <= n; i++) { lap.st[key] = W3(from, to, ease(i / n)); await G.wait(0.04); } lap.st[key] = to; };
-      lv('wide');
-      await G.fade(false, 0.7); await G.wait(0.5);
+      stageView('overview', 0);
+      try {
+        try {
+      await G.fade(false, 0.7); showUI(true); await wait(0.5);
       // over his trousers, to begin with: no more than a humble correction
-      await G.say('gerda', 'When you behave like a child, you’ll be treated like one.');
+      await say('gerda', 'When you behave like a child, you’ll be treated like one.');
       await step(['gerda', 'I told you to stay put, and to touch nothing.'], 6);
       await step(['jack', 'Ow! I only wanted—'], 4);
       await step(['gerda', lies === 0 ? 'You told me the truth, at the first asking. That does not make the rest of it right.' : lies === 1 ? 'And you lied to me. “Lost”, you said, when you had climbed four storeys to be here.' : lies === 2 ? 'And you lied to me, twice, with a straight face, to a woman who watched you climb in.' : 'And you lied to me three times over, each one worse than the last, until you had run out of them.'], 8);
       await step(['jack', 'I’m sorry! I’m sorry!'], 4);
       // his hand goes for the knife at his belt, and is caught
-      await step(['gerda', 'Into my house, through my door, up my walls and into my chest—'], 4);
-      lv('hand'); await G.wait(0.3);
+      await step(['gerda', 'Into my house, through my door, up my walls and into my chest—'], 4); await wait(0.3);
       ramp('armReach', 1, 0.45);
-      await G.wait(0.5); await G.say('jack', 'Let me—');
+      await wait(0.5); await say('jack', 'Let me—');
       await Promise.all([ramp('armReach', 0, 0.35), ramp('armHold', 1, 0.35)]);                      // (she catches his wrist, and takes it into the small of his back)
-      A && A.blip && A.blip(); await G.wait(0.5);
-      await G.say('gerda', 'No, you don’t.');
-      await G.say('jack', 'Ow— my arm—');
-      lv('back');
-      await G.say('gerda', 'Keep it there. You will not be touching that blade, nor anything else in this house.');
-      await G.say('gerda', 'And since you cannot be trusted to take your correction like a man—');
-      lap.layers({ trousers: 'down', drawers: 'down' }); A && A.blip && A.blip(); await G.wait(0.7);                  // (trousers and drawers, in one movement)
-      await G.say('jack', 'No! Wait! You can’t—');
-      lv('over'); lap.st.strength = 1.35;
-      await G.say('gerda', 'I can, and I will.');
+      A && A.blip && A.blip(); await wait(0.5);
+      await say('gerda', 'No, you don’t.');
+      await say('jack', 'Ow— my arm—');
+      await say('gerda', 'Keep it there. You will not be touching that blade, nor anything else in this house.');
+      await say('gerda', 'And since you cannot be trusted to take your correction like a man—');
+      lap.layers({ trousers: 'down', drawers: 'down' }); A && A.blip && A.blip(); await wait(0.7);                  // (trousers and drawers, in one movement)
+      await say('jack', 'No! Wait! You can’t—'); lap.st.strength = 1.35;
+      await say('gerda', 'I can, and I will.');
       // the same as the brash correction; and he settles into it once he is past the edge of resistance
       const GL = [['gerda', 'This is for the door you were told to leave alone.'], ['jack', 'Ow! Ow! Please!'], ['gerda', 'This is for the chest, and the things in it that were never yours.'], ['jack', 'I wasn’t—! Ow! I was only looking!'],
         ['gerda', lies > 0 ? 'And this is for the “lost”, and the rest of your little stories.' : 'And this is for thinking that a house this rich would not notice what it lost.'], ['jack', 'I’m sorry, I’m sorry, I’m sorry!'], ['gerda', 'You will obey me, or you will answer for it.'], ['jack', 'Yes! Yes, I will!']];
-      lv('back');
       for (let i = 0; i < GL.length; i++) {
         if ((lap.bandIndex() >= 4 && i >= 3) || i >= 7) break;
-        await step(GL[i], 6 + (i % 3) * 2); if (i === 3) lv('face'); if (i === 5) lv('side');
+        await step(GL[i], 6 + (i % 3) * 2);
       }
-      lv('over'); W.paintJack(jackOut, { expr: 1 });
       ramp('settle', 1, 3.2);                                                                                       // (his struggling stops: he is still, apart from what each smack does to him)
-      await step(['gerda', 'There. That is better. Stay just as you are.'], 5);
-      lv('face'); await step(null, 6);
+      await step(['gerda', 'There. That is better. Stay just as you are.'], 5); await step(null, 6);
       await step(['gerda', 'You see how much easier it is, when you stop fighting me.'], 5);
-      await step(['jack', '…I’m sorry.'], 4);
-      lv('back'); await step(null, 5);
-      await G.wait(0.5);
-      await G.say('gerda', 'That will do.');
-      // she puts him right again, gently
-      lv('hand'); await G.wait(0.4);
-      lap.layers({ drawers: 'up' }); A && A.blip && A.blip(); await G.wait(0.9);
-      lap.layers({ trousers: 'up' }); A && A.blip && A.blip(); await G.wait(0.9);
+      await step(['jack', '…I’m sorry.'], 4); await step(null, 5);
+      await wait(0.5);
+      await say('gerda', 'That will do.');
+      // she puts him right again, gently await wait(0.4);
+      lap.layers({ drawers: 'up' }); A && A.blip && A.blip(); await wait(0.9);
+      lap.layers({ trousers: 'up' }); A && A.blip && A.blip(); await wait(0.9);
       await ramp('armHold', 0, 0.8);
-      lv('wide');
-      await G.say('gerda', 'There now. It is over.');
-      await G.wait(0.8);
-      await G.say('gerda', 'The knife stays with me. And you will ask, the next time you want something from my house.');
-      await G.wait(0.8);
+      await say('gerda', 'There now. It is over.');
+      await wait(0.8);
+      await say('gerda', 'The knife stays with me. And you will ask, the next time you want something from my house.');
+      await wait(0.8);
+        } catch (e) {
+          if (e !== RED) throw e;
+          // Red: it ends here, and he is put right again, gently.
+          lap.stop(); G.captionOff && G.captionOff(); red = false; showUI(false); lap.st.sound = false;
+          await G.say('jack', 'Red! No more, please!'); await G.say('gerda', 'Alright, Jack. I hear you. That is an end to it.');
+          lap.layers({ drawers: 'up' }); await G.wait(0.8); lap.layers({ trousers: 'up' }); await G.wait(0.8); await ramp('armHold', 0, 0.8); await ramp('armReach', 0, 0.1);
+          await G.say('gerda', 'The knife stays with me.'); await G.wait(0.6);
+        }
+      } finally { showUI(false); cam.restore(); G.updaters = G.updaters.filter(u => u !== lapTick); }
+
       G.updaters = G.updaters.filter(u => u !== lapTick);
       await finish('discipline');
     }
@@ -680,6 +696,9 @@ function run(G, W, opts) {
         if (t > 0.3 && !c3.g1) { c3.g1 = true; say('Odd. My boots are tighter than they were. Am I... bigger?'); }
         if (t > 0.95 && !c3.g2) { c3.g2 = true; say('A little more with every step. Whatever this place does to me, it isn’t finished.'); } }
       { const inN = st.pos.x > -312 && st.pos.x < -100 && (c3.inN ? st.pos.z < -158 : st.pos.z < -168) && st.pos.z > -292; if (inN !== !!c3.inN) { c3.inN = inN; if (A && A.ctx && !opts.ch3notes) A.startMusic({ theme: inN ? 'nursery' : 'castle' }); } }       // (the nursery has its own music)
+      if (c3.inN && !c3.done && st.pos.z > -163) {                                                          // (he does not leave the nursery without trying the chest: he stops at the door, and remarks on it)
+        st.pos.z = -167;
+        if (!c3.leaveAt || performance.now() - c3.leaveAt > 5000) { c3.leaveAt = performance.now(); c3.leaves = (c3.leaves || 0) + 1; say(c3.leaves === 1 ? 'I can’t leave with nothing. There might be something in that chest by the wall. I should at least look.' : ['Not before I’ve tried that chest.', 'The chest first.', 'There might still be something in that chest.'][(c3.leaves - 2) % 3]); } }
       if (!c3.n40 && st.pos.x > -312 && st.pos.x < -100 && st.pos.z < -166 && st.pos.z > -292) c3.n40 = true;                                  // (inside the nursery he grows to forty per cent, and says nothing of it)
       if (c3.n40 && st.s < 0.4) st.s = Math.min(0.4, st.s + dt * 0.03);
       if (!st.busy && !c3.done) { let best = null, bd = 1e9; for (const t of c3.targets) { const d = Math.hypot(t.g.position.x - st.pos.x, t.g.position.z - st.pos.z); if (d < LK[t.cat].r && d < bd) { best = t; bd = d; } }
@@ -757,6 +776,7 @@ function run(G, W, opts) {
     }
     const f = $('fade');
     if (ch3) { if (opts.ch3start === 'nursery') { makeG('Work'); gerda.root.visible = false; st.s = 0.35; st.pos.set(-294, 0, -172); st.heading = Math.PI; st.camA = Math.atan2(-Math.cos(st.heading), -Math.sin(st.heading)); st.pitch = 0.45; st.zoom = 1; camPos.set(0, 0, 0); G.skipping = false; st.scene = false; st.pose = null; $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); f.style.transition = ''; await G.fade(false, 1.0); return; }
+      if (opts.ch3disc) { st.scene = true; st.s = 0.5; makeG('Work'); st.pos.set(-294, 0, -172); G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; if (A && A.ctx && !opts.ch3notes) A.startMusic({ theme: 'nursery' }); await disciplineScene(opts.ch3lies || 0); return; }       // (the correction is a scene of its own, after the one in which he is put across her knee)
       if (opts.ch3notes === 'close') { st.scene = true; st.s = 0.4; makeG('Work'); gerda.root.visible = false; const cg = M.items.chest.g.position; st.pos.set(cg.x - 12, 0, cg.z + 10); st.heading = Math.PI / 2; $('cwPanel').style.display = 'none'; await chestScene(); return; } await ch3Open(); return; }
     if (!story) { G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); f.style.transition = ''; await G.fade(false, 1.2); return; }
     // ── The story: the hall, from a few angles, and what it says to him; then it is his. ──

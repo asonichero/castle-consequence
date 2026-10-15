@@ -233,5 +233,5 @@ async function run(G, W, tier, opts) {
   return { tier, hits: lap.st.hits };
 }
 
-root.Correction = { run };
+root.Correction = { run, freeCam, ui };
 })(typeof window !== 'undefined' ? window : globalThis);
