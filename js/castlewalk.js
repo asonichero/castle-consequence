@@ -509,8 +509,9 @@ function run(G, W, opts) {
       $('cwPage').classList.add('on'); await G.wait(3.4);
       // the first page. He lets it go at once.
       $('cwPage').classList.remove('on'); await G.wait(0.15);
-      { const y0 = K.book.position.y, x0 = K.book.position.x; let vy = 0, y = y0; const q1 = K.book.quaternion.clone(), qS = new THREE.Quaternion().setFromAxisAngle(v(0.4, 0, 1), 1.9);
-        for (let i = 1; i <= 16; i++) { vy -= 90 * 0.04; y = Math.max(0.5, y + vy * 0.04); K.book.position.y = y; K.book.position.x = x0 + 0.05 * i; K.book.quaternion.copy(q1).slerp(q1.clone().multiply(qS), Math.min(1, i / 12)); st.pose.armLx = st.pose.armRx = W3(-1.1, -0.2, Math.min(1, i / 6)); st.pose.armLz = W3(0.08, 0.7, Math.min(1, i / 6)); st.pose.armRz = W3(-0.08, -0.7, Math.min(1, i / 6)); st.pose.neckX = W3(0.45, -0.1, Math.min(1, i / 8)); if (y <= 0.5) break; await G.wait(0.04); } }
+      { const y0 = K.book.position.y, x0 = K.book.position.x, q1 = K.book.quaternion.clone(), qEnd = new THREE.Quaternion().setFromAxisAngle(v(0, 1, 0), 0.7); let vy = 0, y = y0;     // (it lands flat, face up, on the floor)
+        for (let i = 1; i <= 18; i++) { vy -= 90 * 0.04; y = Math.max(0.5, y + vy * 0.04); K.book.position.y = y; K.book.position.x = x0 + 0.05 * i; K.book.quaternion.copy(q1).slerp(qEnd, Math.min(1, i / 12)); st.pose.armLx = st.pose.armRx = W3(-1.1, -0.2, Math.min(1, i / 6)); st.pose.armLz = W3(0.08, 0.7, Math.min(1, i / 6)); st.pose.armRz = W3(-0.08, -0.7, Math.min(1, i / 6)); st.pose.neckX = W3(0.45, -0.1, Math.min(1, i / 8)); await G.wait(0.04); }
+        K.book.position.y = 0.5; K.book.quaternion.copy(qEnd); }
       A && A.thud && A.thud(0.5);
       { const x0 = st.pos.x; for (let i = 1; i <= 14; i++) { const k = ease(i / 14); st.pos.x = x0 - 2.2 * k; st.walkN = 0.6; st.walkPh -= 0.3; await G.wait(0.04); } st.walkN = 0; }
       await G.wait(0.9);
@@ -534,8 +535,8 @@ function run(G, W, opts) {
       shotG(); for (let i = 1; i <= 10; i++) { gst.tilt = 0.32 * ease(i / 10); faceJ(); await G.wait(0.04); } await gline('No? Only looking, I’m sure.');
       shotJ(); { const x0 = st.pos.x, z0 = st.pos.z, [ux, uz] = dirGJ(); for (let i = 1; i <= 8; i++) { const k = ease(i / 8); st.pos.x = x0 - ux * 3 * k; st.pos.z = z0 - uz * 3 * k; st.walkN = 0.5; st.walkPh -= 0.3; st.pose.torso = 0.08 * k; st.pose.armLz = W3(0.5, 0.15, k); st.pose.armRz = W3(-0.5, -0.15, k); await G.wait(0.04); } st.walkN = 0; }
       await jline('I didn’t touch anything.');
-      shotSweep(); for (let i = 1; i <= 8; i++) { gst.look = W3(0.35, 0.8, ease(i / 8)); faceJ(); await G.wait(0.04); } await G.wait(0.9);      // (her eyes sweep down to the book on the floor)
-      shotJ(); W.paintJack(jackOut, { expr: 3 }); await jline('You can’t just sneak up on me.');
+      shotSweep(); for (let i = 1; i <= 8; i++) { gst.look = W3(0.35, 0.8, ease(i / 8)); st.pose.neckX = W3(-0.45, 0.5, ease(i / 8)); faceJ(); await G.wait(0.04); } await G.wait(0.9);       // (they both look down at the book)      // (her eyes sweep down to the book on the floor)
+      shotJ(); st.pose.neckX = -0.45; W.paintJack(jackOut, { expr: 3 }); await jline('You can’t just sneak up on me.');
       shotG(6.4, 12); for (let i = 1; i <= 6; i++) { gst.look = W3(0.8, 0.35, ease(i / 6)); await G.wait(0.04); } await gline('Can’t I?');
       await gline('You’re in my house, little climber. Why?');
       // the questions: the truth, or a lie she sees through; after three lies only the truth is left
