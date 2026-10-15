@@ -361,9 +361,11 @@ function run(G, W, opts) {
       const edge = (x, z) => { if (st.cl || st.mant) return; let best = null;
         for (const e of C.near(x, z, Hj + 4)) { if (!e.wood || e.low || e.y1 >= st.y - 0.05 || e.y1 < st.y - 0.8 * Hj || e.y0 > st.y - 2 * Hj) continue; const qx = clamp(x, e.x0, e.x1), qz = clamp(z, e.z0, e.z1), d = Math.hypot(qx - x, qz - z); if (d > 0.9 * Hj) continue; if (!best || d < best.d) best = { e, qx, qz, d }; }
         if (!st.dropSaid) { st.dropSaid = true; G.caption('jack', best ? 'Too far to jump. But I could climb down that.' : 'Too far to jump. I\u2019d break my neck.'); }
-        if (!best || st.y > st.standY + 0.5 * s) return;
+        st.dropC = best && st.y <= st.standY + 0.5 * s ? { best, x, z, t: performance.now() } : null; };                       // (an edge he is pushing at, with wood he could climb down: the Climb button now offers it)
+      const downReady = () => !!(st.dropC && !st.cl && !st.mant && performance.now() - st.dropC.t < 600);
+      const startDown = () => { const c = st.dropC, best = c.best, x = c.x, z = c.z; st.dropC = null;
         let nx = x - best.qx, nz = z - best.qz; const nl = Math.hypot(nx, nz); if (nl < 0.01) { nx = Math.sin(st.heading); nz = Math.cos(st.heading); } else { nx /= nl; nz /= nl; }
-        st.pos.x = best.qx + nx * 6.5 * s; st.pos.z = best.qz + nz * 6.5 * s; st.heading = Math.atan2(-nx, -nz); st.y = best.e.y1; st.cl = { e: best.e, down: true, top: best.e.y1 }; st.vy = 0; st.perch = null; st.stam = 1; };
+        st.pos.x = best.qx + nx * 6.5 * s; st.pos.z = best.qz + nz * 6.5 * s; st.heading = Math.atan2(-nx, -nz); st.y = best.e.y1; st.cl = { e: best.e, down: true, top: best.e.y1 }; st.vy = 0; st.perch = null; st.stam = 1; return true; };
       if (busy) { st.walkN = 0; } else if (dir.lengthSq() > 0) {
         dir.normalize(); const want = Math.atan2(dir.x, dir.z); st.heading += angDiff(want, st.heading) * Math.min(1, dt * 9);
         const off = Math.abs(angDiff(want, st.heading)), ease = clamp(1 - off / Math.PI * 0.8, 0.2, 1), sp = (keys.run ? 50 : keys.sneak ? 11 : 26) * SC * Math.pow(s, 0.6) * ease, nx = st.pos.x + Math.sin(st.heading) * sp * dt, nz = st.pos.z + Math.cos(st.heading) * sp * dt;
@@ -393,7 +395,7 @@ function run(G, W, opts) {
       const tryClimb = () => { const best = findClimb(); if (!best) return false; const gap = best.gap, fx = Math.sin(st.heading), fz = Math.cos(st.heading); if (gap <= 0.75 * Hj) { const to = landingFor(best.e); if (to) { startMantle(best.e, to); return true; } }
         let nx = st.pos.x - best.qx, nz = st.pos.z - best.qz; const nl = Math.hypot(nx, nz); if (nl < 0.01) { nx = -fx; nz = -fz; } else { nx /= nl; nz /= nl; }
         st.pos.x = best.qx + nx * 6.5 * s; st.pos.z = best.qz + nz * 6.5 * s; st.heading = Math.atan2(-nx, -nz); st.cl = { e: best.e }; st.stam = 1; st.vy = 0; st.perch = null; return true; };
-      if (st.jumpReq) { st.jumpReq = false; if (!busy && st.y <= gy + 0.01 && !tryClimb()) { st.vy = 112 * s; st.perch = null; } }
+      if (st.jumpReq) { st.jumpReq = false; if (!busy && st.y <= gy + 0.01 && !(downReady() && startDown()) && !tryClimb()) { st.vy = 112 * s; st.perch = null; } }
       if (st.mant) { const m = st.mant; m.t += dt; const k = clamp(m.t / m.dur, 0, 1), rise = Math.max(m.from.y, m.to.y + 0.22 * Hj);                // (up the face to above the lip, then over the edge and down onto the top: the edge climbs as the leg did)
         if (k < 0.5) { const q = k / 0.5, e2 = q * q * (3 - 2 * q); st.pos.x = m.from.x; st.pos.z = m.from.z; st.y = m.from.y + (rise - m.from.y) * e2; }
         else { const q = (k - 0.5) / 0.5, e2 = q * q * (3 - 2 * q); st.pos.x = m.from.x + (m.to.x - m.from.x) * e2; st.pos.z = m.from.z + (m.to.z - m.from.z) * e2; st.y = rise + (m.to.y - rise) * e2; }
@@ -413,6 +415,7 @@ function run(G, W, opts) {
       { const cb = !busy && st.y <= gy + 0.01 ? findClimb() : null;
         if (cb && !st.scene) root.Tips.once('castle-climb', () => toast('Space climbs the wood: hold it to keep going.', 5000));
         if (st.cl) ui.set('jump', { label: 'Climb', icon: 'climb', enabled: true }); else if (st.mant) ui.set('jump', { label: 'Climb', icon: 'climb', enabled: false });
+        else if (!cb && !busy && st.y <= gy + 0.01 && downReady()) ui.set('jump', { label: 'Climb', icon: 'climb', enabled: true });
         else if (cb) ui.set('jump', cb.gap <= 0.75 * Hj ? { label: 'Pull up', icon: 'pull', enabled: true } : { label: 'Climb', icon: 'climb', enabled: true });
         else ui.set('jump', { label: 'Jump', icon: 'jump', enabled: st.y <= gy + 0.01 });
         ui.set('act', st.uiAct ? { label: st.uiAct, enabled: true } : { label: 'Do', enabled: false }); ui.set('drop', { label: st.held ? 'Put back' : 'Drop', enabled: !!st.uiDrop }); }
