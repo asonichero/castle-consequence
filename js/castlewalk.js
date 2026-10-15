@@ -501,7 +501,9 @@ function run(G, W, opts) {
       scene.attach(K.book); const b0 = K.book.position.clone(), q0 = K.book.quaternion.clone(), qT = new THREE.Quaternion().setFromAxisAngle(v(0, 0, 1), 0.7).multiply(q0), H = v(P.x + 2.4, 0.56 * Hj, P.z - 0.4);
       G.cut({ pos: v(P.x - 3, 0.85 * Hj, P.z - 17), look: v(P.x + 1.5, 0.55 * Hj, P.z - 0.2), fov: 38 });
       for (let i = 1; i <= 24; i++) { const k = ease(i / 24); K.book.position.set(W3(b0.x, H.x, k), W3(b0.y, H.y, k) + Math.sin(k * Math.PI) * 2.2, W3(b0.z, H.z, k)); K.book.quaternion.copy(q0).slerp(qT, k); st.pose.armLx = st.pose.armRx = W3(-0.5, -1.1, k); st.pose.armLz = W3(0.3, 0.08, k); st.pose.armRz = W3(-0.3, -0.08, k); st.pose.neckX = W3(0.55, 0.45, k); await G.wait(0.04); }
-      await G.wait(0.4);
+      await G.wait(0.3);
+      { const x0 = st.pos.x, hx0 = H.x; for (let i = 1; i <= 18; i++) { const k = ease(i / 18); st.pos.x = x0 - 4.6 * k; K.book.position.x = hx0 - 4.6 * k; st.walkN = 0.6; st.walkPh -= 0.3; await G.wait(0.04); } st.walkN = 0; H.x = hx0 - 4.6; }       // (a step back from the chest, with the book, before he opens it: it stays clear of the wall)
+      await G.wait(0.3);
       for (let i = 1; i <= 26; i++) { K.cov.rotation.z = 2.9 * ease(i / 26); await G.wait(0.04); }
       A && A.blip && A.blip(); await G.wait(0.5);
       $('cwPage').classList.add('on'); await G.wait(3.4);
@@ -513,9 +515,9 @@ function run(G, W, opts) {
       { const x0 = st.pos.x; for (let i = 1; i <= 14; i++) { const k = ease(i / 14); st.pos.x = x0 - 2.2 * k; st.walkN = 0.6; st.walkPh -= 0.3; await G.wait(0.04); } st.walkN = 0; }
       await G.wait(0.9);
       // and in the doorway, Gerda
-      gerda.root.visible = true; gst.x = -294; gst.z = -161; gst.h = Math.PI; gst.walk = 0; gst.bend = 0; placeGerda(); gerda.root.updateMatrixWorld(true);
+      gerda.root.visible = true; gst.x = -238; gst.z = -192; gst.h = Math.atan2(st.pos.x - gst.x, st.pos.z - gst.z); gst.walk = 0; gst.bend = 0; placeGerda(); gerda.root.updateMatrixWorld(true);       // (further into the room than the doorway, and facing him)
       A && A.thud && A.thud(0.7);
-      G.cut({ pos: v(-264, 24, -212), look: v(-294, 44, -160), fov: 54 });
+      G.cut({ pos: v(-186, 26, -232), look: v(-238, 40, -192), fov: 50 });
       await G.wait(2.6);
       G.cut({ pos: v(st.pos.x + 4, 0.85 * Hj, st.pos.z - 13), look: v(st.pos.x, 0.8 * Hj, st.pos.z), fov: 34 });
       await G.wait(1.6);
