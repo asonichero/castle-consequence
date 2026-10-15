@@ -648,6 +648,7 @@ function run(G, W, opts) {
         if (gear) { gear.knife.visible = false; gear.satchel.visible = false; const bag = gear.satchel.clone(); bag.visible = true; bag.scale.setScalar(SC * 0.7 * 0.95); bag.rotation.set(0, 0.6, -Math.PI / 2); satchel.add(bag); }       // (the knife is hers now; the satchel is put down)
         satchel.updateMatrixWorld(true); { const bb = new THREE.Box3().setFromObject(satchel); satchel.position.y = -bb.min.y; }
         satchel.position.x = SEATX - 2; satchel.position.z = (SEATZ + M.items.cot.g.position.z) / 2; scene.add(satchel);       // (his satchel, on the floor between the chair and the cot)       // (his satchel, on the floor between the chair and the cot)
+        scene.attach(jackOut.root); jackOut.root.quaternion.identity(); jackOut.root.rotation.set(0, st.heading, 0);
         gerda.root.visible = true; jackOut.root.visible = true; st.scene = true; st.s = 0.7; st.boxed = false; st.inHand = false; st.walkN = 0;
         Object.assign(gst, { x: SEATX, z: SEATZ, h: -Math.PI / 2, y: 5.1, seated: 1, walk: 0, reach: 0, bend: 0, look: 0 }); placeGerda(); root.Blocky.step(gerda, 0); root.Blocky.seatFeet && root.Blocky.seatFeet(gerda, 0);
         st.pos.set(SEATX - 30, 0, SEATZ); st.heading = Math.PI / 2; st.y = 0; W.paintJack(jackOut, { expr: 'wince', trousers: 'up', drawers: 'up' });
@@ -774,7 +775,7 @@ function run(G, W, opts) {
       Object.assign(gst, { x: JX, z: JZ + 15, h: Math.PI, y: 0, seated: 0, walk: 0, reach: 0, lreach: 0, bend: 0, look: 0.25, headY: 0, p50: null, hold: 0 }); placeGerda(); root.Blocky.step(gerda, 0);
       const look = (o) => W.paintJack(jackOut, Object.assign({ outfit: 'Outdoor', trousers: 'up', drawers: 'up' }, o));
       look({ expr: 'shy' }); let dressed = { outfit: 'Outdoor', trousers: 'up', drawers: 'up' }; const paint = o => { Object.assign(dressed, o); W.paintJack(jackOut, dressed); };
-      st.scene = false; st.frozen = true; st.camA = -0.15; st.pitch = 0.3; st.zoom = 1; camPos.set(0, 0, 0); G.mode = 'play'; document.body.classList.remove('cutscene'); $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; G.skipping = false;
+      st.scene = false; st.frozen = true; st.camA = -0.15; st.pitch = 0.35; st.zoom = 2; camPos.set(0, 0, 0); G.mode = 'play'; document.body.classList.remove('cutscene'); $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; G.skipping = false;
       // helpers: her hands to a place (the bend and the reach that bring her wrist nearest it), the tween between her stances, and the one button
       const wr = () => gerda.wrist.localToWorld(new V3(0, -6, 0)), wl = () => gerda.wristL.localToWorld(new V3(0, -6, 0));
       const solveHand = (T, left) => { let best = { d: 1e9, bd: 0, rc: 1 }; for (let bd = 0; bd <= 0.9; bd += 0.1) for (let rc = 0.4; rc <= 2.2; rc += 0.12) { gst.bend = bd; gst.reach = rc; gst.lreach = left ? rc : 0; placeGerda(); root.Blocky.step(gerda, 0); gerda.root.updateMatrixWorld(true); const d = (left ? wl() : wr()).distanceTo(T); if (d < best.d) best = { d, bd, rc }; } return best; };
