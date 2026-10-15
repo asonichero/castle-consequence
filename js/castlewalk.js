@@ -174,7 +174,7 @@ function run(G, W, opts) {
         r.legL.thigh.rotation.x = L(w, HP.legLx) + w * h; r.legL.knee.rotation.x = L(0, HP.legLknee); r.legR.thigh.rotation.x = L(-w, HP.legRx) - w * h; r.legR.knee.rotation.x = L(0, HP.legRknee); }
       if (gst.nose > 0) { const k = gst.nose; r.armR.rotation.x += (gst.nA - r.armR.rotation.x) * k; r.armR.rotation.z += (gst.nZ - r.armR.rotation.z) * k; r.elbow.rotation.x += (gst.nE - r.elbow.rotation.x) * k; }                       // (she brings him up close to her face to smell him)
       if (gst.give > 0) { const k = gst.give, L2 = (a, b) => a + (b - a) * k; r.armR.rotation.x = L2(r.armR.rotation.x, gst.gArm === undefined ? -1.5 : gst.gArm); r.armR.rotation.z = L2(r.armR.rotation.z, 0.05); r.elbow.rotation.x = L2(r.elbow.rotation.x, -0.15); r.torso.rotation.x = L2(r.torso.rotation.x, gst.gTorso === undefined ? 0.5 : gst.gTorso); r.neck.rotation.x = L2(r.neck.rotation.x, 0.25); }
-      if (gst.lreach > 0) r.armL.rotation.set(-gst.lreach, 0, 0.05); if (gst.sniff) r.neck.rotation.x += gst.sniff;
+      if (gst.lreach > 0) r.armL.rotation.set(-gst.lreach, 0, 0.05 + (gst.lz || 0)); if (gst.sniff) r.neck.rotation.x += gst.sniff;
       if (gst.l2 > 0) { const k = gst.l2; r.torso.rotation.x += (gst.l2T - r.torso.rotation.x) * k; r.armL.rotation.x += (gst.l2X - r.armL.rotation.x) * k; r.armL.rotation.z += (gst.l2Z - r.armL.rotation.z) * k; r.neck.rotation.x += (gst.l2NX - r.neck.rotation.x) * k; r.neck.rotation.y += (gst.l2NY - r.neck.rotation.y) * k; }          // (leaning over the box, her free hand poised on its lid)
       if (gst.alive) { const t = G.t, a = gst.alive, tk = gst.talk || 0, ls = gst.listen || 0;                       // (she is not a statue: she breathes, shifts her weight, turns her head, talks with her free hand, and feels him wriggle)
         r.torso.rotation.x += a * 0.012 * Math.sin(t * 1.5); r.torso.rotation.y += a * (0.025 * Math.sin(t * 0.55) + 0.015 * tk * Math.sin(t * 1.8)); r.torso.rotation.z += a * 0.012 * Math.sin(t * 0.8 + 1);
@@ -537,7 +537,7 @@ function run(G, W, opts) {
       await jline('I didn’t touch anything.');
       shotSweep(); for (let i = 1; i <= 8; i++) { gst.look = W3(0.35, 0.8, ease(i / 8)); st.pose.neckX = W3(-0.45, 0.5, ease(i / 8)); faceJ(); await G.wait(0.04); } await G.wait(0.9);       // (they both look down at the book)      // (her eyes sweep down to the book on the floor)
       shotJ(); st.pose.neckX = -0.45; W.paintJack(jackOut, { expr: 3 }); await jline('You can’t just sneak up on me.');
-      shotG(6.4, 12); for (let i = 1; i <= 6; i++) { gst.look = W3(0.8, 0.35, ease(i / 6)); await G.wait(0.04); } await gline('Can’t I?');
+      shotG(6.4, 9, 6.6); for (let i = 1; i <= 6; i++) { gst.look = W3(0.8, 0.35, ease(i / 6)); await G.wait(0.04); } await gline('Can’t I?');
       await gline('You’re in my house, little climber. Why?');
       // the questions: the truth, or a lie she sees through; after three lies only the truth is left
       const TRUTH = 'I came to take something. Anything worth carrying home.', LIES = ['I was lost. I only wandered in.', 'I came looking for work. Somebody said you might need a hand.', 'I was bringing you a message from the village.'], SEE = ['Lost. Four storeys up, through a crack no wider than a thumb, and you wandered into my nursery. Again, please.', 'Work. In a nursery, with nothing in your hands but my book. Try again.', 'A message. Delivered to a chest, by hand, with the lid shut. Last chance, little climber.'];
@@ -545,12 +545,12 @@ function run(G, W, opts) {
       for (;;) {
         const opts = lies < 3 ? [TRUTH, LIES[lies]] : [TRUTH], k = await G.choose('jack', opts);
         if (k === 0) break;
-        shotJ(); await jline(LIES[lies]); shotG(6.1, 9.1, 5.6); await gline(SEE[lies]); lies++;
+        shotJ(); await jline(LIES[lies]); shotG(6.1, 6.1, 5.9); await gline(SEE[lies]); lies++;
       }
-      shotJ(); W.paintJack(jackOut, { expr: 2 }); await jline('We’ve nothing at home, and Mother’s frantic. I thought one small thing from a house this rich would make the climb worth it.');
+      shotJ(); W.paintJack(jackOut, { expr: 2 }); st.pose.neckX = 0.55; await jline('We’ve nothing at home, and Mother’s frantic. I thought one small thing from a house this rich would make the climb worth it.');
       // the truth is told: he grows, to half her size
       A && A.blip && A.blip(); for (let i = 1; i <= 48; i++) { st.s = W3(0.4, 0.5, ease(i / 48)); await G.wait(0.05); } st.s = 0.5;
-      shotG(12.3, 15.1, 6.2);
+      shotG(12.3, 12.1, 6.5);
       await gline(['Honest, and at the first asking. I’ll say that for you.', 'The truth, after one fib. It is a start.', 'Two lies, and then the truth. You are getting there, slowly.', 'Three lies, and the truth only when you had run out of the other kind.'][lies]);
       await gline('But I told you to stay put, and to touch nothing, did I not, ' + ['little one', 'little climber', 'little mouse', 'my little thief'][lies] + '?');
       shotJ(); await jline('I’m not a—');
@@ -562,14 +562,17 @@ function run(G, W, opts) {
       let tiltK = 0;                                                                                           // (0: carried upright, between her hands, firm at either hip; 1: across her knee)
       const upQ = () => Q(UP, gst.h + Math.PI), downQ = () => Q(UP, gst.h + Math.PI / 2).multiply(Q(RX, Math.PI / 2));
       const carryPos = () => gerda.root.localToWorld(v(0, 9.5, 9)).lerp(gerda.root.localToWorld(v(0, 12, 6.5)).add(v(0, 2, 0)), tiltK);
-      { const p0 = st.pos.clone(), h0 = st.heading; for (let i = 1; i <= 22; i++) { const k = ease(i / 22); gst.bend = 0.35 * k; gst.reach = 1.25 * k; gst.lreach = 1.25 * k; faceJ(); const cp = carryPos(); jackOut.root.position.set(W3(p0.x, cp.x, k), W3(0, cp.y, k), W3(p0.z, cp.z, k)); jackOut.root.quaternion.copy(Q(UP, h0)).slerp(upQ(), k); st.pose.thigh = W3(-0.3, -0.15, k); st.pose.knee = W3(0.2, 0.15, k); st.pose.armLx = W3(-0.2, -0.9, k); st.pose.armRx = W3(-0.2, -0.9, k); await G.wait(0.04); } gst.reach = 1.25; gst.lreach = 1.25; }
+      { const p0 = st.pos.clone(), h0 = st.heading;
+        for (let i = 1; i <= 16; i++) { const k = ease(i / 16); gst.bend = 0.9 * k; gst.reach = 1.35 * k; gst.lreach = 1.35 * k; faceJ(); st.pose.neckX = W3(0.55, -0.2, k); await G.wait(0.04); }       // (she bends to him, and her hands find his hips)
+        await G.wait(0.2);
+        for (let i = 1; i <= 24; i++) { const k = ease(i / 24); gst.bend = W3(0.9, 0.35, k); gst.reach = W3(1.35, 1.25, k); gst.lreach = W3(1.35, 1.25, k); faceJ(); const cp = carryPos(); jackOut.root.position.set(W3(p0.x, cp.x, k), W3(0, cp.y, k), W3(p0.z, cp.z, k)); jackOut.root.quaternion.copy(Q(UP, h0)).slerp(upQ(), k); st.pose.thigh = W3(-0.3, -0.15, k); st.pose.knee = W3(0.2, 0.15, k); st.pose.armLx = W3(-0.2, -0.9, k); st.pose.armRx = W3(-0.2, -0.9, k); await G.wait(0.04); } gst.reach = 1.25; gst.lreach = 1.25; }
       const chair = M.items.nurseryChair.g.position, SEATX = chair.x, SEATZ = chair.z;
       const carryFrame = () => { jackOut.root.position.copy(carryPos()); jackOut.root.quaternion.copy(upQ()).slerp(downQ(), tiltK); };
       const walkCarrying = async (wx, wz, spd) => { const x0 = gst.x, z0 = gst.z, d = Math.hypot(wx - x0, wz - z0), n = Math.max(2, Math.ceil(d / spd)); for (let i = 1; i <= n; i++) { const k = i / n, h1 = Math.atan2(wx - gst.x, wz - gst.z); gst.x = x0 + (wx - x0) * k; gst.z = z0 + (wz - z0) * k; gst.h += angDiff(h1, gst.h) * 0.3; gst.ph += 0.4; gst.walk = 0.6; placeGerda(); carryFrame(); await G.wait(0.04); } gst.walk = 0; };
       G.cut({ pos: v(-160, 40, -240), look: v(SEATX, 14, SEATZ), fov: 46 });
       await walkCarrying(SEATX - 12, SEATZ, 0.9);
       // she turns and sits, with him across her knee
-      { const h0 = gst.h; for (let i = 1; i <= 26; i++) { const k = ease(i / 26); gst.h = h0 + angDiff(-Math.PI / 2, h0) * k; gst.x = W3(SEATX - 12, SEATX, k); gst.sit = k; tiltK = k; gst.bend = W3(0.35, 0.05, k); gst.reach = W3(1.25, 0.6, k); gst.lreach = W3(1.25, 0.6, k); gst.y = 5.1 * k; placeGerda(); gerda.root.position.y = gst.y; carryFrame(); await G.wait(0.04); } }
+      { const h0 = gst.h; for (let i = 1; i <= 26; i++) { const k = ease(i / 26); gst.h = h0 + angDiff(-Math.PI / 2, h0) * k; gst.x = W3(SEATX - 12, SEATX, k); gst.sit = k; tiltK = k; gst.bend = W3(0.35, 0.05, k); gst.reach = W3(1.25, 0.9, k); gst.lreach = W3(1.25, 1.1, k); gst.lz = W3(0, -0.35, k); gst.y = 5.1 * k; placeGerda(); gerda.root.position.y = gst.y; carryFrame(); await G.wait(0.04); } }
       root.Blocky.seatFeet && root.Blocky.seatFeet(gerda, 0);
       const lapY = 17.5, lapX = SEATX - 6.5;
       st.pose = { thigh: 0.2, knee: 0.3, armLx: -1.3, armLz: 0.1, armRx: -1.3, armRz: -0.1, torso: 0, neckX: 0.5, neckY: 0 };
