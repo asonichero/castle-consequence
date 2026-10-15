@@ -450,7 +450,7 @@ function run(G, W, opts) {
     const zoneSeen = {}, zoneIn = {}, zoneN = {}; let lastRemark = 0;
     const ZONES = {
       door: { in: p => p.z > 90 && Math.abs(p.x) < 30, first: ['That’s the crack I came in by. I’d never squeeze through it now.', 'And I can’t go home with nothing to show for it. Mother’s been frantic since morning, and I know what waits for a son who comes back empty-handed.'], again: ['Maybe there’s another way out.', 'There has to be some other way out of here.', 'Still too big for it. Another way, then.'] },
-      nursery: { in: p => p.x > -312 && p.x < -100 && p.z > -292 && p.z < -161, first: ['A nursery. A real one, with a cot and a rocking horse and a whole shelf of toys.', 'I don’t know what to make of it. Where I come from, a toy is a stick and a good imagination.', 'It’s very quiet. It feels like a room that’s waiting for someone.'], again: [] },
+      nursery: { in: p => p.x > -312 && p.x < -100 && p.z > -292 && p.z < -192, first: ['A nursery. A real one, with a cot and a rocking horse and a whole shelf of toys.', 'I don’t know what to make of it. Where I come from, a toy is a stick and a good imagination.', 'It’s very quiet. It feels like a room that’s waiting for someone.'], again: [] },
       parlour: { in: p => p.x > 222 && Math.abs(p.z + 75) < 28, first: ['That’s the way she went. I’m in no hurry to run into her again.'], again: ['Not that way. Not while she’s about.', 'She’s still through there. I’ll keep clear.', 'Best to leave her to it.'] },
     };
     // ── The exploration: he may look at what he passes, he grows a little along the narrow corridor, and the nursery ends it. ──
