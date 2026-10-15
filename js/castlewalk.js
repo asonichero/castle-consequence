@@ -489,11 +489,11 @@ function run(G, W, opts) {
       for (let i = 1; i <= 34; i++) { const k = ease(i / 34); K.lid.rotation.x = -1.95 * k; st.pose.armLx = st.pose.armRx = W3(-1.7, -2.5, Math.min(1, k * 1.6)); await G.wait(0.04); }
       for (let i = 1; i <= 12; i++) { const k = ease(i / 12); st.pose.armLx = st.pose.armRx = W3(-2.5, -0.5, k); st.pose.neckX = W3(-0.15, 0.55, k); await G.wait(0.04); }
       const at3 = o => ch.localToWorld(new V3(...o));
-      G.cut({ pos: v(C0.x - 7, 15, C0.z - 9), look: v(C0.x, 3, C0.z), fov: 46 });
+      G.cut({ pos: v(C0.x - 12, 12, C0.z - 8), look: v(C0.x, 3, C0.z), fov: 46 });
       await G.say('jack', 'Clothes. Folded and put away with care.');
       await G.say('jack', 'And they get smaller as they go: a man’s shirt, a boy’s, a little one’s, a baby’s.');
       await G.say('jack', 'Someone kept every size.');
-      { const bp = K.brush.getWorldPosition(new V3()); G.cut({ pos: v(bp.x - 3, bp.y + 14, bp.z - 5), look: bp, fov: 40 }); }
+      { const bp = K.brush.getWorldPosition(new V3()); G.cut({ pos: v(bp.x - 1.8, bp.y + 11.3, bp.z + 10.7), look: bp, fov: 40 }); }
       await G.say('jack', 'A hairbrush. A tiny one, with a handle worn pale where a thumb has held it.');
       { const bp = K.book.getWorldPosition(new V3()); G.cut({ pos: v(bp.x - 3, bp.y + 14, bp.z - 5), look: bp, fov: 40 }); }
       await G.say('jack', 'And a book.');
@@ -517,7 +517,7 @@ function run(G, W, opts) {
       // and in the doorway, Gerda
       gerda.root.visible = true; gst.x = -238; gst.z = -192; gst.h = Math.atan2(st.pos.x - gst.x, st.pos.z - gst.z); gst.walk = 0; gst.bend = 0; placeGerda(); gerda.root.updateMatrixWorld(true);       // (further into the room than the doorway, and facing him)
       A && A.thud && A.thud(0.7);
-      G.cut({ pos: v(-186, 26, -232), look: v(-238, 40, -192), fov: 50 });
+      G.cut({ pos: v(C0.x + 1, 9.4, C0.z + 3.6), look: v(-305.6, 26.6, -203.6), fov: 54 });       // (from the chest, over Jack, down the room to her)
       await G.wait(2.6);
       G.cut({ pos: v(st.pos.x + 4, 0.85 * Hj, st.pos.z - 13), look: v(st.pos.x, 0.8 * Hj, st.pos.z), fov: 34 });
       await G.wait(1.6);
