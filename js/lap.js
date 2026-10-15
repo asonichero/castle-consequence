@@ -234,7 +234,7 @@ function create(view, opts) {
   const ORDER = { torso: 'YXZ', armL: 'ZXY', armR: 'ZXY', thighL: 'ZXY', thighR: 'ZXY' };
   const orderOf = n => ORDER[n] || 'XYZ';
   const LIMITS = {                                      // [low, high] in degrees about x, y, z
-    elbowL: [[0, 150], [-80, 80], [-10, 10]], elbowR: [[0, 150], [-80, 80], [-10, 10]],
+    elbowL: [[-150, 5], [-80, 80], [-10, 10]], elbowR: [[-150, 5], [-80, 80], [-10, 10]],       // (an elbow bends forward: negative about x; a knee, backward: positive)
     kneeL: [[0, 150], [-5, 5], [-5, 5]], kneeR: [[0, 150], [-5, 5], [-5, 5]],
     wristR: [[-10, 10], [-80, 80], [-10, 10]],
     neck: [[-55, 55], [-80, 80], [-30, 30]],
@@ -340,7 +340,7 @@ function create(view, opts) {
       // Hanging off the edge of her lap: thighs down and out from the glutes block, knees bent back so the feet clear the floor; arms reaching down past his head to the floor.
       return { tL: -0.96 + k * 0.9 * mL + w, tR: -0.96 + k * 0.9 * mR - w, zL: 0.12 + 0.2 * k * mL, zR: -(0.12 + 0.2 * k * mR), kL: 0.6 + 0.6 * k * mL + 0.5 * Math.max(0, w), kR: 0.6 + 0.6 * k * mR + 0.5 * Math.max(0, -w),
         nx: -0.1 - 0.5 * k + 0.1 * dd * Math.sin(t * 4), ny: -0.75 + 0.15 * Math.sin(t * 3) * dd, aLx: -2.14 - 0.25 * k + Math.sin(t * 7) * 0.08 * dd, aRx: -2.14 - 0.25 * k + Math.sin(t * 7 + 1.7) * 0.08 * dd,
-        aLz: 0.12 + 0.1 * k, aRz: -(0.12 + 0.1 * k), tz: 0.06 * dd * Math.sin(t * 6), tx: 0, eL: 0.35 + 0.25 * k + 0.1 * dd * Math.sin(t * 7), eR: 0.35 + 0.25 * k + 0.1 * dd * Math.sin(t * 7 + 1.7) };
+        aLz: 0.12 + 0.1 * k, aRz: -(0.12 + 0.1 * k), tz: 0.06 * dd * Math.sin(t * 6), tx: 0, eL: -(0.35 + 0.25 * k + 0.1 * dd * Math.sin(t * 7)), eR: -(0.35 + 0.25 * k + 0.1 * dd * Math.sin(t * 7 + 1.7)) };
     }
     if (name === 'table') {
       // Bent over the table's edge: legs straight down to the floor (shifting from foot to foot, rising onto the toes at a bad one), arms out along the top, cheek on it.
@@ -348,12 +348,12 @@ function create(view, opts) {
       // (Over the table his hands and feet stay where the pose puts them: only his head and torso react.)
       return { tL: leg, tR: leg, zL: 0.1, zR: -0.1, kL: 0.1 * dd, kR: 0.1 * dd,
         nx: -0.1 - 0.25 * k + 0.04 * dd * Math.sin(t * 4), ny: -0.95 + 0.08 * Math.sin(t * 3) * dd, aLx: phi - Math.PI, aRx: phi - Math.PI,
-        aLz: 0.26, aRz: -0.26, tz: 0.02 * dd * Math.sin(t * 6), tx: -0.05 * k, eL: 0.3, eR: 0.3 };
+        aLz: 0.26, aRz: -0.26, tz: 0.02 * dd * Math.sin(t * 6), tx: -0.05 * k, eL: -0.3, eR: -0.3 };
     }
     // Standing: weight shifting, head bowed, hands at his sides (or, as he comes to it, swung back to cover himself).
     const sh = Math.sin(t * 2.1) * dd;
     return { tL: -0.08 * sh, tR: 0.08 * sh, zL: 0.05, zR: -0.05, kL: 0.04 * Math.max(0, sh), kR: 0.04 * Math.max(0, -sh), nx: 0.05 + 0.12 * dd, ny: 0.15 * Math.sin(t * 0.7) * dd,
-      aLx: 0.05 + 0.65 * cover, aRx: 0.05 + 0.65 * cover, aLz: 0.08 - 0.38 * cover, aRz: -(0.08 - 0.38 * cover), tz: 0, tx: 0.06 * dd, eL: 0.2 + 0.7 * cover, eR: 0.2 + 0.7 * cover };
+      aLx: 0.05 + 0.65 * cover, aRx: 0.05 + 0.65 * cover, aLz: 0.08 - 0.38 * cover, aRz: -(0.08 - 0.38 * cover), tz: 0, tx: 0.06 * dd, eL: -(0.2 + 0.7 * cover), eR: -(0.2 + 0.7 * cover) };
   }
   const mixPose = (a, b, e) => { const o = {}; for (const key in a) o[key] = a[key] + (b[key] - a[key]) * e; return o; };
   const easeIO = x => x * x * (3 - 2 * x);
@@ -402,9 +402,9 @@ function create(view, opts) {
     const right = key === 'armR', arm = g[key], elbow = right ? g.elbow : g.elbowL, wrist = right ? g.wrist : g.wristL;
     const sh = world(arm), ik = twoBone(sh, tR, LF * (sc || 1), pole, LU * (sc || 1));
     aim(arm, ik.u1); const h = new V3().crossVectors(ik.u1, ik.f); let psi = Math.acos(clamp(ik.u1.dot(ik.f), -1, 1));
-    if (h.lengthSq() > 1e-6) { h.normalize(); arm.updateMatrixWorld(true); const xw = new V3(1, 0, 0).applyQuaternion(arm.getWorldQuaternion(tmpQ2)); const ang = Math.atan2(xw.clone().cross(h).dot(ik.u1), xw.dot(h)); arm.parent.getWorldQuaternion(tmpQ).invert(); arm.quaternion.premultiply(tmpQ2.setFromAxisAngle(ik.u1.clone().applyQuaternion(tmpQ), ang)); } else psi = 0;
-    elbow.rotation.set(psi, 0, 0); wrist.rotation.set(0, 0, 0); g.root.updateMatrixWorld(true);
-    const fw = new V3(0, -1, 0).applyQuaternion(wrist.getWorldQuaternion(tmpQ2)); if (fw.dot(ik.f) < 0.999) elbow.rotation.x = -psi;
+    if (h.lengthSq() > 1e-6) { h.normalize().negate(); arm.updateMatrixWorld(true); const xw = new V3(1, 0, 0).applyQuaternion(arm.getWorldQuaternion(tmpQ2)); const ang = Math.atan2(xw.clone().cross(h).dot(ik.u1), xw.dot(h)); arm.parent.getWorldQuaternion(tmpQ).invert(); arm.quaternion.premultiply(tmpQ2.setFromAxisAngle(ik.u1.clone().applyQuaternion(tmpQ), ang)); } else psi = 0;
+    elbow.rotation.set(-psi, 0, 0); wrist.rotation.set(0, 0, 0); g.root.updateMatrixWorld(true);       // (an elbow bends the forearm forward: that is a turn of the hinge the other way from a knee's)
+    const fw = new V3(0, -1, 0).applyQuaternion(wrist.getWorldQuaternion(tmpQ2)); if (fw.dot(ik.f) < 0.999) elbow.rotation.x = psi;
     return ik;
   }
   const armTo = (g, tR) => armToSide(g, 'armR', tR);
@@ -421,11 +421,7 @@ function create(view, opts) {
       const up = st.to === 'standTable', tL = world(up ? shoulderL : beltL), tR = world(up ? shoulderR : beltR), fum = (st.fumble || 0) * 0.5 * Math.sin(J.t * 13);
       tL.y += fum; tR.y -= fum;
       armToSide(g, 'armL', tL, POLE_L);
-      const sh = world(g.armR), ik = twoBone(sh, tR, LF);
-      aim(g.armR, ik.u1); const h = new V3().crossVectors(ik.u1, ik.f); let psi = Math.acos(clamp(ik.u1.dot(ik.f), -1, 1));
-      if (h.lengthSq() > 1e-6) { h.normalize(); g.armR.updateMatrixWorld(true); const xw = new V3(1, 0, 0).applyQuaternion(g.armR.getWorldQuaternion(tmpQ2)); const ang = Math.atan2(xw.clone().cross(h).dot(ik.u1), xw.dot(h)); g.armR.parent.getWorldQuaternion(tmpQ).invert(); g.armR.quaternion.premultiply(tmpQ2.setFromAxisAngle(ik.u1.clone().applyQuaternion(tmpQ), ang)); } else psi = 0;
-      g.elbow.rotation.set(psi, 0, 0); g.wrist.rotation.set(0, 0, 0); g.root.updateMatrixWorld(true);
-      const fw = new V3(0, -1, 0).applyQuaternion(g.wrist.getWorldQuaternion(tmpQ2)); if (fw.dot(ik.f) < 0.999) { g.elbow.rotation.x = -psi; }
+      armToSide(g, 'armR', tR);
       return;
     }
     const gw = gerdaWeights(), sw = st.swing, impl = IMPL[st.implement], tau = sw ? sw.tau : 1, hover = sw ? (sw.hover || 0) : 1;
@@ -481,21 +477,21 @@ function create(view, opts) {
     const contact = solve(T, impl.paddle);
     const ud = T.clone().sub(sh).normalize();
     const outward = sh.clone().sub(headAt); outward.y = 0; outward.normalize();       // (raised up and a little out from her head, not past her face)
-    const raisedIK = flat(sh, sh.clone().addScaledVector(ud.clone().multiplyScalar(0.35).addScaledVector(UP, 0.95).addScaledVector(outward, 0.6).normalize(), reachM * 0.95), reachM, null);
+    const raisedAt = sh.clone().addScaledVector(ud.clone().multiplyScalar(0.35).addScaledVector(UP, 0.95).addScaledVector(outward, 0.6).normalize(), reachM * 0.95);
     const armPose = (ik, palmTo) => {                 // set the arm to ik, return its local pivot rotation, elbow flexion and wrist twist
       aim(g.armR, ik.u1);
       const h = new V3().crossVectors(ik.u1, ik.f); let psi = Math.acos(clamp(ik.u1.dot(ik.f), -1, 1));
-      if (h.lengthSq() > 1e-6) {             // roll the upper arm about its own axis so the elbow's hinge (local x) is across the bend
-        h.normalize(); g.armR.updateMatrixWorld(true);
+      if (h.lengthSq() > 1e-6) {             // roll the upper arm about its own axis so the elbow's hinge (local x) is across the bend, and the forearm comes forward
+        h.normalize().negate(); g.armR.updateMatrixWorld(true);
         const xw = new V3(1, 0, 0).applyQuaternion(g.armR.getWorldQuaternion(tmpQ2));
         const ang = Math.atan2(xw.clone().cross(h).dot(ik.u1), xw.dot(h));
         g.armR.parent.getWorldQuaternion(tmpQ).invert();
         g.armR.quaternion.premultiply(tmpQ2.setFromAxisAngle(ik.u1.clone().applyQuaternion(tmpQ), ang));
       } else psi = 0;
       // The elbow hinges about local x; take whichever sign puts the forearm along ik.f.
-      g.elbow.rotation.set(psi, 0, 0); g.wrist.rotation.set(0, 0, 0); g.root.updateMatrixWorld(true);
+      g.elbow.rotation.set(-psi, 0, 0); g.wrist.rotation.set(0, 0, 0); g.root.updateMatrixWorld(true);
       const fw = new V3(0, -1, 0).applyQuaternion(g.wrist.getWorldQuaternion(tmpQ2));
-      if (fw.dot(ik.f) < 0.999) { g.elbow.rotation.x = -psi; g.root.updateMatrixWorld(true); }
+      if (fw.dot(ik.f) < 0.999) { g.elbow.rotation.x = psi; g.root.updateMatrixWorld(true); }
       let omega = 0;
       if (impl.paddle || hand) {              // twist the forearm about its axis so the blade lies toward his head; or so that the palm (a flat face of the forearm) faces where it should (his skin, at contact; the floor, raised)
         const xw = new V3(1, 0, 0).applyQuaternion(g.wrist.getWorldQuaternion(tmpQ2)), want = hand ? palmTo : sideOf(ik.f);
@@ -504,7 +500,13 @@ function create(view, opts) {
       }
       return { q: g.armR.quaternion.clone(), psi: g.elbow.rotation.x, omega };
     };
-    const pc = armPose(contact, nInW), pr = armPose(raisedIK, DOWN);
+    const pc = armPose(contact, nInW);
+    // The raised pose is the one, of the elbow's places about the line from shoulder to hand, that takes her arm from the landed pose with the least turn of the upper arm about itself (so that nothing spins as it
+    // comes down), clear of her head, and nearest the usual one.
+    const turnBetween = (qa, qb) => { const aa = new V3(0, -1, 0).applyQuaternion(qa), ab = new V3(0, -1, 0).applyQuaternion(qb), sw = new THREE.Quaternion().setFromUnitVectors(aa, ab), r = qb.clone().multiply(sw.multiply(qa).invert()); let t = 2 * Math.atan2(r.x * ab.x + r.y * ab.y + r.z * ab.z, r.w); if (t > Math.PI) t -= 2 * Math.PI; if (t < -Math.PI) t += 2 * Math.PI; return Math.abs(t); };
+    let raisedIK = null; { const udr = raisedAt.clone().sub(sh).normalize(); let bestC = 1e9; for (let a = -180; a <= 180; a += 15) { const ik = twoBone(sh, raisedAt, reachM, POLE.clone().applyAxisAngle(udr, a * DEG)), E = sh.clone().addScaledVector(ik.u1, LU), clear = Math.min(segD(sh, E, headAt), segD(E, raisedAt, headAt)), q = armPose(ik, DOWN).q, cost = 1.5 * turnBetween(pc.q, q) / Math.PI + 0.25 * Math.abs(a) / 180 + Math.max(0, 7.5 - clear) * 0.8; if (cost < bestC) { bestC = cost; raisedIK = ik; } } }
+    const pr = armPose(raisedIK, DOWN);
+    if (root.__lapDebug) root.__lapDebug.turn = Math.round(turnBetween(pc.q, pr.q) * 180 / Math.PI);
     g.armR.quaternion.copy(pr.q).slerp(pc.q, tau);
     const birchUraised = impl.birch ? new V3(-ud.x * 0.5, 0, -ud.z * 0.5).addScaledVector(UP, 0.9).normalize() : null;
     g.elbow.rotation.set(lerp(pr.psi, pc.psi, tau), 0, 0); g.wrist.rotation.set(0, lerp(pr.omega, pc.omega, tau), 0);
