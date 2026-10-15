@@ -756,7 +756,7 @@ function run(G, W, opts) {
     // ── Dressed: the playable sequence at the kitchen table. Jack stands on it, Gerda before him at its edge; he cannot move or jump, and the one button answers what she asks of him. ──
     async function dressScene(lapStage) {
       const ease = k => k * k * (3 - 2 * k), W3 = (a, b, k) => a + (b - a) * k, tc = M.items.kitchenTable.g.position, TOP = 25.5, JX = tc.x + 9, JZ = tc.z + 9;       // (the kitchen table, where the box and his clothes stood when he woke)
-      const mk = (w, h, d, col, x, y, z, par) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color: col })); m.position.set(x, y, z); par.add(m); return m; };
+      const mk = (w, h, d, col, x, y, z, par) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), root.Farm.plain(col)); m.position.set(x, y, z); par.add(m); return m; };
       if (!ch3Items.clothes) { const cl = new THREE.Group(); cl.position.set(tc.x - 9, TOP, tc.z - 6); cl.scale.setScalar(2); scene.add(cl); ch3Items.clothes = cl; mk(2.7, 0.7, 2.2, '#5a7a3e', 0, 0.35, 0, cl); mk(0.9, 0.22, 0.5, '#e8dcb8', -0.4, 0.76, -0.8, cl); mk(2.1, 0.5, 2.8, '#6d5233', 0.1, 0.95, 0.1, cl); mk(0.3, 0.2, 2.3, '#8a6a42', -0.6, 1.3, 0.1, cl); mk(0.9, 0.8, 2.1, '#3a2616', 2.1, 0.4, -0.6, cl); mk(0.9, 0.8, 2.1, '#3a2616', 2.1, 0.4, 1.0, cl); }
       const clothes = ch3Items.clothes; clothes.visible = true;
       // the props: what comes off him is put down on the table, and what goes on him comes from her hands
@@ -925,7 +925,7 @@ function run(G, W, opts) {
       const pdoors = M.doors.filter(d => d.axis === 'x' && Math.abs(d.fixed - 250) < 3 && Math.abs(d.c + 75) < 6); for (const d of pdoors) { d.ang = swing(d); d.lg.rotation.y = d.ang; d.og.userData.noCollide = true; }
       makeG('Work'); gst.x = tc.x; gst.z = tc.z + 24; gst.h = Math.PI; placeGerda();
       // the folded clothes on the table (his day clothes), to be seen later
-      const mk = (w, h, d, col, x, y, z, par) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color: col })); m.position.set(x, y, z); par.add(m); return m; };
+      const mk = (w, h, d, col, x, y, z, par) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), root.Farm.plain(col)); m.position.set(x, y, z); par.add(m); return m; };
       const clothes = new THREE.Group(); clothes.position.set(tc.x - 9, TOP, tc.z - 6); clothes.scale.setScalar(2); scene.add(clothes); ch3Items.clothes = clothes;
       mk(2.7, 0.7, 2.2, '#5a7a3e', 0, 0.35, 0, clothes); mk(0.9, 0.22, 0.5, '#e8dcb8', -0.4, 0.76, -0.8, clothes); mk(2.1, 0.5, 2.8, '#6d5233', 0.1, 0.95, 0.1, clothes); mk(0.3, 0.2, 2.3, '#8a6a42', -0.6, 1.3, 0.1, clothes); mk(0.9, 0.8, 2.1, '#3a2616', 2.1, 0.4, -0.6, clothes); mk(0.9, 0.8, 2.1, '#3a2616', 2.1, 0.4, 1.0, clothes);      // (his day clothes, folded, at the size of him now: a quarter, the tunic about as wide as his shoulders and a half again)
       // Jack, lying in the box on his back, head to the back of it, pressed in
