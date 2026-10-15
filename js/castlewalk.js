@@ -520,22 +520,23 @@ function run(G, W, opts) {
       G.cut({ pos: v(C0.x - 3, 8.1, C0.z + 3.6), look: v(-305.6, 26.6, -203.6), fov: 54 });       // (from the chest, over Jack, down the room to her)
       await G.wait(2.2);
       // her line, and the walk that brings her closer; he spins to face her
-      const gwalk = async (wx, wz, spd) => { const x0 = gst.x, z0 = gst.z, d = Math.hypot(wx - x0, wz - z0), n = Math.max(2, Math.ceil(d / (spd || 1.2))); for (let i = 1; i <= n; i++) { const k = i / n, h1 = Math.atan2(wx - gst.x, wz - gst.z); gst.x = x0 + (wx - x0) * k; gst.z = z0 + (wz - z0) * k; gst.h += angDiff(h1, gst.h) * 0.3; gst.ph += 0.4; gst.walk = 1; placeGerda(); await G.wait(0.04); } gst.walk = 0; };
+      const gwalk = async (wx, wz, spd, onStep) => { const x0 = gst.x, z0 = gst.z, d = Math.hypot(wx - x0, wz - z0), n = Math.max(2, Math.ceil(d / (spd || 1.2))); for (let i = 1; i <= n; i++) { const k = i / n, h1 = Math.atan2(wx - gst.x, wz - gst.z); gst.x = x0 + (wx - x0) * k; gst.z = z0 + (wz - z0) * k; gst.h += angDiff(h1, gst.h) * 0.3; gst.ph += 0.4; gst.walk = 1; placeGerda(); onStep && onStep(); await G.wait(0.04); } gst.walk = 0; };
       const faceJ = () => { gst.h = Math.atan2(st.pos.x - gst.x, st.pos.z - gst.z); placeGerda(); };
       const dirGJ = () => { const dx = gst.x - st.pos.x, dz = gst.z - st.pos.z, d = Math.hypot(dx, dz) || 1; return [dx / d, dz / d]; };
-      const shotG = () => { const [ux, uz] = dirGJ(); G.cut({ pos: v(st.pos.x - ux * 12 - uz * 8, 0.95 * HEIGHT * SC * st.s + 3, st.pos.z - uz * 12 + ux * 8), look: v(gst.x, 31, gst.z), fov: 44 }); };      // (on Gerda, from beside Jack: Jack in the corner of it)
-      const shotJ = () => { const [ux, uz] = dirGJ(); G.cut({ pos: v(gst.x + ux * 12 + uz * 9, 33, gst.z + uz * 12 - ux * 9), look: v(st.pos.x, 0.8 * HEIGHT * SC * st.s, st.pos.z), fov: 38 }); };      // (on Jack, over her shoulder)
-      const tx = st.pos.x - 27, tz = st.pos.z - 3, come = gwalk(tx, tz, 1.3);
+      const shotG = () => G.cut({ pos: v(st.pos.x + 10, 3.4, st.pos.z - 6.5), look: v(gst.x + 0.3, 30.8, gst.z + 3), fov: 42 });      // (on Gerda, low, from just behind Jack: looking up at her)
+      const shotJ = () => G.cut({ pos: v(st.pos.x - 41, 44, st.pos.z - 27), look: v(st.pos.x, 8, st.pos.z), fov: 38 });      // (on Jack, from high behind her)
+      const shotSweep = () => G.cut({ pos: v(st.pos.x - 7, 52, st.pos.z - 50), look: v(st.pos.x - 8, 20, st.pos.z - 5), fov: 44 });
+      const tx = st.pos.x - 27, tz = st.pos.z - 3, camHere = G.shotNow().pos, come = gwalk(tx, tz, 1.3, () => { if (!(G.camOverride && G.camOverride(G.beat))) G.cutNow({ pos: camHere, look: v(gst.x, 38, gst.z), fov: 54 }); });       // (the camera pans up and across to keep her head in frame as she comes)
       const gline = t => G.say('gerda', t), jline = t => G.say('jack', t);
       const spinTo = async () => { const h0 = st.heading, h1 = Math.atan2(gst.x - st.pos.x, gst.z - st.pos.z); for (let i = 1; i <= 10; i++) { st.heading = h0 + angDiff(h1, h0) * ease(i / 10); st.pose.armLz = 0.5 * ease(i / 10); st.pose.armRz = -0.5 * ease(i / 10); await G.wait(0.04); } };
-      await gline('Curiosity again.'); await G.wait(0.2); spinTo(); await come; faceJ();
+      await gline('Curiosity again.'); await G.wait(0.2); spinTo(); await come; faceJ(); gst.look = 0.35; st.pose.neckX = -0.45;       // (she looks down at him, and he looks up at her)
       shotJ(); W.paintJack(jackOut, { expr: 4 }); await jline('I wasn’t stealing!');
       shotG(); for (let i = 1; i <= 10; i++) { gst.tilt = 0.32 * ease(i / 10); faceJ(); await G.wait(0.04); } await gline('No? Only looking, I’m sure.');
       shotJ(); { const x0 = st.pos.x, z0 = st.pos.z, [ux, uz] = dirGJ(); for (let i = 1; i <= 8; i++) { const k = ease(i / 8); st.pos.x = x0 - ux * 3 * k; st.pos.z = z0 - uz * 3 * k; st.walkN = 0.5; st.walkPh -= 0.3; st.pose.torso = 0.08 * k; st.pose.armLz = W3(0.5, 0.15, k); st.pose.armRz = W3(-0.5, -0.15, k); await G.wait(0.04); } st.walkN = 0; }
       await jline('I didn’t touch anything.');
-      shotG(); for (let i = 1; i <= 8; i++) { gst.look = 0.5 * ease(i / 8); faceJ(); await G.wait(0.04); } await G.wait(0.9);      // (her eyes sweep down to the book on the floor)
+      shotSweep(); for (let i = 1; i <= 8; i++) { gst.look = W3(0.35, 0.8, ease(i / 8)); faceJ(); await G.wait(0.04); } await G.wait(0.9);      // (her eyes sweep down to the book on the floor)
       shotJ(); W.paintJack(jackOut, { expr: 3 }); await jline('You can’t just sneak up on me.');
-      shotG(); for (let i = 1; i <= 6; i++) { gst.look = 0.5 * (1 - ease(i / 6)); await G.wait(0.04); } await gline('Can’t I?');
+      shotG(); for (let i = 1; i <= 6; i++) { gst.look = W3(0.8, 0.35, ease(i / 6)); await G.wait(0.04); } await gline('Can’t I?');
       await gline('You’re in my house, little climber. Why?');
       // the questions: the truth, or a lie she sees through; after three lies only the truth is left
       const TRUTH = 'I came to take something. Anything worth carrying home.', LIES = ['I was lost. I only wandered in.', 'I came looking for work. Somebody said you might need a hand.', 'I was bringing you a message from the village.'], SEE = ['Lost. Four storeys up, through a crack no wider than a thumb, and you wandered into my nursery. Again, please.', 'Work. In a nursery, with nothing in your hands but my book. Try again.', 'A message. Delivered to a chest, by hand, with the lid shut. Last chance, little climber.'];
