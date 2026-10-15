@@ -470,10 +470,10 @@ function run(G, W, opts) {
     for (const cat in LK) LK[cat].keys.forEach((k, i) => { if (M.items[k]) c3.targets.push({ k, cat, i, g: M.items[k].g }); });
     async function doLook(t) {
       if (t.cat === 'chest') { await chestScene(); return; }
-      st.busy = true; st.lockT = 99; st.lockH = Math.atan2(t.g.position.x - st.pos.x, t.g.position.z - st.pos.z);
+      st.busy = true;                                                                          // (he speaks as he stands or walks: no snapping of the camera, no hold on his movement)
       const n = c3.looks[t.k] || 0; c3.looks[t.k] = n + 1; const L = LK[t.cat].lines; await say(L[(t.i + n) % L.length]);
       if (LK[t.cat].nursery && n === 0) { c3.nL++; if (c3.nL === 2 && !c3.shift) { c3.shift = true; await say('I came in here looking for something worth carrying home.'); await say('I haven’t thought about that in five minutes. I only want to know whose all this was.'); } }
-      st.lockT = 0.01; st.busy = false;
+      st.busy = false;
     }
     // the chest: he opens it, finds what is inside, reads the first page, and drops the book. Gerda is in the doorway.
     async function chestScene() {
