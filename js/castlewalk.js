@@ -548,7 +548,7 @@ function run(G, W, opts) {
       }
       shotJ(); W.paintJack(jackOut, { expr: 2 }); await jline('We’ve nothing at home, and Mother’s frantic. I thought one small thing from a house this rich would make the climb worth it.');
       // the truth is told: he grows, to half her size
-      A && A.blip && A.blip(); for (let i = 1; i <= 48; i++) { st.s = W3(0.35, 0.5, ease(i / 48)); await G.wait(0.05); } st.s = 0.5;
+      A && A.blip && A.blip(); for (let i = 1; i <= 48; i++) { st.s = W3(0.4, 0.5, ease(i / 48)); await G.wait(0.05); } st.s = 0.5;
       shotG();
       await gline(['Honest, and at the first asking. I’ll say that for you.', 'The truth, after one fib. It is a start.', 'Two lies, and then the truth. You are getting there, slowly.', 'Three lies, and the truth only when you had run out of the other kind.'][lies]);
       await gline('But I told you to stay put, and to touch nothing, did I not, ' + ['little one', 'little climber', 'little mouse', 'my little thief'][lies] + '?');
@@ -592,6 +592,8 @@ function run(G, W, opts) {
         const t = clamp((-90 - st.pos.x) / 183, 0, 1), target = 0.25 + 0.10 * t; if (target > st.s) { st.s = target; c3.grow = target; }
         if (t > 0.3 && !c3.g1) { c3.g1 = true; say('Odd. My boots are tighter than they were. Am I... bigger?'); }
         if (t > 0.95 && !c3.g2) { c3.g2 = true; say('A little more with every step. Whatever this place does to me, it isn’t finished.'); } }
+      if (!c3.n40 && st.pos.x > -312 && st.pos.x < -100 && st.pos.z < -166 && st.pos.z > -292) c3.n40 = true;                                  // (inside the nursery he grows to forty per cent, and says nothing of it)
+      if (c3.n40 && st.s < 0.4) st.s = Math.min(0.4, st.s + dt * 0.03);
       if (!st.busy && !c3.done) { let best = null, bd = 1e9; for (const t of c3.targets) { const d = Math.hypot(t.g.position.x - st.pos.x, t.g.position.z - st.pos.z); if (d < LK[t.cat].r && d < bd) { best = t; bd = d; } }
         if (best) { pr.textContent = 'E — ' + (best.cat === 'chest' ? 'open the chest' : 'look at the ' + LK[best.cat].name); pr.style.display = 'block'; st.uiAct = best.cat === 'chest' ? 'Open' : 'Look'; if (act) doLook(best); } }
     }
@@ -666,7 +668,7 @@ function run(G, W, opts) {
       $('cwObjt').style.display = 'none';
     }
     const f = $('fade');
-    if (ch3) { if (opts.ch3notes === 'close') { st.scene = true; st.s = 0.35; makeG('Work'); gerda.root.visible = false; const cg = M.items.chest.g.position; st.pos.set(cg.x - 12, 0, cg.z + 10); st.heading = Math.PI / 2; $('cwPanel').style.display = 'none'; await chestScene(); return; } await ch3Open(); return; }
+    if (ch3) { if (opts.ch3notes === 'close') { st.scene = true; st.s = 0.4; makeG('Work'); gerda.root.visible = false; const cg = M.items.chest.g.position; st.pos.set(cg.x - 12, 0, cg.z + 10); st.heading = Math.PI / 2; $('cwPanel').style.display = 'none'; await chestScene(); return; } await ch3Open(); return; }
     if (!story) { G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); f.style.transition = ''; await G.fade(false, 1.2); return; }
     // ── The story: the hall, from a few angles, and what it says to him; then it is his. ──
     st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwPanel').style.display = 'none'; G.save({ step: 'castle' });
