@@ -81,7 +81,7 @@
   <h3>Pose editor</h3>
   <div class="btns"><button id="peToggle">Edit poses</button></div>
   <div id="pe">
-    <div class="sub" style="margin:6px 0">Offsets are laid on top of the pose and shown live. The position and implement are the ones chosen above. Nothing is saved: press Report when you are happy and paste it into the chat.</div>
+    <div class="sub" style="margin:6px 0">Rotations are the joint's own angles from its standing position, within its range; positions are how far a part has moved from where it stands. Shown live. The position and implement are the ones chosen above. Nothing is saved: press Report when you are happy and paste it into the chat.</div>
     <div class="sub" id="peWhere" style="margin:4px 0;color:#c9a84c"></div>
     <div class="sub" style="margin:4px 0">Over the table nothing is pinned: no hand, arm or implement is aimed at a contact point; she stands as she is and your offsets are the pose. (Over the knee keeps its aimed arm.)</div>
     <h4>Jack's size (two sets of poses: they blend between)</h4><div class="btns" id="peSize"></div>
@@ -200,6 +200,7 @@
     function push() { E.set(S.fig, S.beat, S.bone, sl.r.map(function (s) { return +s.inp.value; }), sl.p.map(function (s) { return +s.inp.value; })); }
     function pull() {
       var v = E.get(S.fig, S.beat, S.bone);
+      var lim = E.limits(S.bone); sl.r.forEach(function (s, i) { s.inp.min = lim ? lim[i][0] : -180; s.inp.max = lim ? lim[i][1] : 180; });       // (the joint's own range)
       ['r', 'p'].forEach(function (k) { sl[k].forEach(function (s, i) { s.inp.value = v[k][i]; s.out.textContent = (+v[k][i]).toFixed(k === 'r' ? 0 : 1); }); });
     }
     function refresh() {

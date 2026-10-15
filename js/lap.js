@@ -229,18 +229,36 @@ function create(view, opts) {
   // The offsets one bone takes at the given beat weights: a rotation (quaternion) and a position shift, or null if it has none.
   // Over the knee with the hand there are three poses of Jack's arm, each with a set of its own, never added to another: normal, reaching for his belt, and pinned. Their weights follow the pose in force (blending as one passes into the next).
   const poseSets = () => { if (st.implement !== 'hand') return [[st.implement, 1]]; const r = Math.min(1, st.armReach || 0), h = Math.min(1, st.armHold || 0); return [['hand', Math.max(0, 1 - r - h)], ['hand~reach', r], ['hand~hold', h]]; };
+  // The poses are absolute: a rotation entry is the joint's own angles (degrees, in its own order) from its standing position, within the joint's range; a position entry is how far
+  // the part has moved from where it stands. A bone with no rotation entry in the pose in force keeps its procedural pose; with entries in some of the beats, it blends toward them.
+  const ORDER = { torso: 'YXZ', armL: 'ZXY', armR: 'ZXY', thighL: 'ZXY', thighR: 'ZXY' };
+  const orderOf = n => ORDER[n] || 'XYZ';
+  const LIMITS = {                                      // [low, high] in degrees about x, y, z
+    elbowL: [[0, 150], [-80, 80], [-10, 10]], elbowR: [[0, 150], [-80, 80], [-10, 10]],
+    kneeL: [[0, 150], [-5, 5], [-5, 5]], kneeR: [[0, 150], [-5, 5], [-5, 5]],
+    wristR: [[-10, 10], [-80, 80], [-10, 10]],
+    neck: [[-55, 55], [-80, 80], [-30, 30]],
+    torso: [[-35, 75], [-60, 60], [-30, 30]],
+    armL: [[-185, 65], [-90, 90], [-110, 110]], armR: [[-185, 65], [-90, 90], [-110, 110]],
+    thighL: [[-125, 30], [-45, 45], [-50, 50]], thighR: [[-125, 30], [-45, 45], [-50, 50]],
+  };
+  const clampRot = (n, r) => { const L = LIMITS[n]; return L ? r.map((v, i) => clamp(v, L[i][0], L[i][1])) : r.slice(); };
+  const rotQ = (n, r) => { const c = clampRot(n, r); return new THREE.Quaternion().setFromEuler(new THREE.Euler(c[0] * DEG, c[1] * DEG, c[2] * DEG, orderOf(n))); };
+  const eulerOf = (n, q) => { const e = new THREE.Euler().setFromQuaternion(q, orderOf(n)); return [e.x / DEG, e.y / DEG, e.z / DEG]; };
   function editFor(who, n, weights) {
-    let any = false; const rr = [0, 0, 0], pp = [0, 0, 0];
+    let any = false, wsum = 0; const pp = [0, 0, 0], qa = new THREE.Quaternion(0, 0, 0, 0); let first = null;
     const t = sizeT();
     for (const [key, wk] of [[50, 1 - t], [100, t]]) {            // blend the two sets by Jack's size
       if (!wk) continue;
       for (const [imp, vf] of poseSets()) { if (!vf) continue; const set = setOf(who, key, imp), wts = weights;       // (each pose has a set of its own: nothing is laid over anything else)
       for (const beat in wts) {
         const e = set[beat] && set[beat][n], wt = wts[beat] * wk * vf; if (!e || !wt) continue;
-        any = true; for (let i = 0; i < 3; i++) { rr[i] += wt * (e.r ? e.r[i] : 0); pp[i] += wt * (e.p ? e.p[i] : 0); }
+        if (e.r) { any = true; const q = rotQ(n, e.r); if (!first) first = q; else if (q.dot(first) < 0) { q.x = -q.x; q.y = -q.y; q.z = -q.z; q.w = -q.w; } qa.x += wt * q.x; qa.y += wt * q.y; qa.z += wt * q.z; qa.w += wt * q.w; wsum += wt; }
+        if (e.p) { any = true; for (let i = 0; i < 3; i++) pp[i] += wt * e.p[i]; }
       } }
     }
-    return any ? { q: new THREE.Quaternion().setFromEuler(new THREE.Euler(rr[0] * DEG, rr[1] * DEG, rr[2] * DEG, 'YXZ')), p: pp } : null;
+    if (!any) return null;
+    return { q: first ? qa.normalize() : null, w: Math.min(1, wsum), p: pp };
   }
   const MOVABLE = { torso: 1, frame: 1, glutes: 1, paddle: 1, birch: 1 };
   function applyEdits(who, names, weights) {
@@ -248,7 +266,7 @@ function create(view, opts) {
       const e = editFor(who, n, weights); if (!e) continue;
       const bone = BONES[who][n];
       bone.userData.proc = bone.quaternion.clone();
-      bone.quaternion.multiply(e.q);
+      if (e.q) bone.quaternion.slerp(e.q, e.w);
       if (MOVABLE[n]) { bone.position.x += e.p[0]; bone.position.y += e.p[1]; bone.position.z += e.p[2]; }       // (only the body's own parts move: a forearm, hand or leg is never pulled away from its joint)
       if (n === 'torso' && (e.p[0] || e.p[1] || e.p[2])) {            // moving the torso carries the legs with it (they hang from the same hips)
         for (const leg of ['thighL', 'thighR']) { const lb = BONES[who][leg]; if (!lb.userData.proc) lb.userData.proc = lb.quaternion.clone(); lb.position.x += e.p[0]; lb.position.y += e.p[1]; lb.position.z += e.p[2]; }
@@ -649,7 +667,7 @@ function create(view, opts) {
   }
   function applyDrag(drag, target) {
     const h = drag.h, fig = h.who, bone = BONES[fig][h.bone], rt = route(cur.fig, cur.beat, h.bone), set = setAt(cur.fig, rt.imp)[rt.beat], wts = rt.wts || weightsNow(), wb = wts[rt.beat] || 1;
-    const entry = set[h.bone] || (set[h.bone] = { r: [0, 0, 0], p: [0, 0, 0] }); entry.r = entry.r || [0, 0, 0]; entry.p = entry.p || [0, 0, 0];
+    const entry = set[h.bone] || (set[h.bone] = {}); entry.p = entry.p || [0, 0, 0];
     if (h.kind === 'move') {
       const inv = new THREE.Matrix4().copy(bone.parent ? bone.parent.matrixWorld : new THREE.Matrix4()).invert();
       const a = drag.startWorld.clone().applyMatrix4(inv), b = target.clone().applyMatrix4(inv);
@@ -671,16 +689,10 @@ function create(view, opts) {
         qw.setFromAxisAngle(axis, Math.atan2(v0.clone().cross(v1).dot(axis), v0.dot(v1)));
       }
       const newLocal = pq.clone().invert().multiply(qw.multiply(cq));
-      const proc = bone.userData.proc || bone.quaternion;
-      const tot = new THREE.Euler().setFromQuaternion(proc.clone().invert().multiply(newLocal), 'YXZ');
-      const want = [tot.x / DEG, tot.y / DEG, tot.z / DEG];
-      if (root.__lapDebug) (root.__lapDebug.drag = root.__lapDebug.drag || []).push({ want: want.map(x => +x.toFixed(1)), procQ: proc.toArray().map(x => +x.toFixed(3)), curQ: bone.quaternion.toArray().map(x => +x.toFixed(3)), hasProc: !!bone.userData.proc, t: target.toArray().map(x => +x.toFixed(1)), tip: tip.toArray().map(x => +x.toFixed(1)), piv: pivot.toArray().map(x => +x.toFixed(1)) });
-      for (let i = 0; i < 3; i++) {                      // the others' share of the total stays; the held beat's share takes the rest
-        let others = 0; for (const b in wts) if (b !== rt.beat && setAt(cur.fig, rt.imp)[b] && setAt(cur.fig, rt.imp)[b][h.bone]) others += wts[b] * ((setAt(cur.fig, rt.imp)[b][h.bone].r || [0, 0, 0])[i]);
-        entry.r[i] = (want[i] - others) / wb;
-      }
+      entry.r = clampRot(h.bone, eulerOf(h.bone, newLocal));                    // (the joint's own angles, from its standing position, within its range)
     }
-    if (entry.r.every(v => Math.abs(v) < 0.05) && entry.p.every(v => Math.abs(v) < 0.005)) delete set[h.bone];
+    if (entry.p.every(v => Math.abs(v) < 0.005)) delete entry.p;
+    if (!entry.r && !entry.p) delete set[h.bone];
     if (hs.onChange) hs.onChange(h.bone);
   }
   const hostEl = renderer.domElement.parentElement;
@@ -719,14 +731,19 @@ function create(view, opts) {
     // Can the scene be posed as it is? (the knee or the table, once he is there; the birch is for the table)
     editable() { return st.blend >= 1 && (st.to === 'table' || (st.to === 'lap' && st.implement !== 'birch')); },
     // What is locked for a bone at a beat (as loaded), and the sliders' values: the edit relative to it.
-    locked(fig, beat, bone) { const r = route(fig, beat, bone); beat = r.beat; const e = (((LOCK[posKey()][editKey][bodyOf(fig)][r.imp] || {})[beat]) || {})[bone] || {}; return { r: (e.r || [0, 0, 0]).slice(), p: (e.p || [0, 0, 0]).slice() }; },
-    get(fig, beat, bone) { const e = setFor(fig, beat, bone)[route(fig, beat, bone).beat][bone] || {}, l = editor.locked(fig, beat, bone); return { r: [0, 1, 2].map(i => (e.r ? e.r[i] : 0) - l.r[i]), p: [0, 1, 2].map(i => (e.p ? e.p[i] : 0) - l.p[i]) }; },
-    set(fig, beat, bone, r, p) {                      // r and p are offsets from the locked pose
-      const set = setFor(fig, beat, bone)[route(fig, beat, bone).beat], l = editor.locked(fig, beat, bone), R = r.map((x, i) => x + l.r[i]), P = p.map((x, i) => x + l.p[i]);
-      if (!MOVABLE[bone]) P.fill(0);
-      if (R.every(v => Math.abs(v) < 0.05) && P.every(v => Math.abs(v) < 0.005)) delete set[bone]; else set[bone] = { r: R, p: P };
+    locked(fig, beat, bone) { const r = route(fig, beat, bone); const e = (((LOCK[posKey()][editKey][bodyOf(fig)][r.imp] || {})[r.beat]) || {})[bone]; return e ? JSON.parse(JSON.stringify(e)) : null; },
+    // The sliders' values: absolute. The entry's own angles, or (no entry yet) the angles the bone has now from its standing position.
+    get(fig, beat, bone) {
+      const rt = route(fig, beat, bone), e = setAt(fig, rt.imp)[rt.beat][bone] || {}, b = BONES[bodyOf(fig)][bone];
+      return { r: e.r ? clampRot(bone, e.r) : eulerOf(bone, b.userData.proc || b.quaternion), p: e.p ? e.p.slice() : [0, 0, 0], own: !!e.r };
     },
-    resetBone(fig, beat, bone) { const set = setFor(fig, beat, bone)[route(fig, beat, bone).beat], l = editor.locked(fig, beat, bone); if (l.r.some(v => v) || l.p.some(v => v)) set[bone] = l; else delete set[bone]; },
+    set(fig, beat, bone, r, p) {                      // r: the joint's angles (degrees, absolute); p: how far it has moved from where it stands
+      const rt = route(fig, beat, bone), set = setAt(fig, rt.imp)[rt.beat], P = MOVABLE[bone] ? p.slice() : [0, 0, 0], ent = { r: clampRot(bone, r) };
+      if (P.some(v => Math.abs(v) > 0.005)) ent.p = P;
+      set[bone] = ent;
+    },
+    limits: bone => LIMITS[bone] || null,
+    resetBone(fig, beat, bone) { const rt = route(fig, beat, bone), set = setAt(fig, rt.imp)[rt.beat], l = editor.locked(fig, beat, bone); if (l) set[bone] = l; else delete set[bone]; },
     resetBeat(fig, beat) { const lk = (((LOCK[posKey()][editKey][bodyOf(fig)][editImp()] || {})[beat]) || {}); setAt(fig, editImp())[beat] = JSON.parse(JSON.stringify(lk)); },    clear() { for (const f of ['giver', 'jack']) for (const b of GERDA_BEATS) editor.resetBeat(f, b); },
     sizeMin: SIZE_MIN, variant, canMove: bone => !!MOVABLE[bone],
     hold(fig, beat) {
@@ -746,7 +763,7 @@ function create(view, opts) {
     report() {
       const dump = (set, beats, pad) => beats.map(b => {
         const bones = Object.keys(set[b]).map(n => { const e = set[b][n], parts = [];
-          if (e.r && e.r.some(v => v)) parts.push(`r: [${e.r.map(round).join(', ')}]`);
+          if (e.r) parts.push(`r: [${e.r.map(round).join(', ')}]`);
           if (e.p && e.p.some(v => v)) parts.push(`p: [${e.p.map(round).join(', ')}]`);
           return `${n}: { ${parts.join(', ')} }`; });
         return `${pad}${b}: {${bones.length ? '\n' + pad + '  ' + bones.join(',\n' + pad + '  ') + ',\n' + pad : ''}}`;
@@ -764,7 +781,7 @@ function create(view, opts) {
     st.swing = null; st.runLeft = 0; dirty = true;
   }
   const api = {
-    editor, stage, place, PLACES, ARM_HOLD, ARM_REACH,
+    editor, stage, place, PLACES, ARM_HOLD, ARM_REACH, BONES,
     armReach(v) { st.armReach = v; },
     armHold(v) { st.armHold = v; }, settle(v) { st.settle = v; },
     scene, floor, camera, controls, renderer, gerda, jack, pain, st, IMPL, BANDS, J,
