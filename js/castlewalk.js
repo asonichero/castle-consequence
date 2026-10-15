@@ -683,7 +683,8 @@ function run(G, W, opts) {
         await sayW('gerda', 'Come along, then.');
         // together, to the door of the nursery
         const route = [[-250, -203], [-290, -190], [-294, -164]];
-        for (const [px, pz] of route) for (let n = 0; n < 400; n++) { const dx = px - gst.x, dz = pz - gst.z, d = Math.hypot(dx, dz); if (d < 1.2) break; const h1 = Math.atan2(dx, dz); gst.h += angDiff(h1, gst.h) * 0.12; gst.x += Math.sin(gst.h) * 0.9; gst.z += Math.cos(gst.h) * 0.9; gst.ph += 0.4; gst.walk = 0.6; placeGerda(); gerda.root.updateMatrixWorld(true); jackAt(); st.walkN = 1; st.walkPh += 0.3 * 1.4;
+        let frames = 0, faded = false;       // (they start walking, and the scene fades out on them)
+        for (const [px, pz] of route) for (let n = 0; n < 400 && !faded; n++) { if (++frames === 22) G.fade(true, 1.3).then(() => { faded = true; }); const dx = px - gst.x, dz = pz - gst.z, d = Math.hypot(dx, dz); if (d < 1.2) break; const h1 = Math.atan2(dx, dz); gst.h += angDiff(h1, gst.h) * 0.12; gst.x += Math.sin(gst.h) * 0.9; gst.z += Math.cos(gst.h) * 0.9; gst.ph += 0.4; gst.walk = 0.6; placeGerda(); gerda.root.updateMatrixWorld(true); jackAt(); st.walkN = 1; st.walkPh += 0.3 * 1.4;
           await G.wait(0.04); }
         gst.walk = 0; st.walkN = 0; st.pose = null; gst.p50 = null;
       };
