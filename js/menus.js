@@ -20,7 +20,7 @@ const toTitle = () => {
   $('fade').style.transition = 'opacity .8s ease'; $('fade').style.opacity = 0;
   $('bContinue').disabled = !G.loadSave(); show('title');
   { const shot = G.memShot || (G.loadSave() && G.titleShot()); $('titleShot').style.backgroundImage = shot ? 'url(' + shot + ')' : ''; document.body.classList.toggle('titlePic', !!shot); }
-  { const sv = G.loadSave(), past = sv && ['meadow-done', 'castle', 'ch3', 'ch3nursery', 'ch3dress', 'ch3chores'].indexOf(sv.step) >= 0;
+  { const sv = G.loadSave(), past = sv && ['meadow-done', 'castle', 'ch3', 'ch3nursery', 'ch3dress', 'ch3chores', 'ch3chorework'].indexOf(sv.step) >= 0;
     if (past && !G.noSave && !G.meadowShotNow && root.Meadow && root.Meadow.titleShot) { G.meadowShotNow = true; setTimeout(() => { try { root.Meadow.titleShot(G); const shot = G.titleShot(); $('titleShot').style.backgroundImage = shot ? 'url(' + shot + ')' : ''; document.body.classList.toggle('titlePic', !!shot); } catch (e) { console.warn('title shot', e && e.message); } }, 400); } }       // (once per visit: the castle on the title screen is the one the meadow has now)
   if (A && A.ctx) { A.ambience({ wind: 0.5, birds: 0.5, fire: 0 }); A.duckMusic(1, 2); A.startMusic(); }
   $('dev').style.display = 'block';
@@ -130,10 +130,10 @@ async function playCh3Disc() {
   const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
   await root.CastleWalk.run(G, W, { ch3: true, ch3disc: true, ch3lies: 1, ch3after: /[?&]after\b/.test(root.location.search) }); showEnd();
 }
-async function playCh3Chores() {
+async function playCh3Chores(work) {
   G.skipping = false; hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
-  await root.CastleWalk.run(G, W, { ch3: true, ch3chores: true }); showEnd();
+  await root.CastleWalk.run(G, W, { ch3: true, ch3chores: true, ch3chorework: !!work, chSize: work ? (G.loadSave() || {}).chSize : 0 }); showEnd();
 }
 async function playCh3Dress() {
   G.skipping = false; hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
@@ -187,7 +187,7 @@ if (/[?&]debug\b/.test(location.search)) G.debugCtl = true;
 $('dbgBack').onclick = () => G.rewind(); $('dbgPlay').onclick = () => G.pause(); $('dbgFwd').onclick = () => G.forward();
 setInterval(() => { const on = G.debugCtl && G.mode === 'cutscene'; document.body.classList.toggle('dbg', on); if (on) { $('dbgPlay').textContent = G.paused ? '\u25B6' : '\u275A\u275A'; $('dbgBack').disabled = !G.rerun; $('dbgInfo').textContent = 'beat ' + G.beat + (G.seekTo != null ? ' \u2192 ' + G.seekTo : ''); } }, 150);
 $('bNew').onclick = () => { G.noSave = false; if (G.loadSave() && !confirm('Start a new game? Your saved game will be replaced.')) return; G.clearSave(); playOpening(); };
-$('bContinue').onclick = () => { G.noSave = false; wake(); const sv = G.loadSave() || {}; if (sv.step === 'market-day') playMarket(); else if (sv.step === 'market-road') playRoad(); else if (sv.step === 'garden-done') playChapter3(); else if (sv.step === 'dress') playChapter3('dress'); else if (sv.step === 'beanstalk' || sv.step === 'climb') playClimb(); else if (sv.step === 'climb-done' || sv.step === 'meadow') playMeadow(); else if (sv.step === 'meadow-done' || sv.step === 'castle') playCastle(true); else if (sv.step === 'ch3') playCh3(); else if (sv.step === 'ch3nursery') playCh3('nursery'); else if (sv.step === 'ch3dress') playCh3Dress(); else if (sv.step === 'ch3chores') playCh3Chores(); else if (sv.step === 'beans') playNight((sv.choices) || []); else { hideAll(); showEnd(); } };
+$('bContinue').onclick = () => { G.noSave = false; wake(); const sv = G.loadSave() || {}; if (sv.step === 'market-day') playMarket(); else if (sv.step === 'market-road') playRoad(); else if (sv.step === 'garden-done') playChapter3(); else if (sv.step === 'dress') playChapter3('dress'); else if (sv.step === 'beanstalk' || sv.step === 'climb') playClimb(); else if (sv.step === 'climb-done' || sv.step === 'meadow') playMeadow(); else if (sv.step === 'meadow-done' || sv.step === 'castle') playCastle(true); else if (sv.step === 'ch3') playCh3(); else if (sv.step === 'ch3nursery') playCh3('nursery'); else if (sv.step === 'ch3dress') playCh3Dress(); else if (sv.step === 'ch3chores') playCh3Chores(); else if (sv.step === 'ch3chorework') playCh3Chores(true); else if (sv.step === 'beans') playNight((sv.choices) || []); else { hideAll(); showEnd(); } };
 $('bSettings').onclick = () => { wake(); show('settings'); };
 $('bBack').onclick = () => { G.saveSettings(); if (pmOpen()) pmBack(); else show('title'); };
 $('bTitle').onclick = toTitle;
