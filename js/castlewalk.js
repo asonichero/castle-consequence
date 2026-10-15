@@ -600,13 +600,14 @@ function run(G, W, opts) {
       for (let i = 1; i <= 12; i++) { const k = i / 12; st.pose.armRx = W3(-0.9, -0.15, k); st.pose.neckX = W3(0.45, -0.1, k); await G.wait(0.04); }
       A && A.blip && A.blip(); await G.wait(0.5);
       await G.say('jack', 'I won’t be treated that way.');
+      if (opts.ch3notes) { await finish('ch3open'); return; }
       // out, and on the table: his
       st.pose = null; st.camA = Math.PI; st.pitch = 0.45; st.zoom = 1; camPos.set(0, 0, 0);
       G.skipping = false; st.scene = false; st.jumpReq = st.actReq = st.putReq = false; for (const k in keys) keys[k] = false; stick.x = stick.y = 0; st.walkN = 0; st.vy = 0; st.lockT = 0; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine();
       $('cwObjt').style.display = 'none';
     }
     const f = $('fade');
-    if (ch3) { await ch3Open(); return; }
+    if (ch3) { if (opts.ch3notes === 'close') { st.scene = true; st.s = 0.35; makeG('Work'); gerda.root.visible = false; const cg = M.items.chest.g.position; st.pos.set(cg.x - 12, 0, cg.z + 10); st.heading = Math.PI / 2; $('cwPanel').style.display = 'none'; await chestScene(); return; } await ch3Open(); return; }
     if (!story) { G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); f.style.transition = ''; await G.fade(false, 1.2); return; }
     // ── The story: the hall, from a few angles, and what it says to him; then it is his. ──
     st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwPanel').style.display = 'none'; G.save({ step: 'castle' });
