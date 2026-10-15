@@ -554,7 +554,7 @@ function run(G, W, opts) {
       await gline('But I told you to stay put, and to touch nothing, did I not, ' + ['little one', 'little climber', 'little mouse', 'my little thief'][lies] + '?');
       shotJ(); await jline('I’m not a—');
       // she lifts him, and carries him to the chair by the cot
-      { const mx = (st.pos.x + gst.x) / 2, mz = (st.pos.z + gst.z) / 2, [ux, uz] = dirGJ(); G.cut({ pos: v(mx - uz * 32, 22, mz + ux * 32), look: v(mx, 13, mz), fov: 42 }); }       // (from the side, so that the lift is seen)
+      { const mx = (st.pos.x + gst.x) / 2, mz = (st.pos.z + gst.z) / 2, [ux, uz] = dirGJ(); G.cut({ pos: v(mx - uz * 62, 26, mz + ux * 62), look: v(mx, 14, mz), fov: 46 }); }       // (from the side, so that the lift is seen)
       st.boxed = true; st.pose = { thigh: -0.3, knee: 0.2, armLx: -0.2, armLz: 0.35, armRx: -0.2, armRz: -0.35, torso: 0, neckX: -0.2, neckY: 0 };
       { const [ux, uz] = dirGJ(); await gwalk(st.pos.x + ux * 11, st.pos.z + uz * 11, 0.8); faceJ(); }
       const Q = (ax, ang) => new THREE.Quaternion().setFromAxisAngle(ax, ang), UP = v(0, 1, 0), RX = v(1, 0, 0);
@@ -572,7 +572,7 @@ function run(G, W, opts) {
       const lapY = 17.5, lapX = SEATX - 6.5;
       st.pose = { thigh: 0.2, knee: 0.3, armLx: -1.3, armLz: 0.1, armRx: -1.3, armRz: -0.1, torso: 0, neckX: 0.5, neckY: 0 };
       { const q1 = Q(RX, Math.PI / 2), p0 = jackOut.root.position.clone(), q0 = jackOut.root.quaternion.clone(); for (let i = 1; i <= 20; i++) { const k = ease(i / 20); jackOut.root.position.set(W3(p0.x, lapX, k), W3(p0.y, lapY + 1.5, k), W3(p0.z, SEATZ - 7.3, k)); jackOut.root.quaternion.copy(q0).slerp(q1, k); await G.wait(0.04); } }
-      G.cut({ pos: v(SEATX - 30, 17, SEATZ + 26), look: v(lapX, 16, SEATZ - 1), fov: 42 });
+      G.cut({ pos: v(SEATX - 48, 20, SEATZ + 44), look: v(lapX, 14, SEATZ - 2), fov: 40 });
       W.paintJack(jackOut, { expr: 4 }); await jline('No!');
       for (let i = 1; i <= 36; i++) { const t = i * 0.35; st.pose.thigh = 0.2 + 0.7 * Math.sin(t * 2.3); st.pose.knee = 0.4 + 0.5 * Math.abs(Math.sin(t * 2.3 + 1)); st.pose.armLx = -1.3 + 0.4 * Math.sin(t * 2.9); st.pose.armRx = -1.3 + 0.4 * Math.sin(t * 2.9 + 2); jackOut.root.position.x = lapX + 0.25 * Math.sin(t * 3.1); jackOut.root.position.y = lapY + 1.5 + 0.2 * Math.abs(Math.sin(t * 2.3)); if (i === 8) jline('Let me go!'); await G.wait(0.04); }
       await G.wait(0.6);
