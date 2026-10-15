@@ -772,7 +772,7 @@ function run(G, W, opts) {
       // the places
       if (lapStage) lapStage.visible = false; M.items.nurseryChair.g.visible = true; G.captionOff && G.captionOff(); jackOut.root.visible = true; gerda.root.visible = true; scene.attach(jackOut.root);
       if (jackOut.gear) { jackOut.gear.knife.visible = jackOut.gear.satchel.visible = jackOut.gear.flask.visible = false; }       // (his gear is put by: the knife is hers, the satchel is in the nursery)
-      G.cwState = st;       // (for tools and tests)
+      G.cwState = st; st.props = { bootL, bootR, trousers, shirt, clothes };       // (for tools and tests)
       { const it = M.items.keepsakeBox, bg = it.g; bg.position.set(it.def.x, it.y, it.def.z); bg.rotation.set(0, it.def.ry || 0, 0); bg.userData.box.lid.rotation.x = 0; }       // (the box goes back on the pantry, where it stood before she took it down)
       st.s = 0.7; st.boxed = false; st.inHand = false; st.pose = null; st.pos.set(JX, 0, JZ); st.y = TOP; st.heading = 0; st.walkN = 0; st.vy = 0; st.standY = TOP; st.fz = { x: JX, y: TOP, z: JZ };
       Object.assign(gst, { x: JX, z: JZ + 15, h: Math.PI, y: 0, seated: 0, walk: 0, reach: 0, lreach: 0, bend: 0, look: 0.25, headY: 0, p50: null, hold: 0 }); placeGerda(); root.Blocky.step(gerda, 0);
@@ -849,7 +849,7 @@ function run(G, W, opts) {
       heldShorts.visible = true; await handTo(v(JX, TOP + 1, JZ - 6 + 3), true, 0.6);
       await sayW('gerda', 'And last, these. Step right in when you’re ready.');
       await act('Step in');
-      { const z0 = st.fz.z; for (let i = 1; i <= 10; i++) { const k = ease(i / 10); st.fz.z = W3(z0, z0 + 3, k); st.walkN = 0.5; st.walkPh += 0.4; await G.wait(0.04); } st.walkN = 0; }
+      await liftFoot(true, true); await G.wait(0.25); await liftFoot(true, false); await liftFoot(false, true); await G.wait(0.25); await liftFoot(false, false);       // (a foot into each leg, in place)
       await handTo(jackOut.hips.localToWorld(new V3(0, -4, 0)), true, 0.4); await handTo(jackOut.hips.localToWorld(new V3(0, 2, 0)), true, 0.6);
       heldShorts.visible = false; paint({ outfit: 'Day', shorts: undefined, trousers: 'up', drawers: 'up', expr: 'smile' }); A && A.blip && A.blip(); await rest(0.6);
       await sayW('gerda', 'There! All dressed, and so well behaved. I am proud of you, Jack.');
