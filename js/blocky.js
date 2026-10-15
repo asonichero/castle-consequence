@@ -235,6 +235,31 @@ function paintJackInto(k, st) {
       if (!st.hitched) { const o = sideOuter(leg); for (const f of SIDES) { k.fill(o, f, T.base, 0, 0, undefined, 2); k.fill(o, f, T.dk, 0, 1, undefined, 1); } k.fill(o, 'top', T.base); }
     }
   }
+  // ── Dressing and undressing, a stage at a time (the dressing scene): st.boots false (barefoot), st.legs 'drawers' (the trousers off: drawers and bare legs), st.top false (the tunic or shirt off:
+  // bare chest and arms, drawers at the waist), st.shorts false (the Day tunic on without its shorts: bare legs under the hem, drawers showing below it). ──
+  const clearOver = part => { for (const f of ['front', 'back', 'right', 'left', 'top', 'bottom']) { const r = faceRect(k.A[part], f); k.ctx.clearRect(r.x, r.y, r.w, r.h); } };
+  if (!tunic) {
+    for (const leg of ['rLeg', 'lLeg']) if (st.boots === false || (leg === 'lLeg' ? st.bootL === false : st.bootR === false) || st.legs === 'drawers') { k.band(leg, C.skin, 8, 4); k.band(leg, C.skinSh, 10, 1); k.fill(leg, 'bottom', C.skinSh); k.band(leg, C.skinHi, 8, 1); }
+    if (st.legs === 'drawers') {
+      for (const leg of ['rLeg', 'lLeg']) { k.all(leg, C.skin); for (const f of SIDES) { k.fill(leg, f, C.drawers, 0, 0, undefined, 4); k.fill(leg, f, C.drawersSh, 0, 3, undefined, 1); } k.fill(leg, 'top', C.drawers); k.fill(leg, 'bottom', C.skinSh); k.band(leg, C.skinHi, 6, 1); }
+      clearOver('jacket');                                                                  // (the belt and the pouch go with the trousers; the vest's collar is put back below)
+      if (st.top !== false) { k.fill('jacket', 'front', C.vest, 0, 0, 2, 1); k.fill('jacket', 'front', C.vest, 6, 0, 2, 1); k.fill('jacket', 'back', C.vest, 0, 0, undefined, 1); }
+      for (const f of SIDES) k.fill('body', f, C.drawers, 0, 10, undefined, 2);         // (the waist of the drawers, under the shirt-tail)
+    }
+    if (st.top === false) {
+      k.all('body', C.skin); k.fill('body', 'top', C.skin); k.fill('body', 'bottom', C.skinSh);
+      k.grid('body', 'front', ['kkSSSSkk', 'SSSsSsSS', 'SSSSSSSS', 'SSSSSSSS', 'SSSSSSSS', 'SSSSSSSS', 'SSSSSSSS', 'SSSSSSSS', 'SSSSSSSS'], { S: C.skin, s: C.skinSh, k: C.skinHi });
+      k.px('body', 'front', 2, 3, C.skinSh); k.px('body', 'front', 5, 3, C.skinSh);       // (the chest, plainly)
+      for (const f of SIDES) k.fill('body', f, C.drawers, 0, 10, undefined, 2);
+      if (st.legs === 'drawers') k.fill('body', 'bottom', C.drawers);
+      clearOver('jacket');
+      for (const side of ['rArm', 'lArm']) { k.all(side, C.skin); k.fill(side, 'bottom', C.skinSh); k.band(side, C.skinHi, 6, 1); for (const f of SIDES) { k.px(side, f, 0, 7, C.skinSh); k.px(side, f, 0, 11, C.skinSh); } clearOver(sideOuter(side)); }
+      k.px('rArm', 'front', 2, 10, C.skinSh); k.px('lArm', 'front', 1, 11, C.skinSh);
+    }
+  } else if (st.shorts === false) {
+    for (const leg of ['rLeg', 'lLeg']) for (const f of SIDES) { k.fill(leg, f, C.skin, 0, 0, undefined, 12); k.fill(leg, f, C.drawers, 0, 0, undefined, 4); k.fill(leg, f, C.drawersSh, 0, 3, undefined, 1); k.band(leg, C.skinHi, 5, 1); k.fill(leg, 'top', C.drawers); }
+    k.band('rLeg', C.skinSh, 10, 1); k.band('lLeg', C.skinSh, 10, 1);
+  }
   k.grain(1021, 5, [{ x: 8, y: 8, w: 8, h: 8 }]);
   // Marks: the bare rear colours up, patchy at first. Each bare pixel gets a share of its cheek's mark, jittered by position.
   for (const [part, face, x, y, w, h, cheek] of bare) markRect(k, part, face, x, y, w, h, cheek, st.marks);

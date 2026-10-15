@@ -130,6 +130,11 @@ async function playCh3Disc() {
   const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
   await root.CastleWalk.run(G, W, { ch3: true, ch3disc: true, ch3lies: 1, ch3after: /[?&]after\b/.test(root.location.search) }); showEnd();
 }
+async function playCh3Dress() {
+  G.skipping = false; hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
+  const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
+  await root.CastleWalk.run(G, W, { ch3: true, ch3dress: true }); showEnd();
+}
 async function playChapter3(only) {
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   if (!only) await titleCard('Two', 'The Climb');
@@ -140,8 +145,8 @@ async function playChapter3(only) {
 }
 function showEnd() {
   const s = G.loadSave() || {}, two = ['dress', 'beanstalk', 'climb', 'climb-done', 'meadow', 'meadow-done', 'castle'].includes(s.step), beans = ['beans', 'planted', 'garden', 'garden-done'].includes(s.step);
-  $('endTitle').textContent = G.castleResult === 'nursery' || G.castleResult === 'discipline' ? 'Chapter Three \u2014 The Measure of a Man' : two ? 'Chapter Two \u2014 The Climb' : 'Chapter One \u2014 Market Day';
-  $('endText').textContent = G.castleResult === 'discipline' ? 'Gerda has corrected Jack over her knee, put him right again, and kept his knife.' : G.castleResult === 'nursery' ? 'In the nursery, Jack has found a book with his own name in it, and Gerda is standing in the doorway.' : G.castleResult === 'caught' ? 'Gerda has found Jack, and shut him in a velvet-lined box on top of her cupboard.' : G.castleResult === 'hidden' ? 'Gerda has gone, and Jack is still hidden in her kitchen.' : s.step === 'castle' ? 'Jack is hidden in the cupboard under the pans, and heavy footsteps are coming into the kitchen.' : s.step === 'meadow-done' ? 'Jack has stepped through the castle gate, and somewhere inside a bell is tolling.' : s.step === 'climb-done' ? 'Jack has climbed through the clouds.' : s.step === 'dress' ? 'Jack is awake in the dawn, with a beanstalk outside.' : s.step === 'beanstalk' ? 'A beanstalk has grown in the night, and Jack means to climb it.' : s.step === 'garden-done' ? 'The beans are in the ground, and Jack is indoors.' : s.step === 'planted' ? 'Jack goes out into the dark to plant the beans.' : beans ? 'Jack has the beans, and a mother waiting up for him.' : 'Jack has a cow to sell in the morning.';
+  $('endTitle').textContent = G.castleResult === 'nursery' || G.castleResult === 'discipline' || G.castleResult === 'dressed' ? 'Chapter Three \u2014 The Measure of a Man' : two ? 'Chapter Two \u2014 The Climb' : 'Chapter One \u2014 Market Day';
+  $('endText').textContent = G.castleResult === 'dressed' ? 'Out of the old things and into clean ones, boots and all, with a great deal of praise for it.' : G.castleResult === 'discipline' ? 'Gerda has corrected Jack over her knee, put him right again, and kept his knife.' : G.castleResult === 'nursery' ? 'In the nursery, Jack has found a book with his own name in it, and Gerda is standing in the doorway.' : G.castleResult === 'caught' ? 'Gerda has found Jack, and shut him in a velvet-lined box on top of her cupboard.' : G.castleResult === 'hidden' ? 'Gerda has gone, and Jack is still hidden in her kitchen.' : s.step === 'castle' ? 'Jack is hidden in the cupboard under the pans, and heavy footsteps are coming into the kitchen.' : s.step === 'meadow-done' ? 'Jack has stepped through the castle gate, and somewhere inside a bell is tolling.' : s.step === 'climb-done' ? 'Jack has climbed through the clouds.' : s.step === 'dress' ? 'Jack is awake in the dawn, with a beanstalk outside.' : s.step === 'beanstalk' ? 'A beanstalk has grown in the night, and Jack means to climb it.' : s.step === 'garden-done' ? 'The beans are in the ground, and Jack is indoors.' : s.step === 'planted' ? 'Jack goes out into the dark to plant the beans.' : beans ? 'Jack has the beans, and a mother waiting up for him.' : 'Jack has a cow to sell in the morning.';
   show('endcard'); G.mode = 'end'; $('fade').style.transition = 'none'; $('fade').style.opacity = 0; document.body.classList.remove('playing', 'cutscene');
 }
 // Level select (debug): plays from a chapter without touching the saved game.
@@ -165,6 +170,7 @@ $('levelSel').onchange = async () => {
     else if (k === 'ch3open') await playCh3();
     else if (k === 'ch3nursery') await playCh3('nursery');
     else if (k === 'ch3disc') await playCh3Disc();
+    else if (k === 'ch3dress') await playCh3Dress();
     else if (k === 'cards') { hideAll(); $('dev').style.display = 'none'; wake(); for (const [n, t] of [['One', 'Market Day'], ['Two', 'The Climb'], ['Three', 'The Measure of a Man']]) await titleCard(n, t); toTitle(); }
     else if (k === 'castlecatch') { G.noSave = true; await playCastle(true, { capture: true }); }
     else if (k === 'corrH' || k === 'corrC' || k === 'corrB') await playCorrection(k === 'corrH' ? 0 : k === 'corrC' ? 1 : 2);
