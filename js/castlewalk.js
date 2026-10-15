@@ -493,9 +493,9 @@ function run(G, W, opts) {
       await G.say('jack', 'Clothes. Folded and put away with care.');
       await G.say('jack', 'And they get smaller as they go: a man’s shirt, a boy’s, a little one’s, a baby’s.');
       await G.say('jack', 'Someone kept every size.');
-      { const bp = K.brush.getWorldPosition(new V3()); G.cut({ pos: v(bp.x - 5, bp.y + 8, bp.z - 7), look: bp, fov: 38 }); }
+      { const bp = K.brush.getWorldPosition(new V3()); G.cut({ pos: v(bp.x - 3, bp.y + 14, bp.z - 5), look: bp, fov: 40 }); }
       await G.say('jack', 'A hairbrush. A tiny one, with a handle worn pale where a thumb has held it.');
-      { const bp = K.book.getWorldPosition(new V3()); G.cut({ pos: v(bp.x - 5, bp.y + 8, bp.z - 7), look: bp, fov: 38 }); }
+      { const bp = K.book.getWorldPosition(new V3()); G.cut({ pos: v(bp.x - 3, bp.y + 14, bp.z - 5), look: bp, fov: 40 }); }
       await G.say('jack', 'And a book.');
       // he takes the book up, and opens it
       scene.attach(K.book); const b0 = K.book.position.clone(), q0 = K.book.quaternion.clone(), qT = new THREE.Quaternion().setFromAxisAngle(v(0, 0, 1), 0.7).multiply(q0), H = v(P.x + 2.4, 0.56 * Hj, P.z - 0.4);
