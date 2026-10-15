@@ -9,6 +9,7 @@ root.CastleLayout = {
   chandelier2: { x: 0, z: 10, ry: 0 },
   chandelier3: { x: 40, z: -50, ry: 0 },
   rugA: { x: -180, z: -26, ry: 0 },
+  nurseryChair: { x: -119, z: -215, ry: 3.142 },
   urn1: { x: -306, z: -142, ry: 0 },
   urn2: { x: -306, z: -78, ry: 0 },
   urn3: { x: -306, z: -21, ry: 0 },
@@ -62,5 +63,8 @@ root.CastleLayout = {
   seedlings4: { x: 100, z: -145, ry: 0 },
   pump: { x: 123, z: -291, ry: 3.142 },
   roost2: { x: 226, z: -292, ry: -1.571 },
+  chest: { x: -108, z: -178, ry: -1.571 },
+  nurseryTable: { x: -150, z: -262, ry: 0 },
+  nurseryChairS: { x: -150, z: -255, ry: 1.571 },
 };
 })(typeof window !== 'undefined' ? window : globalThis);
