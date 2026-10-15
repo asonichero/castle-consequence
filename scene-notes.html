@@ -46,6 +46,8 @@
   <div class="row"><label>fov</label><input type="number" data-k="fov" step="1" min="10" max="110"></div>
   <div class="was" id="wasFov"></div>
   <div><button id="resetCam">Back to the scene's angle</button></div>
+  <h3>Jack's expression for this beat</h3>
+  <div class="row"><select id="expr"><option value="">(the scene's own)</option></select></div>
   <h3>Notes for this beat</h3>
   <textarea id="note" rows="6" placeholder="What is wrong, what you want…"></textarea>
   <h3>All changes</h3>
@@ -87,8 +89,9 @@ G.mode = 'free'; G.noSave = true; G.settings.auto = true; G.settings.subtitles =
 
 // ── What is kept, per beat. ──
 const KEY = 'castle-consequence:scene-notes:' + (SCENE === 'castle' ? 'castle:v1' : (SCENE === 'ch3close' || SCENE === 'ch3disc' || SCENE === 'ch3after') ? SCENE + ':' + LIES_N + ':v1' : SCENE !== 'night' ? SCENE + ':v1' : 'night:v2:' + route);       // (v2: beats are camera angles)
-let kept = { cams: {}, notes: {}, lines: {} };
+let kept = { cams: {}, notes: {}, lines: {}, expr: {} };
 try { const k = JSON.parse(localStorage.getItem(KEY)); if (k) kept = Object.assign(kept, k); } catch (e) { /* none yet */ }
+kept.expr = kept.expr || {};
 if (SCENE === 'castle' && !kept.mig) { delete kept.cams[13]; kept.mig = 1; }
 if (SCENE === 'castle' && kept.mig < 2) { for (const b of [1, 2, 3, 4, 5, 6, 7, 8, 9, 14]) delete kept.cams[b]; kept.mig = 2; }      // (the dialogue shots were re-framed (Jack in the shots on Gerda; over her shoulder for Jack): cameras kept against the old ones are dropped, once)                 // (beat 13's camera was set again in the code, to the angle wanted: the one kept before that is dropped, once)
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(kept)); } catch (e) { /* no storage */ } };
@@ -113,6 +116,7 @@ const q2 = x => Math.round(x * 100) / 100, nowCam = () => ({ pos: [fc.position.x
 // ── Running the scene one beat at a time. ──
 let stopAfter = 1, resume = null, heldAt = null, finished = false, view = 1;
 G.camOverride = beat => kept.cams[beat] ? spec(kept.cams[beat]) : null;
+G.exprOverride = beat => kept.expr[beat] || null;       // (Jack's face for a beat, chosen here by name)
 G.onBeat = e => {
   const i = info[e.beat] || (info[e.beat] = {});
   if (e.name === 'cut' || e.name === 'shot') { if (!i.cam) i.cam = snap(G.specOf(e.args[0])); }
@@ -141,8 +145,8 @@ function refresh() {
   $('state').textContent = finished ? 'The scene ends here.' : resume ? 'Stopped at the end of this beat.' : 'Running…';
   $('next').disabled = !resume; $('prev').disabled = view <= 1; $('again').disabled = false;
   if (i.cam) { const c = i.cam; $('wasPos').textContent = 'was ' + c.pos.map(r1).join(', '); $('wasLook').textContent = 'was ' + c.look.map(r1).join(', '); $('wasFov').textContent = 'was ' + r1(c.fov); } else { $('wasPos').textContent = $('wasLook').textContent = $('wasFov').textContent = ''; }
-  $('resetCam').disabled = !changed; if (document.activeElement !== $('note')) $('note').value = kept.notes[view] || '';
-  $('count').textContent = Object.keys(kept.cams).length + ' camera change(s), ' + Object.keys(kept.notes).filter(k => kept.notes[k]).length + ' note(s) kept';
+  $('expr').value = kept.expr[view] || ''; $('resetCam').disabled = !changed; if (document.activeElement !== $('note')) $('note').value = kept.notes[view] || '';
+  $('count').textContent = Object.keys(kept.cams).length + ' camera change(s), ' + Object.keys(kept.expr).length + ' expression(s), ' + Object.keys(kept.notes).filter(k => kept.notes[k]).length + ' note(s) kept';
   showCam();
 }
 function userEdited() {                                    // the camera was moved: keep where it is for this beat (or drop it if it is back where the scene has it)
@@ -154,16 +158,18 @@ controls.addEventListener('end', userEdited);
 let liveT = null; controls.addEventListener('change', () => { showCam(); clearTimeout(liveT); liveT = setTimeout(userEdited, 250); });       // (the numbers follow the camera as it moves, and it is kept as soon as it settles, not only when the mouse is released)
 for (const k of keys) inputs[k].onchange = () => { setTimeout(() => inputs[k].blur(), 0); const v = keys.map(q => +inputs[q].value); fc.position.set(v[0], v[1], v[2]); controls.target.set(v[3], v[4], v[5]); fc.fov = v[6]; fc.updateProjectionMatrix(); controls.update(); userEdited(); };
 $('resetCam').onclick = () => { delete kept.cams[view]; save(); const o = (info[view] || {}).cam; if (o) { fc.position.set(...o.pos); controls.target.set(...o.look); fc.fov = o.fov; fc.updateProjectionMatrix(); controls.update(); } refresh(); };
+Object.keys(Blocky.JACK_EXPR).forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n + ' (' + Blocky.JACK_EXPR[n] + ')'; $('expr').appendChild(o); });
+$('expr').onchange = () => { if ($('expr').value) kept.expr[view] = $('expr').value; else delete kept.expr[view]; save(); refresh(); if (G.refreshExpr && view === G.beat) G.refreshExpr(); };
 $('note').oninput = () => { if ($('note').value.trim()) kept.notes[view] = $('note').value; else delete kept.notes[view]; save(); refresh(); };
-$('clear').onclick = () => { if (confirm('Forget every camera change and note kept for this route?')) { kept.cams = {}; kept.notes = {}; save(); refresh(); } };
+$('clear').onclick = () => { if (confirm('Forget every camera change and note kept for this route?')) { kept.cams = {}; kept.notes = {}; kept.expr = {}; save(); refresh(); } };
 $('copy').onclick = () => {
   const f = c => 'pos (' + c.pos.map(r1).join(', ') + ')  look (' + c.look.map(r1).join(', ') + ')  fov ' + r1(c.fov);
-  const beats = [...new Set([...Object.keys(kept.cams), ...Object.keys(kept.notes)])].map(Number).sort((a, b) => a - b), out = [], json = {};
+  const beats = [...new Set([...Object.keys(kept.cams), ...Object.keys(kept.notes), ...Object.keys(kept.expr)])].map(Number).sort((a, b) => a - b), out = [], json = {};
   out.push(SCENE !== 'night' ? 'SCENE NOTES — ' + SCENE_NAME[SCENE] : 'SCENE NOTES — Chapter Two, the cottage at night (route ' + route + ': ' + $('route').selectedOptions[0].textContent.toLowerCase() + ')', 'Camera values are world units; "was" is the scene’s own angle for the beat.', (document.getElementById('buildBadge') || {}).textContent || '', '');
   for (const b of beats) {
     const c = kept.cams[b], was = (info[b] || {}).cam, n = kept.notes[b], line = (info[b] && info[b].lines && info[b].lines.length ? info[b].lines : kept.lines[b] || ['(no one speaks)']).join(' / ');
-    out.push('Beat ' + b + ' · ' + line); if (c) { if (was) out.push('  camera was: ' + f(was)); out.push('  camera now: ' + f(c)); } if (n && n.trim()) out.push('  note: ' + n.trim().replace(/\n/g, '\n        ')); out.push('');
-    json[b] = { line, was: was || null, now: c || null, note: (n || '').trim() || null };
+    out.push('Beat ' + b + ' · ' + line); if (c) { if (was) out.push('  camera was: ' + f(was)); out.push('  camera now: ' + f(c)); } if (kept.expr[b]) out.push('  Jack’s expression: ' + kept.expr[b]); if (n && n.trim()) out.push('  note: ' + n.trim().replace(/\n/g, '\n        ')); out.push('');
+    json[b] = { line, was: was || null, now: c || null, note: (n || '').trim() || null, expression: kept.expr[b] || null };
   }
   if (!beats.length) out.push('(no changes or notes yet)');
   else out.push('JSON: ' + JSON.stringify({ scene: SCENE, route, beats: json }));

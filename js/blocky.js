@@ -85,7 +85,12 @@ const JACK_FACES = [
   ['SddSSddS', 'SddSSddS', 'SSSnnSSS', 'SMmmmmMS', 'SuMmmMuS'],   // 3 crying out
   ['SSSSSSSS', 'SddSSddS', 'SsSnnSsS', 'SsMTTMsS', 'SuuSSuuS'],   // 4 squinting into the light, the grin still there
   ['SbbSSbbS', 'SWESSEWS', 'SSSnnSSS', 'MTTTTTTM', 'SuuSSuuS'],   // 5 a cheeky, toothy grin
+  ['SSbSSbSS', 'SWESSEWS', 'SSSnnSSS', 'SSsMMsSS', 'SuuSSuuS'],   // 6 shy and hopeful: brows lifted, a small uncertain mouth
+  ['SbbSSbbS', 'SlESSElS', 'SSSnnSSS', 'SMsTTsMS', 'SuuSSuuS'],   // 7 a real smile: eyes softened, the corners up, a little teeth
 ];
+// Each face has a name (scenes and the scene notes ask for it by name: `expr: 'smile'`); the lap scene follows his distress through the first four.
+const JACK_EXPR = { grin: 0, wince: 1, gritted: 2, crying: 3, squint: 4, cheeky: 5, shy: 6, smile: 7 };
+const jackExprIndex = e => typeof e === 'string' ? (JACK_EXPR[e] !== undefined ? JACK_EXPR[e] : 0) : (e | 0);
 // Jack's outfits: 'Outdoor' (linen shirt, green jerkin, patched trousers, boots), 'Fine' (the same, dressed up: a deep green jerkin with gold trim, clean
 // breeches with a gold seam, polished boots with brass buckles), 'Day' (a soft green tunic with wooden buttons, hem brushing the tops of his thighs, over
 // plain snug shorts, barefoot) and 'Soft' (a cornflower tunic with a small pocket sewn on, over cornflower shorts short enough to show his knees,
@@ -112,9 +117,9 @@ function paintJackInto(k, st) {
 
   // Head: skin all over, then hair; the face from the current expression.
   k.all('head', C.skin);
-  const F = JACK_FACES[Math.max(0, Math.min(JACK_FACES.length - 1, st.expr | 0))];
+  const F = JACK_FACES[Math.max(0, Math.min(JACK_FACES.length - 1, jackExprIndex(st.expr)))];
   k.grid('head', 'front', ['HHHHHHHH', 'HhHHdHhH', 'HSSkHSSH', ...F], pal);
-  if ((st.expr | 0) === 0) k.px('head', 'front', 1, 4, C.white);
+  if (jackExprIndex(st.expr) === 0) k.px('head', 'front', 1, 4, C.white);
   k.fill('head', 'top', C.hair);
   k.fill('head', 'back', C.hair); k.fill('head', 'back', C.hairDk, 0, 6, undefined, 2);
   for (const f of ['right', 'left']) { k.fill('head', f, C.skin); k.fill('head', f, C.hair, 0, 0, undefined, 3); }
@@ -599,5 +604,5 @@ function makeBirch() {
   }
   return { root, twigs, tips };
 }
-root.Blocky = { seatFeet, BIRCH, makeBirch, buildCharacter, sideOuter, SIDES, FACES, CHAIR, makeChair, makeJack, makeGerda, setPose, step, POSES, Skin, OUTFITS, paintGerdaInto, paintJackInto, paintGlutesInto, makeGlutes, boxGeo, faceRect };
+root.Blocky = { JACK_EXPR, jackExprIndex, seatFeet, BIRCH, makeBirch, buildCharacter, sideOuter, SIDES, FACES, CHAIR, makeChair, makeJack, makeGerda, setPose, step, POSES, Skin, OUTFITS, paintGerdaInto, paintJackInto, paintGlutesInto, makeGlutes, boxGeo, faceRect };
 })(typeof window !== 'undefined' ? window : globalThis);

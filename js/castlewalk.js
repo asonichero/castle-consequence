@@ -40,7 +40,7 @@ function run(G, W, opts) {
       for (const d of M.doors) { const sp = STATES.find(q => q[0] === d.axis && Math.abs(q[1] - d.fixed) < 3 && Math.abs(q[2] - d.c) < 6);
         if (sp && sp[3] === 'open') continue; if (sp && sp[3] === 'ajar') { d.lg.rotation.y = Math.sign(d.lg.rotation.y || 1) * 0.42; d.og.userData.noCollide = false; continue; }
         if (sp || open.some(r => near(d, r))) { d.openAng = d.lg.rotation.y; d.lg.rotation.y = 0; d.og.userData.noCollide = false; } } for (const h of M.hallLeaves) h.lf.rotation.y = 0; }
-    let gerda = null; const world = { scene, update(dt, t) { M.update(dt, t); aOut.t += dt; if (st && st.wriggle && st.inHand && gerda && jackOut.root.parent === gerda.wrist && root.GerdaHold) { const J = root.GerdaHold.jack, w = t * 1; jackOut.root.rotation.set(J.rx + 0.045 * Math.sin(w * 3.1), J.ry + 0.06 * Math.sin(w * 2.3 + 1), J.rz + 0.04 * Math.sin(w * 3.7 + 2)); jackOut.root.position.set(J.px + 0.02 * Math.sin(w * 2.9), J.py + 0.025 * Math.sin(w * 3.3 + 1), J.pz + 0.02 * Math.sin(w * 2.1)); }
+    let gerda = null; const world = { scene, update(dt, t) { M.update(dt, t); G.exprWatch && G.exprWatch(); aOut.t += dt; if (st && st.wriggle && st.inHand && gerda && jackOut.root.parent === gerda.wrist && root.GerdaHold) { const J = root.GerdaHold.jack, w = t * 1; jackOut.root.rotation.set(J.rx + 0.045 * Math.sin(w * 3.1), J.ry + 0.06 * Math.sin(w * 2.3 + 1), J.rz + 0.04 * Math.sin(w * 3.7 + 2)); jackOut.root.position.set(J.px + 0.02 * Math.sin(w * 2.9), J.py + 0.025 * Math.sin(w * 3.3 + 1), J.pz + 0.02 * Math.sin(w * 2.1)); }
       root.Blocky.step(jackOut, dt); if (gerda) root.Blocky.step(gerda, dt); } };
     // two more horses' worth of toys are not wanted here: one rocking horse is all the nursery has (see castle.js)
     if (ch3) {                                                                                              // Chapter Three opens in the kitchen: the table is cleared, and the keepsake box stands in the middle of it
@@ -54,7 +54,10 @@ function run(G, W, opts) {
     }
     const C = collect(M.room, ceiling, M.items.pantry && M.items.pantry.g);
     const things = []; if (story) { M.room.updateMatrixWorld(true); M.room.traverse(o => { if (o.userData && o.userData.item) { const w = new V3(); o.getWorldPosition(w); things.push(Object.assign({ o, pos: w }, o.userData.item)); } }); }
-    scene.add(jackOut.root); jackOut.root.visible = true; W.paintJack(jackOut, { expr: 0 }); root.Meadow && root.Meadow.addGear && root.Meadow.addGear(jackOut);
+    { const pj = W.paintJack; let lastBeat = -1; W.paintJack = (rig, o) => { if (rig === jackOut && G.exprOverride) { const e = G.exprOverride(G.beat); if (e) o = Object.assign({}, o, { expr: e }); } return pj.call(W, rig, o); };
+      G.refreshExpr = () => { const e = G.exprOverride && G.exprOverride(G.beat); if (e) pj.call(W, jackOut, { expr: e }); };      // (the scene notes can choose his face for a beat; it holds for the whole of it)
+      G.exprWatch = () => { if (G.exprOverride && G.beat !== lastBeat) { lastBeat = G.beat; G.refreshExpr(); } }; }
+      scene.add(jackOut.root); jackOut.root.visible = true; W.paintJack(jackOut, { expr: 0 }); root.Meadow && root.Meadow.addGear && root.Meadow.addGear(jackOut);
     G.setScene(world); G.drone = null; if (!story && !ch3) G.noSave = true;
     camera.near = 0.4; camera.far = 1600; camera.updateProjectionMatrix(); let nearS = 0;
     A && A.ambience({ wind: 0, birds: 0, fire: 0.2 });
@@ -643,7 +646,7 @@ function run(G, W, opts) {
         satchel.position.x = SEATX - 2; satchel.position.z = (SEATZ + M.items.cot.g.position.z) / 2; scene.add(satchel);       // (his satchel, on the floor between the chair and the cot)       // (his satchel, on the floor between the chair and the cot)
         gerda.root.visible = true; jackOut.root.visible = true; st.scene = true; st.s = 0.7; st.boxed = false; st.inHand = false; st.walkN = 0;
         Object.assign(gst, { x: SEATX, z: SEATZ, h: -Math.PI / 2, y: 5.1, seated: 1, walk: 0, reach: 0, bend: 0, look: 0 }); placeGerda(); root.Blocky.step(gerda, 0); root.Blocky.seatFeet && root.Blocky.seatFeet(gerda, 0);
-        st.pos.set(SEATX - 30, 0, SEATZ); st.heading = Math.PI / 2; st.y = 0; W.paintJack(jackOut, { expr: 3, trousers: 'up', drawers: 'up' });
+        st.pos.set(SEATX - 30, 0, SEATZ); st.heading = Math.PI / 2; st.y = 0; W.paintJack(jackOut, { expr: 'wince', trousers: 'up', drawers: 'up' });
         // (his hands on his seat: the upper arms turned in, so that the elbows bend back)
         const rub = { thigh: 0, knee: 0, armLx: 0.3, armRx: 0.3, armLy: -1.4, armRy: 1.4, armLz: 0, armRz: 0, elbowL: -0.4, elbowR: -0.4, torso: 0.1, neckX: 0.35 }; st.pose = rub; let rubbing = true;
         const rubber = (async () => { for (let t = 0; rubbing; t += 0.04) { rub.armLx = 0.3 + 0.12 * Math.sin(t * 7); rub.armRx = 0.3 + 0.12 * Math.sin(t * 7 + 1.4); rub.elbowL = -0.4 - 0.1 * Math.sin(t * 7 + 0.5); rub.elbowR = -0.4 - 0.1 * Math.sin(t * 7 + 1.9); await G.wait(0.04); } })();
@@ -657,7 +660,7 @@ function run(G, W, opts) {
         cam(); await sayW('gerda', 'My name is Gerda.'); G.gerdaNamed = true;
         cam(); await G.wait(0.3); await sayW('jack', 'Yes Gerda.');
         cam(); await sayW('gerda', 'Good boy.');
-        W.paintJack(jackOut, { expr: 2, trousers: 'up', drawers: 'up' }); rubbing = false; await rubber;       // (he brightens at the praise, and stops rubbing)
+        W.paintJack(jackOut, { expr: 'smile', trousers: 'up', drawers: 'up' }); rubbing = false; await rubber;       // (he brightens at the praise, and stops rubbing)
         for (let i = 1; i <= 12; i++) { const k = ease(i / 12); rub.armLx = W3(rub.armLx, 0.05, k); rub.armRx = W3(rub.armRx, 0.05, k); rub.armLy = W3(rub.armLy, 0, k); rub.armRy = W3(rub.armRy, 0, k); rub.armLz = W3(rub.armLz, 0.1, k); rub.armRz = W3(rub.armRz, -0.1, k); rub.elbowL = W3(rub.elbowL, -0.2, k); rub.elbowR = W3(rub.elbowR, -0.2, k); rub.neckX = W3(rub.neckX, -0.1, k); await G.wait(0.04); }
         await G.wait(0.5);
         await sayW('gerda', 'Now, I set some nice fresh clothes out for you. Let’s get you into them, shall we?');
