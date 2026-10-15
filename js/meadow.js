@@ -250,5 +250,7 @@ function run(G, W) {
   });
 }
 
-root.Meadow = { run, addGear };
+// The title screen's picture, from here on: the castle from the meadow, as the meadow builds it now (kept up to date: it is taken afresh, not carried over from when the meadow was last played).
+function titleShot(G) { const M = build(); G.snapshotFarm(M, () => ({ pos: v(-120, 105, CZW + 360), look: v(10, 110, CZW), fov: 52 })); }
+root.Meadow = { run, addGear, titleShot };
 })(typeof window !== 'undefined' ? window : globalThis);

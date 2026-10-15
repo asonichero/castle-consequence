@@ -661,18 +661,21 @@ function run(G, W, opts) {
         await G.wait(0.5);
         await sayW('gerda', 'Now, I set some nice fresh clothes out for you. Let’s get you into them, shall we?');
         await sayW('jack', 'Yes Gerda.');
-        // she stands, and offers a hand; he takes it after a beat
-        for (let i = 1; i <= 24; i++) { const k = ease(i / 24); gst.seated = 1 - k; gst.y = 5.1 * (1 - k); gst.x = W3(SEATX, SEATX - 16, k); gst.reach = 0.9 * k; placeGerda(); await G.wait(0.04); }
-        gst.seated = 0; gst.y = 0;
+        // she stands, and offers a hand; he takes it after a beat (the pose is from pose-editor-half.html: standing, hand in hand)
+        const HD = root.GerdaHold50.hold, hp = { a: 'hold', b: 'hold', t: 0, w: 0 }; gst.p50 = hp; st.s = HD.jack.s || 0.7;
+        const jackAt = () => { const P = gerda.root.localToWorld(v(HD.jack.px, 0, HD.jack.pz)); st.pos.x = P.x; st.pos.z = P.z; st.heading = gst.h + HD.jack.ry; };
+        for (let i = 1; i <= 24; i++) { const k = ease(i / 24); gst.seated = 1 - k; gst.y = 5.1 * (1 - k); gst.x = W3(SEATX, SEATX - 16, k); hp.w = k * 0.6; placeGerda(); await G.wait(0.04); }       // (she rises, her hand coming out to him)
+        gst.seated = 0; gst.y = 0; placeGerda();
         await G.wait(0.9);
-        { const x0 = st.pos.x, z0 = st.pos.z, tx = SEATX - 18, tz = SEATZ - 14; for (let i = 1; i <= 16; i++) { const k = ease(i / 16); st.pos.x = W3(x0, tx, k); st.pos.z = W3(z0, tz, k); st.walkN = 0.5; st.walkPh += 0.35; rub.armLx = W3(0.05, -0.75, k); rub.armLz = W3(0.1, -0.25, k); await G.wait(0.04); } st.walkN = 0; }
+        { gerda.root.updateMatrixWorld(true); const x0 = st.pos.x, z0 = st.pos.z, h0 = st.heading, P = gerda.root.localToWorld(v(HD.jack.px, 0, HD.jack.pz)), h1 = gst.h + HD.jack.ry, J = HD.jack, from = { armLx: rub.armLx, armLz: rub.armLz, elbowL: rub.elbowL, neckX: rub.neckX, torso: rub.torso };
+          for (let i = 1; i <= 16; i++) { const k = ease(i / 16); st.pos.x = W3(x0, P.x, k); st.pos.z = W3(z0, P.z, k); st.heading = h0 + angDiff(h1, h0) * k; st.walkN = 0.5; st.walkPh += 0.35; hp.w = 0.6 + 0.4 * k;
+            rub.armLx = W3(from.armLx, J.armLx, k); rub.armLz = W3(from.armLz, J.armLz, k); rub.elbowL = W3(from.elbowL, J.elbowLx, k); rub.neckX = W3(from.neckX, J.neckX, k); rub.torso = W3(from.torso, J.torsoX, k); await G.wait(0.04); } st.walkN = 0; hp.w = 1; }
         await sayW('gerda', 'Come along, then.');
         // together, to the door of the nursery
         const route = [[-250, -203], [-290, -190], [-294, -164]];
-        for (const [px, pz] of route) for (let n = 0; n < 400; n++) { const dx = px - gst.x, dz = pz - gst.z, d = Math.hypot(dx, dz); if (d < 1.2) break; const h1 = Math.atan2(dx, dz); gst.h += angDiff(h1, gst.h) * 0.12; gst.x += Math.sin(gst.h) * 0.9; gst.z += Math.cos(gst.h) * 0.9; gst.ph += 0.4; gst.walk = 0.6; placeGerda();
-          const rx = -Math.cos(gst.h), rz = Math.sin(gst.h); st.pos.x = gst.x + rx * 14 - Math.sin(gst.h) * 2; st.pos.z = gst.z + rz * 14 - Math.cos(gst.h) * 2; st.heading = gst.h; st.walkN = 1; st.walkPh += 0.3 * 1.4;
+        for (const [px, pz] of route) for (let n = 0; n < 400; n++) { const dx = px - gst.x, dz = pz - gst.z, d = Math.hypot(dx, dz); if (d < 1.2) break; const h1 = Math.atan2(dx, dz); gst.h += angDiff(h1, gst.h) * 0.12; gst.x += Math.sin(gst.h) * 0.9; gst.z += Math.cos(gst.h) * 0.9; gst.ph += 0.4; gst.walk = 0.6; placeGerda(); gerda.root.updateMatrixWorld(true); jackAt(); st.walkN = 1; st.walkPh += 0.3 * 1.4;
           G.cut({ pos: v(gst.x + 60, 38, gst.z - 40), look: v(gst.x, 18, gst.z), fov: 44 }); await G.wait(0.04); }
-        gst.walk = 0; st.walkN = 0; st.pose = null;
+        gst.walk = 0; st.walkN = 0; st.pose = null; gst.p50 = null;
       };
       if (opts.ch3after) { cam.restore(); G.updaters = G.updaters.filter(u => u !== lapTick); await aftermath(); await finish('discipline'); return; }       // (the scene on its own, for the scene notes and for tests)
       G.lap = lap; G.fc = cam.fc;       // (for tools and tests)

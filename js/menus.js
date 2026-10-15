@@ -20,6 +20,8 @@ const toTitle = () => {
   $('fade').style.transition = 'opacity .8s ease'; $('fade').style.opacity = 0;
   $('bContinue').disabled = !G.loadSave(); show('title');
   { const shot = G.memShot || (G.loadSave() && G.titleShot()); $('titleShot').style.backgroundImage = shot ? 'url(' + shot + ')' : ''; document.body.classList.toggle('titlePic', !!shot); }
+  { const sv = G.loadSave(), past = sv && ['meadow-done', 'castle', 'ch3'].indexOf(sv.step) >= 0;
+    if (past && !G.noSave && !G.meadowShotNow && root.Meadow && root.Meadow.titleShot) { G.meadowShotNow = true; setTimeout(() => { try { root.Meadow.titleShot(G); const shot = G.titleShot(); $('titleShot').style.backgroundImage = shot ? 'url(' + shot + ')' : ''; document.body.classList.toggle('titlePic', !!shot); } catch (e) { console.warn('title shot', e && e.message); } }, 400); } }       // (once per visit: the castle on the title screen is the one the meadow has now)
   if (A && A.ctx) { A.ambience({ wind: 0.5, birds: 0.5, fire: 0 }); A.duckMusic(1, 2); A.startMusic(); }
   $('dev').style.display = 'block';
 };
