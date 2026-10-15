@@ -684,7 +684,7 @@ function run(G, W, opts) {
       await sayW('jack', 'Well, she won’t get me in those!');
       if (opts.ch3notes) { await finish('ch3open'); return; }
       // out, and on the table: his
-      st.pose = null; st.camA = Math.PI; st.pitch = 0.45; st.zoom = 1; camPos.set(0, 0, 0);
+      st.pose = null; st.camA = Math.PI * 0.75; st.pitch = 0.45; st.zoom = 1; camPos.set(0, 0, 0);       // (the camera comes in from the south-west, clear of the open box)
       G.skipping = false; st.scene = false; st.jumpReq = st.actReq = st.putReq = false; for (const k in keys) keys[k] = false; stick.x = stick.y = 0; st.walkN = 0; st.vy = 0; st.lockT = 0; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine();
       $('cwObjt').style.display = 'none';
     }
