@@ -749,6 +749,7 @@ function run(G, W, opts) {
 
       G.updaters = G.updaters.filter(u => u !== lapTick);
       await aftermath();
+      if (!opts.ch3notes) G.save({ step: 'ch3dress' });
       await dressScene(lap.stage);
       await finish('dressed');
     }
@@ -849,7 +850,7 @@ function run(G, W, opts) {
         const t = clamp((-90 - st.pos.x) / 183, 0, 1), target = 0.25 + 0.10 * t; if (target > st.s) { st.s = target; c3.grow = target; }
         if (t > 0.3 && !c3.g1) { c3.g1 = true; say('Odd. My boots are tighter than they were. Am I... bigger?'); }
         if (t > 0.95 && !c3.g2) { c3.g2 = true; say('A little more with every step. Whatever this place does to me, it isn’t finished.'); } }
-      { const inN = st.pos.x > -312 && st.pos.x < -100 && (c3.inN ? st.pos.z < -158 : st.pos.z < -168) && st.pos.z > -292; if (inN !== !!c3.inN) { c3.inN = inN; if (A && A.ctx && !opts.ch3notes) A.startMusic({ theme: inN ? 'nursery' : 'castle' }); } }       // (the nursery has its own music)
+      { const inN = st.pos.x > -312 && st.pos.x < -100 && (c3.inN ? st.pos.z < -158 : st.pos.z < -168) && st.pos.z > -292; if (inN !== !!c3.inN) { c3.inN = inN; if (inN && !opts.ch3notes) G.save({ step: 'ch3nursery' }); if (A && A.ctx && !opts.ch3notes) A.startMusic({ theme: inN ? 'nursery' : 'castle' }); } }       // (the nursery has its own music)
       if (c3.inN && !c3.done && st.pos.z > -163) {                                                          // (he does not leave the nursery without trying the chest: he stops at the door, and remarks on it)
         st.pos.z = -167;
         if (!c3.leaveAt || performance.now() - c3.leaveAt > 5000) { c3.leaveAt = performance.now(); c3.leaves = (c3.leaves || 0) + 1; say(c3.leaves === 1 ? 'I can’t leave with nothing. There might be something in that chest by the wall. I should at least look.' : ['Not before I’ve tried that chest.', 'The chest first.', 'There might still be something in that chest.'][(c3.leaves - 2) % 3]); } }
