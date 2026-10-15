@@ -1081,15 +1081,17 @@ function run(G, W, opts) {
           // E: the nearest thing he can do; Q: put down what he holds, or shut the bin
           const act = st.actReq, put = st.putReq; st.actReq = st.putReq = false; const pr = promptEl(); let best = null;
           if (put && S.holding && !S.sitting) drop(); else if (put && S.binOpen && !S.holding && dist(binP) < 30) closeBin();
+          let fb = null; const fallback = (label, fn) => { fb = { d: 1e9, label, fn }; };       // (what he does when there is nothing nearer to do)
           const add = (p, r, label, fn) => { const d = dist(p); if (d < r && (!best || d < best.d)) best = { d, label, fn }; };
           if (S.sitting) add(chairP, 400, 'Stand up', standUp);
           else {
             if (!S.holding) { for (const nm of ['broom', 'bucket']) add(itemPos(nm), nm === 'broom' && itm.broom.where === 'home' ? 28 : 24, 'Take the ' + nm, () => { setHeld(nm); S.water = 0; }); add(binP, 26, S.binOpen ? 'Scoop grain' : 'Open the bin', S.binOpen ? scoop : openBin); add(chairP, 26, 'Sit on the chair', sit); }
-            if (S.holding === 'broom') { add(rackP, 28, 'Hang up the broom', () => putHome('broom')); add(st.pos, 1e9, 'Sweep', () => { S.stroke = 0.9; }); }
-            if (S.holding === 'bucket') { add(wellP, 32, S.water < BUCKET ? 'Fill the bucket' : 'Full', () => { if (S.water < BUCKET) { S.water = BUCKET; S.spillAcc = 0; toast('You fill the bucket. Walk, so that it does not slop.', 2600); } }); if (S.water > 0) add(troughP, 34, 'Pour into the trough', pour); add(buckP, 24, 'Put the bucket back', () => { if (S.water > 0) dumpWater('Putting it back full'); putHome('bucket'); }); if (S.water > 0) add(st.pos, 1e9, 'Pour it out', () => dumpWater('Pouring the water out')); }
+            if (S.holding === 'broom') { add(rackP, 28, 'Hang up the broom', () => putHome('broom')); fallback('Sweep', () => { S.stroke = 0.9; }); }
+            if (S.holding === 'bucket') { add(wellP, 32, S.water < BUCKET ? 'Fill the bucket' : 'Full', () => { if (S.water < BUCKET) { S.water = BUCKET; S.spillAcc = 0; toast('You fill the bucket. Walk, so that it does not slop.', 2600); } }); if (S.water > 0) add(troughP, 34, 'Pour into the trough', pour); add(buckP, 24, 'Put the bucket back', () => { if (S.water > 0) dumpWater('Putting it back full'); putHome('bucket'); }); if (S.water > 0) fallback('Pour it out', () => dumpWater('Pouring the water out')); }
             if (S.holding === 'grain') { add(dishP, 22, 'Fill the dish', () => { if (Math.hypot(H.pos.x - dishP.x, H.pos.z - dishP.z) < 9) { toast('The hen is in the way of the dish.', 2400); return; } gp('henDish').userData.grain.visible = true; setHeld(null); S.chores.dish = true; toast('You fill her dish with grain. ✔', 2600); }); add(binP, 26, 'Tip it back', () => setHeld(null)); }
           }
           if (!S.scooping) add(H.pos, 30, 'Speak softly', soothe);
+          if (!best && fb) best = fb;
           if (best && !S.scooping) { pr.textContent = 'E — ' + best.label; pr.style.display = 'block'; st.uiAct = best.label; st.uiDrop = (S.holding || (S.binOpen && dist(binP) < 30)) ? true : false; if (act) best.fn(); } else { pr.style.display = 'none'; st.uiAct = null; st.uiDrop = false; }
           $('cwTrustV').textContent = Math.round(H.trust) + '%'; $('cwTrustB').style.width = H.trust + '%';
           // how the round ends: the hen left squawking, everything done (and a few moments to be sure), or the clock
