@@ -596,7 +596,7 @@ function run(G, W, opts) {
       await G.say('jack', 'Linen. Stitched by careful hands.');
       W.paintJack(jackOut, { expr: 1 });
       await G.say('jack', 'A child’s tunic. Laces at the collar, a round neck, the seams doubled for wear.');
-      await G.say('jack', 'It isn’t the size. It’s the cut. Soft green, and made so that someone else can do it up for you.');
+      await G.say('jack', 'Soft green, and made so that someone else can do it up for you.');
       await G.say('jack', 'Someone not trusted with buttons or belts. Someone like me, in her eyes.');
       for (let i = 1; i <= 12; i++) { const k = i / 12; st.pose.armRx = W3(-0.9, -0.15, k); st.pose.neckX = W3(0.45, -0.1, k); await G.wait(0.04); }
       A && A.blip && A.blip(); await G.wait(0.5);
