@@ -602,6 +602,7 @@ function run(G, W, opts) {
       G.ch3lies = lies; await finish('discipline');
     }
     async function disciplineScene(lies) {
+      const ease = k => k * k * (3 - 2 * k), W3 = (a, b, k) => a + (b - a) * k;
       // ── The discipline: the lap engine (js/lap.js) takes over from the carried pose, in the nursery, with Jack at half size over her knee ──
       if (!root.Lap) { await finish('discipline'); return; }
       const chair = M.items.nurseryChair.g.position, SEATX = chair.x, SEATZ = chair.z;
@@ -610,7 +611,8 @@ function run(G, W, opts) {
       const lap = root.Lap.create(null, { external: { scene, camera: G.camera, renderer: G.renderer }, table: false, jackFull: 0.95 });
       lap.giver('gerda'); lap.outfit('gerda', 'Work'); lap.stage.scale.setScalar(LAP_S); lap.stage.position.set(SEATX, LAP_Y, SEATZ); lap.stage.rotation.y = -Math.PI / 2; lap.stage.updateMatrixWorld(true);
       gerda.root.visible = false; jackOut.root.visible = false; M.items.nurseryChair.g.visible = false;
-      lap.reset(); lap.layers({ trousers: 'up', drawers: 'up' }); lap.armed(false); lap.implement('hand'); lap.place('lap', 0); lap.size(0.5); lap.st.side = 'alt'; lap.st.noRecovery = true; lap.st.sound = true; lap.st.strength = 1.05; lap.st.pace = 1;
+      lap.reset(); lap.layers({ trousers: 'up', drawers: 'up' }); lap.armed(false); lap.implement('hand'); lap.place('lap', 0); lap.size(0.5); lap.st.side = 'alt'; lap.st.noRecovery = true; lap.st.sound = true; lap.st.strength = 1.05;
+      lap.pain.ache = 0.5 * lap.pain.capacity();       // (he begins already flinching: he has been struggling in her arms since she lifted him) lap.st.pace = 1;
       { const knife = new THREE.Group(), mk = (w, h, d, c, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color: c })); m.position.set(x, y, z); knife.add(m); };
         mk(1.2, 8, 0.8, 0xb9bfc8, 0, -4.5, 0); mk(1.6, 3.6, 1.2, 0x4a3626, 0, 0, 0); mk(3, 0.7, 1.4, 0xb8923a, 0, -1.8, 0); knife.position.set(-5.6, 2, 0.4); lap.jack.hips.add(knife); }       // (his father's knife at his belt, as in the cottage; no satchel, which would be in the way)
       const lapTick = dt => lap.update(dt); G.updaters.push(lapTick);
@@ -628,6 +630,7 @@ function run(G, W, opts) {
       const step = async (line, n) => { if (red) throw RED; const l = line ? G.say(line[0], line[1]) : Promise.resolve(); await Promise.all([l, smacks(n)]); if (red) throw RED; };
       const ramp = async (key, to, secs) => { const from = lap.st[key] || 0, n = Math.max(1, Math.round(secs / 0.04)); for (let i = 1; i <= n; i++) { lap.st[key] = W3(from, to, ease(i / n)); await G.wait(0.04); } lap.st[key] = to; };
       stageView('overview', 0);
+      G.lap = lap; G.fc = cam.fc;       // (for tools and tests)
       try {
         try {
       await G.fade(false, 0.7); showUI(true); await wait(0.5);
