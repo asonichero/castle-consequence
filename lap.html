@@ -205,7 +205,7 @@
     function refresh() {
       if (!open) return;
       var ok = E.editable();
-      $('peWhere').textContent = (st.to === 'table' ? 'Over the table' : 'Over the knee') + ' · ' + L.IMPL[st.implement].name + (ok ? '' : ' — not poseable (wait for him to settle, or pick a position and implement that strike)');
+      $('peWhere').textContent = (st.to === 'table' ? 'Over the table' : 'Over the knee') + ' · ' + L.IMPL[st.implement].name + (E.variant() ? ' · ARM POSE (' + E.variant().slice(5) + '): offsets here apply in every beat, and never touch her right arm' : '') + (ok ? '' : ' — not poseable (wait for him to settle, or pick a position and implement that strike)');
       var sb = $('peSize'); sb.innerHTML = '';
       [100, 50].forEach(function (k) { var b = document.createElement('button'); b.textContent = k + '%'; b.className = E.sizeKey() === k ? 'on' : ''; b.onclick = function () { E.sizeKey(k); $('size').value = k; $('sizeV').textContent = k + '%'; refresh(); }; sb.appendChild(b); });
       if (!ok) { E.release(); E.handles(false); return; }

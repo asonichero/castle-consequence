@@ -16,8 +16,11 @@ root.LapPoses = {
       hand: {
         rest: {
           torso: { r: [41, 0, 0], p: [0, 0, -0.5] },
-          armL: { r: [-11, 0, 0] },
-          elbowR: { r: [30, -20, 6] },
+          armL: { r: [28, 35, 20] },
+          elbowR: { r: [1.2, 0, -1.5] },
+          elbowL: { r: [-46, 7, -13] },
+          birch: { r: [2, 0, -2.4] },
+          wristR: { p: [2.2, -2, -1.1] },
         },
         raised: {
           torso: { r: [35, -3, -3], p: [0, 0, -0.5] },
@@ -69,10 +72,65 @@ root.LapPoses = {
           armR: { r: [-11, -0.2, 2.3] },
         },
       },
+      birch: {
+        rest: {},
+        raised: {},
+        contactL: {},
+        contactR: {},
+      },
+      'hand~reach': {
+        rest: {},
+        raised: {},
+        contactL: {},
+        contactR: {},
+      },
+      'hand~hold': {
+        rest: {
+          elbowL: { r: [79, 2, 18] },
+          armL: { r: [-46, 7, -22] },
+        },
+        raised: {},
+        contactL: {},
+        contactR: {},
+      },
     },
     jack: {
-      base: {},
-      react: {},
+      hand: {
+        rest: {},
+        raised: {},
+        contactL: {},
+        contactR: {},
+      },
+      paddle: {
+        rest: {},
+        raised: {},
+        contactL: {},
+        contactR: {},
+      },
+      birch: {
+        rest: {},
+        raised: {},
+        contactL: {},
+        contactR: {},
+      },
+      'hand~reach': {
+        rest: {
+          armR: { r: [35.9, -1.7, -11.3] },
+          elbowR: { r: [-66.8, -2.3, 4.4] },
+        },
+        raised: {},
+        contactL: {},
+        contactR: {},
+      },
+      'hand~hold': {
+        rest: {
+          armR: { r: [44.5, 38.8, 45.8] },
+          elbowR: { r: [-44.9, 112.6, -127.3] },
+        },
+        raised: {},
+        contactL: {},
+        contactR: {},
+      },
     },
   },
   50: {
@@ -80,11 +138,12 @@ root.LapPoses = {
       hand: {
         rest: {
           torso: { r: [41, 0, 0], p: [0, 0, -0.5] },
-          armL: { r: [-11, 0, 0] },
+          armL: { r: [12.8, -0.6, -0.5] },
           elbowR: { r: [-8.2, -24.2, 20] },
           armR: { r: [24.2, -3.2, -7.4] },
           paddle: { r: [0, 17.9, 0] },
           wristR: { r: [0, 11.9, 0] },
+          elbowL: { r: [-11.3, 2.8, -15.8] },
         },
         raised: {
           torso: { r: [35, -3, -3], p: [0, 0, -0.5] },
@@ -137,10 +196,67 @@ root.LapPoses = {
           armR: { r: [-6.6, -3, -34.4] },
         },
       },
+      birch: {
+        rest: {},
+        raised: {},
+        contactL: {},
+        contactR: {},
+      },
+      'hand~reach': {
+        rest: {},
+        raised: {},
+        contactL: {},
+        contactR: {},
+      },
+      'hand~hold': {
+        rest: {
+          elbowL: { r: [-36.1, -52.3, -2.2] },
+          armL: { r: [0, 0, 23] },
+        },
+        raised: {},
+        contactL: {},
+        contactR: {},
+      },
     },
     jack: {
-      base: {},
-      react: {},
+      hand: {
+        rest: {
+          armL: { r: [-61.5, -0.8, 20.9] },
+        },
+        raised: {},
+        contactL: {},
+        contactR: {},
+      },
+      paddle: {
+        rest: {},
+        raised: {},
+        contactL: {},
+        contactR: {},
+      },
+      birch: {
+        rest: {},
+        raised: {},
+        contactL: {},
+        contactR: {},
+      },
+      'hand~reach': {
+        rest: {
+          armR: { r: [24.4, 0.7, 3.4] },
+          elbowR: { r: [-59.3, 15.1, -25.1] },
+        },
+        raised: {},
+        contactL: {},
+        contactR: {},
+      },
+      'hand~hold': {
+        rest: {
+          armR: { r: [23.2, 49.8, 55.1] },
+          elbowR: { r: [-36.5, 79.1, -115.6] },
+        },
+        raised: {},
+        contactL: {},
+        contactR: {},
+      },
     },
   },
   table: {

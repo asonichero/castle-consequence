@@ -227,14 +227,15 @@ function create(view, opts) {
     gerda.pelvis.position.set(0, 1.5, 0); jack.pelvis.position.set(0, 1.5, 0);
   }
   // The offsets one bone takes at the given beat weights: a rotation (quaternion) and a position shift, or null if it has none.
+  const RIGHT_ARM = { armR: 1, elbowR: 1, wristR: 1, paddle: 1, birch: 1 };
   function editFor(who, n, weights) {
     let any = false; const rr = [0, 0, 0], pp = [0, 0, 0];
     const t = sizeT();
     for (const [key, wk] of [[50, 1 - t], [100, t]]) {            // blend the two sets by Jack's size
       if (!wk) continue;
-      for (const imp of [st.implement, variant()]) { if (!imp) continue; const set = setOf(who, key, imp);
-      for (const beat in weights) {
-        const e = set[beat] && set[beat][n], wt = weights[beat] * wk; if (!e || !wt) continue;
+      for (const [imp, vf] of st.implement === 'hand' ? [['hand', 1], ['hand~reach', Math.min(1, st.armReach || 0)], ['hand~hold', Math.min(1, st.armHold || 0)]] : [[st.implement, 1]]) { if (!vf) continue; const isV = imp !== st.implement; if (isV && who === 'gerda' && RIGHT_ARM[n]) continue; const set = setOf(who, key, imp), wts = isV ? { rest: 1 } : weights;       // (an arm pose is the same in every beat, and leaves her striking arm alone)
+      for (const beat in wts) {
+        const e = set[beat] && set[beat][n], wt = wts[beat] * wk * vf; if (!e || !wt) continue;
         any = true; for (let i = 0; i < 3; i++) { rr[i] += wt * (e.r ? e.r[i] : 0); pp[i] += wt * (e.p ? e.p[i] : 0); }
       } }
     }
@@ -479,7 +480,7 @@ function create(view, opts) {
     g.elbow.rotation.set(lerp(pr.psi, pc.psi, tau), 0, 0); g.wrist.rotation.set(0, lerp(pr.omega, pc.omega, tau), 0);
     paddle.visible = !!impl.paddle && st.armed; birch.visible = !!impl.birch && st.armed;
     if (impl.birch) birchFlex(sw, tau);
-    const gwArm = Object.assign({}, gw); delete gwArm.rest;      // at rest the right arm is aimed (over the centre of his lower back), not posed by hand
+    const gwArm = gw;      // (at rest the right arm is aimed over the centre of his lower back; its rest offsets are laid on that)
     applyEdits('gerda', ['armR', 'elbowR', 'wristR'], gwArm);
     if (impl.birch) { g.root.updateMatrixWorld(true); aim(birchTool, birchUraised.clone().lerp(birchU, tau).normalize()); applyEdits('gerda', ['birch'], gwArm); }
     if (impl.paddle) {
@@ -714,16 +715,17 @@ function create(view, opts) {
     // Can the scene be posed as it is? (the knee or the table, once he is there; the birch is for the table)
     editable() { return st.blend >= 1 && (st.to === 'table' || (st.to === 'lap' && st.implement !== 'birch')); },
     // What is locked for a bone at a beat (as loaded), and the sliders' values: the edit relative to it.
-    locked(fig, beat, bone) { const e = (((LOCK[posKey()][editKey][bodyOf(fig)][editImp()] || {})[beat]) || {})[bone] || {}; return { r: (e.r || [0, 0, 0]).slice(), p: (e.p || [0, 0, 0]).slice() }; },
-    get(fig, beat, bone) { const e = setFor(fig)[beat][bone] || {}, l = editor.locked(fig, beat, bone); return { r: [0, 1, 2].map(i => (e.r ? e.r[i] : 0) - l.r[i]), p: [0, 1, 2].map(i => (e.p ? e.p[i] : 0) - l.p[i]) }; },
+    locked(fig, beat, bone) { beat = variant() ? 'rest' : beat; const e = (((LOCK[posKey()][editKey][bodyOf(fig)][editImp()] || {})[beat]) || {})[bone] || {}; return { r: (e.r || [0, 0, 0]).slice(), p: (e.p || [0, 0, 0]).slice() }; },
+    get(fig, beat, bone) { beat = variant() ? 'rest' : beat; const e = setFor(fig)[beat][bone] || {}, l = editor.locked(fig, beat, bone); return { r: [0, 1, 2].map(i => (e.r ? e.r[i] : 0) - l.r[i]), p: [0, 1, 2].map(i => (e.p ? e.p[i] : 0) - l.p[i]) }; },
     set(fig, beat, bone, r, p) {                      // r and p are offsets from the locked pose
+      beat = variant() ? 'rest' : beat;
       const set = setFor(fig)[beat], l = editor.locked(fig, beat, bone), R = r.map((x, i) => x + l.r[i]), P = p.map((x, i) => x + l.p[i]);
       if (R.every(v => Math.abs(v) < 0.05) && P.every(v => Math.abs(v) < 0.005)) delete set[bone]; else set[bone] = { r: R, p: P };
     },
-    resetBone(fig, beat, bone) { const set = setFor(fig)[beat], l = editor.locked(fig, beat, bone); if (l.r.some(v => v) || l.p.some(v => v)) set[bone] = l; else delete set[bone]; },
-    resetBeat(fig, beat) { const lk = (((LOCK[posKey()][editKey][bodyOf(fig)][editImp()] || {})[beat]) || {}); setFor(fig)[beat] = JSON.parse(JSON.stringify(lk)); },
+    resetBone(fig, beat, bone) { beat = variant() ? 'rest' : beat; const set = setFor(fig)[beat], l = editor.locked(fig, beat, bone); if (l.r.some(v => v) || l.p.some(v => v)) set[bone] = l; else delete set[bone]; },
+    resetBeat(fig, beat) { beat = variant() ? 'rest' : beat; const lk = (((LOCK[posKey()][editKey][bodyOf(fig)][editImp()] || {})[beat]) || {}); setFor(fig)[beat] = JSON.parse(JSON.stringify(lk)); },
     clear() { for (const f of ['giver', 'jack']) for (const b of GERDA_BEATS) editor.resetBeat(f, b); },
-    sizeMin: SIZE_MIN,
+    sizeMin: SIZE_MIN, variant,
     hold(fig, beat) {
       cur.fig = fig; cur.beat = beat; st.runLeft = 0; st.swing = null; st.armed = true; st.holdKick = null;
       if (beat !== 'rest') st.swing = { phase: 'freeze', t: 0, side: beat === 'contactL' ? 'L' : 'R', waited: 0, tau: beat === 'raised' ? 0 : 1 };
