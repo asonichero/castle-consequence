@@ -227,13 +227,14 @@ function create(view, opts) {
     gerda.pelvis.position.set(0, 1.5, 0); jack.pelvis.position.set(0, 1.5, 0);
   }
   // The offsets one bone takes at the given beat weights: a rotation (quaternion) and a position shift, or null if it has none.
-  const RIGHT_ARM = { armR: 1, elbowR: 1, wristR: 1, paddle: 1, birch: 1 };
+  // Over the knee with the hand there are three poses of Jack's arm, each with a set of its own, never added to another: normal, reaching for his belt, and pinned. Their weights follow the pose in force (blending as one passes into the next).
+  const poseSets = () => { if (st.implement !== 'hand') return [[st.implement, 1]]; const r = Math.min(1, st.armReach || 0), h = Math.min(1, st.armHold || 0); return [['hand', Math.max(0, 1 - r - h)], ['hand~reach', r], ['hand~hold', h]]; };
   function editFor(who, n, weights) {
     let any = false; const rr = [0, 0, 0], pp = [0, 0, 0];
     const t = sizeT();
     for (const [key, wk] of [[50, 1 - t], [100, t]]) {            // blend the two sets by Jack's size
       if (!wk) continue;
-      for (const [imp, vf] of st.implement === 'hand' ? [['hand', 1], ['hand~reach', Math.min(1, st.armReach || 0)], ['hand~hold', Math.min(1, st.armHold || 0)]] : [[st.implement, 1]]) { if (!vf) continue; const isV = imp !== st.implement; if (isV && who === 'gerda' && RIGHT_ARM[n]) continue; const set = setOf(who, key, imp), wts = isV ? { rest: 1 } : weights;       // (an arm pose is the same in every beat, and leaves her striking arm alone)
+      for (const [imp, vf] of poseSets()) { if (!vf) continue; const set = setOf(who, key, imp), wts = weights;       // (each pose has a set of its own: nothing is laid over anything else)
       for (const beat in wts) {
         const e = set[beat] && set[beat][n], wt = wts[beat] * wk * vf; if (!e || !wt) continue;
         any = true; for (let i = 0; i < 3; i++) { rr[i] += wt * (e.r ? e.r[i] : 0); pp[i] += wt * (e.p ? e.p[i] : 0); }
@@ -241,13 +242,14 @@ function create(view, opts) {
     }
     return any ? { q: new THREE.Quaternion().setFromEuler(new THREE.Euler(rr[0] * DEG, rr[1] * DEG, rr[2] * DEG, 'YXZ')), p: pp } : null;
   }
+  const MOVABLE = { torso: 1, frame: 1, glutes: 1, paddle: 1, birch: 1 };
   function applyEdits(who, names, weights) {
     for (const n of names) {
       const e = editFor(who, n, weights); if (!e) continue;
       const bone = BONES[who][n];
       bone.userData.proc = bone.quaternion.clone();
       bone.quaternion.multiply(e.q);
-      bone.position.x += e.p[0]; bone.position.y += e.p[1]; bone.position.z += e.p[2];
+      if (MOVABLE[n]) { bone.position.x += e.p[0]; bone.position.y += e.p[1]; bone.position.z += e.p[2]; }       // (only the body's own parts move: a forearm, hand or leg is never pulled away from its joint)
       if (n === 'torso' && (e.p[0] || e.p[1] || e.p[2])) {            // moving the torso carries the legs with it (they hang from the same hips)
         for (const leg of ['thighL', 'thighR']) { const lb = BONES[who][leg]; if (!lb.userData.proc) lb.userData.proc = lb.quaternion.clone(); lb.position.x += e.p[0]; lb.position.y += e.p[1]; lb.position.z += e.p[2]; }
         const pv = (who === 'gerda' ? gerda : jack).pelvis; pv.position.x += e.p[0]; pv.position.y += e.p[1]; pv.position.z += e.p[2];       // (and the pelvis, which is the legs' top)
@@ -587,7 +589,6 @@ function create(view, opts) {
       H('armR', 'aim', 'Right elbow (swings the right upper arm)', gerda.elbow),
       H('elbowR', 'aim', 'Right hand (bends the elbow)', hpt(gerda.wrist, 0, -6, 0)),
       H('wristR', 'twist', 'Right wrist twist (turns the forearm, hand and paddle about the forearm)', hpt(gerda.wrist, 2.4, -3, 0), new V3(0, 1, 0)),
-      H('wristR', 'move', 'Right wrist (moves the hand and paddle mount)', hpt(gerda.wrist, 0, -4.5, 0)),
       H('paddle', 'aim', 'Paddle tip (swings the paddle)', hpt(tool, 0, BLADE_END, 0)),
       H('paddle', 'twist', 'Paddle roll (rolls the blade about its length)', hpt(tool, BLADE_W / 2, -(HANDLE + BLADE_L / 2), 0), new V3(0, 1, 0)),
       H('birch', 'aim', 'Birch tip (swings the birch)', hpt(birchTool, 0, -(BIRCH_HAND + BIRCH_L), 0)),
@@ -709,8 +710,8 @@ function create(view, opts) {
   const cur = { fig: 'giver', beat: 'contactL' };
   const bodyOf = fig => fig === 'jack' ? 'jack' : 'gerda';
   const setAt = (fig, imp) => SETS[posKey()][editKey][bodyOf(fig)][imp];
-  // Where an edit goes: with an arm pose selected, everything but her striking arm is the arm pose's (one set, applied in every beat); her striking arm, and everything when none is selected, is the held beat's.
-  const route = (fig, beat, bone) => { const v = variant(); return v && !(bodyOf(fig) === 'gerda' && RIGHT_ARM[bone]) ? { imp: v, beat: 'rest', wts: { rest: 1 } } : { imp: st.implement, beat, wts: null }; };
+  // Where an edit goes: into the set of the pose in force (normal, reaching or pinned), at the held beat.
+  const route = (fig, beat, bone) => ({ imp: editImp(), beat, wts: null });
   const setFor = (fig, beat, bone) => { const r = route(fig, beat, bone); return setAt(fig, r.imp); };
   const editor = {
     beats: GERDA_BEATS,
@@ -722,17 +723,12 @@ function create(view, opts) {
     get(fig, beat, bone) { const e = setFor(fig, beat, bone)[route(fig, beat, bone).beat][bone] || {}, l = editor.locked(fig, beat, bone); return { r: [0, 1, 2].map(i => (e.r ? e.r[i] : 0) - l.r[i]), p: [0, 1, 2].map(i => (e.p ? e.p[i] : 0) - l.p[i]) }; },
     set(fig, beat, bone, r, p) {                      // r and p are offsets from the locked pose
       const set = setFor(fig, beat, bone)[route(fig, beat, bone).beat], l = editor.locked(fig, beat, bone), R = r.map((x, i) => x + l.r[i]), P = p.map((x, i) => x + l.p[i]);
+      if (!MOVABLE[bone]) P.fill(0);
       if (R.every(v => Math.abs(v) < 0.05) && P.every(v => Math.abs(v) < 0.005)) delete set[bone]; else set[bone] = { r: R, p: P };
     },
     resetBone(fig, beat, bone) { const set = setFor(fig, beat, bone)[route(fig, beat, bone).beat], l = editor.locked(fig, beat, bone); if (l.r.some(v => v) || l.p.some(v => v)) set[bone] = l; else delete set[bone]; },
-    resetBeat(fig, beat) {
-      const lock = (imp, bt) => (((LOCK[posKey()][editKey][bodyOf(fig)][imp] || {})[bt]) || {}), copy = o => JSON.parse(JSON.stringify(o)), v = variant();
-      if (!v) { setAt(fig, st.implement)[beat] = copy(lock(st.implement, beat)); return; }
-      setAt(fig, v).rest = copy(lock(v, 'rest'));                                                    // (the arm pose's set; and her striking arm, in the held beat)
-      if (bodyOf(fig) === 'gerda') { const cur_ = setAt(fig, st.implement)[beat], lk = lock(st.implement, beat); for (const b in RIGHT_ARM) { if (lk[b]) cur_[b] = copy(lk[b]); else delete cur_[b]; } }
-    },
-    clear() { for (const f of ['giver', 'jack']) for (const b of GERDA_BEATS) editor.resetBeat(f, b); },
-    sizeMin: SIZE_MIN, variant,
+    resetBeat(fig, beat) { const lk = (((LOCK[posKey()][editKey][bodyOf(fig)][editImp()] || {})[beat]) || {}); setAt(fig, editImp())[beat] = JSON.parse(JSON.stringify(lk)); },    clear() { for (const f of ['giver', 'jack']) for (const b of GERDA_BEATS) editor.resetBeat(f, b); },
+    sizeMin: SIZE_MIN, variant, canMove: bone => !!MOVABLE[bone],
     hold(fig, beat) {
       cur.fig = fig; cur.beat = beat; st.runLeft = 0; st.swing = null; st.armed = true; st.holdKick = null;
       if (beat !== 'rest') st.swing = { phase: 'freeze', t: 0, side: beat === 'contactL' ? 'L' : 'R', waited: 0, tau: beat === 'raised' ? 0 : 1 };

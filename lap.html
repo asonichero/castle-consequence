@@ -205,7 +205,7 @@
     function refresh() {
       if (!open) return;
       var ok = E.editable();
-      $('peWhere').textContent = (st.to === 'table' ? 'Over the table' : 'Over the knee') + ' · ' + L.IMPL[st.implement].name + (E.variant() ? ' · ARM POSE (' + E.variant().slice(5) + '): offsets here apply in every beat, and never touch her right arm' : '') + (ok ? '' : ' — not poseable (wait for him to settle, or pick a position and implement that strike)');
+      $('peWhere').textContent = (st.to === 'table' ? 'Over the table' : 'Over the knee') + ' · ' + L.IMPL[st.implement].name + (E.variant() ? ' · ARM POSE (' + E.variant().slice(5) + '): its own set of poses, in every beat; no other pose is added to it' : '') + (ok ? '' : ' — not poseable (wait for him to settle, or pick a position and implement that strike)');
       var sb = $('peSize'); sb.innerHTML = '';
       [100, 50].forEach(function (k) { var b = document.createElement('button'); b.textContent = k + '%'; b.className = E.sizeKey() === k ? 'on' : ''; b.onclick = function () { E.sizeKey(k); $('size').value = k; $('sizeV').textContent = k + '%'; refresh(); }; sb.appendChild(b); });
       if (!ok) { E.release(); E.handles(false); return; }
@@ -214,6 +214,7 @@
       if (E.bones(S.fig).indexOf(S.bone) < 0) S.bone = E.bones(S.fig)[0];
       chips('peBone', E.bones(S.fig), 'bone', function () { refresh(); });
       $('peInfo').textContent = E.info(S.fig, S.bone); E.select(S.bone); E.handles(true, S.fig);
+      var mv = E.canMove(S.bone); $('peP').style.display = mv ? '' : 'none'; var hd = $('peP').previousElementSibling; if (hd) hd.style.display = mv ? '' : 'none';
       pull();
     }
     function hold() { E.hold(S.fig, S.beat); }
