@@ -465,7 +465,7 @@ function run(G, W, opts) {
       toys: { name: 'toys', r: 14, nursery: true, keys: ['toys'], lines: ['Blocks, a ball, a top. Worn smooth. Somebody played with these, and played a great deal.', 'A top. I never had one. Father meant to carve me one, once.'] },
       table: { name: 'little table', r: 13, nursery: true, keys: ['nurseryTable'], lines: ['A table no higher than my chest. Somebody sat here and drew, or took their supper. A small somebody.', 'There’s a ring on it where a cup stood. Somebody was told, I expect, to use a coaster.'] },
       chair: { name: 'little chair', r: 9, nursery: true, keys: ['nurseryChairS'], lines: ['A chair for someone my size. I could sit in it. I’m not sure I should.'] },
-      chest: { name: 'chest', r: 15, special: true, keys: ['chest'], lines: [] },
+      chest: { name: 'chest', r: 21, special: true, keys: ['chest'], lines: [] },
     };
     for (const cat in LK) LK[cat].keys.forEach((k, i) => { if (M.items[k]) c3.targets.push({ k, cat, i, g: M.items[k].g }); });
     async function doLook(t) {
