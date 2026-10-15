@@ -48,6 +48,7 @@ function run(G, W, opts) {
       const b0 = M.items.keepsakeBox.g; b0.position.set(tgp.position.x, 25.5, tgp.position.z); b0.rotation.y = 0; b0.userData.box.lid.rotation.x = 0;
       for (const d of M.doors) if (d.axis === 'z' && Math.abs(d.fixed + 111) < 3 && Math.abs(d.c - 162) < 6) { d.openAng = d.lg.rotation.y; d.lg.rotation.y = 0; d.og.userData.noCollide = false; }       // the garden door is shut
       for (const d of M.doors) if (d.axis === 'x' && Math.abs(d.fixed + 273) < 3 && Math.abs(d.c + 100) < 6) { d.openAng = d.lg.rotation.y; d.lg.rotation.y = 0; d.og.userData.noCollide = false; }       // (the library door is shut)
+      for (const d of M.doors) if (d.axis === 'z' && Math.abs(d.fixed + 8) < 3 && Math.abs(d.c - 315) < 8) { d.openAng = d.lg.rotation.y; d.lg.rotation.y = 0; d.og.userData.noCollide = false; }       // (the stairwell door is shut)
       for (const d of M.doors) if (d.axis === 'x' && Math.abs(d.fixed + 90) < 3 && Math.abs(d.c + 25.5) < 8) { d.og.visible = false; d.og.userData.noCollide = true; }       // (no doors where the narrow corridor meets the corridor with the urns)
       for (const h of M.hallLeaves) h.lf.rotation.y = 0;                                                                                                                                               // and so are the great doors, with the crack he came in by still to be seen at their foot
       { const crack = new THREE.Mesh(new THREE.BoxGeometry(3.4, 4.6, 0.5), new THREE.MeshBasicMaterial({ color: 0xfff1c4 })); crack.position.set(0, 2.3, 108.5); M.scene.add(crack); }
@@ -852,10 +853,44 @@ function run(G, W, opts) {
       await handTo(jackOut.hips.localToWorld(new V3(-3.5, -4, 0)), false, 0.4); await handTo(jackOut.hips.localToWorld(new V3(-3.5, 2, 0)), false, 0.6);
       heldShorts.visible = false; paint({ outfit: 'Day', shorts: undefined, trousers: 'up', drawers: 'up', expr: 'smile' }); A && A.blip && A.blip(); await rest(0.6);
       await sayW('gerda', 'There! All dressed, and so well behaved. I am proud of you, Jack.');
-      gz.b = 1; await G.wait(1.2); await G.fade(true, 1.6);
+      gz.b = 1; await G.wait(1.0);
+      // ── then she lifts him down to the floor, and leads him to the roost: he follows, growing as he is good ──
+      { const dA = (d, ang, up) => { for (const sg of [1, -1]) { d.lg.rotation.y = sg * ang; d.og.updateMatrixWorld(true); const bb = new THREE.Box3().setFromObject(d.lg), c = d.axis === 'x' ? (bb.min.x + bb.max.x) / 2 : (bb.min.z + bb.max.z) / 2; if ((c > d.fixed) === up) break; } d.og.userData.noCollide = true; };       // (a door open by so much, to the side asked)
+        const bathD = M.doors.find(d => d.axis === 'x' && Math.abs(d.fixed - 295) < 3 && Math.abs(d.c + 160) < 8), roostD = M.doors.find(d => d.axis === 'z' && Math.abs(d.fixed + 208) < 3 && Math.abs(d.c - 273) < 8);
+        if (bathD) dA(bathD, Math.abs(bathD.openAng || 1.75), true);       // (the bathroom's door opens into the room, not the corridor)
+        if (roostD) dA(roostD, Math.PI / 2, false); }       // (the roost's, a quarter turn, into the hallway)
+      const track = () => { root.Blocky.step(gerda, 0); gerda.root.updateMatrixWorld(true); return wr(); };
+      await sayW('gerda', 'Up you come, little climber.');
+      await handTo(jackOut.torso.localToWorld(new V3(0, 6, 0)), false, 0.7); await G.wait(0.2);
+      const h0 = track(), off = { x: st.fz.x - h0.x, y: st.fz.y - h0.y, z: st.fz.z - h0.z };
+      st.pose = Object.assign(st.pose || {}, { armLx: -0.2, armRx: -0.2, armLz: 0.45, armRz: -0.45, legLx: 0.12, legRx: -0.05, kneeL: 0.15, kneeR: 0.3 });       // (he hangs from her hand)
+      const carry = async (to, secs, turnTo) => { const from = { bend: gst.bend, reach: gst.reach, h: gst.h }, n = Math.max(1, Math.round(secs / 0.04)); for (let i = 1; i <= n; i++) { const k = ease(i / n); gst.bend = W3(from.bend, to.bend, k); gst.reach = W3(from.reach, to.reach, k); if (turnTo !== undefined) gst.h = from.h + angDiff(turnTo, from.h) * k; placeGerda(); const h = track(); st.fz = { x: h.x + off.x, y: Math.max(0, h.y + off.y), z: h.z + off.z }; await G.wait(0.04); } };
+      await carry({ bend: 0.1, reach: 0.9 }, 0.8);
+      await carry({ bend: 0.1, reach: 0.9 }, 0.9, 0);       // (she turns, to face the room)
+      { const D = new V3(gst.x - 4, 0, gst.z + 17), T = new V3(D.x - off.x, -off.y + 0.3, D.z - off.z); const b = solveHand(T, false); await carry({ bend: b.bd, reach: b.rc }, 0.9); }
+      await G.wait(0.25);
+      st.pos.set(st.fz.x, 0, st.fz.z); st.y = Math.max(0, st.fz.y); st.heading = 0; st.fz = null; st.vy = 0; st.standY = 0; st.frozen = false; st.pose = null; st.walkN = 0;       // (he is let go, and stands)
+      rest(0.6); gst.walk = 0;
+      await sayW('gerda', 'Now come along, Jack. Follow me, and stay close.');
+      // the walk: she goes ahead; he follows at his own pace, and she waits when he lags
+      const route = gnav(gst.x, gst.z, 238, -75).concat([[262, -75], [274, -92], [274, -110], [273, -135], [273, -198], [274, -216], [276, -236], [274, -250]]);
+      const tgt = new V3(274, 0, -250), start = new V3(st.pos.x, 0, st.pos.z), D0 = start.distanceTo(tgt);
+      let prog = 0, pen = 0; const S0 = st.s;
+      const zones = [{ hit: p => p.x < 118 && p.z > -56 && p.z < 6, fix: p => { p.x = 118; }, line: 'Jack! No dawdling, now. Come along, and keep being good for me.', n: 0, t: 0 },
+        { hit: p => p.x > 299 && p.x < 384 && p.z > -203 && p.z < -114, fix: p => { p.x = 299; }, line: 'Not in there, Jack, no dawdling. Come along, and keep being good.', n: 0, t: 0 }];
+      st.guard = () => { const p = st.pos; for (const z of zones) if (z.hit(p)) { z.fix(p); const now = performance.now(); if (now - z.t > 3500) { z.t = now; if (z.n++ === 0) { pen += 0.05; G.caption('gerda', z.line); } else { pen += 0.02; G.caption('gerda', 'Jack!'); } gst.talk = 1; setTimeout(() => { gst.talk = 0; }, 1800); } } };       // (kept from the hall and the bathroom: 5 per cent for the first try, 2 for each after, and never below half)
+      const grow = () => { const here = new V3(st.pos.x, 0, st.pos.z); prog = Math.max(prog, clamp(1 - here.distanceTo(tgt) / D0, 0, 1)); const want = Math.max(0.5, S0 + 0.2 * prog - pen); st.s += (want - st.s) * 0.05; };
+      const near = () => Math.hypot(st.pos.x - gst.x, st.pos.z - gst.z);
+      for (const [wx, wz] of route) { while (Math.hypot(wx - gst.x, wz - gst.z) > 1.2) { grow();
+          if (near() > 75) { gst.walk = 0; gst.h += angDiff(Math.atan2(st.pos.x - gst.x, st.pos.z - gst.z), gst.h) * 0.1; } else { const d = Math.hypot(wx - gst.x, wz - gst.z), stp = Math.min(1, d); gst.h += angDiff(Math.atan2(wx - gst.x, wz - gst.z), gst.h) * 0.3; gst.x += (wx - gst.x) / d * stp; gst.z += (wz - gst.z) / d * stp; gst.ph += 0.4; gst.walk = 1; }
+          placeGerda(); await G.wait(0.04); } }
+      gst.walk = 0; for (let i = 0; i < 12; i++) { gst.h += angDiff(-Math.PI / 2, gst.h) * 0.3; grow(); placeGerda(); await G.wait(0.04); }       // (she stops by the bucket)
+      while (near() > 30) { grow(); gst.h += angDiff(Math.atan2(st.pos.x - gst.x, st.pos.z - gst.z), gst.h) * 0.08; placeGerda(); await G.wait(0.04); }       // (and waits for him: the beat ends when he reaches her)
+      st.guard = null; await G.wait(0.5); await G.fade(true, 1.6);
       G.updaters = G.updaters.filter(u => u !== gazeTick); st.gaze = null; gst.alive = 0; st.frozen = false; st.dressWait = null; st.fz = null;
     }
     function ch3Tick(dt) {
+      if (st.guard && !st.frozen) st.guard();       // (the way to the roost: some places he is kept from)
       if (st.frozen) { const act = st.actReq, pr = promptEl(); st.actReq = st.putReq = st.jumpReq = false;       // (being dressed: the one button answers what she asks)
         if (st.dressWait && !st.scene) { pr.textContent = 'E \u2014 ' + st.dressWait.label; pr.style.display = 'block'; st.uiAct = st.dressWait.label; if (act) { const r = st.dressWait.res; st.dressWait = null; st.uiAct = null; pr.style.display = 'none'; r(); } } else { pr.style.display = 'none'; st.uiAct = null; }
         return; }
