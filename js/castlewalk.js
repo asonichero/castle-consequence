@@ -753,9 +753,9 @@ function run(G, W, opts) {
     }
     // ── Dressed: the playable sequence at the kitchen table. Jack stands on it, Gerda before him at its edge; he cannot move or jump, and the one button answers what she asks of him. ──
     async function dressScene(lapStage) {
-      const ease = k => k * k * (3 - 2 * k), W3 = (a, b, k) => a + (b - a) * k, tc = M.items.keepsakeBox.g.position, TOP = 25.5, JX = 109.4, JZ = -91.5;
+      const ease = k => k * k * (3 - 2 * k), W3 = (a, b, k) => a + (b - a) * k, tc = M.items.kitchenTable.g.position, TOP = 25.5, JX = tc.x + 9, JZ = tc.z + 9;       // (the kitchen table, where the box and his clothes stood when he woke)
       const mk = (w, h, d, col, x, y, z, par) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color: col })); m.position.set(x, y, z); par.add(m); return m; };
-      if (!ch3Items.clothes) { const cl = new THREE.Group(); cl.position.set(tc.x + 16, TOP, tc.z + 1); scene.add(cl); ch3Items.clothes = cl; mk(2.7, 0.7, 2.2, '#5a7a3e', 0, 0.35, 0, cl); mk(2.1, 0.5, 2.8, '#b8a173', 0.1, 0.95, 0.1, cl); }
+      if (!ch3Items.clothes) { const cl = new THREE.Group(); cl.position.set(tc.x + 16, TOP, tc.z + 1); scene.add(cl); ch3Items.clothes = cl; mk(2.7, 0.7, 2.2, '#5a7a3e', 0, 0.35, 0, cl); mk(0.9, 0.22, 0.5, '#e8dcb8', -0.4, 0.76, -0.8, cl); mk(2.1, 0.5, 2.8, '#6d5233', 0.1, 0.95, 0.1, cl); mk(0.3, 0.2, 2.3, '#8a6a42', -0.6, 1.3, 0.1, cl); mk(0.9, 0.8, 2.1, '#3a2616', 2.1, 0.4, -0.6, cl); mk(0.9, 0.8, 2.1, '#3a2616', 2.1, 0.4, 1.0, cl); }
       const clothes = ch3Items.clothes; clothes.visible = true;
       // the props: what comes off him is put down on the table, and what goes on him comes from her hands
       const prop = (build, x, z, ry) => { const g = new THREE.Group(); build(g); g.position.set(x, TOP, z); g.rotation.y = ry || 0; g.visible = false; scene.add(g); return g; };
@@ -774,7 +774,7 @@ function run(G, W, opts) {
       Object.assign(gst, { x: JX, z: JZ + 15, h: Math.PI, y: 0, seated: 0, walk: 0, reach: 0, lreach: 0, bend: 0, look: 0.25, headY: 0, p50: null, hold: 0 }); placeGerda(); root.Blocky.step(gerda, 0);
       const look = (o) => W.paintJack(jackOut, Object.assign({ outfit: 'Outdoor', trousers: 'up', drawers: 'up' }, o));
       look({ expr: 'shy' }); let dressed = { outfit: 'Outdoor', trousers: 'up', drawers: 'up' }; const paint = o => { Object.assign(dressed, o); W.paintJack(jackOut, dressed); };
-      st.scene = false; st.frozen = true; st.camA = 0.35; st.pitch = 0.35; st.zoom = 2; camPos.set(0, 0, 0); G.mode = 'play'; document.body.classList.remove('cutscene'); $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; G.skipping = false;
+      st.scene = false; st.frozen = true; st.camA = -0.15; st.pitch = 0.3; st.zoom = 1; camPos.set(0, 0, 0); G.mode = 'play'; document.body.classList.remove('cutscene'); $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; G.skipping = false;
       // helpers: her hands to a place (the bend and the reach that bring her wrist nearest it), the tween between her stances, and the one button
       const wr = () => gerda.wrist.localToWorld(new V3(0, -6, 0)), wl = () => gerda.wristL.localToWorld(new V3(0, -6, 0));
       const solveHand = (T, left) => { let best = { d: 1e9, bd: 0, rc: 1 }; for (let bd = 0; bd <= 0.9; bd += 0.1) for (let rc = 0.4; rc <= 2.2; rc += 0.12) { gst.bend = bd; gst.reach = rc; gst.lreach = left ? rc : 0; placeGerda(); root.Blocky.step(gerda, 0); gerda.root.updateMatrixWorld(true); const d = (left ? wl() : wr()).distanceTo(T); if (d < best.d) best = { d, bd, rc }; } return best; };
