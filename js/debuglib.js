@@ -6,13 +6,14 @@ const LIB = {
   tools: [
     ['scene-notes.html', 'Scene notes: the night scene', 'Step a cutscene one camera angle at a time, move the camera, leave notes; Copy gives it all back as text.'],
     ['scene-notes.html?s=castle', 'Scene notes: Gerda catches Jack', 'The same, for the capture in the castle kitchen (begins with Gerda holding him).'],
+    ['pose-editor-half.html', 'Pose editor: Gerda holding Jack at half size', 'Two poses for the nursery scene: Jack carried upright between her hands, and across her knee as she sits. Grab the anchors to pose her arms, torso and head, and Jack himself; Copy pose, then paste it over js/gerda-pose-half.js.'],
     ['pose-editor.html', 'Pose editor: Gerda holding Jack', 'Grab the anchors to pose her arm, torso and head round the tiny Jack in her fist; Copy pose pastes into js/gerda-pose.js.'],
     ['room-editor.html', 'Room editor', 'Move the furniture about the rooms; Copy layout pastes into js/farm-layout.js or js/castle-layout.js.'],
     ['blocky.html', 'Models', 'The blocky models: Jack, Gerda and the cast, with their clothes and expressions.'],
     ['lap.html', 'Lap scene', 'Across the Lap: the pose editor and scene for the lap.'],
     ['level.html', 'Test level: the golden hen', 'Jack looks after the golden hen: the first test level.'],
   ],
-  data: ['js/capture-cams.js', 'js/castle-layout.js', 'js/farm-layout.js', 'js/gerda-pose.js', 'js/lap-poses.js'],
+  data: ['js/capture-cams.js', 'js/castle-layout.js', 'js/farm-layout.js', 'js/gerda-pose.js', 'js/gerda-pose-half.js', 'js/lap-poses.js'],
   files: ['js/game.js', 'js/menus.js', 'js/debuglib.js', 'js/buildbadge.js', 'js/blocky.js', 'js/cast.js', 'js/audio.js', 'js/pain.js', 'js/farm.js', 'js/opening.js', 'js/touchui.js', 'js/market.js', 'js/road.js', 'js/night.js', 'js/correction.js', 'js/garden.js',
     'js/chapter3.js', 'js/climb.js', 'js/meadow.js', 'js/castle.js', 'js/castlewalk.js', 'js/lap.js', 'js/level.js'],
 };
