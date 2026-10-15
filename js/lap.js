@@ -196,7 +196,7 @@ function create(view, opts) {
   const ARM_REACH = Object.assign({ x: 0, y: 0, z: 0.1, e: 0.2 }, root.LapArms && root.LapArms.reach, opts.armReach || {});      // (his hand going back for his belt)
   const SIZE_MIN = 0.5;                       // below this the poses do not reach (the lower limit of the position)
   // Editable poses: Hand, Paddle and Birch { rest, raised, contactL, contactR } for Gerda (the contact pose is per cheek, and per implement), and Jack { base, react }.
-  const GERDA_BEATS = ['rest', 'raised', 'contactL', 'contactR'], WIELD = ['hand', 'paddle', 'birch'];
+  const GERDA_BEATS = ['rest', 'raised', 'contactL', 'contactR'], WIELD = ['hand', 'paddle', 'birch', 'hand~reach', 'hand~hold'];      // ('hand~reach' and 'hand~hold' are laid over 'hand' while Jack's arm is reaching for his belt or pinned behind him)
   for (const pos in SETS) for (const k of [100, 50]) {
     const e = SETS[pos][k]; e.gerda = e.gerda || {}; e.jack = e.jack || {};
     for (const w of WIELD) { e.gerda[w] = e.gerda[w] || {}; for (const b of GERDA_BEATS) e.gerda[w][b] = e.gerda[w][b] || {}; }
@@ -208,7 +208,9 @@ function create(view, opts) {
   let editKey = 100;                          // the set the editor is working on (Jack is held at that size while it is open)
   const sizeT = () => clamp((st.size - SIZE_MIN) / (1 - SIZE_MIN), 0, 1);    // 0 at 50%, 1 at 100%
   // The set of edits in force for a figure's bones: Gerda's depend on the implement in hand.
-  const setOf = (who, key) => EDITS[key][who === 'gerda' ? 'gerda' : 'jack'][st.implement];      // each body's poses for the implement in hand
+  const setOf = (who, key, imp) => EDITS[key][who === 'gerda' ? 'gerda' : 'jack'][imp || st.implement];
+  const variant = () => st.implement !== 'hand' ? null : (st.armHold || 0) > 0.5 ? 'hand~hold' : (st.armReach || 0) > 0.5 ? 'hand~reach' : null;       // (the arm pose in force has offsets of its own)
+  const editImp = () => variant() || st.implement;       // (what the editor works on)      // each body's poses for the implement in hand
   const BONES = {
     gerda: { torso: gerda.torso, neck: gerda.neck, armL: gerda.armL, armR: gerda.armR, elbowL: gerda.elbowL, elbowR: gerda.elbow, wristR: gerda.wrist, thighL: gerda.legL.thigh, thighR: gerda.legR.thigh, kneeL: gerda.legL.knee, kneeR: gerda.legR.knee, paddle: tool, birch: birchTool },
     jack: { frame, torso: jack.torso, neck: jack.neck, glutes: glutesTilt, armL: jack.armL, armR: jack.armR, elbowL: jack.elbowL, elbowR: jack.elbow, thighL: jack.legL.thigh, thighR: jack.legR.thigh, kneeL: jack.legL.knee, kneeR: jack.legR.knee },
@@ -229,11 +231,12 @@ function create(view, opts) {
     let any = false; const rr = [0, 0, 0], pp = [0, 0, 0];
     const t = sizeT();
     for (const [key, wk] of [[50, 1 - t], [100, t]]) {            // blend the two sets by Jack's size
-      if (!wk) continue; const set = setOf(who, key);
+      if (!wk) continue;
+      for (const imp of [st.implement, variant()]) { if (!imp) continue; const set = setOf(who, key, imp);
       for (const beat in weights) {
         const e = set[beat] && set[beat][n], wt = weights[beat] * wk; if (!e || !wt) continue;
         any = true; for (let i = 0; i < 3; i++) { rr[i] += wt * (e.r ? e.r[i] : 0); pp[i] += wt * (e.p ? e.p[i] : 0); }
-      }
+      } }
     }
     return any ? { q: new THREE.Quaternion().setFromEuler(new THREE.Euler(rr[0] * DEG, rr[1] * DEG, rr[2] * DEG, 'YXZ')), p: pp } : null;
   }
@@ -704,21 +707,21 @@ function create(view, opts) {
   // position and implement are the scene's own (chosen outside the editor).
   const cur = { fig: 'giver', beat: 'contactL' };
   const bodyOf = fig => fig === 'jack' ? 'jack' : 'gerda';
-  const setFor = fig => SETS[posKey()][editKey][bodyOf(fig)][st.implement];
+  const setFor = fig => SETS[posKey()][editKey][bodyOf(fig)][editImp()];
   const editor = {
     beats: GERDA_BEATS,
     bones: fig => Object.keys(BONES[bodyOf(fig)]).filter(n => (n !== 'paddle' || st.implement === 'paddle') && (n !== 'birch' || st.implement === 'birch')),
     // Can the scene be posed as it is? (the knee or the table, once he is there; the birch is for the table)
     editable() { return st.blend >= 1 && (st.to === 'table' || (st.to === 'lap' && st.implement !== 'birch')); },
     // What is locked for a bone at a beat (as loaded), and the sliders' values: the edit relative to it.
-    locked(fig, beat, bone) { const e = (((LOCK[posKey()][editKey][bodyOf(fig)][st.implement] || {})[beat]) || {})[bone] || {}; return { r: (e.r || [0, 0, 0]).slice(), p: (e.p || [0, 0, 0]).slice() }; },
+    locked(fig, beat, bone) { const e = (((LOCK[posKey()][editKey][bodyOf(fig)][editImp()] || {})[beat]) || {})[bone] || {}; return { r: (e.r || [0, 0, 0]).slice(), p: (e.p || [0, 0, 0]).slice() }; },
     get(fig, beat, bone) { const e = setFor(fig)[beat][bone] || {}, l = editor.locked(fig, beat, bone); return { r: [0, 1, 2].map(i => (e.r ? e.r[i] : 0) - l.r[i]), p: [0, 1, 2].map(i => (e.p ? e.p[i] : 0) - l.p[i]) }; },
     set(fig, beat, bone, r, p) {                      // r and p are offsets from the locked pose
       const set = setFor(fig)[beat], l = editor.locked(fig, beat, bone), R = r.map((x, i) => x + l.r[i]), P = p.map((x, i) => x + l.p[i]);
       if (R.every(v => Math.abs(v) < 0.05) && P.every(v => Math.abs(v) < 0.005)) delete set[bone]; else set[bone] = { r: R, p: P };
     },
     resetBone(fig, beat, bone) { const set = setFor(fig)[beat], l = editor.locked(fig, beat, bone); if (l.r.some(v => v) || l.p.some(v => v)) set[bone] = l; else delete set[bone]; },
-    resetBeat(fig, beat) { const lk = (((LOCK[posKey()][editKey][bodyOf(fig)][st.implement] || {})[beat]) || {}); setFor(fig)[beat] = JSON.parse(JSON.stringify(lk)); },
+    resetBeat(fig, beat) { const lk = (((LOCK[posKey()][editKey][bodyOf(fig)][editImp()] || {})[beat]) || {}); setFor(fig)[beat] = JSON.parse(JSON.stringify(lk)); },
     clear() { for (const f of ['giver', 'jack']) for (const b of GERDA_BEATS) editor.resetBeat(f, b); },
     sizeMin: SIZE_MIN,
     hold(fig, beat) {
@@ -743,7 +746,7 @@ function create(view, opts) {
           return `${n}: { ${parts.join(', ')} }`; });
         return `${pad}${b}: {${bones.length ? '\n' + pad + '  ' + bones.join(',\n' + pad + '  ') + ',\n' + pad : ''}}`;
       }).join(',\n');
-      const body = (set, ind) => WIELD.map(w => `${ind}    ${w}: {\n${dump(set[w], GERDA_BEATS, ind + '      ')},\n${ind}    }`).join(',\n');
+      const body = (set, ind) => WIELD.map(w => `${ind}    ${/^\w+$/.test(w) ? w : "'" + w + "'"}: {\n${dump(set[w], GERDA_BEATS, ind + '      ')},\n${ind}    }`).join(',\n');
       const one = (pos, k, ind) => { const e = SETS[pos][k]; return `${ind}${k}: {\n${ind}  gerda: {\n${body(e.gerda, ind)},\n${ind}  },\n${ind}  jack: {\n${body(e.jack, ind)},\n${ind}  },\n${ind}},`; };
       return `root.LapPoses = {\n${one('lap', 100, '  ')}\n${one('lap', 50, '  ')}\n  table: {\n${one('table', 100, '    ')}\n${one('table', 50, '    ')}\n  },\n};`;
     },
