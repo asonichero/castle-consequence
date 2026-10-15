@@ -210,8 +210,8 @@ function create(view, opts) {
   // The set of edits in force for a figure's bones: Gerda's depend on the implement in hand.
   const setOf = (who, key) => EDITS[key][who === 'gerda' ? 'gerda' : 'jack'][st.implement];      // each body's poses for the implement in hand
   const BONES = {
-    gerda: { torso: gerda.torso, neck: gerda.neck, armL: gerda.armL, armR: gerda.armR, elbowR: gerda.elbow, wristR: gerda.wrist, thighL: gerda.legL.thigh, thighR: gerda.legR.thigh, kneeL: gerda.legL.knee, kneeR: gerda.legR.knee, paddle: tool, birch: birchTool },
-    jack: { frame, torso: jack.torso, neck: jack.neck, glutes: glutesTilt, armL: jack.armL, armR: jack.armR, thighL: jack.legL.thigh, thighR: jack.legR.thigh, kneeL: jack.legL.knee, kneeR: jack.legR.knee },
+    gerda: { torso: gerda.torso, neck: gerda.neck, armL: gerda.armL, armR: gerda.armR, elbowL: gerda.elbowL, elbowR: gerda.elbow, wristR: gerda.wrist, thighL: gerda.legL.thigh, thighR: gerda.legR.thigh, kneeL: gerda.legL.knee, kneeR: gerda.legR.knee, paddle: tool, birch: birchTool },
+    jack: { frame, torso: jack.torso, neck: jack.neck, glutes: glutesTilt, armL: jack.armL, armR: jack.armR, elbowL: jack.elbowL, elbowR: jack.elbow, thighL: jack.legL.thigh, thighR: jack.legR.thigh, kneeL: jack.legL.knee, kneeR: jack.legR.knee },
   };
   const frameBase = frame.quaternion.clone(), glutesBase = glutesTilt.quaternion.clone(), basePos = new Map();
   for (const w in BONES) for (const n in BONES[w]) basePos.set(BONES[w][n], BONES[w][n].position.clone());
@@ -359,7 +359,7 @@ function create(view, opts) {
     for (const key of ['armL', 'armR']) { const a = g[key]; a.rotation.set(gerda.state.armX, 0, -a.userData.sign * gerda.state.armIn); }
     paddle.visible = !!impl.paddle && st.armed; birch.visible = !!impl.birch && st.armed; tool.rotation.set(0, 0, Math.PI / 2); birchTool.quaternion.identity();
     g.root.updateMatrixWorld(true);
-    applyEdits('gerda', ['torso', 'neck', 'armL', 'armR', 'elbowR', 'wristR', 'thighL', 'thighR', 'kneeL', 'kneeR'], gw);
+    applyEdits('gerda', ['torso', 'neck', 'armL', 'armR', 'elbowL', 'elbowR', 'wristR', 'thighL', 'thighR', 'kneeL', 'kneeR'], gw);
     if (impl.paddle) applyEdits('gerda', ['paddle'], gw);
     if (impl.birch) { birchFlex(sw, sw ? sw.tau : 1); applyEdits('gerda', ['birch'], gw); }
     // Playing (not editing): as the stroke lands, the arm is aimed so that the birch lies across both cheeks, its length along the line from the near cheek to the far one and its middle
@@ -421,7 +421,7 @@ function create(view, opts) {
     g.root.updateMatrixWorld(true);
     // Left hand rests on Jack's back.
     const sL = world(g.armL), tL = ((st.armHold || 0) > 0.5 || (st.armReach || 0) > 0.5) && jack.wrist ? (jack.root.updateMatrixWorld(true), jack.wrist.localToWorld(new V3(0, -3.5, 0))) : world(upperBack);
-    armToSide(g, 'armL', tL, POLE_L); applyEdits('gerda', ['armL'], gw);
+    armToSide(g, 'armL', tL, POLE_L); applyEdits('gerda', ['armL', 'elbowL'], gw);
     // Right arm: shoulder, elbow and wrist (the forearm's own twist). Contact pose: the hand's forearm end, or the paddle's mount, is brought to where
     // it lands; the raised pose lifts the elbow up and forward. They blend by how far the swing has come.
     const sh = world(g.armR);
@@ -508,7 +508,7 @@ function create(view, opts) {
       const H = ARM_HOLD, R = ARM_REACH, m = (a, b) => a + (b - a) * ah, r = (a, b) => a + (b - a) * ar;
       j.armR.rotation.set(m(r(p.aRx, R.x), H.x), m(r(0, R.y), H.y), m(r(p.aRz, R.z), H.z)); if (j.elbow) j.elbow.rotation.set(m(r(p.eR, R.e), H.e), 0, 0); if (j.wrist) j.wrist.rotation.set(0, m(0, H.w), 0); st._ah = ah > 0 || ar > 0;
     }
-    applyEdits('jack', ['torso', 'neck', 'glutes', 'armL', 'armR', 'thighL', 'thighR', 'kneeL', 'kneeR'], jackWeights());
+    applyEdits('jack', ['torso', 'neck', 'glutes', 'armL', 'armR', 'elbowL', 'elbowR', 'thighL', 'thighR', 'kneeL', 'kneeR'], jackWeights());
   };
 
   // ── Frame loop ──────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -578,7 +578,8 @@ function create(view, opts) {
       H('neck', 'aim', 'Head', hpt(gerda.neck, 0, 4, 0)),
       H('torso', 'aim', 'Chest (turns and leans the torso)', hpt(gerda.torso, 0, 12, 0)),
       H('torso', 'move', 'Torso (moves it)', hpt(gerda.torso, 0, 2, 0)),
-      H('armL', 'aim', 'Left hand (swings the left arm)', hpt(gerda.armL, 0, -10, 0)),
+      H('armL', 'aim', 'Left elbow (swings the left upper arm)', gerda.elbowL),
+      H('elbowL', 'aim', 'Left hand (bends the left elbow)', hpt(gerda.wristL, 0, -6, 0)),
       H('armR', 'aim', 'Right elbow (swings the right upper arm)', gerda.elbow),
       H('elbowR', 'aim', 'Right hand (bends the elbow)', hpt(gerda.wrist, 0, -6, 0)),
       H('wristR', 'twist', 'Right wrist twist (turns the forearm, hand and paddle about the forearm)', hpt(gerda.wrist, 2.4, -3, 0), new V3(0, 1, 0)),
@@ -593,7 +594,8 @@ function create(view, opts) {
       H('frame', 'move', 'Jack (moves his whole body on her lap)', hpt(frame, 0, 0, 0)),
       H('torso', 'aim', 'Shoulders (turns his torso)', hpt(jack.torso, 0, 12, 0)),
       H('neck', 'aim', 'Head', hpt(jack.neck, 0, 4, 0)),
-      H('armL', 'aim', 'Left hand', hpt(jack.armL, 0, -10, 0)), H('armR', 'aim', 'Right hand', hpt(jack.armR, 0, -10, 0)),
+      H('armL', 'aim', 'Left elbow (swings the upper arm)', jack.elbowL), H('elbowL', 'aim', 'Left hand (bends the elbow)', hpt(jack.elbowL, 0, -6, 0)),
+      H('armR', 'aim', 'Right elbow (swings the upper arm)', jack.elbow), H('elbowR', 'aim', 'Right hand (bends the elbow)', hpt(jack.elbow, 0, -6, 0)),
       H('glutes', 'aim', 'Glutes block (tilts it)', hpt(glutesTilt, 0, -5.2, 2.25)),
       H('thighL', 'aim', 'Left knee', hpt(jack.legL.thigh, 0, -6, 0)), H('kneeL', 'aim', 'Left foot', hpt(jack.legL.knee, 0, -6, 0)),
       H('thighR', 'aim', 'Right knee', hpt(jack.legR.thigh, 0, -6, 0)), H('kneeR', 'aim', 'Right foot', hpt(jack.legR.knee, 0, -6, 0)),
@@ -605,6 +607,7 @@ function create(view, opts) {
     neck: 'Head: tilts and turns the head from the base of the neck.',
     armL: 'Left arm: swings the whole left arm from the shoulder.',
     armR: 'Right shoulder: swings the whole right arm from the shoulder; the forearm follows.',
+    elbowL: 'Left elbow: bends the left forearm (and hand) at the elbow.',
     elbowR: 'Right elbow: bends the right forearm (and hand) at the elbow.',
     wristR: 'Right wrist: the forearm turned about its own length (twist), and the forearm, hand and paddle mount moved as a unit (position). It does not bend the elbow.',
     paddle: 'Paddle: swings the paddle at its mount on the forearm, and rolls the blade.',
