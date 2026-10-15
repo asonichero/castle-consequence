@@ -599,6 +599,7 @@ function run(G, W, opts) {
         const t = clamp((-90 - st.pos.x) / 183, 0, 1), target = 0.25 + 0.10 * t; if (target > st.s) { st.s = target; c3.grow = target; }
         if (t > 0.3 && !c3.g1) { c3.g1 = true; say('Odd. My boots are tighter than they were. Am I... bigger?'); }
         if (t > 0.95 && !c3.g2) { c3.g2 = true; say('A little more with every step. Whatever this place does to me, it isn’t finished.'); } }
+      { const inN = st.pos.x > -312 && st.pos.x < -100 && (c3.inN ? st.pos.z < -158 : st.pos.z < -168) && st.pos.z > -292; if (inN !== !!c3.inN) { c3.inN = inN; if (A && A.ctx && !opts.ch3notes) A.startMusic({ theme: inN ? 'nursery' : 'castle' }); } }       // (the nursery has its own music)
       if (!c3.n40 && st.pos.x > -312 && st.pos.x < -100 && st.pos.z < -166 && st.pos.z > -292) c3.n40 = true;                                  // (inside the nursery he grows to forty per cent, and says nothing of it)
       if (c3.n40 && st.s < 0.4) st.s = Math.min(0.4, st.s + dt * 0.03);
       if (!st.busy && !c3.done) { let best = null, bd = 1e9; for (const t of c3.targets) { const d = Math.hypot(t.g.position.x - st.pos.x, t.g.position.z - st.pos.z); if (d < LK[t.cat].r && d < bd) { best = t; bd = d; } }
@@ -675,7 +676,8 @@ function run(G, W, opts) {
       $('cwObjt').style.display = 'none';
     }
     const f = $('fade');
-    if (ch3) { if (opts.ch3notes === 'close') { st.scene = true; st.s = 0.4; makeG('Work'); gerda.root.visible = false; const cg = M.items.chest.g.position; st.pos.set(cg.x - 12, 0, cg.z + 10); st.heading = Math.PI / 2; $('cwPanel').style.display = 'none'; await chestScene(); return; } await ch3Open(); return; }
+    if (ch3) { if (opts.ch3start === 'nursery') { makeG('Work'); gerda.root.visible = false; st.s = 0.35; st.pos.set(-294, 0, -172); st.heading = Math.PI; st.camA = Math.atan2(-Math.cos(st.heading), -Math.sin(st.heading)); st.pitch = 0.45; st.zoom = 1; camPos.set(0, 0, 0); G.skipping = false; st.scene = false; st.pose = null; $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); f.style.transition = ''; await G.fade(false, 1.0); return; }
+      if (opts.ch3notes === 'close') { st.scene = true; st.s = 0.4; makeG('Work'); gerda.root.visible = false; const cg = M.items.chest.g.position; st.pos.set(cg.x - 12, 0, cg.z + 10); st.heading = Math.PI / 2; $('cwPanel').style.display = 'none'; await chestScene(); return; } await ch3Open(); return; }
     if (!story) { G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); f.style.transition = ''; await G.fade(false, 1.2); return; }
     // ── The story: the hall, from a few angles, and what it says to him; then it is his. ──
     st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwPanel').style.display = 'none'; G.save({ step: 'castle' });

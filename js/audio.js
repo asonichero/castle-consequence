@@ -60,6 +60,11 @@ const THEMES = {
     if (beat === 0) { for (const m of chord) tone(hz(m - 12), t, 8.4, 'sawtooth', 0.016, 2.2); tone(hz(36), t, 8.4, 'sine', 0.1, 1.6); tone(hz(43), t, 8.4, 'sine', 0.05, 1.6); }
     const m = MEL[bar][beat]; if (m) { tone(hz(m), t, 2.2, 'triangle', 0.045); tone(hz(m + 12), t, 0.9, 'sine', 0.014); } } },
 };
+THEMES.nursery = { dt: 0.5, cut: 3400, play(step, t, tone, rnd) {                    // a music-box lullaby in three, a little out of tune, over a low, slow pad
+  const CH = [[48, 55], [45, 52], [41, 48], [43, 50], [48, 55], [40, 52], [41, 48], [48, 55]], MEL = [[79, 0, 76, 0, 72, 0], [76, 0, 72, 0, 69, 0], [77, 0, 74, 0, 72, 0], [71, 0, 74, 0, 79, 0], [79, 0, 76, 0, 72, 0], [76, 0, 79, 0, 83, 0], [81, 0, 77, 0, 74, 0], [72, 0, 0, 0, 0, 0]], bar = Math.floor(step / 6) % 8, beat = step % 6;
+  if (beat === 0) { for (const m of CH[bar]) tone(hz(m), t, 3.2, 'sine', 0.06, 1.1); }
+  const m = MEL[bar][beat]; if (m) { tone(hz(m), t, 1.5, 'sine', 0.05); tone(hz(m) * 4, t, 0.22, 'sine', 0.011); if (bar % 2 === 1 && rnd() < 0.7) tone(hz(m) * 1.034, t + 0.02, 1.1, 'sine', 0.013); }       // (the shadow note, a hair sharp, as if the box has gone slightly off)
+} };
 THEMES.dark = Object.assign({}, THEMES.pastoral, { cut: 700 });
 A.startMusic = function (opts) {
   if (!A.ctx) return; const want = (opts && opts.theme) || (opts && opts.dark ? 'dark' : 'pastoral'); if (A.musicOn && A.musicTheme === want) return;
