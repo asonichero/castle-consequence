@@ -452,8 +452,11 @@ function create(view, opts) {
     const sh = world(g.armR);
     const hand = !impl.paddle && !impl.birch, reachM = impl.paddle ? PAD_M : hand ? PALM_M : LF;
     const nInW = new V3(0, 0, 1).applyQuaternion(glutesTilt.getWorldQuaternion(tmpQ)).normalize();       // (into his skin, from the back face of the glutes block)
-    // The elbow's place about the line from shoulder to hand: the one that lays her forearm flattest on his skin (the palm lands, rather than the end of a fist), the nearest to the usual one, and clear of him.
-    const flat = (S, M, m, n) => { const ud = M.clone().sub(S).normalize(); let best = null; for (let a = -180; a <= 180; a += 10) { const ik = twoBone(S, M, m, POLE.clone().applyAxisAngle(ud, a * DEG)), E = S.clone().addScaledVector(ik.u1, LU), cost = Math.abs(ik.f.dot(n)) + 0.25 * Math.abs(a) / 180 + (E.y < M.y + 1 ? 2 : 0); if (!best || cost < best.cost) best = { cost, ik }; } return best.ik; };
+    // The elbow's place about the line from shoulder to hand: of those that keep her arm clear of her own head, the one that lays her forearm flattest on his skin when n is given (the palm lands,
+    // rather than the end of a fist), and the nearest to the usual one, and clear of him.
+    g.root.updateMatrixWorld(true);
+    const headAt = g.neck.localToWorld(new V3(0, 4, 0.5)), segD = (a, b, c) => { const ab = b.clone().sub(a), t = clamp(c.clone().sub(a).dot(ab) / ab.lengthSq(), 0, 1); return a.clone().addScaledVector(ab, t).distanceTo(c); };
+    const flat = (S, M, m, n) => { const ud = M.clone().sub(S).normalize(); let best = null; for (let a = -180; a <= 180; a += 10) { const ik = twoBone(S, M, m, POLE.clone().applyAxisAngle(ud, a * DEG)), E = S.clone().addScaledVector(ik.u1, LU), clear = Math.min(segD(S, E, headAt), segD(E, M, headAt)), cost = (n ? Math.abs(ik.f.dot(n)) : 0) + 0.25 * Math.abs(a) / 180 + (E.y < M.y + 1 ? 2 : 0) + Math.max(0, 7.5 - clear) * 0.8; if (!best || cost < best.cost) best = { cost, ik }; } return best.ik; };
     // The birch: the fist is brought to a point above the skin, near the shoulder (about BIRCH_FIST from it), so that the twigs, running on from the fist along u, lie on the
     // skin with their middle (BIRCH_AT from the fist) on T. The forearm and the birch then differ by the bend of the wrist.
     let birchU = new V3(0, -1, 0);
@@ -466,18 +469,19 @@ function create(view, opts) {
       return { u, H };
     };
     const solve = (Mt, withSide) => {        // pose params for the forearm's point m to reach Mt (the paddle: its blade's middle then lands on T)
-      if (impl.birch) { const r = birchContact(); birchU = r.u; return twoBone(sh, r.H, reachM); }
+      if (impl.birch) { const r = birchContact(); birchU = r.u; return flat(sh, r.H, reachM, null); }
       if (hand) return flat(sh, Mt, reachM, nInW);
       let M = Mt, ik;
       for (let it = 0; it < (withSide ? 4 : 1); it++) {
-        ik = twoBone(sh, M, reachM);
+        ik = flat(sh, M, reachM, null);
         if (withSide) M = Mt.clone().addScaledVector(sideOf(ik.f), -PAD_SIDE);
       }
       return ik;
     };
     const contact = solve(T, impl.paddle);
     const ud = T.clone().sub(sh).normalize();
-    const raisedIK = twoBone(sh, sh.clone().addScaledVector(ud.clone().multiplyScalar(0.35).addScaledVector(UP, 0.95).normalize(), reachM * 0.95), reachM);
+    const outward = sh.clone().sub(headAt); outward.y = 0; outward.normalize();       // (raised up and a little out from her head, not past her face)
+    const raisedIK = flat(sh, sh.clone().addScaledVector(ud.clone().multiplyScalar(0.35).addScaledVector(UP, 0.95).addScaledVector(outward, 0.6).normalize(), reachM * 0.95), reachM, null);
     const armPose = (ik, palmTo) => {                 // set the arm to ik, return its local pivot rotation, elbow flexion and wrist twist
       aim(g.armR, ik.u1);
       const h = new V3().crossVectors(ik.u1, ik.f); let psi = Math.acos(clamp(ik.u1.dot(ik.f), -1, 1));
