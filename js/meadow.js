@@ -108,6 +108,7 @@ function addGear(rig) {
   const knife = new THREE.Group(); box(1.2, 8, 0.8, plain('#b9bfc8'), 0, -4.5, 0, knife); box(1.6, 3.6, 1.2, plain('#4a3626'), 0, 0, 0, knife); box(3, 0.7, 1.4, plain('#b8923a'), 0, -1.8, 0, knife); knife.position.set(-5.6, 2, 0.4); rig.hips.add(knife);
   const satchel = new THREE.Group(); box(1.3, 10, 4.7, plain('#6a4a2e'), 0, 6.5, 0, satchel).rotation.z = 0.37; box(2.6, 7, 8, plain('#8a6a42'), 5.4, 3, 0, satchel); box(2.9, 3, 8.2, plain('#6a4a2e'), 5.4, 5.6, 0, satchel); box(0.8, 1.6, 1.4, plain('#b8923a'), 6.9, 4.4, 0, satchel); rig.torso.add(satchel);
   const flask = new THREE.Group(); box(2.6, 5.6, 2.6, plain('#6f8294'), 0, -2.8, 0, flask); box(1.2, 1.4, 1.2, plain('#c8a060'), 0, 0.6, 0, flask); box(0.5, 4, 0.5, plain('#4a3626'), 0, 2.6, 0, flask); flask.position.set(-4.6, 1, 2.6); rig.hips.add(flask);
+  rig.gear = { knife, satchel, flask };
   return g;
 }
 

@@ -126,7 +126,7 @@ async function playCh3(start) {
 async function playCh3Disc() {
   G.skipping = false; hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';
   const W = root.Night.build(G); $('fade').style.transition = 'none'; $('fade').style.opacity = 1; await new Promise(r => setTimeout(r, 60)); $('fade').style.transition = '';
-  await root.CastleWalk.run(G, W, { ch3: true, ch3disc: true, ch3lies: 1 }); showEnd();
+  await root.CastleWalk.run(G, W, { ch3: true, ch3disc: true, ch3lies: 1, ch3after: /[?&]after\b/.test(root.location.search) }); showEnd();
 }
 async function playChapter3(only) {
   hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';

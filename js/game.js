@@ -53,12 +53,13 @@ function create(els) {
   els.stage.addEventListener('pointerdown', () => { if (G.mode === 'cutscene' && !G.manual) tap(); });
   subs.addEventListener('pointerdown', e => { e.stopPropagation(); if (G.mode === 'cutscene') tap(); });
   const WHO = { mother: ['Mother', '#e6b8a0'], jack: ['Jack', '#a8d8a0'], gerda: ['Gerda', '#e6a0c0'], peddler: ['Peddler', '#c8c090'], merchant: ['Merchant', '#a0c8f0'], narrator: ['', '#e6c46a'] };
+  const whoOf = who => { const w = WHO[who] || [who, '#e6c46a']; return who === 'gerda' && !G.gerdaNamed ? ['The Giantess', w[1]] : w; };       // (Jack does not know her name until she gives it)
   let capTok = 0; const caps = new Set(), supersede = () => { capTok++; for (const f of [...caps]) f(); }, live = { say: 0 };      // (a spoken line ends any caption still up, and no caption is drawn over a line while it is up: the two used to overwrite, and hide, each other)
   G.say = (who, text, opts) => new Promise(resolve => {
     const ep = G.epoch;
     if (G.skipping || (!G.settings.subtitles && !(opts && opts.force))) { resolve(); return; }
     supersede(); live.say++;
-    const w = WHO[who] || [who, '#e6c46a']; subWho.textContent = w[0]; subWho.style.color = w[1]; subs.style.display = 'block'; subText.textContent = '';
+    const w = whoOf(who); subWho.textContent = w[0]; subWho.style.color = w[1]; subs.style.display = 'block'; subText.textContent = '';
     const cps = 34 * G.settings.speed, typeSecs = Math.max(0.6, text.length / cps), voice = Audio_ && who !== 'narrator' ? Audio_.speak(who, text, typeSecs, { muffle: opts && opts.muffle }) : null;
     const t0 = G.t; let typed = false, holdAt = null, poll = null, typing = null; const gateBtn = document.getElementById('subGate');
     let closed = false; const close = () => { if (!closed) { closed = true; live.say = Math.max(0, live.say - 1); } clearInterval(typing); clearInterval(poll); if (voice) voice.stop(); if (ep !== G.epoch) return; advance = null; if (gateBtn) gateBtn.style.display = 'none'; if (!G.keepLine) subs.style.display = 'none'; resolve(); };
@@ -75,7 +76,7 @@ function create(els) {
   // A caption: a line spoken over the scene while it goes on (nothing waits for it, though the promise resolves when it has had its time). The next caption replaces it.
   G.caption = (who, text, opts) => new Promise(resolve => {
     if (live.say > 0) { resolve(); return; }
-    const tok = ++capTok, w = WHO[who] || [who, '#e6c46a'], cps = 34 * G.settings.speed, typeSecs = Math.max(0.6, text.length / cps), holdSecs = Math.max(1.1, text.length * 0.048 / G.settings.speed);
+    const tok = ++capTok, w = whoOf(who), cps = 34 * G.settings.speed, typeSecs = Math.max(0.6, text.length / cps), holdSecs = Math.max(1.1, text.length * 0.048 / G.settings.speed);
     subWho.textContent = w[0]; subWho.style.color = w[1]; subs.style.display = 'block'; subText.textContent = '';
     const voice = Audio_ && who !== 'narrator' ? Audio_.speak(who, text, typeSecs, { muffle: opts && opts.muffle }) : null, t0 = G.t, ep = G.epoch;
     const finish = () => { clearInterval(iv); caps.delete(finish); if (voice && voice.stop) voice.stop(); if (tok === capTok) subs.style.display = 'none'; resolve(); };
@@ -89,7 +90,7 @@ function create(els) {
   G.captionOff = () => { capTok++; for (const f of [...caps]) f(); subs.style.display = 'none'; };
   // A choice for the player: buttons inside the dialogue box (or the keys 1 to 9); resolves with the index picked.
   G.choose = (who, options) => new Promise(resolve => {
-    const w = WHO[who] || [who, '#e6c46a'], box = document.getElementById('subChoices'); subWho.textContent = w[0]; subWho.style.color = w[1]; subText.textContent = ''; subs.style.display = 'block'; box.innerHTML = ''; box.style.display = 'block'; advance = null;
+    const w = whoOf(who), box = document.getElementById('subChoices'); subWho.textContent = w[0]; subWho.style.color = w[1]; subText.textContent = ''; subs.style.display = 'block'; box.innerHTML = ''; box.style.display = 'block'; advance = null;
     const pick = i => { clearInterval(poll); root.removeEventListener('keydown', onKey, true); box.style.display = 'none'; box.innerHTML = ''; subs.style.display = 'none'; resolve(i); };
     const onKey = e => { const n = parseInt(e.key, 10); if (n >= 1 && n <= options.length) { e.preventDefault(); e.stopPropagation(); pick(n - 1); } };
     options.forEach((o, i) => { const b = document.createElement('button'); b.className = 'choice'; b.textContent = (i + 1) + '. ' + o; b.onclick = e => { e.stopPropagation(); pick(i); }; box.appendChild(b); });
