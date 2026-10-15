@@ -258,7 +258,11 @@ function interior() {
     const br = at(0, 4, 1.6); g.add(br); B(0.9, 18, 0.9, '#8a6a40', 0, 9, 0, br); B(3.4, 5, 2.2, '#c9b06a', 0, 2.5, 0, br); B(3, 1, 2, '#6a5030', 0, 5.4, 0, br); br.rotation.x = -0.12;
     movable('henRack', 'Rack, with the broom', g, { x: 252.5, z: -268, ry: Math.PI / 2 }); }
   { const g = at(0, 0, 0); B(8, 0.5, 8, '#8a8a90', 0, 0.25, 0, g); const bk = at(0, 0.5, 0); g.add(bk); B(4.4, 4, 4.4, '#7a5a38', 0, 2, 0, bk); B(3.6, 0.6, 3.6, '#6ab8f6', 0, 3.8, 0, bk); B(0.5, 3, 0.5, '#4a3a2a', 0, 6, 0, bk); movable('henBucket', 'The bucket, on its flagstone', g, { x: 262, z: -284, ry: 0 }); }
-  { const g = at(0, 0, 0); B(9, 10, 7, '#c2a678', 0, 5, 0, g); B(7, 2, 5, '#e0c46a', 0, 10.4, 0, g); B(9.2, 1, 7.2, '#8a7448', 0, 8, 0, g); movable('henSack', 'Sack of grain', g, { x: 378, z: -323, ry: 0 }); }
+  { const g = at(0, 0, 0), W = 14, D = 10, H = 9, wd = '#6a4a30';       // the feed store: a lidded bin like the velvet box (its lid hinged at the back), so that the hen cannot get in
+    B(W, 0.8, D, wd, 0, 0.4, 0, g); B(W, H, 0.8, wd, 0, H / 2, -D / 2 + 0.4, g); B(W, H, 0.8, wd, 0, H / 2, D / 2 - 0.4, g); for (const sx of [-1, 1]) B(0.8, H, D - 1.6, wd, sx * (W / 2 - 0.4), H / 2, 0, g);
+    B(W - 1.6, 0.4, D - 1.6, '#e0c46a', 0, H - 1.6, 0, g); for (const sx of [-1, 1]) B(1.2, H + 0.4, 1.2, '#4a3420', sx * (W / 2), (H + 0.4) / 2, D / 2, g);
+    const lid = at(0, H, -D / 2); g.add(lid); B(W + 0.8, 1.1, D + 0.8, wd, 0, 0.55, D / 2, lid); B(W + 1, 0.4, 1.0, '#c9a23c', 0, 1.1, 0.4, lid); B(W + 1, 0.4, 1.0, '#c9a23c', 0, 1.1, D - 0.4, lid); B(2.2, 1.2, 1, '#c9a23c', 0, 0.6, D + 0.5, lid);
+    g.userData.box = { lid }; movable('henSack', 'The feed store, with a lid', g, { x: 378, z: -323, ry: 0 }); }
   { const g = at(0, 0, 0); B(8, 2, 8, '#6a4a30', 0, 1, 0, g); B(6, 1, 6, '#2a1d12', 0, 2, 0, g); movable('henDish', 'The hen\'s dish', g, { x: 334, z: -298, ry: 0 }); }
   { const g = at(0, 0, 0); B(14, 3.2, 6, '#6a4a30', 0, 1.6, 0, g); B(12, 2.4, 4, '#2a1d12', 0, 3, 0, g); B(11.6, 0.7, 3.6, '#6ab8f6', 0, 4, 0, g); g.scale.setScalar(1.75); movable('henTrough', 'Water trough', g, { x: 346, z: -324, ry: 0 }); }
   { const g = at(0, 0, 0); for (const [x, z] of [[-4, -4], [4, -4], [-4, 4], [4, 4]]) B(3, 7, 3, '#8a8a90', x, 3.5, z, g);
@@ -357,6 +361,7 @@ function interior() {
   for (const [x, z] of [[330, -232], [352, -222], [268, -322], [352, -246]]) { const g = at(0, 0, 0), hry = R() * 3; B(16, 9, 12, '#d6b866', 0, 4.5, 0, g); for (let i = 0; i < 6; i++) B(1, 6, 1, '#e8cf80', (R() - 0.5) * 14, 11, (R() - 0.5) * 10, g).rotation.z = (R() - 0.5) * 1.4; movable('hay' + (++hayN), 'Hay bale', g, { x, z, ry: hry }); }
   for (let i = 0; i < 2; i++) { const g = at(0, 0, 0); B(1.6, 16, 1.6, '#5a4026', -8, 8, 0, g); B(1.6, 16, 1.6, '#5a4026', 8, 8, 0, g); B(20, 1.6, 1.6, '#6a4a2e', 0, 15, 0, g); B(18, 1.2, 1.2, '#5a4026', 0, 9, 0, g); movable('perch' + (i + 1), 'Perch', g, { x: 344 + i * 22, z: -214, ry: 0 }); }
   let dirtN = 0;
+  { const g = at(0, 0, 0); B(16, 3, 16, '#6a2860', 0, 12, 0, g); B(3, 24, 16, '#5a2052', -8, 20, 0, g); for (const sx of [-1, 1]) for (const sz of [-1, 1]) B(2, 10.5, 2, '#3a2a20', sx * 6.5, 5.25, sz * 6.5, g); movable('roostChair', 'Straight-backed chair (under the east window)', g, { x: 381, z: -275, ry: Math.PI }); }
   // the dirt to sweep: patches of earth and spilt grain, none within 42 of the door (273, -222), where Gerda and Jack stand to talk
   for (const [x, z, r] of [[318, -270, 9], [350, -268, 11], [300, -296, 8], [340, -240, 7], [262, -300, 8], [366, -238, 6], [330, -262, 7]]) { const g = at(0, 0, 0); B(r * 2, 0.3, r * 1.6, '#4a3722', 0, 0.2, 0, g); for (let i = 0; i < 5; i++) B(2.2, 0.35, 0.7, '#c9a54a', (i - 2) * r * 0.5, 0.45, ((i * 7) % 5 - 2) * 1.2, g).rotation.y = i; movable('dirt' + (++dirtN), 'Dirt to sweep', g, { x, z, ry: x * 0.1 }); }
   // — the garden: stepping-stones, a low bench, barrels, a rain butt, a little fence round the herbs, herbs in pots on the kitchen step —
