@@ -682,7 +682,7 @@ function run(G, W, opts) {
           lap.layers({ drawers: 'up' }); await G.wait(0.8); lap.layers({ trousers: 'up' }); await G.wait(0.8); await ramp('armHold', 0, 0.8); await ramp('armReach', 0, 0.1);
           await G.say('gerda', 'The knife stays with me.'); await G.wait(0.6);
         }
-      } finally { showUI(false); cam.restore(); G.updaters = G.updaters.filter(u => u !== lapTick); }
+      } finally { showUI(false); G.cut({ pos: cam.fc.position.clone(), look: cam.controls.target.clone(), fov: cam.fc.fov }); cam.restore(); G.updaters = G.updaters.filter(u => u !== lapTick); }       // (the game's own camera takes up where the player's was left, for the fade out: it was elsewhere, outside the castle)
 
       G.updaters = G.updaters.filter(u => u !== lapTick);
       await finish('discipline');
