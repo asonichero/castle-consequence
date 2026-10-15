@@ -64,7 +64,7 @@ root.CastleLayout = {
   pump: { x: 123, z: -291, ry: 3.142 },
   roost2: { x: 226, z: -292, ry: -1.571 },
   chest: { x: -108, z: -178, ry: -1.571 },
-  nurseryTable: { x: -150, z: -262, ry: 0 },
-  nurseryChairS: { x: -150, z: -255, ry: 1.571 },
+  nurseryTable: { x: -165, z: -286, ry: 0 },
+  nurseryChairS: { x: -166, z: -280, ry: 1.571 },
 };
 })(typeof window !== 'undefined' ? window : globalThis);
