@@ -122,7 +122,6 @@ function run(G, W, opts) {
     const blockedAt = (x, z, y) => { const r = 4 * st.s, top = y + HEIGHT * st.s * 0.98, up = y + step(); if (x < M.bounds.x0 || x > M.bounds.x1 || z < M.bounds.z0 || z > M.bounds.z1) return true;
       if (open && !open.some(q => x > q[0] && x < q[1] && z > q[2] && z < q[3])) return true;
       if (st.perch && (x < st.perch.x0 || x > st.perch.x1 || z < st.perch.z0 || z > st.perch.z1)) return true;                      // (on a rung he cannot walk off: only jump)
-      if (ch3 && x > 234 && z > -98 && z < -52) return true;                                                 // (he stops short of the parlour doors)
       if (story && st.bread && x < -83.5 && z > -43 && z < -8) return true;                                  // (once he has smelt it, the narrow corridor's doors are as far as he goes)
       for (const e of C.near(x, z, r)) { if (e.low || e.y1 <= up || e.y0 >= top) continue; const cx = clamp(x, e.x0, e.x1), cz = clamp(z, e.z0, e.z1); if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r) return true; } return false; };
     const floorAt = (x, z, y) => { const r = 1.2 * st.s, up = y + step() + 0.5; let g = 0; for (const e of C.near(x, z, r)) { if (e.y1 > up || e.y1 <= g) continue; const cx = clamp(x, e.x0, e.x1), cz = clamp(z, e.z0, e.z1); if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r) g = e.y1; } return g; };
@@ -472,7 +471,6 @@ function run(G, W, opts) {
     const ZONES = {
       door: { in: p => p.z > 90 && Math.abs(p.x) < 30, first: ['That’s the crack I came in by. I’d never squeeze through it now.', 'And I can’t go home with nothing to show for it. Mother’s been frantic since morning, and I know what waits for a son who comes back empty-handed.'], again: ['Maybe there’s another way out.', 'There has to be some other way out of here.', 'Still too big for it. Another way, then.'] },
       nursery: { in: p => p.x > -312 && p.x < -100 && p.z > -292 && p.z < -192, first: ['A nursery. A real one, with a cot and a rocking horse and a whole shelf of toys.', 'I don’t know what to make of it. Where I come from, a toy is a stick and a good imagination.', 'It’s very quiet. It feels like a room that’s waiting for someone.'], again: [] },
-      parlour: { in: p => p.x > 222 && Math.abs(p.z + 75) < 28, first: ['That’s the way she went. I’m in no hurry to run into her again.'], again: ['Not that way. Not while she’s about.', 'She’s still through there. I’ll keep clear.', 'Best to leave her to it.'] },
     };
     // ── The exploration: he may look at what he passes, he grows a little along the narrow corridor, and the nursery ends it. ──
     const c3 = { looks: {}, nL: 0, shift: false, g1: false, g2: false, done: false, targets: [], grow: 0.25 };
@@ -859,18 +857,22 @@ function run(G, W, opts) {
         const bathD = M.doors.find(d => d.axis === 'x' && Math.abs(d.fixed - 295) < 3 && Math.abs(d.c + 160) < 8), roostD = M.doors.find(d => d.axis === 'z' && Math.abs(d.fixed + 208) < 3 && Math.abs(d.c - 273) < 8);
         if (bathD) dA(bathD, Math.abs(bathD.openAng || 1.75), true);       // (the bathroom's door opens into the room, not the corridor)
         if (roostD) dA(roostD, Math.PI / 2, false); }       // (the roost's, a quarter turn, into the hallway)
-      const track = () => { root.Blocky.step(gerda, 0); gerda.root.updateMatrixWorld(true); return wr(); };
       await sayW('gerda', 'Up you come, little climber.');
-      await handTo(jackOut.torso.localToWorld(new V3(0, 6, 0)), false, 0.7); await G.wait(0.2);
-      const h0 = track(), off = { x: st.fz.x - h0.x, y: st.fz.y - h0.y, z: st.fz.z - h0.z };
-      st.pose = Object.assign(st.pose || {}, { armLx: -0.2, armRx: -0.2, armLz: 0.45, armRz: -0.45, legLx: 0.12, legRx: -0.05, kneeL: 0.15, kneeR: 0.3 });       // (he hangs from her hand)
-      const carry = async (to, secs, turnTo) => { const from = { bend: gst.bend, reach: gst.reach, h: gst.h }, n = Math.max(1, Math.round(secs / 0.04)); for (let i = 1; i <= n; i++) { const k = ease(i / n); gst.bend = W3(from.bend, to.bend, k); gst.reach = W3(from.reach, to.reach, k); if (turnTo !== undefined) gst.h = from.h + angDiff(turnTo, from.h) * k; placeGerda(); const h = track(); st.fz = { x: h.x + off.x, y: Math.max(0, h.y + off.y), z: h.z + off.z }; await G.wait(0.04); } };
-      await carry({ bend: 0.1, reach: 0.9 }, 0.8);
-      await carry({ bend: 0.1, reach: 0.9 }, 0.9, 0);       // (she turns, to face the room)
-      { const D = new V3(gst.x - 4, 0, gst.z + 17), T = new V3(D.x - off.x, -off.y + 0.3, D.z - off.z); const b = solveHand(T, false); await carry({ bend: b.bd, reach: b.rc }, 0.9); }
-      await G.wait(0.25);
-      st.pos.set(st.fz.x, 0, st.fz.z); st.y = Math.max(0, st.fz.y); st.heading = 0; st.fz = null; st.vy = 0; st.standY = 0; st.frozen = false; st.pose = null; st.walkN = 0;       // (he is let go, and stands)
-      rest(0.6); gst.walk = 0;
+      // her hands find his hips, and she lifts him upright between them (the carry pose, as when she carried him to the chair)
+      await handTo(jackOut.hips.localToWorld(new V3(0, 0, 0)), true, 0.8); await G.wait(0.15);
+      const H50 = root.GerdaHold50, E50 = j => new THREE.Quaternion().setFromEuler(new THREE.Euler(j.rx, j.ry, j.rz, 'XYZ')), hp = { a: 'carry', b: 'carry', t: 0, w: 0 };
+      const jackPose = () => { const A_ = H50[hp.a].jack, L = k => (A_[k] === undefined ? (k === 's' ? 0.7 : 0) : A_[k]); return { pos: gerda.root.localToWorld(v(L('px'), L('py'), L('pz'))), q: gerda.root.quaternion.clone().multiply(E50(A_)), L }; };
+      const JKEYS = [['legLx', 'legLx'], ['legRx', 'legRx'], ['kneeL', 'kneeL'], ['kneeR', 'kneeR'], ['armLx', 'armLx'], ['armRx', 'armRx'], ['armLz', 'armLz'], ['armRz', 'armRz'], ['torso', 'torsoX'], ['neckX', 'neckX']];
+      const putJack = (from, k) => { const J = jackPose(); jackOut.root.scale.setScalar(SC * J.L('s')); if (from) { jackOut.root.position.set(W3(from.p.x, J.pos.x, k), W3(from.p.y, J.pos.y, k), W3(from.p.z, J.pos.z, k)); jackOut.root.quaternion.copy(from.q).slerp(J.q, k); } else { jackOut.root.position.copy(J.pos); jackOut.root.quaternion.copy(J.q); } for (const [pk, dk] of JKEYS) st.pose[pk] = from ? W3(from.pose[pk], J.L(dk), k) : J.L(dk); };
+      const from = { p: jackOut.root.position.clone(), q: jackOut.root.quaternion.clone(), pose: { legLx: 0, legRx: 0, kneeL: 0, kneeR: 0, armLx: 0, armRx: 0, armLz: 0.08, armRz: -0.08, torso: 0, neckX: 0 } };
+      st.pose = Object.assign({}, from.pose); st.fz = null; st.scene = true; st.boxed = true; gst.p50 = hp;
+      { const b0 = gst.bend; for (let i = 1; i <= 24; i++) { const k = ease(i / 24); gst.bend = W3(b0, 0.35, k); hp.w = k; putJack(from, k); await G.wait(0.04); } hp.w = 1; }
+      { const h0 = gst.h; for (let i = 1; i <= 22; i++) { const k = ease(i / 22); gst.h = h0 + angDiff(0, h0) * k; placeGerda(); putJack(); await G.wait(0.04); } }       // (she turns, to face the room)
+      { let want = 1.2; for (let bd = 0.35; bd <= 1.2; bd += 0.05) { gst.bend = bd; placeGerda(); root.Blocky.step(gerda, 0); gerda.root.updateMatrixWorld(true); if (jackPose().pos.y <= 0.3) { want = bd; break; } }
+        const b0 = 0.35; gst.bend = b0; for (let i = 1; i <= 26; i++) { const k = ease(i / 26); gst.bend = W3(b0, want, k); placeGerda(); putJack(); await G.wait(0.04); } }       // (and bends, to set him down)
+      await G.wait(0.2);
+      { const J = jackPose(), hd = new THREE.Euler().setFromQuaternion(J.q, 'YXZ').y; st.pos.set(J.pos.x, 0, J.pos.z); st.y = Math.max(0, J.pos.y); st.heading = hd; jackOut.root.quaternion.identity(); jackOut.root.rotation.set(0, hd, 0); st.pose = null; st.boxed = false; st.scene = false; st.vy = 0; st.standY = 0; st.walkN = 0; st.frozen = false; }       // (he is let go, and stands)
+      for (let i = 1; i <= 12; i++) { hp.w = 1 - ease(i / 12); gst.bend *= 0.92; placeGerda(); await G.wait(0.04); } gst.p50 = null; rest(0.5); gst.walk = 0;
       await sayW('gerda', 'Now come along, Jack. Follow me, and stay close.');
       // the walk: she goes ahead; he follows at his own pace, and she waits when he lags
       const route = gnav(gst.x, gst.z, 238, -75).concat([[262, -75], [274, -92], [274, -110], [273, -135], [273, -198], [274, -216], [276, -236], [274, -250]]);
