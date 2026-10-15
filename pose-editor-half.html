@@ -27,6 +27,8 @@
   <div id="params"></div>
   <div><button id="rs">Reset anchor</button></div>
   <div class="sub" id="keys">Drag an anchor · Q / E turn (Shift: 1°) · Esc deselect</div>
+  <h3>Jack's scale</h3>
+  <div><input type="range" id="jsc" min="0.3" max="1.2" step="0.01" style="width:70%"> <span id="jscV"></span> <span class="sub">(of his cottage size; 0.7 is half her height, as in the lap scene)</span></div>
   <h3>View</h3>
   <div><button data-v="front">Front</button><button data-v="side">Side</button><button data-v="back">Back</button><button data-v="top">Top</button><button data-v="hand">Close on the hand</button></div>
   <div><label><input type="checkbox" id="chairOn" checked> Chair</label><label><input type="checkbox" id="anch" checked> Anchors</label><label><input type="checkbox" id="grid" checked> Grid</label></div>
@@ -43,7 +45,7 @@
 (function () {
 'use strict';
 const $ = id => document.getElementById(id), THREE = window.THREE, V3 = THREE.Vector3, B = window.Blocky, DRAFT = 'castle-consequence:gerdapose50:draft';
-const DEFALL = JSON.parse(JSON.stringify(window.GerdaHold50)), ALL = JSON.parse(JSON.stringify(DEFALL)); const TABS = ['carry', 'lap', 'reach', 'lock']; const fill = X => { for (const k of TABS) { if (!X[k]) continue; X[k].gerda.elbowLx = X[k].gerda.elbowLx || 0; X[k].gerda.armLy = X[k].gerda.armLy || 0; X[k].jack.armLy = X[k].jack.armLy || 0; X[k].jack.armRy = X[k].jack.armRy || 0; X[k].jack.elbowLx = X[k].jack.elbowLx || 0; X[k].jack.elbowRx = X[k].jack.elbowRx || 0; } }; fill(ALL); fill(DEFALL); let DEF = DEFALL.carry, cur = 'carry'; try { const d = JSON.parse(localStorage.getItem(DRAFT)); if (d && d.carry && d.lap) for (const k of TABS) if (d[k]) ALL[k] = d[k]; } catch (e) {} fill(ALL); let P = ALL.carry;
+const DEFALL = JSON.parse(JSON.stringify(window.GerdaHold50)), ALL = JSON.parse(JSON.stringify(DEFALL)); const TABS = ['carry', 'lap', 'reach', 'lock']; const fill = X => { for (const k of TABS) { if (!X[k]) continue; X[k].gerda.elbowLx = X[k].gerda.elbowLx || 0; X[k].gerda.armLy = X[k].gerda.armLy || 0; X[k].jack.armLy = X[k].jack.armLy || 0; X[k].jack.armRy = X[k].jack.armRy || 0; X[k].jack.elbowLx = X[k].jack.elbowLx || 0; X[k].jack.elbowRx = X[k].jack.elbowRx || 0; X[k].jack.s = X[k].jack.s || 0.7; } }; fill(ALL); fill(DEFALL); let DEF = DEFALL.carry, cur = 'carry'; try { const d = JSON.parse(localStorage.getItem(DRAFT)); if (d && d.carry && d.lap) for (const k of TABS) if (d[k]) ALL[k] = d[k]; } catch (e) {} fill(ALL); let P = ALL.carry;
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); renderer.outputEncoding = THREE.sRGBEncoding; $('view').appendChild(renderer.domElement);
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x1b2028); scene.add(new THREE.HemisphereLight(0xfff3e0, 0x556070, 0.9)); const sun = new THREE.DirectionalLight(0xffffff, 0.7); sun.position.set(60, 120, 80); scene.add(sun);
 const grid = new THREE.GridHelper(120, 24, 0x88aa88, 0x445544); scene.add(grid);
@@ -56,7 +58,7 @@ function pose() {
   const g = P.gerda, j = P.jack; gerda.apply(); gerda.hips.position.y -= g.hipsY; gerda.torso.rotation.set(g.torsoX, g.torsoY, g.torsoZ); gerda.neck.rotation.set(g.neckX, g.neckY, 0);
   gerda.armR.rotation.set(g.armRx, 0, g.armRz); gerda.elbow.rotation.x = g.elbowX; gerda.wrist.rotation.y = g.wristY; gerda.armL.rotation.set(g.armLx, g.armLy || 0, g.armLz); gerda.elbowL.rotation.x = g.elbowLx || 0;
   gerda.legL.thigh.rotation.x = g.legLx; gerda.legL.knee.rotation.x = g.legLknee; gerda.legR.thigh.rotation.x = g.legRx; gerda.legR.knee.rotation.x = g.legRknee;
-  jack.apply(); jack.root.position.set(j.px, j.py, j.pz); jack.root.rotation.set(j.rx, j.ry, j.rz);
+  jack.apply(); jack.root.scale.setScalar(SC * (j.s || 0.7) / FULL); jack.root.position.set(j.px, j.py, j.pz); jack.root.rotation.set(j.rx, j.ry, j.rz);
   jack.armL.rotation.set(j.armLx, j.armLy || 0, j.armLz); jack.armR.rotation.set(j.armRx, j.armRy || 0, j.armRz); jack.elbowL.rotation.x = j.elbowLx || 0; jack.elbow.rotation.x = j.elbowRx || 0; jack.legL.thigh.rotation.x = j.legLx; jack.legR.thigh.rotation.x = j.legRx; jack.legL.knee.rotation.x = j.kneeL; jack.legR.knee.rotation.x = j.kneeR;
   jack.torso.rotation.x = j.torsoX; jack.neck.rotation.x = j.neckX; scene.updateMatrixWorld(true); if (cur === 'lap') { B.seatFeet(gerda, 0); scene.updateMatrixWorld(true); }
 }
@@ -121,7 +123,9 @@ $('rs').onclick = () => { if (sel) { for (const q of A[sel].keys) P[A[sel].who][
 $('reset').onclick = () => { P = JSON.parse(JSON.stringify(DEF)); ALL[cur] = P; refresh(); params(); }; $('save').onclick = () => { try { ALL[cur] = P; localStorage.setItem(DRAFT, JSON.stringify(ALL)); $('save').textContent = 'Kept ✓'; setTimeout(() => $('save').textContent = 'Keep as draft', 1200); } catch (e) {} };
 $('copy').onclick = () => { $('out').value = text(); $('out').select(); try { document.execCommand('copy'); } catch (e) {} };
 $('apply').onclick = () => { try { const m = /root\.GerdaHold50 = (\{[\s\S]*\})\s*;/.exec($('out').value), d = JSON.parse(m[1]); if (d.carry && d.lap) { for (const k of TABS) if (d[k]) ALL[k] = d[k]; P = ALL[cur]; refresh(); params(); } } catch (e) { alert('Could not read that pose.'); } };
-function tab(k) { ALL[cur] = P; cur = k; P = ALL[k]; DEF = DEFALL[k]; snapHome(); document.querySelectorAll('[data-pose]').forEach(b => b.classList.toggle('on', b.dataset.pose === k)); gerda.root.position.y = k === 'lap' ? 5.1 : 0; chair.visible = k === 'lap' && $('chairOn').checked; refresh(); params(); }
+$('jsc').oninput = () => { P.jack.s = +$('jsc').value; $('jscV').textContent = P.jack.s.toFixed(2); };
+function syncScale() { $('jsc').value = P.jack.s || 0.7; $('jscV').textContent = (+$('jsc').value).toFixed(2); }
+function tab(k) { ALL[cur] = P; cur = k; P = ALL[k]; DEF = DEFALL[k]; snapHome(); document.querySelectorAll('[data-pose]').forEach(b => b.classList.toggle('on', b.dataset.pose === k)); gerda.root.position.y = k === 'lap' ? 5.1 : 0; chair.visible = k === 'lap' && $('chairOn').checked; syncScale(); refresh(); params(); }
 document.querySelectorAll('[data-pose]').forEach(b => b.onclick = () => tab(b.dataset.pose)); $('chairOn').onchange = () => { chair.visible = cur === 'lap' && $('chairOn').checked; };
 $('anch').onchange = () => { for (const k in anchors) anchors[k].visible = $('anch').checked; }; $('grid').onchange = () => { grid.visible = $('grid').checked; };
 const VIEWS = { front: [[0, 34, 90], [0, 26, 0]], side: [[90, 34, 0], [0, 26, 0]], back: [[0, 34, -90], [0, 26, 0]], top: [[0, 130, 8], [0, 20, 0]] };
@@ -133,6 +137,7 @@ refresh(); view('front');
 window.__pose = { P: () => P, ALL: () => ALL, tab, gerda, jack, pose, refresh, A, select, solve, camera, renderer };
 })();
 </script>
-<script src="js/buildbadge.js"></script>
+<script src="js/buildbadge.js">syncScale();
+</script>
 </body>
 </html>
