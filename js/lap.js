@@ -89,6 +89,7 @@ function create(view, opts) {
   // forearm's own frame, near its end) and a small blade with rounded corners, lying along that direction with its face down at the contact, its
   // width along the arm, across one cheek. Tool-local, the paddle runs along -y; the tool group is turned a quarter so that it runs along the arm's +x.
   const HANDLE = 1.2, BLADE_L = 4.5, BLADE_W = 4;
+  const PALM_M = 6.7;       // her palm: the face of the forearm from two-thirds of the way along it from the elbow (its middle)
   const PAD_M = 5.8, PAD_SIDE = 1.5 + HANDLE + BLADE_L / 2;   // how far along the arm the paddle springs, and how far its blade's middle stands out to the side
   const tool = new THREE.Group(); tool.position.set(1.5, -PAD_M, 0); tool.rotation.z = Math.PI / 2; gerda.wrist.add(tool);
   const woodMat = c => new THREE.MeshLambertMaterial({ color: srgb(c) });
@@ -259,7 +260,6 @@ function create(view, opts) {
     if (!any) return null;
     return { q: first ? qa.normalize() : null, w: Math.min(1, wsum), p: pp };
   }
-  const ARM_JOINTS = { armL: 1, armR: 1, elbowL: 1, elbowR: 1, wristR: 1 };       // (the arms are reached by their own joints, so that they cannot twist or detach: they have no poses to edit)
   const MOVABLE = { torso: 1, frame: 1, glutes: 1, paddle: 1, birch: 1 };
   function applyEdits(who, names, weights) {
     for (const n of names) {
@@ -446,11 +446,14 @@ function create(view, opts) {
     // Left hand rests on Jack's back.
     const ahL = clamp(st.armHold || 0, 0, 1); jack.root.updateMatrixWorld(true);
     const tL = world(upperBack).lerp(jack.torso.localToWorld(GRIP_AT.clone()), ahL);       // (between his shoulder blades; or, when his arm is pinned, holding his wrist behind his back)
-    armToSide(g, 'armL', tL, POLE_L);
+    armToSide(g, 'armL', tL, POLE_L); applyEdits('gerda', ['armL', 'elbowL'], gw);       // (reached by its own joints; an edit of the angles is laid over that, within their range)
     // Right arm: shoulder, elbow and wrist (the forearm's own twist). Contact pose: the hand's forearm end, or the paddle's mount, is brought to where
     // it lands; the raised pose lifts the elbow up and forward. They blend by how far the swing has come.
     const sh = world(g.armR);
-    const reachM = impl.paddle ? PAD_M : LF;
+    const hand = !impl.paddle && !impl.birch, reachM = impl.paddle ? PAD_M : hand ? PALM_M : LF;
+    const nInW = new V3(0, 0, 1).applyQuaternion(glutesTilt.getWorldQuaternion(tmpQ)).normalize();       // (into his skin, from the back face of the glutes block)
+    // The elbow's place about the line from shoulder to hand: the one that lays her forearm flattest on his skin (the palm lands, rather than the end of a fist), the nearest to the usual one, and clear of him.
+    const flat = (S, M, m, n) => { const ud = M.clone().sub(S).normalize(); let best = null; for (let a = -180; a <= 180; a += 10) { const ik = twoBone(S, M, m, POLE.clone().applyAxisAngle(ud, a * DEG)), E = S.clone().addScaledVector(ik.u1, LU), cost = Math.abs(ik.f.dot(n)) + 0.25 * Math.abs(a) / 180 + (E.y < M.y + 1 ? 2 : 0); if (!best || cost < best.cost) best = { cost, ik }; } return best.ik; };
     // The birch: the fist is brought to a point above the skin, near the shoulder (about BIRCH_FIST from it), so that the twigs, running on from the fist along u, lie on the
     // skin with their middle (BIRCH_AT from the fist) on T. The forearm and the birch then differ by the bend of the wrist.
     let birchU = new V3(0, -1, 0);
@@ -464,6 +467,7 @@ function create(view, opts) {
     };
     const solve = (Mt, withSide) => {        // pose params for the forearm's point m to reach Mt (the paddle: its blade's middle then lands on T)
       if (impl.birch) { const r = birchContact(); birchU = r.u; return twoBone(sh, r.H, reachM); }
+      if (hand) return flat(sh, Mt, reachM, nInW);
       let M = Mt, ik;
       for (let it = 0; it < (withSide ? 4 : 1); it++) {
         ik = twoBone(sh, M, reachM);
@@ -474,7 +478,7 @@ function create(view, opts) {
     const contact = solve(T, impl.paddle);
     const ud = T.clone().sub(sh).normalize();
     const raisedIK = twoBone(sh, sh.clone().addScaledVector(ud.clone().multiplyScalar(0.35).addScaledVector(UP, 0.95).normalize(), reachM * 0.95), reachM);
-    const armPose = ik => {                 // set the arm to ik, return its local pivot rotation, elbow flexion and wrist twist
+    const armPose = (ik, palmTo) => {                 // set the arm to ik, return its local pivot rotation, elbow flexion and wrist twist
       aim(g.armR, ik.u1);
       const h = new V3().crossVectors(ik.u1, ik.f); let psi = Math.acos(clamp(ik.u1.dot(ik.f), -1, 1));
       if (h.lengthSq() > 1e-6) {             // roll the upper arm about its own axis so the elbow's hinge (local x) is across the bend
@@ -489,13 +493,14 @@ function create(view, opts) {
       const fw = new V3(0, -1, 0).applyQuaternion(g.wrist.getWorldQuaternion(tmpQ2));
       if (fw.dot(ik.f) < 0.999) { g.elbow.rotation.x = -psi; g.root.updateMatrixWorld(true); }
       let omega = 0;
-      if (impl.paddle) {                      // twist the forearm about its axis so the blade lies toward his head
-        const xw = new V3(1, 0, 0).applyQuaternion(g.wrist.getWorldQuaternion(tmpQ2)), want = sideOf(ik.f);
+      if (impl.paddle || hand) {              // twist the forearm about its axis so the blade lies toward his head; or so that the palm (a flat face of the forearm) faces where it should (his skin, at contact; the floor, raised)
+        const xw = new V3(1, 0, 0).applyQuaternion(g.wrist.getWorldQuaternion(tmpQ2)), want = hand ? palmTo : sideOf(ik.f);
         omega = -Math.atan2(xw.clone().cross(want).dot(ik.f), xw.dot(want));
+        if (hand) { if (omega > Math.PI / 2) omega -= Math.PI; else if (omega < -Math.PI / 2) omega += Math.PI; }       // (either flat face will do: the nearer)
       }
       return { q: g.armR.quaternion.clone(), psi: g.elbow.rotation.x, omega };
     };
-    const pc = armPose(contact), pr = armPose(raisedIK);
+    const pc = armPose(contact, nInW), pr = armPose(raisedIK, DOWN);
     g.armR.quaternion.copy(pr.q).slerp(pc.q, tau);
     const birchUraised = impl.birch ? new V3(-ud.x * 0.5, 0, -ud.z * 0.5).addScaledVector(UP, 0.9).normalize() : null;
     g.elbow.rotation.set(lerp(pr.psi, pc.psi, tau), 0, 0); g.wrist.rotation.set(0, lerp(pr.omega, pc.omega, tau), 0);
@@ -541,6 +546,7 @@ function create(view, opts) {
       if (ah > 0) solve(j.torso.localToWorld(PIN_AT.clone()), [-0.7, 0.2, -1], ah);
       j.armR.quaternion.copy(out.q); j.elbow.rotation.set(out.e, 0, 0); j.wrist.rotation.set(0, 0, 0);
     }
+    applyEdits('jack', ['armL', 'armR', 'elbowL', 'elbowR'], jackWeights());
   };
 
   // ── Frame loop ──────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -610,6 +616,11 @@ function create(view, opts) {
       H('neck', 'aim', 'Head', hpt(gerda.neck, 0, 4, 0)),
       H('torso', 'aim', 'Chest (turns and leans the torso)', hpt(gerda.torso, 0, 12, 0)),
       H('torso', 'move', 'Torso (moves it)', hpt(gerda.torso, 0, 2, 0)),
+      H('armL', 'aim', 'Left elbow (swings the left upper arm)', gerda.elbowL),
+      H('elbowL', 'aim', 'Left hand (bends the left elbow)', hpt(gerda.wristL, 0, -6, 0)),
+      H('armR', 'aim', 'Right elbow (swings the right upper arm)', gerda.elbow),
+      H('elbowR', 'aim', 'Right hand (bends the elbow)', hpt(gerda.wrist, 0, -6, 0)),
+      H('wristR', 'twist', 'Right wrist twist (turns the forearm, hand and paddle about the forearm)', hpt(gerda.wrist, 2.4, -3, 0), new V3(0, 1, 0)),
       H('paddle', 'aim', 'Paddle tip (swings the paddle)', hpt(tool, 0, BLADE_END, 0)),
       H('paddle', 'twist', 'Paddle roll (rolls the blade about its length)', hpt(tool, BLADE_W / 2, -(HANDLE + BLADE_L / 2), 0), new V3(0, 1, 0)),
       H('birch', 'aim', 'Birch tip (swings the birch)', hpt(birchTool, 0, -(BIRCH_HAND + BIRCH_L), 0)),
@@ -620,6 +631,8 @@ function create(view, opts) {
       H('frame', 'move', 'Jack (moves his whole body on her lap)', hpt(frame, 0, 0, 0)),
       H('torso', 'aim', 'Shoulders (turns his torso)', hpt(jack.torso, 0, 12, 0)),
       H('neck', 'aim', 'Head', hpt(jack.neck, 0, 4, 0)),
+      H('armL', 'aim', 'Left elbow (swings the upper arm)', jack.elbowL), H('elbowL', 'aim', 'Left hand (bends the elbow)', hpt(jack.elbowL, 0, -6, 0)),
+      H('armR', 'aim', 'Right elbow (swings the upper arm)', jack.elbow), H('elbowR', 'aim', 'Right hand (bends the elbow)', hpt(jack.elbow, 0, -6, 0)),
       H('glutes', 'aim', 'Glutes block (tilts it)', hpt(glutesTilt, 0, -5.2, 2.25)),
       H('thighL', 'aim', 'Left knee', hpt(jack.legL.thigh, 0, -6, 0)), H('kneeL', 'aim', 'Left foot', hpt(jack.legL.knee, 0, -6, 0)),
       H('thighR', 'aim', 'Right knee', hpt(jack.legR.thigh, 0, -6, 0)), H('kneeR', 'aim', 'Right foot', hpt(jack.legR.knee, 0, -6, 0)),
@@ -728,7 +741,7 @@ function create(view, opts) {
   const setFor = (fig, beat, bone) => { const r = route(fig, beat, bone); return setAt(fig, r.imp); };
   const editor = {
     beats: GERDA_BEATS,
-    bones: fig => Object.keys(BONES[bodyOf(fig)]).filter(n => !ARM_JOINTS[n] && (n !== 'paddle' || st.implement === 'paddle') && (n !== 'birch' || st.implement === 'birch')),
+    bones: fig => Object.keys(BONES[bodyOf(fig)]).filter(n => (n !== 'paddle' || st.implement === 'paddle') && (n !== 'birch' || st.implement === 'birch')),
     // Can the scene be posed as it is? (the knee or the table, once he is there; the birch is for the table)
     editable() { return st.blend >= 1 && (st.to === 'table' || (st.to === 'lap' && st.implement !== 'birch')); },
     // What is locked for a bone at a beat (as loaded), and the sliders' values: the edit relative to it.
