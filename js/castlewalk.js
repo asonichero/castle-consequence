@@ -774,6 +774,7 @@ function run(G, W, opts) {
       if (lapStage) lapStage.visible = false; M.items.nurseryChair.g.visible = true; G.captionOff && G.captionOff(); jackOut.root.visible = true; gerda.root.visible = true; scene.attach(jackOut.root);
       if (jackOut.gear) { jackOut.gear.knife.visible = jackOut.gear.satchel.visible = jackOut.gear.flask.visible = false; }       // (his gear is put by: the knife is hers, the satchel is in the nursery)
       G.cwState = st;       // (for tools and tests)
+      { const it = M.items.keepsakeBox, bg = it.g; bg.position.set(it.def.x, it.y, it.def.z); bg.rotation.set(0, it.def.ry || 0, 0); bg.userData.box.lid.rotation.x = 0; }       // (the box goes back on the pantry, where it stood before she took it down)
       st.s = 0.7; st.boxed = false; st.inHand = false; st.pose = null; st.pos.set(JX, 0, JZ); st.y = TOP; st.heading = 0; st.walkN = 0; st.vy = 0; st.standY = TOP; st.fz = { x: JX, y: TOP, z: JZ };
       Object.assign(gst, { x: JX, z: JZ + 15, h: Math.PI, y: 0, seated: 0, walk: 0, reach: 0, lreach: 0, bend: 0, look: 0.25, headY: 0, p50: null, hold: 0 }); placeGerda(); root.Blocky.step(gerda, 0);
       const look = (o) => W.paintJack(jackOut, Object.assign({ outfit: 'Outdoor', trousers: 'up', drawers: 'up' }, o));
