@@ -517,7 +517,7 @@ function run(G, W, opts) {
       // and in the doorway, Gerda
       gerda.root.visible = true; gst.x = -238; gst.z = -192; gst.h = Math.atan2(st.pos.x - gst.x, st.pos.z - gst.z); gst.walk = 0; gst.bend = 0; placeGerda(); gerda.root.updateMatrixWorld(true);       // (further into the room than the doorway, and facing him)
       A && A.thud && A.thud(0.7);
-      G.cut({ pos: v(C0.x + 1, 9.4, C0.z + 3.6), look: v(-305.6, 26.6, -203.6), fov: 54 });       // (from the chest, over Jack, down the room to her)
+      G.cut({ pos: v(C0.x - 3, 8.1, C0.z + 3.6), look: v(-305.6, 26.6, -203.6), fov: 54 });       // (from the chest, over Jack, down the room to her)
       await G.wait(2.6);
       G.cut({ pos: v(st.pos.x + 4, 0.85 * Hj, st.pos.z - 13), look: v(st.pos.x, 0.8 * Hj, st.pos.z), fov: 34 });
       await G.wait(1.6);
