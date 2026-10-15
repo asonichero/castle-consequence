@@ -275,10 +275,11 @@ function create(view, opts) {
   // shoulder at S to bring the point m along the forearm to M (it bends toward the pole when M is nearer than the arm's full length, and the arm
   // straightens, short of M, when it is further).
   const LU = 4, LF = 6, POLE = new V3(-0.7, 0.5, -0.5).normalize();
-  function twoBone(S, M, m) {
+  const POLE_L = new V3(0.7, 0.5, -0.5).normalize();
+  function twoBone(S, M, m, pole) {
     const v = M.clone().sub(S), d = clamp(v.length(), Math.abs(LU - m) + 0.05, LU + m - 0.01), ud = v.normalize();
     const cosA = clamp((LU * LU + d * d - m * m) / (2 * LU * d), -1, 1), sinA = Math.sqrt(1 - cosA * cosA);
-    const pp = POLE.clone().addScaledVector(ud, -POLE.dot(ud)).normalize();
+    const PL = pole || POLE, pp = PL.clone().addScaledVector(ud, -PL.dot(ud)).normalize();
     const E = S.clone().addScaledVector(ud, LU * cosA).addScaledVector(pp, LU * sinA);
     const Mx = S.clone().addScaledVector(ud, d);
     return { u1: E.clone().sub(S).normalize(), f: Mx.clone().sub(E).normalize() };
@@ -315,7 +316,7 @@ function create(view, opts) {
       // Hanging off the edge of her lap: thighs down and out from the glutes block, knees bent back so the feet clear the floor; arms reaching down past his head to the floor.
       return { tL: -0.96 + k * 0.9 * mL + w, tR: -0.96 + k * 0.9 * mR - w, zL: 0.12 + 0.2 * k * mL, zR: -(0.12 + 0.2 * k * mR), kL: 0.6 + 0.6 * k * mL + 0.5 * Math.max(0, w), kR: 0.6 + 0.6 * k * mR + 0.5 * Math.max(0, -w),
         nx: -0.1 - 0.5 * k + 0.1 * dd * Math.sin(t * 4), ny: -0.75 + 0.15 * Math.sin(t * 3) * dd, aLx: -2.14 - 0.25 * k + Math.sin(t * 7) * 0.08 * dd, aRx: -2.14 - 0.25 * k + Math.sin(t * 7 + 1.7) * 0.08 * dd,
-        aLz: 0.12 + 0.1 * k, aRz: -(0.12 + 0.1 * k), tz: 0.06 * dd * Math.sin(t * 6), tx: 0 };
+        aLz: 0.12 + 0.1 * k, aRz: -(0.12 + 0.1 * k), tz: 0.06 * dd * Math.sin(t * 6), tx: 0, eL: 0.35 + 0.25 * k + 0.1 * dd * Math.sin(t * 7), eR: 0.35 + 0.25 * k + 0.1 * dd * Math.sin(t * 7 + 1.7) };
     }
     if (name === 'table') {
       // Bent over the table's edge: legs straight down to the floor (shifting from foot to foot, rising onto the toes at a bad one), arms out along the top, cheek on it.
@@ -323,12 +324,12 @@ function create(view, opts) {
       // (Over the table his hands and feet stay where the pose puts them: only his head and torso react.)
       return { tL: leg, tR: leg, zL: 0.1, zR: -0.1, kL: 0.1 * dd, kR: 0.1 * dd,
         nx: -0.1 - 0.25 * k + 0.04 * dd * Math.sin(t * 4), ny: -0.95 + 0.08 * Math.sin(t * 3) * dd, aLx: phi - Math.PI, aRx: phi - Math.PI,
-        aLz: 0.26, aRz: -0.26, tz: 0.02 * dd * Math.sin(t * 6), tx: -0.05 * k };
+        aLz: 0.26, aRz: -0.26, tz: 0.02 * dd * Math.sin(t * 6), tx: -0.05 * k, eL: 0.3, eR: 0.3 };
     }
     // Standing: weight shifting, head bowed, hands at his sides (or, as he comes to it, swung back to cover himself).
     const sh = Math.sin(t * 2.1) * dd;
     return { tL: -0.08 * sh, tR: 0.08 * sh, zL: 0.05, zR: -0.05, kL: 0.04 * Math.max(0, sh), kR: 0.04 * Math.max(0, -sh), nx: 0.05 + 0.12 * dd, ny: 0.15 * Math.sin(t * 0.7) * dd,
-      aLx: 0.05 + 0.65 * cover, aRx: 0.05 + 0.65 * cover, aLz: 0.08 - 0.38 * cover, aRz: -(0.08 - 0.38 * cover), tz: 0, tx: 0.06 * dd };
+      aLx: 0.05 + 0.65 * cover, aRx: 0.05 + 0.65 * cover, aLz: 0.08 - 0.38 * cover, aRz: -(0.08 - 0.38 * cover), tz: 0, tx: 0.06 * dd, eL: 0.2 + 0.7 * cover, eR: 0.2 + 0.7 * cover };
   }
   const mixPose = (a, b, e) => { const o = {}; for (const key in a) o[key] = a[key] + (b[key] - a[key]) * e; return o; };
   const easeIO = x => x * x * (3 - 2 * x);
@@ -354,7 +355,7 @@ function create(view, opts) {
   const isFree = () => posKey() === 'table' && (hs.on || (st.usePoses !== false && tableHasPoses()));
   function freePose(g) {
     const impl = IMPL[st.implement], gw = gerdaWeights(), sw = st.swing;
-    g.torso.rotation.order = 'YXZ'; g.torso.rotation.set(0, 0, 0); g.neck.rotation.set(0.1, 0, 0); g.elbow.rotation.set(0, 0, 0); g.wrist.rotation.set(0, 0, 0);
+    g.torso.rotation.order = 'YXZ'; g.torso.rotation.set(0, 0, 0); g.neck.rotation.set(0.1, 0, 0); g.elbow.rotation.set(0, 0, 0); g.elbowL.rotation.set(0, 0, 0); g.wrist.rotation.set(0, 0, 0);
     for (const key of ['armL', 'armR']) { const a = g[key]; a.rotation.set(gerda.state.armX, 0, -a.userData.sign * gerda.state.armIn); }
     paddle.visible = !!impl.paddle && st.armed; birch.visible = !!impl.birch && st.armed; tool.rotation.set(0, 0, Math.PI / 2); birchTool.quaternion.identity();
     g.root.updateMatrixWorld(true);
@@ -373,14 +374,16 @@ function create(view, opts) {
       g.armR.quaternion.copy(q0).slerp(q1, k); g.elbow.rotation.set(lerp(e0, e1, k), 0, 0); g.wrist.rotation.set(0, lerp(wy0, 0, k), 0); birchTool.quaternion.copy(b0).slerp(b1, k);
     }
   }
-  function armTo(g, tR) {                                   // set her right arm (shoulder and elbow) so that the end of the forearm reaches tR
-    const sh = world(g.armR), ik = twoBone(sh, tR, LF);
-    aim(g.armR, ik.u1); const h = new V3().crossVectors(ik.u1, ik.f); let psi = Math.acos(clamp(ik.u1.dot(ik.f), -1, 1));
-    if (h.lengthSq() > 1e-6) { h.normalize(); g.armR.updateMatrixWorld(true); const xw = new V3(1, 0, 0).applyQuaternion(g.armR.getWorldQuaternion(tmpQ2)); const ang = Math.atan2(xw.clone().cross(h).dot(ik.u1), xw.dot(h)); g.armR.parent.getWorldQuaternion(tmpQ).invert(); g.armR.quaternion.premultiply(tmpQ2.setFromAxisAngle(ik.u1.clone().applyQuaternion(tmpQ), ang)); } else psi = 0;
-    g.elbow.rotation.set(psi, 0, 0); g.wrist.rotation.set(0, 0, 0); g.root.updateMatrixWorld(true);
-    const fw = new V3(0, -1, 0).applyQuaternion(g.wrist.getWorldQuaternion(tmpQ2)); if (fw.dot(ik.f) < 0.999) g.elbow.rotation.x = -psi;
+  function armToSide(g, key, tR, pole) {                   // set her arm (shoulder and elbow: both arms have one) so that the end of the forearm reaches tR
+    const right = key === 'armR', arm = g[key], elbow = right ? g.elbow : g.elbowL, wrist = right ? g.wrist : g.wristL;
+    const sh = world(arm), ik = twoBone(sh, tR, LF, pole);
+    aim(arm, ik.u1); const h = new V3().crossVectors(ik.u1, ik.f); let psi = Math.acos(clamp(ik.u1.dot(ik.f), -1, 1));
+    if (h.lengthSq() > 1e-6) { h.normalize(); arm.updateMatrixWorld(true); const xw = new V3(1, 0, 0).applyQuaternion(arm.getWorldQuaternion(tmpQ2)); const ang = Math.atan2(xw.clone().cross(h).dot(ik.u1), xw.dot(h)); arm.parent.getWorldQuaternion(tmpQ).invert(); arm.quaternion.premultiply(tmpQ2.setFromAxisAngle(ik.u1.clone().applyQuaternion(tmpQ), ang)); } else psi = 0;
+    elbow.rotation.set(psi, 0, 0); wrist.rotation.set(0, 0, 0); g.root.updateMatrixWorld(true);
+    const fw = new V3(0, -1, 0).applyQuaternion(wrist.getWorldQuaternion(tmpQ2)); if (fw.dot(ik.f) < 0.999) elbow.rotation.x = -psi;
     return ik;
   }
+  const armTo = (g, tR) => armToSide(g, 'armR', tR);
   gerda.after = function (g) {
     for (const l of [g.legL, g.legR]) { l.thigh.rotation.y = 0; l.knee.rotation.y = 0; l.knee.rotation.z = 0; }      // (see jack.after: no stray turns about the wrong axis)
     g.neck.rotation.z = 0;
@@ -393,7 +396,7 @@ function create(view, opts) {
       g.root.updateMatrixWorld(true);
       const up = st.to === 'standTable', tL = world(up ? shoulderL : beltL), tR = world(up ? shoulderR : beltR), fum = (st.fumble || 0) * 0.5 * Math.sin(J.t * 13);
       tL.y += fum; tR.y -= fum;
-      aim(g.armL, tmpB.copy(tL).sub(world(g.armL)));
+      armToSide(g, 'armL', tL, POLE_L);
       const sh = world(g.armR), ik = twoBone(sh, tR, LF);
       aim(g.armR, ik.u1); const h = new V3().crossVectors(ik.u1, ik.f); let psi = Math.acos(clamp(ik.u1.dot(ik.f), -1, 1));
       if (h.lengthSq() > 1e-6) { h.normalize(); g.armR.updateMatrixWorld(true); const xw = new V3(1, 0, 0).applyQuaternion(g.armR.getWorldQuaternion(tmpQ2)); const ang = Math.atan2(xw.clone().cross(h).dot(ik.u1), xw.dot(h)); g.armR.parent.getWorldQuaternion(tmpQ).invert(); g.armR.quaternion.premultiply(tmpQ2.setFromAxisAngle(ik.u1.clone().applyQuaternion(tmpQ), ang)); } else psi = 0;
@@ -418,7 +421,7 @@ function create(view, opts) {
     g.root.updateMatrixWorld(true);
     // Left hand rests on Jack's back.
     const sL = world(g.armL), tL = ((st.armHold || 0) > 0.5 || (st.armReach || 0) > 0.5) && jack.wrist ? (jack.root.updateMatrixWorld(true), jack.wrist.localToWorld(new V3(0, -3.5, 0))) : world(upperBack);
-    aim(g.armL, tmpB.copy(tL).sub(sL)); applyEdits('gerda', ['armL'], gw);
+    armToSide(g, 'armL', tL, POLE_L); applyEdits('gerda', ['armL'], gw);
     // Right arm: shoulder, elbow and wrist (the forearm's own twist). Contact pose: the hand's forearm end, or the paddle's mount, is brought to where
     // it lands; the raised pose lifts the elbow up and forward. They blend by how far the swing has come.
     const sh = world(g.armR);
@@ -498,12 +501,12 @@ function create(view, opts) {
     j.legL.thigh.rotation.set(p.tL, 0, j.legL.sign * p.zL); j.legR.thigh.rotation.set(p.tR, 0, j.legR.sign * -p.zR);
     j.legL.knee.rotation.set(p.kL, 0, 0); j.legR.knee.rotation.set(p.kR, 0, 0);
     j.neck.rotation.set(p.nx, p.ny, 0);
-    j.armL.rotation.set(p.aLx, 0, p.aLz); j.armR.rotation.set(p.aRx, 0, p.aRz);
+    j.armL.rotation.set(p.aLx, 0, p.aLz); j.armR.rotation.set(p.aRx, 0, p.aRz); if (j.elbowL) { j.elbowL.rotation.set(p.eL, 0, 0); j.elbow.rotation.set(p.eR, 0, 0); }       // (both elbows bend)
     j.torso.rotation.set(p.tx, 0, p.tz);
     const ah = st.armHold || 0, ar = st.armReach || 0;      // his right arm: reaching back to his belt (armReach), or held in the small of his back (armHold): the upper arm back and turned, the forearm across to the middle
     if (ah > 0 || ar > 0 || st._ah) {
       const H = ARM_HOLD, R = ARM_REACH, m = (a, b) => a + (b - a) * ah, r = (a, b) => a + (b - a) * ar;
-      j.armR.rotation.set(m(r(p.aRx, R.x), H.x), m(r(0, R.y), H.y), m(r(p.aRz, R.z), H.z)); if (j.elbow) j.elbow.rotation.set(m(r(0, R.e), H.e), 0, 0); if (j.wrist) j.wrist.rotation.set(0, m(0, H.w), 0); st._ah = ah > 0 || ar > 0;
+      j.armR.rotation.set(m(r(p.aRx, R.x), H.x), m(r(0, R.y), H.y), m(r(p.aRz, R.z), H.z)); if (j.elbow) j.elbow.rotation.set(m(r(p.eR, R.e), H.e), 0, 0); if (j.wrist) j.wrist.rotation.set(0, m(0, H.w), 0); st._ah = ah > 0 || ar > 0;
     }
     applyEdits('jack', ['torso', 'neck', 'glutes', 'armL', 'armR', 'thighL', 'thighR', 'kneeL', 'kneeR'], jackWeights());
   };
