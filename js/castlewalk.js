@@ -186,14 +186,15 @@ function run(G, W, opts) {
         r.hips.position.y -= L5('hipsY') * w50; r.torso.rotation.set(M5(r.torso.rotation.x, L5('torsoX')), M5(0, L5('torsoY')), M5(0, L5('torsoZ'))); r.neck.rotation.set(M5(r.neck.rotation.x, L5('neckX')), M5(0, L5('neckY')), r.neck.rotation.z);
         r.armR.rotation.set(M5(r.armR.rotation.x, L5('armRx')), 0, M5(0, L5('armRz'))); r.elbow.rotation.x = M5(r.elbow.rotation.x, L5('elbowX')); r.wrist.rotation.y = M5(0, L5('wristY')); r.armL.rotation.set(M5(r.armL.rotation.x, L5('armLx')), 0, M5(r.armL.rotation.z, L5('armLz')));
         r.legL.thigh.rotation.x = M5(r.legL.thigh.rotation.x, L5('legLx') + w); r.legL.knee.rotation.x = M5(r.legL.knee.rotation.x, L5('legLknee')); r.legR.thigh.rotation.x = M5(r.legR.thigh.rotation.x, L5('legRx') - w); r.legR.knee.rotation.x = M5(r.legR.knee.rotation.x, L5('legRknee')); }       // (the half-size poses: blended in by w, and from carrying to the knee by t)
+      if (gst.headY) r.neck.rotation.y += gst.headY;       // (she turns her head to him)
       if (gst.seated > 0) { const k = gst.seated; r.hips.position.y -= 6 * k; r.legL.thigh.rotation.x += (-1.5 - r.legL.thigh.rotation.x) * k; r.legR.thigh.rotation.x += (-1.5 - r.legR.thigh.rotation.x) * k; r.legL.knee.rotation.x += (1.5 - r.legL.knee.rotation.x) * k; r.legR.knee.rotation.x += (1.5 - r.legR.knee.rotation.x) * k;       // (seated: thighs level, shins down, hands resting on her knees unless she is reaching)
-        r.armL.rotation.x += (-0.6 - r.armL.rotation.x) * k; r.elbowL.rotation.x += (-0.8 - r.elbowL.rotation.x) * k; if (!(gst.reach > 0)) { r.armR.rotation.x += (-0.6 - r.armR.rotation.x) * k; r.elbow.rotation.x += (-0.8 - r.elbow.rotation.x) * k; } }
+        r.armL.rotation.x += (-0.1 - r.armL.rotation.x) * k; r.armL.rotation.z += (-0.15 - r.armL.rotation.z) * k; r.elbowL.rotation.x += (-1.45 - r.elbowL.rotation.x) * k; if (!(gst.reach > 0)) { r.armR.rotation.x += (-0.1 - r.armR.rotation.x) * k; r.armR.rotation.z += (0.15 - r.armR.rotation.z) * k; r.elbow.rotation.x += (-1.45 - r.elbow.rotation.x) * k; } }       // (hands in her lap)
       if (gst.sniff) r.neck.rotation.x += gst.sniff;
       if (gst.l2 > 0) { const k = gst.l2; r.torso.rotation.x += (gst.l2T - r.torso.rotation.x) * k; r.armL.rotation.x += (gst.l2X - r.armL.rotation.x) * k; r.armL.rotation.z += (gst.l2Z - r.armL.rotation.z) * k; r.neck.rotation.x += (gst.l2NX - r.neck.rotation.x) * k; r.neck.rotation.y += (gst.l2NY - r.neck.rotation.y) * k; }          // (leaning over the box, her free hand poised on its lid)
       if (gst.alive || st.scene) { const t = G.t, a = gst.alive || 1, tk = gst.talk || 0, ls = gst.listen || 0;                       // (she is not a statue: she breathes, shifts her weight, turns her head, talks with her free hand, and feels him wriggle: in the cutscenes, and small)
         const o = { ty: a * (0.025 * Math.sin(t * 0.55) + 0.015 * tk * Math.sin(t * 1.8)), tz: a * 0.012 * Math.sin(t * 0.8 + 1), ny: a * (0.04 * Math.sin(t * 0.63) + 0.02 * tk * Math.sin(t * 2.4)), nz: a * 0.015 * Math.sin(t * 0.7 + 2), lz: 0, rz: 0 };
         r.torso.rotation.x += a * 0.012 * Math.sin(t * 1.5); r.neck.rotation.x += a * (0.02 * Math.sin(t * 0.9 + 1) + 0.03 * tk * Math.sin(t * 3.2) + 0.08 * ls);
-        if (!(gst.lreach > 0)) { r.armL.rotation.x += a * (0.03 * Math.sin(t * 1.3) - 0.18 * tk * (0.5 + 0.5 * Math.sin(t * 1.7))); o.lz = a * (0.03 + 0.08 * tk * (0.5 + 0.5 * Math.sin(t * 1.5 + 1))); }
+        if (!(gst.lreach > 0) && !(gst.seated > 0)) { r.armL.rotation.x += a * (0.03 * Math.sin(t * 1.3) - 0.18 * tk * (0.5 + 0.5 * Math.sin(t * 1.7))); o.lz = a * (0.03 + 0.08 * tk * (0.5 + 0.5 * Math.sin(t * 1.5 + 1))); }
         if (st.wriggle) { r.armR.rotation.x += a * 0.008 * Math.sin(t * 3.4); o.rz = a * 0.008 * Math.sin(t * 2.7 + 1); }
         r.torso.rotation.y += o.ty; r.torso.rotation.z += o.tz; r.neck.rotation.y += o.ny; r.neck.rotation.z += o.nz; r.armL.rotation.z += o.lz; r.armR.rotation.z += o.rz; gst._o = o;       // (what was added is taken off again at the start of the next frame, so that it never builds up)
         r.hips.rotation.y = a * 0.015 * Math.sin(t * 0.5 + 0.5); } }; placeGerda(); }
@@ -650,26 +651,30 @@ function run(G, W, opts) {
         // (his hands on his seat: the upper arms turned in, so that the elbows bend back)
         const rub = { thigh: 0, knee: 0, armLx: 0.3, armRx: 0.3, armLy: -1.4, armRy: 1.4, armLz: 0, armRz: 0, elbowL: -0.4, elbowR: -0.4, torso: 0.1, neckX: 0.35 }; st.pose = rub; let rubbing = true;
         const rubber = (async () => { for (let t = 0; rubbing; t += 0.04) { rub.armLx = 0.3 + 0.12 * Math.sin(t * 7); rub.armRx = 0.3 + 0.12 * Math.sin(t * 7 + 1.4); rub.elbowL = -0.4 - 0.1 * Math.sin(t * 7 + 0.5); rub.elbowR = -0.4 - 0.1 * Math.sin(t * 7 + 1.9); await G.wait(0.04); } })();
-        const cam = () => G.cut({ pos: v(SEATX - 64, 36, SEATZ - 52), look: v(SEATX - 12, 15, SEATZ - 8), fov: 44 });
-        cam(); await G.fade(false, 0.8); await G.wait(0.6);
+        // (the cameras are the notes': on Gerda from beside Jack, on Jack from behind her, and the one for them leaving)
+        const camG = () => G.cut({ pos: v(-190, 14, -236), look: v(-132, 18, -223), fov: 44 }), camJ = () => G.cut({ pos: v(-110, 40, -180), look: v(-144, 17.5, -212), fov: 44 });
+        const nod = async (n, secs, amp) => { const base = rub.neckX; for (let k = 0; k < n; k++) for (let i = 1; i <= Math.round(secs / 0.04); i++) { rub.neckX = base + amp * Math.sin(Math.PI * 2 * i / Math.round(secs / 0.04)) * 0.5; await G.wait(0.04); } rub.neckX = base; };
+        const lookUp = async () => { const h0 = rub.neckX; for (let i = 1; i <= 16; i++) { rub.neckX = W3(h0, -0.4, ease(i / 16)); await G.wait(0.04); } };
+        Object.assign(gst, { look: 0.35, headY: 0 });       // (she looks down at him, her hands in her lap, from the first word)
+        camG(); await G.fade(false, 0.8); await G.wait(0.6);
         await sayW('gerda', 'Are you ready to behave yourself now, little climber?');
-        cam(); await G.wait(1.0); { const h0 = rub.neckX; for (let i = 1; i <= 8; i++) { rub.neckX = h0 + 0.35 * Math.sin(Math.PI * i / 8); await G.wait(0.04); } }       // (he hesitates, and nods, once)
-        await G.wait(0.8);
-        cam(); await sayW('gerda', 'Out loud, please.');
-        cam(); await G.wait(0.4); await sayW('jack', '…Yes. Um…');
-        cam(); await sayW('gerda', 'My name is Gerda.'); G.gerdaNamed = true;
-        cam(); await G.wait(0.3); await sayW('jack', 'Yes Gerda.');
-        cam(); await sayW('gerda', 'Good boy.');
+        camJ(); await G.wait(1.0); await nod(2, 1.1, 0.5); await G.wait(0.6);       // (he hesitates, and nods twice, slowly)
+        camG(); await sayW('gerda', 'Out loud, please.');
+        camJ(); await G.wait(0.3); await lookUp(); await G.wait(1.1); await sayW('jack', '…Yes. Um…');       // (he looks up at her, and holds, the question unspoken)
+        camG(); await sayW('gerda', 'My name is Gerda.'); G.gerdaNamed = true;
+        camJ(); await G.wait(0.3); { const nodding = nod(2, 0.6, 0.45); await sayW('jack', 'Yes Gerda.'); await nodding; }       // (still looking at her, he nods twice again, quicker)
+        await sayW('gerda', 'Good boy.');
         W.paintJack(jackOut, { expr: 'smile', trousers: 'up', drawers: 'up' }); rubbing = false; await rubber;       // (he brightens at the praise, and stops rubbing)
-        for (let i = 1; i <= 12; i++) { const k = ease(i / 12); rub.armLx = W3(rub.armLx, 0.05, k); rub.armRx = W3(rub.armRx, 0.05, k); rub.armLy = W3(rub.armLy, 0, k); rub.armRy = W3(rub.armRy, 0, k); rub.armLz = W3(rub.armLz, 0.1, k); rub.armRz = W3(rub.armRz, -0.1, k); rub.elbowL = W3(rub.elbowL, -0.2, k); rub.elbowR = W3(rub.elbowR, -0.2, k); rub.neckX = W3(rub.neckX, -0.1, k); await G.wait(0.04); }
-        await G.wait(0.5);
-        await sayW('gerda', 'Now, I set some nice fresh clothes out for you. Let’s get you into them, shall we?');
-        cam(); await sayW('jack', 'Yes Gerda.');
-        cam();
+        for (let i = 1; i <= 12; i++) { const k = ease(i / 12); rub.armLx = W3(rub.armLx, 0.05, k); rub.armRx = W3(rub.armRx, 0.05, k); rub.armLy = W3(rub.armLy, 0, k); rub.armRy = W3(rub.armRy, 0, k); rub.armLz = W3(rub.armLz, 0.1, k); rub.armRz = W3(rub.armRz, -0.1, k); rub.elbowL = W3(rub.elbowL, -0.2, k); rub.elbowR = W3(rub.elbowR, -0.2, k); await G.wait(0.04); }
+        await G.wait(1.0);
+        camG(); await sayW('gerda', 'Now, I set some nice fresh clothes out for you. Let’s get you into them, shall we?');
+        camJ(); W.paintJack(jackOut, { expr: 'squint', trousers: 'up', drawers: 'up' }); await sayW('jack', 'Yes Gerda.');
+        G.cut({ pos: v(-202, 34, -184), look: v(-132, 23, -222), fov: 44 });       // (the last beat: she stands, he takes her hand, and they walk out of the frame)
+        W.paintJack(jackOut, { expr: 'shy', trousers: 'up', drawers: 'up' });
         // she stands, and offers a hand; he takes it after a beat (the pose is from pose-editor-half.html: standing, hand in hand)
         const HD = root.GerdaHold50.hold, hp = { a: 'hold', b: 'hold', t: 0, w: 0 }; gst.p50 = hp; st.s = HD.jack.s || 0.7;
         const jackAt = () => { const P = gerda.root.localToWorld(v(HD.jack.px, 0, HD.jack.pz)); st.pos.x = P.x; st.pos.z = P.z; st.heading = gst.h + HD.jack.ry; };
-        for (let i = 1; i <= 24; i++) { const k = ease(i / 24); gst.seated = 1 - k; gst.y = 5.1 * (1 - k); gst.x = W3(SEATX, SEATX - 16, k); hp.w = k * 0.6; placeGerda(); await G.wait(0.04); }       // (she rises, her hand coming out to him)
+        for (let i = 1; i <= 24; i++) { const k = ease(i / 24); gst.seated = 1 - k; gst.y = 5.1 * (1 - k); gst.x = W3(SEATX, SEATX - 16, k); hp.w = k * 0.6; gst.headY = -0.8 * k; placeGerda(); await G.wait(0.04); }       // (she rises, her hand coming out to him)
         gst.seated = 0; gst.y = 0; placeGerda();
         await G.wait(0.9);
         { gerda.root.updateMatrixWorld(true); const x0 = st.pos.x, z0 = st.pos.z, h0 = st.heading, P = gerda.root.localToWorld(v(HD.jack.px, 0, HD.jack.pz)), h1 = gst.h + HD.jack.ry, J = HD.jack, from = { armLx: rub.armLx, armLy: rub.armLy, armLz: rub.armLz, elbowL: rub.elbowL, neckX: rub.neckX, torso: rub.torso };
@@ -677,7 +682,6 @@ function run(G, W, opts) {
             rub.armLx = W3(from.armLx, J.armLx, k); rub.armLy = W3(from.armLy, J.armLy || 0, k); rub.armLz = W3(from.armLz, J.armLz, k); rub.elbowL = W3(from.elbowL, J.elbowLx, k); rub.neckX = W3(from.neckX, J.neckX, k); rub.torso = W3(from.torso, J.torsoX, k); await G.wait(0.04); } st.walkN = 0; hp.w = 1; }
         await sayW('gerda', 'Come along, then.');
         // together, to the door of the nursery
-        G.cut({ pos: v(-215, 62, -272), look: v(-215, 14, -196), fov: 56 });       // (one beat, from one place: they walk out of the door across it)
         const route = [[-250, -203], [-290, -190], [-294, -164]];
         for (const [px, pz] of route) for (let n = 0; n < 400; n++) { const dx = px - gst.x, dz = pz - gst.z, d = Math.hypot(dx, dz); if (d < 1.2) break; const h1 = Math.atan2(dx, dz); gst.h += angDiff(h1, gst.h) * 0.12; gst.x += Math.sin(gst.h) * 0.9; gst.z += Math.cos(gst.h) * 0.9; gst.ph += 0.4; gst.walk = 0.6; placeGerda(); gerda.root.updateMatrixWorld(true); jackAt(); st.walkN = 1; st.walkPh += 0.3 * 1.4;
           await G.wait(0.04); }
