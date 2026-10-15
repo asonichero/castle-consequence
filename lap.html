@@ -73,11 +73,8 @@
   <div class="btns"><button id="clear">Clear marks</button><button id="snd" class="on">Sound</button><button id="again">Start again</button></div>
   <div id="end" hidden></div>
   <h3>Arm poses (over the knee)</h3>
-  <div class="sub">Jack's right arm: reaching back for his belt, and pinned in the small of his back (Gerda's left hand holds his wrist). Choosing one puts him over the knee at half size. Angles in degrees.</div>
+  <div class="sub">Jack's right arm: reaching back for his belt, or pinned behind him with Gerda holding his wrist. Her left hand rests between his shoulder blades in the other positions. The arms are reached by their own joints, so they follow every pose.</div>
   <div class="btns" id="armBtns" style="margin:6px 0"></div>
-  <div id="armSl"></div>
-  <div class="btns" style="margin-top:6px"><button id="armCopy">Copy arm poses</button></div>
-  <textarea id="armOut" readonly placeholder="Copy arm poses writes js/lap-arms.js here" style="width:100%;height:90px;box-sizing:border-box;background:#1c1c24;color:#c9c9d1;border:1px solid #454555;border-radius:4px;font-size:11px;margin-top:4px"></textarea>
   <h3>Pose editor</h3>
   <div class="btns"><button id="peToggle">Edit poses</button></div>
   <div id="pe">
@@ -105,7 +102,6 @@
 <script src="js/blocky.js"></script>
 <script src="js/cast.js"></script>
 <script src="js/lap-poses.js"></script>
-<script src="js/lap-arms.js"></script>
 <script src="js/lap.js"></script>
 <script>
 (function () {
@@ -233,25 +229,15 @@
   })();
   window.__lap = L;
 
-  // Arm poses over the knee (js/lap-arms.js)
+  // Arm poses over the knee
   (function () {
-    var POSES = { reach: { name: 'Reaching for his belt', P: L.ARM_REACH, keys: [['x', 'Shoulder swing'], ['y', 'Upper-arm twist'], ['z', 'Out from the body'], ['e', 'Elbow bend']], key: 'armReach' }, hold: { name: 'Pinned behind him', P: L.ARM_HOLD, keys: [['x', 'Shoulder swing'], ['y', 'Upper-arm twist'], ['z', 'Out from the body'], ['e', 'Elbow bend'], ['w', 'Forearm twist']], key: 'armHold' } };
-    var cur = null, sl = $('armSl');
+    var NAMES = [[null, 'Normal'], ['armReach', 'Reaching for his belt'], ['armHold', 'Pinned behind him']];
     function show(k) {
-      cur = k; L.armReach(0); L.armHold(0); if (st.to !== 'lap' || st.blend < 1) { L.place('lap', 0); L.size(0.5); } st.settle = 0; st.noRecovery = true; if (k) L[POSES[k].key](1);       // (the scene is not moved if it is already over the knee: the editor's held beat stays)
+      L.armReach(0); L.armHold(0); if (st.to !== 'lap' || st.blend < 1) { L.place('lap', 0); L.size(0.5); } st.settle = 0; st.noRecovery = true; if (k) L[k](1);       // (the scene is not moved if it is already over the knee: the editor's held beat stays)
       document.querySelectorAll('#armBtns button').forEach(function (b) { b.classList.toggle('on', b.dataset.k === String(k)); }); if (window.__peSync) window.__peSync();
-      sl.innerHTML = ''; if (!k) return; var po = POSES[k];
-      po.keys.forEach(function (kk) { var row = document.createElement('div'); row.className = 'stepper'; var inp = document.createElement('input'); inp.type = 'range'; inp.min = -180; inp.max = 180; inp.step = 1; inp.style.flex = 1; inp.value = Math.round(po.P[kk[0]] * 180 / Math.PI);
-        var lab = document.createElement('span'); lab.className = 'l'; lab.style.width = '110px'; lab.textContent = kk[1]; var val = document.createElement('span'); val.className = 'v'; val.textContent = inp.value + '°';
-        inp.oninput = function () { po.P[kk[0]] = +inp.value * Math.PI / 180; val.textContent = inp.value + '°'; }; row.appendChild(lab); row.appendChild(inp); row.appendChild(val); sl.appendChild(row); });
     }
-    [[null, 'Normal'], ['reach', POSES.reach.name], ['hold', POSES.hold.name]].forEach(function (a) { btn('armBtns', a[1], function () { show(a[0]); }, String(a[0])); });
-    $('armCopy').onclick = function () {
-      var f = function (o) { return '{ ' + Object.keys(o).map(function (k) { return k + ': ' + +o[k].toFixed(3); }).join(', ') + ' }'; };
-      var t = "// Climbing Toward Consequence — Jack's right arm over the knee: reaching back for his belt, and pinned in the small of his back (angles in radians). Written by lap.html (Correction positions, Copy arm poses): paste it over this file.\n(function (root) {\n'use strict';\nroot.LapArms = {\n  reach: " + f(L.ARM_REACH) + ",\n  hold: " + f(L.ARM_HOLD) + "\n};\n})(typeof window !== 'undefined' ? window : globalThis);\n";
-      $('armOut').value = t; $('armOut').select(); try { document.execCommand('copy'); } catch (e) {}
-    };
-    show(null); window.__armSync = function () { if (window.__peSync) window.__peSync(); };
+    NAMES.forEach(function (a) { btn('armBtns', a[1], function () { show(a[0]); }, String(a[0])); });
+    show(null);
   })();
 })();
 </script>

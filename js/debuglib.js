@@ -8,11 +8,11 @@ const LIB = {
     ['pose-editor.html', 'Pose editor: Gerda holding Jack', 'Grab the anchors to pose her arms, torso and head round Jack: tiny in her fist, or at half size carried upright and across her knee (two tabs); Copy pose pastes into js/gerda-pose.js or js/gerda-pose-half.js.'],
     ['room-editor.html', 'Room editor', 'Move the furniture about the rooms; Copy layout pastes into js/farm-layout.js or js/castle-layout.js.'],
     ['blocky.html', 'Models', 'The blocky models: Jack, Gerda and the cast, with their clothes and expressions.'],
-    ['lap.html', 'Correction positions', 'The over-the-knee and over-the-table positions with their pose editor, and Jack\'s arm poses over the knee: reaching back for his belt, and pinned in the small of his back (Copy arm poses pastes into js/lap-arms.js).'],
+    ['lap.html', 'Correction positions', 'The over-the-knee and over-the-table positions with their pose editor, and Jack\'s arm poses over the knee: reaching back for his belt, and pinned behind his back.'],
     ['level.html', 'Test level: the golden hen', 'Jack looks after the golden hen: the first test level.'],
   ],
   parts: ['pose-editor-fist.html', 'pose-editor-half.html'],       // (the two halves of the pose editor)
-  data: ['js/capture-cams.js', 'js/castle-layout.js', 'js/farm-layout.js', 'js/gerda-pose.js', 'js/gerda-pose-half.js', 'js/lap-poses.js', 'js/lap-arms.js'],
+  data: ['js/capture-cams.js', 'js/castle-layout.js', 'js/farm-layout.js', 'js/gerda-pose.js', 'js/gerda-pose-half.js', 'js/lap-poses.js'],
   files: ['js/game.js', 'js/menus.js', 'js/debuglib.js', 'js/buildbadge.js', 'js/blocky.js', 'js/cast.js', 'js/audio.js', 'js/pain.js', 'js/farm.js', 'js/opening.js', 'js/touchui.js', 'js/market.js', 'js/road.js', 'js/night.js', 'js/correction.js', 'js/garden.js',
     'js/chapter3.js', 'js/climb.js', 'js/meadow.js', 'js/castle.js', 'js/castlewalk.js', 'js/lap.js', 'js/level.js'],
 };
