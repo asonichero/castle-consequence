@@ -316,8 +316,8 @@ function interior() {
     g.add(lid); B(28, 2, 16, '#4a3420', 0, 1, 8, lid); B(5, 3, 1.2, '#c9a23c', 0, -2.4, 16.4, lid); B(26, 0.4, 14, '#7a5a3a', 0, -0.2, 8, lid);
     const clothes = at(0, 1, 0); g.add(clothes);                                                                                    // folded, in sizes that run from a man's to a baby's
     [[-8, 9, 2.6, 7, '#7a8aa8'], [-2.5, 7, 2.2, 6, '#a87a7a'], [1.8, 5.4, 1.8, 5, '#8aa86a'], [5.2, 4, 1.5, 4, '#c8b06a'], [8.2, 2.8, 1.2, 3, '#b8a0c8']].forEach(([x, w, h, d, c], i) => { B(w, h, d, c, x, 1 + h / 2, -2.5 + (i % 2), clothes); B(w * 0.8, 0.3, d * 0.7, '#e8e0d0', x, 1 + h + 0.15, -2.5 + (i % 2), clothes); });
-    const brush = at(-6, 4.2, 3.5); g.add(brush); B(1.3, 1, 6.4, '#e8d8b4', 0, 0, 0, brush); B(3.4, 1.2, 3.6, '#e8d8b4', 0, 0, 5, brush); B(3, 0.9, 3.2, '#d8c8a0', 0, 0.9, 5, brush);
-    const book = at(4, 6.2, 3.2); g.add(book); B(6.2, 0.5, 8.6, '#5a3220', 0, -0.55, 0, book); B(5.6, 1.1, 8, '#f0e8d0', 0.2, 0.1, 0, book); B(0.6, 1.7, 8.6, '#7a4630', -3.1, 0, 0, book);
+    const brush = at(-6, 4.3, 3.6); brush.rotation.y = Math.PI / 2; g.add(brush); B(1.3, 1, 6.4, '#e8d8b4', 0, 0, 0, brush); B(3.4, 1.2, 3.6, '#e8d8b4', 0, 0, 5, brush); B(3, 0.9, 3.2, '#d8c8a0', 0, 0.9, 5, brush);
+    const book = at(4.5, 3.9, -0.5); g.add(book); B(6.2, 0.5, 8.6, '#5a3220', 0, -0.55, 0, book); B(5.6, 1.1, 8, '#f0e8d0', 0.2, 0.1, 0, book); B(0.6, 1.7, 8.6, '#7a4630', -3.1, 0, 0, book);
     const cov = at(-3.1, 0.7, 0); book.add(cov); B(6.2, 0.5, 8.6, '#5a3220', 3.1, 0.25, 0, cov); B(3.6, 0.2, 5, '#c9a23c', 3.3, 0.55, 0, cov);
     g.userData.chest = { lid, clothes, brush, book, cov }; g.scale.setScalar(0.62); movable('chest', 'Chest (by the east wall)', g, { x: -108, z: -178, ry: -Math.PI / 2 }); }
   { const g = at(0, 0, 0); B(11, 0.7, 8, '#8a6a42', 0, 5.3, 0, g); for (const sx of [-1, 1]) for (const sz of [-1, 1]) B(0.8, 5, 0.8, '#6a4a2e', sx * 4.6, 2.5, sz * 3.1, g); B(8, 0.4, 5.4, '#c8b090', 0, 5.8, 0, g); movable('nurseryTable', 'Table (for someone small)', g, { x: -150, z: -262, ry: 0 }); }       // (made for someone about his size)

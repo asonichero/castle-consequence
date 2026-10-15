@@ -489,13 +489,13 @@ function run(G, W, opts) {
       for (let i = 1; i <= 34; i++) { const k = ease(i / 34); K.lid.rotation.x = -1.95 * k; st.pose.armLx = st.pose.armRx = W3(-1.7, -2.5, Math.min(1, k * 1.6)); await G.wait(0.04); }
       for (let i = 1; i <= 12; i++) { const k = ease(i / 12); st.pose.armLx = st.pose.armRx = W3(-2.5, -0.5, k); st.pose.neckX = W3(-0.15, 0.55, k); await G.wait(0.04); }
       const at3 = o => ch.localToWorld(new V3(...o));
-      G.cut({ pos: v(P.x - 9, 12, P.z - 14), look: at3([0, 7, 0]), fov: 46 });
+      G.cut({ pos: v(C0.x - 7, 15, C0.z - 9), look: v(C0.x, 3, C0.z), fov: 46 });
       await G.say('jack', 'Clothes. Folded and put away with care.');
       await G.say('jack', 'And they get smaller as they go: a man’s shirt, a boy’s, a little one’s, a baby’s.');
       await G.say('jack', 'Someone kept every size.');
-      { const bp = at3([-6, 5, 3.5]); G.cut({ pos: v(bp.x - 6, 9, bp.z - 7), look: bp, fov: 38 }); }
+      { const bp = K.brush.getWorldPosition(new V3()); G.cut({ pos: v(bp.x - 5, bp.y + 8, bp.z - 7), look: bp, fov: 38 }); }
       await G.say('jack', 'A hairbrush. A tiny one, with a handle worn pale where a thumb has held it.');
-      { const bp = at3([4, 7, 3.2]); G.cut({ pos: v(bp.x - 6, 9, bp.z - 8), look: bp, fov: 38 }); }
+      { const bp = K.book.getWorldPosition(new V3()); G.cut({ pos: v(bp.x - 5, bp.y + 8, bp.z - 7), look: bp, fov: 38 }); }
       await G.say('jack', 'And a book.');
       // he takes the book up, and opens it
       scene.attach(K.book); const b0 = K.book.position.clone(), q0 = K.book.quaternion.clone(), qT = new THREE.Quaternion().setFromAxisAngle(v(0, 0, 1), 0.7).multiply(q0), H = v(P.x + 2.4, 0.56 * Hj, P.z - 0.4);
@@ -517,7 +517,7 @@ function run(G, W, opts) {
       A && A.thud && A.thud(0.7);
       G.cut({ pos: v(-264, 24, -212), look: v(-294, 44, -160), fov: 54 });
       await G.wait(2.6);
-      G.cut({ pos: v(st.pos.x - 10, 0.8 * Hj, st.pos.z - 14), look: v(st.pos.x, 0.8 * Hj, st.pos.z), fov: 34 });
+      G.cut({ pos: v(st.pos.x + 4, 0.85 * Hj, st.pos.z - 13), look: v(st.pos.x, 0.8 * Hj, st.pos.z), fov: 34 });
       await G.wait(1.6);
       await finish('nursery');
     }
