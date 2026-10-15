@@ -541,9 +541,9 @@ function run(G, W, opts) {
       await gline('You’re in my house, little climber. Why?');
       // the questions: the truth, or a lie she sees through; after three lies only the truth is left
       const TRUTH = 'I came to take something. Anything worth carrying home.', LIES = ['I was lost. I only wandered in.', 'I came looking for work. Somebody said you might need a hand.', 'I was bringing you a message from the village.'], SEE = ['Lost. Four storeys up, through a crack no wider than a thumb, and you wandered into my nursery. Again, please.', 'Work. In a nursery, with nothing in your hands but my book. Try again.', 'A message. Delivered to a chest, by hand, with the lid shut. Last chance, little climber.'];
-      let lies = 0;
+      let lies = 0; const opts_auto = opts.ch3lies;       // (in the scene notes the path is fixed, so that the beats are the same each time: truth at once, or after one, two or three lies)
       for (;;) {
-        const opts = lies < 3 ? [TRUTH, LIES[lies]] : [TRUTH], k = await G.choose('jack', opts);
+        const opts = lies < 3 ? [TRUTH, LIES[lies]] : [TRUTH], k = opts_auto !== undefined ? (lies >= opts_auto ? 0 : 1) : await G.choose('jack', opts);
         if (k === 0) break;
         shotJ(); await jline(LIES[lies]); shotG(6.1, 6.1, 5.9); await gline(SEE[lies]); lies++;
       }
@@ -552,6 +552,7 @@ function run(G, W, opts) {
       A && A.blip && A.blip(); for (let i = 1; i <= 48; i++) { st.s = W3(0.4, 0.5, ease(i / 48)); await G.wait(0.05); } st.s = 0.5;
       shotG(12.3, 12.1, 6.5);
       await gline(['Honest, and at the first asking. I’ll say that for you.', 'The truth, after one fib. It is a start.', 'Two lies, and then the truth. You are getting there, slowly.', 'Three lies, and the truth only when you had run out of the other kind.'][lies]);
+      st.pose.neckX = -0.45;                                                                      // (he looks up at her again for the second line)
       await gline('But I told you to stay put, and to touch nothing, did I not, ' + ['little one', 'little climber', 'little mouse', 'my little thief'][lies] + '?');
       shotJ(); await jline('I’m not a—');
       // she lifts him, and carries him to the chair by the cot
@@ -575,9 +576,9 @@ function run(G, W, opts) {
       { const h0 = gst.h; for (let i = 1; i <= 26; i++) { const k = ease(i / 26); gst.h = h0 + angDiff(-Math.PI / 2, h0) * k; gst.x = W3(SEATX - 12, SEATX, k); gst.sit = k; tiltK = k; gst.bend = W3(0.35, 0.05, k); gst.reach = W3(1.25, 0.9, k); gst.lreach = W3(1.25, 1.1, k); gst.lz = W3(0, -0.35, k); gst.y = 5.1 * k; placeGerda(); gerda.root.position.y = gst.y; carryFrame(); await G.wait(0.04); } }
       root.Blocky.seatFeet && root.Blocky.seatFeet(gerda, 0);
       const lapY = 17.5, lapX = SEATX - 6.5;
-      st.pose = { thigh: 0.2, knee: 0.3, armLx: -1.3, armLz: 0.1, armRx: -1.3, armRz: -0.1, torso: 0, neckX: 0.5, neckY: 0 };
+      st.pose = { thigh: 0.2, knee: 0.3, armLx: -1.3, armLz: 0.1, armRx: -1.3, armRz: -0.1, torso: 0, neckX: -0.75, neckY: 0 };       // (his head up, so that his face is seen)
       { const q1 = Q(RX, Math.PI / 2), p0 = jackOut.root.position.clone(), q0 = jackOut.root.quaternion.clone(); for (let i = 1; i <= 20; i++) { const k = ease(i / 20); jackOut.root.position.set(W3(p0.x, lapX, k), W3(p0.y, lapY + 1.5, k), W3(p0.z, SEATZ - 7.3, k)); jackOut.root.quaternion.copy(q0).slerp(q1, k); await G.wait(0.04); } }
-      G.cut({ pos: v(SEATX - 66.4, 21.7, SEATZ + 13), look: v(lapX, 14, SEATZ - 2), fov: 40 });
+      G.cut({ pos: v(SEATX - 59.2, 14, SEATZ + 31.1), look: v(lapX, 14, SEATZ - 2), fov: 40 });
       W.paintJack(jackOut, { expr: 4 }); await jline('No!');
       for (let i = 1; i <= 36; i++) { const t = i * 0.35; st.pose.thigh = 0.2 + 0.7 * Math.sin(t * 2.3); st.pose.knee = 0.4 + 0.5 * Math.abs(Math.sin(t * 2.3 + 1)); st.pose.armLx = -1.3 + 0.4 * Math.sin(t * 2.9); st.pose.armRx = -1.3 + 0.4 * Math.sin(t * 2.9 + 2); jackOut.root.position.x = lapX + 0.25 * Math.sin(t * 3.1); jackOut.root.position.y = lapY + 1.5 + 0.2 * Math.abs(Math.sin(t * 2.3)); if (i === 8) jline('Let me go!'); await G.wait(0.04); }
       await G.wait(0.6);
