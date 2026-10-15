@@ -767,6 +767,8 @@ function run(G, W, opts) {
       const trousers = prop(g => { mk(7, 0.9, 5.5, '#6d5233', 0, 0.45, 0, g); mk(7, 0.7, 2.2, '#59422a', 0, 1.2, -0.8, g); mk(1.8, 0.2, 1.6, '#8b7048', -1.6, 1.0, 0.8, g); mk(7.4, 0.5, 0.9, '#4a3220', 0, 1.0, 2.5, g); g.scale.setScalar(PS * 1.1); }, tc.x - 3, tc.z + 1, 0.2);
       const shirt = prop(g => { mk(6.2, 0.8, 5, '#e8dfc4', 0, 0.4, 0, g); mk(5.6, 0.6, 4.4, '#4b7a3a', 0, 1.1, 0, g); mk(1.2, 0.2, 1.2, '#cfc4a6', 0, 1.5, -1, g); g.scale.setScalar(PS * 1.1); }, tc.x - 11, tc.z + 4, -0.25);
       const heldTunic = new THREE.Group(); mk(5.6, 0.7, 4.6, '#86ad72', 0, 0, 0, heldTunic); mk(0.9, 0.2, 2.4, '#8a6038', 0, 0.45, 0, heldTunic); heldTunic.scale.setScalar(PS * 1.1); heldTunic.visible = false; gerda.wrist.add(heldTunic); heldTunic.position.set(0, -6, 0.8);
+      const heldBoot = new THREE.Group(); boot(heldBoot); heldBoot.visible = false; gerda.wrist.add(heldBoot); heldBoot.position.set(0, -6, 0.8);
+      const heldShirt = new THREE.Group(); mk(6.2, 0.8, 5, '#e8dfc4', 0, 0, 0, heldShirt); mk(5.6, 0.6, 4.4, '#4b7a3a', 0, 0.7, 0, heldShirt); heldShirt.scale.setScalar(PS * 1.1); heldShirt.visible = false; gerda.wrist.add(heldShirt); heldShirt.position.set(0, -6, 0.8);
       const heldTrousers = new THREE.Group(); mk(7, 0.9, 5.5, '#6d5233', 0, 0, 0, heldTrousers); mk(7, 0.7, 2.2, '#59422a', 0, 0.8, -0.8, heldTrousers); mk(7.4, 0.5, 0.9, '#4a3220', 0, 0.6, 2.5, heldTrousers); heldTrousers.scale.setScalar(PS * 1.1); heldTrousers.visible = false; gerda.wrist.add(heldTrousers); heldTrousers.position.set(0, -6, 0.8);
       const heldShorts = new THREE.Group(); mk(5.2, 0.8, 3.6, '#b8a173', 0, 0, 0, heldShorts); mk(5.2, 0.5, 0.6, '#9b855d', 0, 0.5, 1.6, heldShorts); heldShorts.scale.setScalar(PS * 1.1); heldShorts.visible = false; scene.add(heldShorts); const shortsTick = () => { if (!heldShorts.visible) return; const a = wr(), b = wl(); heldShorts.position.copy(a).add(b).multiplyScalar(0.5); heldShorts.rotation.y = gst.h; heldShorts.scale.set(Math.max(PS * 1.1, a.distanceTo(b) / 5.2 * 0.95), PS * 1.1, PS * 1.1); }; G.updaters.push(shortsTick);       // (the shorts are held between both her hands)
       // the places
@@ -786,6 +788,10 @@ function run(G, W, opts) {
       const handTo = async (T, both, secs) => { const b = solveHand(T, both); await pose({ bend: b.bd, reach: b.rc, lreach: both ? b.rc : 0 }, secs); };
       const rest = (secs) => pose({ bend: 0, reach: 0, lreach: 0 }, secs || 0.5);
       const act = label => new Promise(res => { st.dressWait = { label, res }; });
+      const setDown = async (held, prop, fold) => { const sp = prop.position, base = held.scale.clone(); await handTo(v(sp.x, TOP + 9, sp.z + 2), false, 0.5);       // what comes off him: she lifts it clear, folds it if it folds, and puts it down on the table
+        if (fold) for (let i = 0; i < 2; i++) { for (let k = 1; k <= 8; k++) { const q = ease(k / 8); held.scale.set(base.x, base.y * W3(1, 0.55, q), base.z * W3(1, 0.7, q)); await G.wait(0.04); } if (!i) await G.wait(0.1); }
+        await handTo(v(sp.x, TOP + 2, sp.z + 1), false, 0.45); held.visible = false; held.scale.copy(base); prop.visible = true; A && A.blip && A.blip(); await G.wait(0.15); };
+
       const footAt = left => (left ? jackOut.legL : jackOut.legR).knee.localToWorld(new V3(0, -8, 0));
       const liftFoot = async (left, on) => { const k0 = st.pose || (st.pose = { thigh: 0, knee: 0 }); const n = 12; for (let i = 1; i <= n; i++) { const k = on ? ease(i / n) : 1 - ease(i / n); st.pose.legLx = left ? W3(0, -0.55, k) : 0; st.pose.legRx = left ? 0 : W3(0, -0.55, k); st.pose.kneeL = left ? 0.9 * k : 0; st.pose.kneeR = left ? 0 : 0.9 * k; await G.wait(0.04); } };
       // ── eyes: she looks at his face, and at her hands when they are busy; he is shy of her gaze at first, and meets it more as the praise lands ──
@@ -811,8 +817,8 @@ function run(G, W, opts) {
         await act(left ? 'Lift left foot' : 'Lift right foot');
         liftFoot(left, true); await G.wait(0.5); await handTo(footAt(left), false, 0.5);
         for (let t = 0; t < 3; t++) { st.pose.legLx += left ? -0.1 : 0; st.pose.legRx += left ? 0 : -0.1; await G.wait(0.08); st.pose.legLx -= left ? -0.1 : 0; st.pose.legRx -= left ? 0 : -0.1; await G.wait(0.08); }       // (a tug, and a tug)
-        paint(left ? { bootL: false } : { bootR: false }); (left ? bootL : bootR).visible = true; A && A.blip && A.blip();
-        await rest(0.4); await liftFoot(left, false);
+        paint(left ? { bootL: false } : { bootR: false }); heldBoot.visible = true; A && A.blip && A.blip();
+        await Promise.all([liftFoot(left, false), setDown(heldBoot, left ? bootL : bootR, false)]); await rest(0.4);
         await sayW('gerda', left ? 'There’s a good boy. And the other one, now.' : 'Both off! Look at you, such a good helper. Doesn’t that feel better?'); gz.b = left ? 0.25 : 0.45;
       }
       // ── trousers: she lowers them, he steps out ──
@@ -823,18 +829,16 @@ function run(G, W, opts) {
       await act('Step out');
       liftFoot(true, true); await G.wait(0.3); paint({ legs: 'drawers', trousers: 'up' }); heldTrousers.visible = true; A && A.blip && A.blip(); await G.wait(0.25);       // (the left foot comes up, and with the first movement they are off him and in her hand)
       await liftFoot(true, false); await liftFoot(false, true); await G.wait(0.15); await liftFoot(false, false);
-      { const spot = new V3(tc.x - 3, TOP, tc.z + 1); await handTo(v(spot.x, TOP + 9, spot.z + 2), false, 0.6);       // she folds them, and sets them down
-        for (let i = 0; i < 2; i++) { for (let k = 1; k <= 8; k++) { const q = ease(k / 8); heldTrousers.scale.set(PS * 1.1, PS * 1.1 * W3(1, 0.55, q), PS * 1.1 * W3(1, 0.7, q)); await G.wait(0.04); } if (!i) await G.wait(0.1); }
-        await handTo(v(spot.x, TOP + 2, spot.z + 1), false, 0.5); heldTrousers.visible = false; trousers.visible = true; A && A.blip && A.blip(); await rest(0.5); }
+      await setDown(heldTrousers, trousers, true); await rest(0.5);
       await sayW('gerda', 'Beautifully done! You see? Nothing to it.'); gz.b = 0.6; paint({ expr: 'smile' });
       // ── tunic and shirt, in one: arms up ──
       await sayW('gerda', 'Arms up high for me, there’s a brave boy.');
       await act('Arms up');
       for (let i = 1; i <= 14; i++) { const k = ease(i / 14); st.pose = Object.assign(st.pose || {}, { armLx: W3(0, -2.9, k), armRx: W3(0, -2.9, k), armLz: W3(0.08, 0.25, k), armRz: W3(-0.08, -0.25, k) }); await G.wait(0.04); }
       { const hem = jackOut.torso.localToWorld(new V3(0, 3, 4)); await handTo(hem, true, 0.5); const top = jackOut.torso.localToWorld(new V3(0, 22, 0)); await handTo(top, true, 0.7); }
-      paint({ top: false }); shirt.visible = true; A && A.blip && A.blip(); await G.wait(0.3);
+      paint({ top: false }); heldShirt.visible = true; A && A.blip && A.blip(); await G.wait(0.3);
       for (let i = 1; i <= 14; i++) { const k = ease(i / 14); st.pose.armLx = W3(-2.9, 0, k); st.pose.armRx = W3(-2.9, 0, k); st.pose.armLz = W3(0.25, 0.08, k); st.pose.armRz = W3(-0.25, -0.08, k); await G.wait(0.04); }
-      await rest(0.5);
+      await setDown(heldShirt, shirt, true); await rest(0.5);
       await sayW('gerda', 'Off it all comes, and not a murmur. You are doing so well.'); gz.b = 0.75;
       // ── the day tunic: over his head ──
       await sayW('gerda', 'Now something clean and soft for you.');
