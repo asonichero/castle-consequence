@@ -8,7 +8,7 @@ const THREE = root.THREE, A = root.GameAudio, V3 = THREE.Vector3;
 const v = (x, y, z) => new V3(x, y, z), clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const angDiff = (a, b) => { let d = (a - b) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; };
 const SC = 0.95, HEIGHT = 31, FULL = 1.4;                            // (Jack's model height at the cottage's 100% is 31; in the castle his "100%" is 1.4 times that, 43, and the ceiling, 86, is twice it)
-const PLACES = [['Entrance hall', 0, 70, Math.PI], ['Corridor A', -180, -26, Math.PI / 2], ['Music hall', -150, 44, Math.PI], ['Library', -150, -98, Math.PI], ['Nursery', -250, -205, 0], ['Kitchen', 150, 0, Math.PI], ['Parlour', 310, -40, Math.PI],
+const PLACES = [['Entrance hall', 0, 70, Math.PI], ['Corridor A', -180, -26, Math.PI / 2], ['Music hall', -150, 44, Math.PI], ['Library', -150, -98, Math.PI], ['Nursery', -250, -205, 0], ['Narrow corridor, kitchen end', -95, -25, Math.PI / 2], ['Nursery chest', -125, -178, Math.PI / 2], ['Kitchen', 150, 0, Math.PI], ['Parlour', 310, -40, Math.PI],
   ['Bathing room', 320, -140, -Math.PI / 2], ['Hen roost', 280, -250, 0], ['Garden', 80, -200, Math.PI]];
 
 // Every opaque box in the room becomes a collision box (floors, rugs and glass excepted), in a grid for quick lookup.
@@ -79,10 +79,12 @@ function run(G, W, opts) {
       #cwStamW { position: absolute; left: 50%; bottom: 14vh; transform: translateX(-50%); width: 160px; height: 10px; background: rgba(10,12,16,0.7); border: 1px solid #4a4d58; border-radius: 5px; display: none; overflow: hidden; } #cwStam { height: 100%; width: 100%; background: #e6c46a; }
       #cwPrompt { position: absolute; left: 50%; bottom: 30vh; transform: translateX(-50%); background: rgba(10,12,16,0.82); border: 1px solid #c9a84c; color: #f3e4b0; padding: 6px 14px; border-radius: 8px; font-size: 15px; display: none; white-space: nowrap; }
       #cwObjt { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(10,12,16,0.7); border: 1px solid #4a4d58; border-radius: 8px; padding: 8px 16px; font-size: 16px; display: none; }
+      #cwPage { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0.96); width: min(520px, 80vw); padding: 44px 20px 36px; background: radial-gradient(ellipse at 50% 40%, #f3e8c8, #e2d0a0); border: 3px double #8a6a3a; box-shadow: 0 10px 60px #000; text-align: center; opacity: 0; transition: opacity 1.2s ease, transform 1.2s ease; pointer-events: none; z-index: 30; }
+      #cwPage.on { opacity: 1; transform: translate(-50%, -50%) scale(1); } #cwPage span { font: italic 600 clamp(64px, 15vw, 128px)/1 'Snell Roundhand', 'Zapfino', 'Brush Script MT', 'Lucida Handwriting', 'Apple Chancery', cursive; color: #3a2616; text-shadow: 1px 1px 0 #b89a62; } #cwPage:after { content: '\\2766'; display: block; margin-top: 10px; font-size: 26px; color: #8a6a3a; }
       #cwCross { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: rgba(255,255,255,0.7); display: none; }`;
     document.head.appendChild(css);
     const hud = document.createElement('div'); hud.id = 'cwHud';
-    hud.innerHTML = '<div id="cwPanel"><label>Jack’s size: <b id="cwPct">100%</b><br><input id="cwScale" type="range" min="5" max="150" step="1" value="100"></label><select id="cwGo"><option value="">Go to…</option></select></div><div id="cwObjt"></div><div id="cwPrompt"></div><div id="cwStamW"><div id="cwStam"></div></div><div id="cwCross"></div><div id="cwToast"></div>';
+    hud.innerHTML = '<div id="cwPanel"><label>Jack’s size: <b id="cwPct">100%</b><br><input id="cwScale" type="range" min="5" max="150" step="1" value="100"></label><select id="cwGo"><option value="">Go to…</option></select></div><div id="cwObjt"></div><div id="cwPrompt"></div><div id="cwStamW"><div id="cwStam"></div></div><div id="cwCross"></div><div id="cwToast"></div><div id="cwPage"><span>Jack</span></div>';
     document.body.appendChild(hud);
     const $ = id => document.getElementById(id);
     const toast = (t, ms = 6000) => { $('cwToast').textContent = root.Tips.clean(t); $('cwToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
@@ -448,15 +450,90 @@ function run(G, W, opts) {
     const zoneSeen = {}, zoneIn = {}, zoneN = {}; let lastRemark = 0;
     const ZONES = {
       door: { in: p => p.z > 90 && Math.abs(p.x) < 30, first: ['That’s the crack I came in by. I’d never squeeze through it now.', 'And I can’t go home with nothing to show for it. Mother’s been frantic since morning, and I know what waits for a son who comes back empty-handed.'], again: ['Maybe there’s another way out.', 'There has to be some other way out of here.', 'Still too big for it. Another way, then.'] },
+      nursery: { in: p => p.x > -312 && p.x < -100 && p.z > -292 && p.z < -161, first: ['A nursery. A real one, with a cot and a rocking horse and a whole shelf of toys.', 'I don’t know what to make of it. Where I come from, a toy is a stick and a good imagination.', 'It’s very quiet. It feels like a room that’s waiting for someone.'], again: [] },
       parlour: { in: p => p.x > 222 && Math.abs(p.z + 75) < 28, first: ['That’s the way she went. I’m in no hurry to run into her again.'], again: ['Not that way. Not while she’s about.', 'She’s still through there. I’ll keep clear.', 'Best to leave her to it.'] },
     };
-    function ch3Tick() {
-      promptEl().style.display = 'none'; st.actReq = false; if (st.scene) return;
+    // ── The exploration: he may look at what he passes, he grows a little along the narrow corridor, and the nursery ends it. ──
+    const c3 = { looks: {}, nL: 0, shift: false, g1: false, g2: false, done: false, targets: [], grow: 0.25 };
+    const LK = {
+      urn: { name: 'urn', r: 17, keys: ['urn1', 'urn2', 'urn3', 'urn4', 'urn5', 'urn6'], lines: ['Taller than I am, and carved all round with something I can’t read. Whatever it holds, it isn’t going home in my pockets.', 'Another. They stand in a row like mourners. I wonder who she keeps in them.', 'Cold stone, thick as a church bell and about as portable. Nothing here for the taking.', 'Not a scratch on it. Somebody dusts these, and it isn’t me.', 'If I were sensible I’d be looking for a door, not for pots.', 'Cold, and quiet. A person could grow old in a corridor like this and never be missed.'] },
+      cabinet: { name: 'cabinet', r: 21, keys: ['cabinet1', 'cabinet2', 'cabinet3', 'cabinet4'], lines: ['Carved all over with little scenes: a river, a hunter, a woman with a basket. Shut tight, and I’d not know what to do with what’s inside.', 'Brass handles, level with my chin. I could pull one. But what would I carry out of a drawer that size?', 'Every cabinet in this house is shut. Plates, probably. Plates and secrets.', 'Beautiful work. Mother would say the wood alone could feed us a winter. And Mother would be right, and it still wouldn’t fit through the crack.'] },
+      harp: { name: 'harp', r: 20, keys: ['harp1', 'harp2', 'harp3'], lines: ['A harp, and gold from top to bottom. Nobody could carry that out of here, least of all a boy my size. It’s only music, anyway.', 'I’ve only ever heard a fiddle, at the fair. I wonder what a thing like this sounds like when someone plays it.', 'Her fingers must be as long as my arm. Odd, to think of her playing something so fine.'] },
+      flute: { name: 'flutes', r: 24, keys: ['fluteRack'], lines: ['Flutes, in a row, gold and silver. A boy could charm a rat out of its hole with one of those. It’s not a way out, though.', 'Somebody once played these. The rack has the shine of hands on it.'] },
+      doll: { name: 'dollhouse', r: 24, nursery: true, keys: ['dollhouse'], lines: ['A house, with a roof and a proper door. A door a person could walk through. A person my size. Everything else here is built for giants.', 'The little windows are painted in. Somebody took such care with it, and then it was left to break.'] },
+      horse: { name: 'rocking horse', r: 20, nursery: true, keys: ['horse1'], lines: ['A wooden horse, and the saddle sits just where I’d need it. Who builds a giant’s castle and then a horse like this?', 'The paint’s rubbed off its ears, where small hands held on. It was loved, this one.'] },
+      toys: { name: 'toys', r: 14, nursery: true, keys: ['toys'], lines: ['Blocks, a ball, a top. Worn smooth. Somebody played with these, and played a great deal.', 'A top. I never had one. Father meant to carve me one, once.'] },
+      table: { name: 'little table', r: 13, nursery: true, keys: ['nurseryTable'], lines: ['A table no higher than my chest. Somebody sat here and drew, or took their supper. A small somebody.', 'There’s a ring on it where a cup stood. Somebody was told, I expect, to use a coaster.'] },
+      chair: { name: 'little chair', r: 9, nursery: true, keys: ['nurseryChairS'], lines: ['A chair for someone my size. I could sit in it. I’m not sure I should.'] },
+      chest: { name: 'chest', r: 15, special: true, keys: ['chest'], lines: [] },
+    };
+    for (const cat in LK) LK[cat].keys.forEach((k, i) => { if (M.items[k]) c3.targets.push({ k, cat, i, g: M.items[k].g }); });
+    async function doLook(t) {
+      if (t.cat === 'chest') { await chestScene(); return; }
+      st.busy = true; st.lockT = 99; st.lockH = Math.atan2(t.g.position.x - st.pos.x, t.g.position.z - st.pos.z);
+      const n = c3.looks[t.k] || 0; c3.looks[t.k] = n + 1; const L = LK[t.cat].lines; await say(L[(t.i + n) % L.length]);
+      if (LK[t.cat].nursery && n === 0) { c3.nL++; if (c3.nL === 2 && !c3.shift) { c3.shift = true; await say('I came in here looking for something worth carrying home.'); await say('I haven’t thought about that in five minutes. I only want to know whose all this was.'); } }
+      st.lockT = 0.01; st.busy = false;
+    }
+    // the chest: he opens it, finds what is inside, reads the first page, and drops the book. Gerda is in the doorway.
+    async function chestScene() {
+      const ch = M.items.chest.g, K = ch.userData.chest, Hj = HEIGHT * SC * st.s, ease = k => k * k * (3 - 2 * k), W3 = (a, b, k) => a + (b - a) * k;
+      c3.done = true; st.busy = true; st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); st.lockT = 0; st.walkN = 0; $('cwPrompt').style.display = 'none'; $('cwPage').classList.remove('on');
+      const P = ch.localToWorld(new V3(0, 0, 11.5)), C0 = ch.localToWorld(new V3(0, 0, 0)), hh = Math.PI / 2;
+      G.cut({ pos: v(P.x - 20, 14, P.z - 28), look: v(C0.x - 3, 4, C0.z), fov: 40 });
+      { const x0 = st.pos.x, z0 = st.pos.z, h0 = st.heading, n = 24; for (let i = 1; i <= n; i++) { const k = ease(i / n); st.pos.x = W3(x0, P.x, k); st.pos.z = W3(z0, P.z, k); st.heading = h0 + angDiff(hh, h0) * k; st.walkN = 1; st.walkPh += 0.5; await G.wait(0.04); } st.walkN = 0; st.heading = hh; }
+      st.pose = { armLx: -0.15, armLz: 0.3, armRx: -0.15, armRz: -0.3, torso: 0, neckX: 0, neckY: 0 };
+      await G.say('jack', 'A chest. No lock on it, no key. Nothing to say it isn’t for opening.');
+      for (let i = 1; i <= 14; i++) { const k = ease(i / 14); st.pose.armLx = st.pose.armRx = W3(-0.15, -1.7, k); st.pose.neckX = -0.15 * k; await G.wait(0.04); }
+      A && A.thud && A.thud(0.15);
+      for (let i = 1; i <= 34; i++) { const k = ease(i / 34); K.lid.rotation.x = -1.95 * k; st.pose.armLx = st.pose.armRx = W3(-1.7, -2.5, Math.min(1, k * 1.6)); await G.wait(0.04); }
+      for (let i = 1; i <= 12; i++) { const k = ease(i / 12); st.pose.armLx = st.pose.armRx = W3(-2.5, -0.5, k); st.pose.neckX = W3(-0.15, 0.55, k); await G.wait(0.04); }
+      const at3 = o => ch.localToWorld(new V3(...o));
+      G.cut({ pos: v(P.x - 9, 12, P.z - 14), look: at3([0, 7, 0]), fov: 46 });
+      await G.say('jack', 'Clothes. Folded and put away with care.');
+      await G.say('jack', 'And they get smaller as they go: a man’s shirt, a boy’s, a little one’s, a baby’s.');
+      await G.say('jack', 'Someone kept every size.');
+      { const bp = at3([-6, 5, 3.5]); G.cut({ pos: v(bp.x - 6, 9, bp.z - 7), look: bp, fov: 38 }); }
+      await G.say('jack', 'A hairbrush. A tiny one, with a handle worn pale where a thumb has held it.');
+      { const bp = at3([4, 7, 3.2]); G.cut({ pos: v(bp.x - 6, 9, bp.z - 8), look: bp, fov: 38 }); }
+      await G.say('jack', 'And a book.');
+      // he takes the book up, and opens it
+      scene.attach(K.book); const b0 = K.book.position.clone(), q0 = K.book.quaternion.clone(), qT = new THREE.Quaternion().setFromAxisAngle(v(0, 0, 1), 0.7).multiply(q0), H = v(P.x + 2.4, 0.56 * Hj, P.z - 0.4);
+      G.cut({ pos: v(P.x - 3, 0.85 * Hj, P.z - 17), look: v(P.x + 1.5, 0.55 * Hj, P.z - 0.2), fov: 38 });
+      for (let i = 1; i <= 24; i++) { const k = ease(i / 24); K.book.position.set(W3(b0.x, H.x, k), W3(b0.y, H.y, k) + Math.sin(k * Math.PI) * 2.2, W3(b0.z, H.z, k)); K.book.quaternion.copy(q0).slerp(qT, k); st.pose.armLx = st.pose.armRx = W3(-0.5, -1.1, k); st.pose.armLz = W3(0.3, 0.08, k); st.pose.armRz = W3(-0.3, -0.08, k); st.pose.neckX = W3(0.55, 0.45, k); await G.wait(0.04); }
+      await G.wait(0.4);
+      for (let i = 1; i <= 26; i++) { K.cov.rotation.z = 2.9 * ease(i / 26); await G.wait(0.04); }
+      A && A.blip && A.blip(); await G.wait(0.5);
+      $('cwPage').classList.add('on'); await G.wait(3.4);
+      // the first page. He lets it go at once.
+      $('cwPage').classList.remove('on'); await G.wait(0.15);
+      { const y0 = K.book.position.y, x0 = K.book.position.x; let vy = 0, y = y0; const q1 = K.book.quaternion.clone(), qS = new THREE.Quaternion().setFromAxisAngle(v(0.4, 0, 1), 1.9);
+        for (let i = 1; i <= 16; i++) { vy -= 90 * 0.04; y = Math.max(0.5, y + vy * 0.04); K.book.position.y = y; K.book.position.x = x0 + 0.05 * i; K.book.quaternion.copy(q1).slerp(q1.clone().multiply(qS), Math.min(1, i / 12)); st.pose.armLx = st.pose.armRx = W3(-1.1, -0.2, Math.min(1, i / 6)); st.pose.armLz = W3(0.08, 0.7, Math.min(1, i / 6)); st.pose.armRz = W3(-0.08, -0.7, Math.min(1, i / 6)); st.pose.neckX = W3(0.45, -0.1, Math.min(1, i / 8)); if (y <= 0.5) break; await G.wait(0.04); } }
+      A && A.thud && A.thud(0.5);
+      { const x0 = st.pos.x; for (let i = 1; i <= 14; i++) { const k = ease(i / 14); st.pos.x = x0 - 2.2 * k; st.walkN = 0.6; st.walkPh -= 0.3; await G.wait(0.04); } st.walkN = 0; }
+      await G.wait(0.9);
+      // and in the doorway, Gerda
+      gerda.root.visible = true; gst.x = -294; gst.z = -161; gst.h = Math.PI; gst.walk = 0; gst.bend = 0; placeGerda(); gerda.root.updateMatrixWorld(true);
+      A && A.thud && A.thud(0.7);
+      G.cut({ pos: v(-264, 24, -212), look: v(-294, 44, -160), fov: 54 });
+      await G.wait(2.6);
+      G.cut({ pos: v(st.pos.x - 10, 0.8 * Hj, st.pos.z - 14), look: v(st.pos.x, 0.8 * Hj, st.pos.z), fov: 34 });
+      await G.wait(1.6);
+      await finish('nursery');
+    }
+    function ch3Tick(dt) {
+      const act = st.actReq; st.actReq = false; const pr = promptEl(); pr.style.display = 'none'; st.uiAct = null; if (st.scene) return;
       for (const k in ZONES) { const z = ZONES[k], here = z.in(st.pos);
         if (here && !zoneIn[k]) { zoneIn[k] = true; const now = performance.now();
-          if (!zoneSeen[k]) { zoneSeen[k] = true; lastRemark = now; z.first.reduce((pr, t) => pr.then(() => say(t)), Promise.resolve()); }
-          else if (now - lastRemark > 4000) { lastRemark = now; zoneN[k] = (zoneN[k] || 0) + 1; say(z.again[(zoneN[k] - 1) % z.again.length]); } }
+          if (!zoneSeen[k]) { zoneSeen[k] = true; lastRemark = now; z.first.reduce((pr2, t) => pr2.then(() => say(t)), Promise.resolve()); }
+          else if (now - lastRemark > 4000 && z.again.length) { lastRemark = now; zoneN[k] = (zoneN[k] || 0) + 1; say(z.again[(zoneN[k] - 1) % z.again.length]); } }
         else if (!here) zoneIn[k] = false; }
+      if (st.pos.z > -43 && st.pos.z < -8 && st.pos.x < -90 && st.pos.x > -275) {                                // the narrow corridor: the further he walks, the larger he is, from a quarter to a third and a bit
+        const t = clamp((-90 - st.pos.x) / 183, 0, 1), target = 0.25 + 0.10 * t; if (target > st.s) { st.s = target; c3.grow = target; }
+        if (t > 0.3 && !c3.g1) { c3.g1 = true; say('Odd. My boots are tighter than they were. Am I... bigger?'); }
+        if (t > 0.95 && !c3.g2) { c3.g2 = true; say('A little more with every step. Whatever this place does to me, it isn’t finished.'); } }
+      if (!st.busy && !c3.done) { let best = null, bd = 1e9; for (const t of c3.targets) { const d = Math.hypot(t.g.position.x - st.pos.x, t.g.position.z - st.pos.z); if (d < LK[t.cat].r && d < bd) { best = t; bd = d; } }
+        if (best) { pr.textContent = 'E — ' + (best.cat === 'chest' ? 'open the chest' : 'look at the ' + LK[best.cat].name); pr.style.display = 'block'; st.uiAct = best.cat === 'chest' ? 'Open' : 'Look'; if (act) doLook(best); } }
     }
     async function ch3Open() {
       const f = $('fade'), tgp = M.items.kitchenTable.g, TOP = 25.5, bx = M.items.keepsakeBox.g, box = bx.userData.box, tc = bx.position.clone(), bs = SC * st.s;
