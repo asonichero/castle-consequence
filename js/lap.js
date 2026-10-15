@@ -193,7 +193,7 @@ function create(view, opts) {
   // One set of pose edits for each position (over the knee, bent over the table; the table's are optional in the file as LapPoses.table), at each of the two sizes.
   const SETS = { lap: { 100: mkSet(LP[100] || (LP.gerda ? LP : {})), 50: mkSet(LP[50] || (LP.gerda ? LP : {})) }, table: { 100: mkSet(LP.table && LP.table[100]), 50: mkSet(LP.table && LP.table[50]) } };
   const ARM_HOLD = Object.assign({ x: 0.2, y: 0.9, z: 0.8, e: 0.3, w: 0 }, root.LapArms && root.LapArms.hold, opts.armHold || {});      // (tuned in lap.html, Correction positions; js/lap-arms.js)
-  const ARM_REACH = Object.assign({ x: 0.5, y: 0, z: 0.7, e: 0.25 }, root.LapArms && root.LapArms.reach, opts.armReach || {});      // (his hand going back for his belt)
+  const ARM_REACH = Object.assign({ x: 0, y: 0, z: 0.1, e: 0.2 }, root.LapArms && root.LapArms.reach, opts.armReach || {});      // (his hand going back for his belt)
   const SIZE_MIN = 0.5;                       // below this the poses do not reach (the lower limit of the position)
   // Editable poses: Hand, Paddle and Birch { rest, raised, contactL, contactR } for Gerda (the contact pose is per cheek, and per implement), and Jack { base, react }.
   const GERDA_BEATS = ['rest', 'raised', 'contactL', 'contactR'], WIELD = ['hand', 'paddle', 'birch'];
@@ -420,7 +420,7 @@ function create(view, opts) {
     applyEdits('gerda', ['torso', 'neck', 'thighL', 'thighR', 'kneeL', 'kneeR'], gw);
     g.root.updateMatrixWorld(true);
     // Left hand rests on Jack's back.
-    const sL = world(g.armL), tL = ((st.armHold || 0) > 0.5 || (st.armReach || 0) > 0.5) && jack.wrist ? (jack.root.updateMatrixWorld(true), jack.wrist.localToWorld(new V3(0, -3.5, 0))) : world(upperBack);
+    const sL = world(g.armL), tL = (st.armHold || 0) > 0.5 && jack.wrist ? (jack.root.updateMatrixWorld(true), jack.wrist.localToWorld(new V3(0, -3.5, 0))) : world(upperBack);
     armToSide(g, 'armL', tL, POLE_L); applyEdits('gerda', ['armL', 'elbowL'], gw);
     // Right arm: shoulder, elbow and wrist (the forearm's own twist). Contact pose: the hand's forearm end, or the paddle's mount, is brought to where
     // it lands; the raised pose lifts the elbow up and forward. They blend by how far the swing has come.
