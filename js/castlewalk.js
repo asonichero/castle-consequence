@@ -757,18 +757,18 @@ function run(G, W, opts) {
     async function dressScene(lapStage) {
       const ease = k => k * k * (3 - 2 * k), W3 = (a, b, k) => a + (b - a) * k, tc = M.items.kitchenTable.g.position, TOP = 25.5, JX = tc.x + 9, JZ = tc.z + 9;       // (the kitchen table, where the box and his clothes stood when he woke)
       const mk = (w, h, d, col, x, y, z, par) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color: col })); m.position.set(x, y, z); par.add(m); return m; };
-      if (!ch3Items.clothes) { const cl = new THREE.Group(); cl.position.set(tc.x + 16, TOP, tc.z + 1); cl.scale.setScalar(2); scene.add(cl); ch3Items.clothes = cl; mk(2.7, 0.7, 2.2, '#5a7a3e', 0, 0.35, 0, cl); mk(0.9, 0.22, 0.5, '#e8dcb8', -0.4, 0.76, -0.8, cl); mk(2.1, 0.5, 2.8, '#6d5233', 0.1, 0.95, 0.1, cl); mk(0.3, 0.2, 2.3, '#8a6a42', -0.6, 1.3, 0.1, cl); mk(0.9, 0.8, 2.1, '#3a2616', 2.1, 0.4, -0.6, cl); mk(0.9, 0.8, 2.1, '#3a2616', 2.1, 0.4, 1.0, cl); }
+      if (!ch3Items.clothes) { const cl = new THREE.Group(); cl.position.set(tc.x - 9, TOP, tc.z - 6); cl.scale.setScalar(2); scene.add(cl); ch3Items.clothes = cl; mk(2.7, 0.7, 2.2, '#5a7a3e', 0, 0.35, 0, cl); mk(0.9, 0.22, 0.5, '#e8dcb8', -0.4, 0.76, -0.8, cl); mk(2.1, 0.5, 2.8, '#6d5233', 0.1, 0.95, 0.1, cl); mk(0.3, 0.2, 2.3, '#8a6a42', -0.6, 1.3, 0.1, cl); mk(0.9, 0.8, 2.1, '#3a2616', 2.1, 0.4, -0.6, cl); mk(0.9, 0.8, 2.1, '#3a2616', 2.1, 0.4, 1.0, cl); }
       const clothes = ch3Items.clothes; clothes.visible = true;
       // the props: what comes off him is put down on the table, and what goes on him comes from her hands
       const prop = (build, x, z, ry) => { const g = new THREE.Group(); build(g); g.position.set(x, TOP, z); g.rotation.y = ry || 0; g.visible = false; scene.add(g); return g; };
       const PS = SC * 0.7;
       const boot = g => { mk(2.6, 3.4, 2.6, '#3a2616', 0, 1.7, -0.3, g); mk(2.6, 1.6, 4.2, '#3a2616', 0, 0.8, 1.2, g); mk(2.7, 0.35, 4.3, '#22160c', 0, 0.2, 1.2, g); mk(0.5, 0.5, 0.5, '#b8a070', 0, 2.6, 1.05, g); g.scale.setScalar(PS * 1.15); };
-      const bootL = prop(boot, JX + 8, JZ - 2, 0.5), bootR = prop(boot, JX + 8, JZ + 4, -0.3);
-      const trousers = prop(g => { mk(7, 0.9, 5.5, '#6d5233', 0, 0.45, 0, g); mk(7, 0.7, 2.2, '#59422a', 0, 1.2, -0.8, g); mk(1.8, 0.2, 1.6, '#8b7048', -1.6, 1.0, 0.8, g); mk(7.4, 0.5, 0.9, '#4a3220', 0, 1.0, 2.5, g); g.scale.setScalar(PS * 1.1); }, JX, JZ, 0.2);
-      const shirt = prop(g => { mk(6.2, 0.8, 5, '#e8dfc4', 0, 0.4, 0, g); mk(5.6, 0.6, 4.4, '#4b7a3a', 0, 1.1, 0, g); mk(1.2, 0.2, 1.2, '#cfc4a6', 0, 1.5, -1, g); g.scale.setScalar(PS * 1.1); }, JX - 8, JZ + 4, -0.25);
+      const bootL = prop(boot, tc.x - 17, tc.z - 5, 0.5), bootR = prop(boot, tc.x - 17, tc.z + 1, -0.3);       // (what comes off him goes down on the table's middle, to his right: toward -x)
+      const trousers = prop(g => { mk(7, 0.9, 5.5, '#6d5233', 0, 0.45, 0, g); mk(7, 0.7, 2.2, '#59422a', 0, 1.2, -0.8, g); mk(1.8, 0.2, 1.6, '#8b7048', -1.6, 1.0, 0.8, g); mk(7.4, 0.5, 0.9, '#4a3220', 0, 1.0, 2.5, g); g.scale.setScalar(PS * 1.1); }, tc.x - 3, tc.z + 1, 0.2);
+      const shirt = prop(g => { mk(6.2, 0.8, 5, '#e8dfc4', 0, 0.4, 0, g); mk(5.6, 0.6, 4.4, '#4b7a3a', 0, 1.1, 0, g); mk(1.2, 0.2, 1.2, '#cfc4a6', 0, 1.5, -1, g); g.scale.setScalar(PS * 1.1); }, tc.x - 11, tc.z + 4, -0.25);
       const heldTunic = new THREE.Group(); mk(5.6, 0.7, 4.6, '#86ad72', 0, 0, 0, heldTunic); mk(0.9, 0.2, 2.4, '#8a6038', 0, 0.45, 0, heldTunic); heldTunic.scale.setScalar(PS * 1.1); heldTunic.visible = false; gerda.wrist.add(heldTunic); heldTunic.position.set(0, -6, 0.8);
       const heldTrousers = new THREE.Group(); mk(7, 0.9, 5.5, '#6d5233', 0, 0, 0, heldTrousers); mk(7, 0.7, 2.2, '#59422a', 0, 0.8, -0.8, heldTrousers); mk(7.4, 0.5, 0.9, '#4a3220', 0, 0.6, 2.5, heldTrousers); heldTrousers.scale.setScalar(PS * 1.1); heldTrousers.visible = false; gerda.wrist.add(heldTrousers); heldTrousers.position.set(0, -6, 0.8);
-      const heldShorts = new THREE.Group(); mk(5.2, 0.8, 3.6, '#b8a173', 0, 0, 0, heldShorts); mk(5.2, 0.5, 0.6, '#9b855d', 0, 0.5, 1.6, heldShorts); heldShorts.scale.setScalar(PS * 1.1); heldShorts.visible = false; gerda.wrist.add(heldShorts); heldShorts.position.set(0, -6, 0.8);
+      const heldShorts = new THREE.Group(); mk(5.2, 0.8, 3.6, '#b8a173', 0, 0, 0, heldShorts); mk(5.2, 0.5, 0.6, '#9b855d', 0, 0.5, 1.6, heldShorts); heldShorts.scale.setScalar(PS * 1.1); heldShorts.visible = false; scene.add(heldShorts); const shortsTick = () => { if (!heldShorts.visible) return; const a = wr(), b = wl(); heldShorts.position.copy(a).add(b).multiplyScalar(0.5); heldShorts.rotation.y = gst.h; heldShorts.scale.set(Math.max(PS * 1.1, a.distanceTo(b) / 5.2 * 0.95), PS * 1.1, PS * 1.1); }; G.updaters.push(shortsTick);       // (the shorts are held between both her hands)
       // the places
       if (lapStage) lapStage.visible = false; M.items.nurseryChair.g.visible = true; G.captionOff && G.captionOff(); jackOut.root.visible = true; gerda.root.visible = true; scene.attach(jackOut.root);
       if (jackOut.gear) { jackOut.gear.knife.visible = jackOut.gear.satchel.visible = jackOut.gear.flask.visible = false; }       // (his gear is put by: the knife is hers, the satchel is in the nursery)
@@ -821,9 +821,11 @@ function run(G, W, opts) {
       paint({ trousers: 'down' }); A && A.blip && A.blip(); await G.wait(0.5); await handTo(jackOut.hips.localToWorld(new V3(-3.5, -5, 0)), true, 0.5);       // (she keeps hold of them, low, for him to step out of)
       await sayW('gerda', 'Step out of them for me. Nice and steady.');
       await act('Step out');
-      { const x0 = st.fz.z; for (let i = 1; i <= 8; i++) { const k = ease(i / 8); st.fz.z = W3(x0, x0 - 6, k); st.walkN = 0.5; st.walkPh += 0.4; await G.wait(0.04); } st.walkN = 0; }
-      paint({ legs: 'drawers', trousers: 'up' }); heldTrousers.visible = true; A && A.blip && A.blip(); await G.wait(0.4);       // (they come away in her hand, and are put down on the table)
-      await handTo(v(JX + 6, TOP + 2, JZ + 3), true, 0.5); heldTrousers.visible = false; trousers.position.set(JX + 6, TOP, JZ + 3); trousers.visible = true; await rest(0.5);
+      liftFoot(true, true); await G.wait(0.3); paint({ legs: 'drawers', trousers: 'up' }); heldTrousers.visible = true; A && A.blip && A.blip(); await G.wait(0.25);       // (the left foot comes up, and with the first movement they are off him and in her hand)
+      await liftFoot(true, false); await liftFoot(false, true); await G.wait(0.15); await liftFoot(false, false);
+      { const spot = new V3(tc.x - 3, TOP, tc.z + 1); await handTo(v(spot.x, TOP + 9, spot.z + 2), false, 0.6);       // she folds them, and sets them down
+        for (let i = 0; i < 2; i++) { for (let k = 1; k <= 8; k++) { const q = ease(k / 8); heldTrousers.scale.set(PS * 1.1, PS * 1.1 * W3(1, 0.55, q), PS * 1.1 * W3(1, 0.7, q)); await G.wait(0.04); } if (!i) await G.wait(0.1); }
+        await handTo(v(spot.x, TOP + 2, spot.z + 1), false, 0.5); heldTrousers.visible = false; trousers.visible = true; A && A.blip && A.blip(); await rest(0.5); }
       await sayW('gerda', 'Beautifully done! You see? Nothing to it.'); gz.b = 0.6; paint({ expr: 'smile' });
       // ── tunic and shirt, in one: arms up ──
       await sayW('gerda', 'Arms up high for me, there’s a brave boy.');
@@ -844,11 +846,11 @@ function run(G, W, opts) {
       await rest(0.5);
       await sayW('gerda', 'Oh, that suits you. Soft green, and a perfect fit.'); gz.b = 0.9;
       // ── the shorts: held low for him to step into ──
-      heldShorts.visible = true; await handTo(v(JX, TOP + 1, JZ - 6 + 3), false, 0.6);
+      heldShorts.visible = true; await handTo(v(JX, TOP + 1, JZ - 6 + 3), true, 0.6);
       await sayW('gerda', 'And last, these. Step right in when you’re ready.');
       await act('Step in');
       { const z0 = st.fz.z; for (let i = 1; i <= 10; i++) { const k = ease(i / 10); st.fz.z = W3(z0, z0 + 3, k); st.walkN = 0.5; st.walkPh += 0.4; await G.wait(0.04); } st.walkN = 0; }
-      await handTo(jackOut.hips.localToWorld(new V3(-3.5, -4, 0)), false, 0.4); await handTo(jackOut.hips.localToWorld(new V3(-3.5, 2, 0)), false, 0.6);
+      await handTo(jackOut.hips.localToWorld(new V3(0, -4, 0)), true, 0.4); await handTo(jackOut.hips.localToWorld(new V3(0, 2, 0)), true, 0.6);
       heldShorts.visible = false; paint({ outfit: 'Day', shorts: undefined, trousers: 'up', drawers: 'up', expr: 'smile' }); A && A.blip && A.blip(); await rest(0.6);
       await sayW('gerda', 'There! All dressed, and so well behaved. I am proud of you, Jack.');
       gz.b = 1; await G.wait(1.0);
@@ -889,7 +891,7 @@ function run(G, W, opts) {
       gst.walk = 0; for (let i = 0; i < 12; i++) { gst.h += angDiff(-Math.PI / 2, gst.h) * 0.3; grow(); placeGerda(); await G.wait(0.04); }       // (she stops by the bucket)
       while (near() > 30) { grow(); gst.h += angDiff(Math.atan2(st.pos.x - gst.x, st.pos.z - gst.z), gst.h) * 0.08; placeGerda(); await G.wait(0.04); }       // (and waits for him: the beat ends when he reaches her)
       st.guard = null; await G.wait(0.5); await G.fade(true, 1.6);
-      G.updaters = G.updaters.filter(u => u !== gazeTick); st.gaze = null; gst.alive = 0; st.frozen = false; st.dressWait = null; st.fz = null;
+      G.updaters = G.updaters.filter(u => u !== gazeTick && u !== shortsTick); heldShorts.visible = false; st.gaze = null; gst.alive = 0; st.frozen = false; st.dressWait = null; st.fz = null;
     }
     function ch3Tick(dt) {
       if (st.guard && !st.frozen) st.guard();       // (the way to the roost: some places he is kept from)
@@ -924,7 +926,7 @@ function run(G, W, opts) {
       makeG('Work'); gst.x = tc.x; gst.z = tc.z + 24; gst.h = Math.PI; placeGerda();
       // the folded clothes on the table (his day clothes), to be seen later
       const mk = (w, h, d, col, x, y, z, par) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color: col })); m.position.set(x, y, z); par.add(m); return m; };
-      const clothes = new THREE.Group(); clothes.position.set(tc.x + 16, TOP, tc.z + 1); clothes.scale.setScalar(2); scene.add(clothes); ch3Items.clothes = clothes;
+      const clothes = new THREE.Group(); clothes.position.set(tc.x - 9, TOP, tc.z - 6); clothes.scale.setScalar(2); scene.add(clothes); ch3Items.clothes = clothes;
       mk(2.7, 0.7, 2.2, '#5a7a3e', 0, 0.35, 0, clothes); mk(0.9, 0.22, 0.5, '#e8dcb8', -0.4, 0.76, -0.8, clothes); mk(2.1, 0.5, 2.8, '#6d5233', 0.1, 0.95, 0.1, clothes); mk(0.3, 0.2, 2.3, '#8a6a42', -0.6, 1.3, 0.1, clothes); mk(0.9, 0.8, 2.1, '#3a2616', 2.1, 0.4, -0.6, clothes); mk(0.9, 0.8, 2.1, '#3a2616', 2.1, 0.4, 1.0, clothes);      // (his day clothes, folded, at the size of him now: a quarter, the tunic about as wide as his shoulders and a half again)
       // Jack, lying in the box on his back, head to the back of it, pressed in
       bx.add(jackOut.root); jackOut.root.scale.setScalar(bs); const YQ = new THREE.Quaternion().setFromAxisAngle(v(0, 1, 0), Math.PI / 2), qL = YQ.clone().multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0))), qSit = YQ.clone().multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.2, 0, 0))), qUp = YQ.clone(), TILT = YQ.clone().multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0.9, 0, 0)));       // (he lies along the box with his head to its left, so that he sits up facing the parlour doors, and climbs out over the right-hand side)
