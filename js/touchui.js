@@ -37,6 +37,7 @@ const CSS = `
   #tStick { position: absolute; left: 22px; bottom: 26px; width: 130px; height: 130px; border-radius: 50%; background: rgba(20,22,28,0.45); border: 2px solid rgba(230,196,106,0.55); touch-action: none; display: none; pointer-events: auto; }
   #tKnob { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: rgba(230,196,106,0.75); pointer-events: none; }
   @media (pointer: coarse) { #tui.hasStick #tStick { display: block; } #tui .tb.touch.vis { display: flex; } }
+  #tui.mouse:not(.force) #tStick, #tui.mouse:not(.force) .tb.touch { display: none !important; }
   #tui.force.hasStick #tStick { display: block; } #tui.force .tb.touch.vis { display: flex; }
   #tui .tb.vis:not(.touch):not(.desk) { display: flex; }
   #tHelp { right: 12px; bottom: 12px; width: 48px; height: 48px; z-index: 36; } #tHelp svg { width: 26px; height: 26px; } @media (pointer: fine) { #tui:not(.force) #tHelp { display: flex; } }
@@ -47,7 +48,8 @@ const CSS = `
   @media (max-height: 420px) { #tJump { width: 68px; height: 68px; right: 18px; bottom: 18px; } #tAct { right: 98px; bottom: 26px; width: 58px; height: 58px; } #tDrop { right: 94px; bottom: 92px; width: 54px; height: 54px; } #tStick { width: 112px; height: 112px; left: 16px; bottom: 18px; } #tRun { right: 28px; bottom: 98px; width: 48px; height: 48px; } #tSneak { left: 44px; bottom: 140px; width: 48px; height: 48px; } #tCam { top: 66px; width: 48px; height: 48px; } }`;
 let UI = null;
 // ── Tips and prompts: shown on desktop only (the touch buttons say what they do). `Tips.once(key, show)` runs `show` the first time a control is needed, once ever; `Tips.clean(text)` drops key names from a line on touch screens. ──
-const coarse = () => !!(root.matchMedia && root.matchMedia('(pointer: coarse)').matches) || /[?&]touch\b/.test(root.location ? root.location.search : '');
+let usedMouse = false;       // (a device with both: once a mouse or a key is used, it is a desktop, and the touch controls go until a finger is used again)
+const coarse = () => /[?&]touch\b/.test(root.location ? root.location.search : '') || (!usedMouse && !!(root.matchMedia && root.matchMedia('(pointer: coarse)').matches));
 const TIPKEY = 'castle-consequence:tips:v1'; let seen = null;
 const load = () => { if (seen) return seen; try { seen = JSON.parse(root.localStorage.getItem(TIPKEY) || '{}') || {}; } catch (e) { seen = {}; } return seen; };
 const Tips = { mobile: coarse,
@@ -62,8 +64,12 @@ function build() {
     '<button id="tHelp" class="tb desk vis" title="Controls" aria-label="Controls"></button>' +
     '<button id="tJump" class="tb touch"></button><button id="tAct" class="tb touch"></button><button id="tDrop" class="tb touch"></button><button id="tRun" class="tb touch"></button><button id="tSneak" class="tb touch"></button><button id="tCam" class="tb"></button>';
   document.body.appendChild(el);
+  const mode = m => { usedMouse = m; el.classList.toggle('mouse', m); document.body.classList.toggle('mousemode', m); };
+  root.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') mode(true); else if (e.pointerType === 'touch') mode(false); }, true);
+  root.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' && !usedMouse) mode(true); }, true);
+  root.addEventListener('keydown', e => { if (/^(w|a|s|d|e|q|c|x|W|A|S|D|E|Q|C|X| |Arrow.*|Shift)$/.test(e.key) && !usedMouse) mode(true); }, true);
   const sheet = document.createElement('div'); sheet.id = 'tSheet';
-  sheet.innerHTML = '<div class="card"><h3>Controls</h3><table>' + [['<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows', 'Move'], ['<kbd>Shift</kbd> (hold)', 'Run'], ['<kbd>X</kbd>', 'Sneak (slow and quiet)'], ['<kbd>Space</kbd>', 'Jump; at wood or a ledge, climb (hold to keep going)'], ['<kbd>E</kbd>', 'Action: pick up, use, open, talk'], ['<kbd>Q</kbd>', 'Drop or put down what you carry'], ['<kbd>V</kbd> or wheel', 'Camera zoom'], ['<kbd>C</kbd>', 'First person (in the castle)'], ['Drag', 'Look around']].map(r => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>').join('') + '</table><div class="x">Click anywhere or press Esc to close</div></div>';
+  sheet.innerHTML = '<div class="card"><h3>Controls</h3><table>' + [['<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows', 'Move'], ['<kbd>Shift</kbd> (hold)', 'Run'], ['<kbd>C</kbd> or <kbd>X</kbd>', 'Sneak (slow and quiet)'], ['<kbd>Space</kbd>', 'Jump; at wood or a ledge, climb (hold to keep going)'], ['<kbd>E</kbd>', 'Action: pick up, use, open, talk'], ['<kbd>Q</kbd>', 'Drop or put down what you carry'], ['Wheel, or the camera button', 'Camera zoom'], ['Drag', 'Look around']].map(r => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>').join('') + '</table><div class="x">Click anywhere or press Esc to close</div></div>';
   document.body.appendChild(sheet);
   const toggleSheet = on => sheet.classList.toggle('open', on === undefined ? !sheet.classList.contains('open') : on);
   sheet.addEventListener('pointerdown', () => toggleSheet(false)); root.addEventListener('keydown', e => { if (e.key === 'Escape' && sheet.classList.contains('open')) { toggleSheet(false); e.stopPropagation(); } }, true);

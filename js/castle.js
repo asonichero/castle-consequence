@@ -57,7 +57,8 @@ function interior() {
 
   // ── The shell: a floor, walls with openings, and a ceiling, room by room. ──
   const cloud = box(2600, 4, 2600, plain('#f4f0f4'), -20, -9, -170, scene);
-  const slab = (x0, z0, x1, z1, floorM, ceilM, noCeil, ch) => { const Hc = ch || H; box(x1 - x0, 2, z1 - z0, floorM, (x0 + x1) / 2, -1, (z0 + z1) / 2, room); if (!noCeil) { box(x1 - x0 + 4, 3, z1 - z0 + 4, ceilM || boneM, (x0 + x1) / 2, Hc + 1.5, (z0 + z1) / 2, ceil); const n = Math.max(1, Math.round((z1 - z0) / 36)); for (let i = 0; i < n; i++) { const zz = z0 + (i + 0.5) * (z1 - z0) / n; box(x1 - x0, 7, 6.4, plain('#4a3626'), (x0 + x1) / 2, Hc - 3.5, zz, ceil); box(x1 - x0, 2, 9, plain('#3a2a20'), (x0 + x1) / 2, Hc - 7.5, zz, ceil); } } };
+  const rooms = [];       // (every roofed floor: the camera is kept inside the one he is in)
+  const slab = (x0, z0, x1, z1, floorM, ceilM, noCeil, ch) => { const Hc = ch || H; if (!noCeil) rooms.push({ x0, z0, x1, z1, h: Hc }); box(x1 - x0, 2, z1 - z0, floorM, (x0 + x1) / 2, -1, (z0 + z1) / 2, room); if (!noCeil) { box(x1 - x0 + 4, 3, z1 - z0 + 4, ceilM || boneM, (x0 + x1) / 2, Hc + 1.5, (z0 + z1) / 2, ceil); const n = Math.max(1, Math.round((z1 - z0) / 36)); for (let i = 0; i < n; i++) { const zz = z0 + (i + 0.5) * (z1 - z0) / n; box(x1 - x0, 7, 6.4, plain('#4a3626'), (x0 + x1) / 2, Hc - 3.5, zz, ceil); box(x1 - x0, 2, 9, plain('#3a2a20'), (x0 + x1) / 2, Hc - 7.5, zz, ceil); } } };
   // ops: [from, to, bottom, top] along the wall; the wall is a run along x (axis 'z', at z = fixed) or along z (axis 'x', at x = fixed).
   const doors = [], hallLeaves = [];
   const R2 = F.rng(909);                                                             // (its own dice, so the detail never shifts the rest)
@@ -379,7 +380,7 @@ function interior() {
   const views = { front: [[40, 36, 420], [40, 30, 100]], top: [[40, 760, 20], [40, 0, -120]], iso: [[330, 380, 300], [30, 0, -110]], hall: [[0, 40, 104], [0, 22, -60]], hearth: [[0, 40, -96], [0, 20, 40]], west: [[-100, 38, -26], [-270, 20, -26]], corridorB: [[-294, 40, 90], [-294, 18, -150]], library: [[-100, 38, -100], [-240, 14, -110]], playroom: [[-110, 44, -170], [-250, 10, -250]], kitchen: [[100, 40, 48], [190, 12, -30]], roost: [[256, 44, -214], [320, 14, -280]], garden: [[-80, 60, -120], [100, 4, -250]] };
   return {
     scene, room, ceiling: ceil, windows, doors, hallLeaves, items, place, layout: () => { const o = {}; for (const k in items) { const g = items[k].g; o[k] = { x: +g.position.x.toFixed(1), z: +g.position.z.toFixed(1), ry: +g.rotation.y.toFixed(3) }; } return o; },
-    W: bounds.x1 - bounds.x0, D: bounds.z1 - bounds.z0, H, bounds, views, woman: room.userData.woman,
+    W: bounds.x1 - bounds.x0, D: bounds.z1 - bounds.z0, H, bounds, rooms, views, woman: room.userData.woman,
     update(dt, t) { for (const f of flames) { const s = f.base * (0.8 + 0.55 * Math.sin(t * 9 + f.ph) * Math.sin(t * 5.3 + f.ph * 2)); f.m.scale.y = Math.max(0.3, s / f.base); } for (const a of anim) a(t); },
   };
 }

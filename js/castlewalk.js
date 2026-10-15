@@ -97,12 +97,12 @@ function run(G, W, opts) {
     const toast = (t, ms = 6000) => { $('cwToast').textContent = root.Tips.clean(t); $('cwToast').style.opacity = 1; st.toastAt = performance.now() + ms; };
     const keys = {}, ui = root.TouchUI.create({ keys, run: true, sneak: true, jump: true, act: true, drop: true, cam: true }), stick = ui.stick, KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', Shift: 'run', Control: 'sneak', x: 'sneak', X: 'sneak' };
     const typing = e => e.target && /TEXTAREA|SELECT/.test(e.target.tagName) || (e.target && e.target.tagName === 'INPUT' && e.target.type !== 'range');
-    const ZOOMS = [{ name: 'Close', d: 52 }, { name: 'Medium', d: 92 }, { name: 'Far', d: 150 }, { name: 'Wide', d: 520 }];
+    const ZOOMS = [{ name: 'Close', d: 52 }, { name: 'Medium', d: 92 }, { name: 'Far', d: 150 }];
     function cycleZoom(dir) { st.zoom = (st.zoom + (dir || 1) + ZOOMS.length) % ZOOMS.length; camIcon(); }
     const camIcon = () => ui.set('cam', { icon: st.fp ? 'eye' : 'camera', title: st.fp ? 'First person' : 'Camera: ' + ZOOMS[st.zoom].name });
-    const camStep = () => { if (st.fp) { toggleView(); st.zoom = 0; camIcon(); } else if (st.zoom === ZOOMS.length - 1) toggleView(); else cycleZoom(); };       // (the camera button: close, medium, far, wide, then first person, then round again)
+    const camStep = () => cycleZoom();       // (the camera button: close, medium, far, and round again)
     function toggleView() { st.fp = !st.fp; $('cwCross').style.display = st.fp ? 'block' : 'none'; jackOut.root.visible = !st.fp; if (st.fp) st.fpPitch = 0; camIcon(); }
-    const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } if (e.key === ' ') { keys.space = true; e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } if (e.repeat) return; if (e.key === ' ') st.jumpReq = true; if (e.key === 'v' || e.key === 'V') cycleZoom(); if (e.key === 'c' || e.key === 'C') toggleView(); if (e.key === 'e' || e.key === 'E') st.actReq = true; if (e.key === 'q' || e.key === 'Q') st.putReq = true; }, ku = e => { const k = KM[e.key]; if (k) keys[k] = false; if (e.key === ' ') keys.space = false; };
+    const kd = e => { if (typing(e)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } if (e.key === ' ') { keys.space = true; e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } if (e.repeat) return; if (e.key === ' ') st.jumpReq = true; if (e.key === 'c' || e.key === 'C') { keys.sneak = !keys.sneak; ui.setSneak(keys.sneak); } if (e.key === 'e' || e.key === 'E') st.actReq = true; if (e.key === 'q' || e.key === 'Q') st.putReq = true; }, ku = e => { const k = KM[e.key]; if (k) keys[k] = false; if (e.key === ' ') keys.space = false; };
     root.addEventListener('keydown', kd); root.addEventListener('keyup', ku);
     camIcon(); ui.on.cam = camStep; ui.on.jump = () => { st.jumpReq = true; keys.space = true; }; ui.on.jumpUp = () => { keys.space = false; }; ui.on.act = () => { st.actReq = true; }; ui.on.drop = () => { st.putReq = true; }; ui.on.sneak = on => { keys.sneak = on; };
     $('cwScale').oninput = () => { st.s = +$('cwScale').value / 100 * FULL; $('cwPct').textContent = Math.round(st.s / FULL * 100) + '%'; };
@@ -452,7 +452,9 @@ function run(G, W, opts) {
       } else {
         const d = ZOOMS[st.zoom].d * s, at = v(st.pos.x, st.y + 15 * SC * s, st.pos.z), dirv = v(Math.cos(st.camA) * Math.cos(st.pitch), Math.sin(st.pitch), Math.sin(st.camA) * Math.cos(st.pitch));
         let reach = d, p = v(0, 0, 0); for (let u = 4 * s; u <= d; u += Math.max(1, 2 * s)) { p.copy(at).addScaledVector(dirv, u); p.y = Math.max(p.y, 1.2 * s); if (camBlocked(p, s)) { reach = Math.max(4 * s, u - 3 * s); break; } }
-        const want = at.clone().addScaledVector(dirv, reach); want.y = Math.max(want.y, 1.2 * s);                       // (the camera slides along the floor, never below it, and tilts up to take in the ceiling)
+        const want = at.clone().addScaledVector(dirv, reach); want.y = Math.max(want.y, 1.2 * s);
+        { let rm = null; for (const r of M.rooms || []) if (st.pos.x > r.x0 && st.pos.x < r.x1 && st.pos.z > r.z0 && st.pos.z < r.z1 && (!rm || (r.x1 - r.x0) * (r.z1 - r.z0) < (rm.x1 - rm.x0) * (rm.z1 - rm.z0))) rm = r;
+          if (rm) { want.x = clamp(want.x, rm.x0 + 3, rm.x1 - 3); want.z = clamp(want.z, rm.z0 + 3, rm.z1 - 3); want.y = Math.min(want.y, rm.h - 9); } }       // (the camera never leaves the room he is in: its walls, and its ceiling)                       // (the camera slides along the floor, never below it, and tilts up to take in the ceiling)
         if (camPos.lengthSq() === 0) camPos.copy(want); else camPos.lerp(want, Math.min(1, dt * 10)); camLook.copy(at); camLook.y += Math.max(0, -st.pitch) * d * 0.9; let cp = camPos; if (st.shakeT > 0) { st.shakeT -= dt; cp = camPos.clone(); cp.x += (Math.random() - 0.5) * 0.6 * s; cp.y += (Math.random() - 0.5) * 0.6 * s; } G.cut({ pos: cp, look: camLook, fov: 48 });
       }
     };
@@ -1038,8 +1040,8 @@ function run(G, W, opts) {
         if (f.hen === 'frightened') r.push('left the hen frightened'); else if (f.hen === 'wary') r.push('left the hen wary'); else if (!f.stroked) r.push('never won the hen over'); return r; };
       const demerits = () => { const f = finalState(); return (f.dirt ? 2 : 0) + (f.prints ? 0.5 + 0.25 * Math.min(f.prints, 6) : 0) + f.water + f.grain * 0.5 + (f.dish ? 2 : 0) + (f.trough ? 2 : 0) + f.litter * 0.5 + S.binRaids + (S.binOpen && !S.binRaids ? 0.5 : 0) + (f.hen === 'frightened' ? 2.5 : f.hen === 'wary' ? 1.5 : f.stroked ? 0 : 1); };
       const listOf = r => r.length <= 1 ? r.join('') : r.slice(0, -1).join(', ') + ' and ' + r[r.length - 1];
-      const TIERS = [{ name: 'Token', hand: 14, paddle: 0, strength: 0.7, pace: 1.7 }, { name: 'Light', hand: 30, paddle: 0, strength: 0.85, pace: 1.8 }, { name: 'Firm', hand: 44, paddle: 0, strength: 0.9, pace: 1.9 }, { name: 'Severe', hand: 34, paddle: 6, strength: 1.0, pace: 2.0 }];
-      const VERDICT = ['No complaints, really. A few for luck, then.', 'A light correction, I think.', 'A firm one. Come along.', 'I think the paddle, this time.'];
+      const TIERS = [{ name: 'Token', hand: 14, paddle: 0, strength: 0.7, pace: 1.7 }, { name: 'Light', hand: 30, paddle: 0, strength: 0.85, pace: 1.8 }, { name: 'Firm', hand: 44, paddle: 0, strength: 0.9, pace: 1.9 }, { name: 'Severe', hand: 52, paddle: 0, strength: 1.0, pace: 2.0 }];
+      const VERDICT = ['No complaints, really. A few for luck, then.', 'A light correction, I think.', 'A firm one. Come along.', 'A severe one, I think. Come along.'];
       const buildPlan = minTier => { const d = demerits(); let tier = d < 0.01 ? 0 : d < 1.5 ? 1 : d < 4 ? 2 : 3; if (S.lie) tier = Math.min(3, tier + 1); tier = Math.max(tier, minTier || 0); return Object.assign({ tier, verdict: VERDICT[tier] }, TIERS[tier]); };
       // ── a round: everything back as it was, and the player let loose ──
       const resetRoom = () => {
@@ -1156,7 +1158,7 @@ function run(G, W, opts) {
           await say('gerda', plan.tier === 0 ? 'Up you come. Across my lap, for luck.' : 'Across my knee, Jack. Hands out of the way.');
           if (plan.tier <= 1) { await run(plan.hand); await say('gerda', plan.tier === 0 ? 'There. Off you go.' : 'That will do.'); }
           else if (plan.tier === 2) { await run(Math.ceil(plan.hand / 3)); lap.layers({ trousers: 'down' }); A && A.blip && A.blip(); await say('gerda', 'Shorts down. You know why.'); await run(plan.hand - Math.ceil(plan.hand / 3)); await say('gerda', 'Nearly done.'); await run(6); }
-          else { lap.layers({ trousers: 'down' }); A && A.blip && A.blip(); await say('gerda', 'Shorts down. This is what carelessness costs.'); await run(Math.ceil(plan.hand / 2)); lap.layers({ trousers: 'down', drawers: 'down' }); A && A.blip && A.blip(); await say('jack', 'No! Wait! You can’t—'); await say('gerda', 'I can, and I will.'); await run(plan.hand - Math.ceil(plan.hand / 2)); lap.implement('paddle'); await say('gerda', 'The paddle for the rest.'); await step(['jack', 'Please — no more!'], plan.paddle); await say('gerda', 'And that is the last of it.'); }
+          else { lap.layers({ trousers: 'down' }); A && A.blip && A.blip(); await say('gerda', 'Shorts down. This is what carelessness costs.'); await run(Math.ceil(plan.hand / 2)); lap.layers({ trousers: 'down', drawers: 'down' }); A && A.blip && A.blip(); await say('jack', 'No! Wait! You can’t—'); await say('gerda', 'I can, and I will.'); await run(plan.hand - Math.ceil(plan.hand / 2) - 6); await step(['jack', 'Please — no more!'], 6); await say('gerda', 'And that is the last of it.'); }
           await wait(0.5); await say('gerda', 'There. That is the end of it.');
           lap.layers({ drawers: 'up' }); A && A.blip && A.blip(); await wait(0.8); lap.layers({ trousers: 'up' }); A && A.blip && A.blip(); await wait(0.8);
         } catch (e) { if (e !== RED) throw e;       // Red: it ends here, and he is put right again, gently
