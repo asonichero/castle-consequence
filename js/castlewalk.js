@@ -551,7 +551,7 @@ function run(G, W, opts) {
       const pL = new V3(0, 1.2 + 2.6 * st.s, 3.5).applyQuaternion(YQ), pSit = new V3(0, 1.9, 0.7).applyQuaternion(YQ).sub(new V3(0, 12 * bs, 0).applyQuaternion(qSit)), pUp = new V3(0, 1.2, 0.7).applyQuaternion(YQ);
       jackOut.root.quaternion.copy(qL); jackOut.root.position.copy(pL); st.pose = { thigh: 0, knee: 0, armLx: 0.05, armLz: 0.25, armRx: 0.05, armRz: -0.25, torso: 0, neckX: -0.1, neckY: 0 }; W.paintJack(jackOut, { expr: 1 });
       // 1. in the dark: the box is carried and set down; what he notices
-      gerda.root.updateMatrixWorld(true); G.cut({ pos: bx.localToWorld(new V3(0, 3.2, -3.9)), look: gerda.neck.localToWorld(new V3(0, 2.5, 0)).add(new V3(0, -3, 0)), fov: 54 });      // (from inside, up at where her face will be)
+      gerda.root.updateMatrixWorld(true); G.cut({ pos: bx.localToWorld(new V3(0.06, 5.04, -4.26)), look: gerda.neck.localToWorld(new V3(0, 2.5, 0)).add(new V3(0.06, -1.16, -0.36)), fov: 54 });      // (from inside, up at where her face will be)
       const carry = (async () => { for (let i = 0; i < 9; i++) { A && A.thud && A.thud(0.22 + 0.04 * (i % 3)); bx.rotation.z = 0.025 * Math.sin(i * 1.7); bx.position.y = TOP + 0.5 * Math.abs(Math.sin(i * 1.3)); await G.wait(0.45); } A && A.thud && A.thud(0.6); bx.rotation.z = 0; bx.position.y = TOP; })();
       await G.wait(1.2);
       await G.say('jack', 'Something’s moving. The box... she’s carrying me.');
@@ -587,7 +587,7 @@ function run(G, W, opts) {
       for (let i = 1; i <= 24; i++) { const k = ease(i / 24); jackOut.root.position.set(1.3 * W3(5.2, 7.2, k), W3(7.3, 0, k * k), 0); jackOut.root.quaternion.copy(TILT).slerp(qUp, k); st.pose.armLx = st.pose.armRx = W3(-2.9, -0.4, k); st.pose.thigh = W3(-0.4, -0.25, k); st.pose.knee = W3(0.2, 0.3, k); st.pose.neckX = W3(-0.5, 0, k); await G.wait(0.04); }
       scene.attach(jackOut.root); const wp = new V3(); jackOut.root.getWorldPosition(wp); st.pos.set(wp.x, 0, wp.z); st.y = TOP; st.heading = Math.PI / 2; jackOut.root.quaternion.identity(); jackOut.root.rotation.y = Math.PI / 2; jackOut.root.scale.setScalar(bs); st.boxed = false; st.pose = { armLx: -0.15, armLz: 0.3, armRx: -0.15, armRz: -0.3, torso: 0, neckX: 0, neckY: 0 };
       // 5. the clothes on the table: he notices them now, and goes to look
-      G.cut({ pos: v(tc.x + 8, TOP + 8, tc.z + 19), look: v(tc.x + 13, TOP + 2.2, tc.z + 2), fov: 38 });
+      G.cut({ pos: v(tc.x + 22.5, TOP + 6.6, tc.z + 17.4), look: v(tc.x + 13, TOP + 2.2, tc.z + 2), fov: 38 });
       { const x0 = st.pos.x, z0 = st.pos.z, x1 = clothes.position.x - 2.3, z1 = clothes.position.z, n = 44; for (let i = 1; i <= n; i++) { const k = ease(i / n); st.pos.x = x0 + (x1 - x0) * k; st.pos.z = z0 + (z1 - z0) * k; st.heading = Math.atan2(clothes.position.x - st.pos.x, clothes.position.z - st.pos.z); st.walkN = 1; st.walkPh += 0.5; await G.wait(0.04); } st.walkN = 0; st.heading = Math.atan2(clothes.position.x - st.pos.x, clothes.position.z - st.pos.z); }       // (right up to them, facing them)
       await G.wait(0.4);
       for (let i = 1; i <= 16; i++) { const k = ease(i / 16); st.pose.neckX = 0.45 * k; st.pose.armRx = W3(-0.15, -0.9, k); st.pose.armRz = W3(-0.3, -0.05, k); await G.wait(0.04); }       // (he takes the tunic's collar between finger and thumb)
@@ -598,7 +598,7 @@ function run(G, W, opts) {
       await G.say('jack', 'Someone not trusted with buttons or belts. Someone like me, in her eyes.');
       for (let i = 1; i <= 12; i++) { const k = i / 12; st.pose.armRx = W3(-0.9, -0.15, k); st.pose.neckX = W3(0.45, -0.1, k); await G.wait(0.04); }
       A && A.blip && A.blip(); await G.wait(0.5);
-      await G.say('jack', 'I won’t be treated that way.');
+      await G.say('jack', 'Well, she won’t get me in those!');
       if (opts.ch3notes) { await finish('ch3open'); return; }
       // out, and on the table: his
       st.pose = null; st.camA = Math.PI; st.pitch = 0.45; st.zoom = 1; camPos.set(0, 0, 0);
