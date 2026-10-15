@@ -71,7 +71,7 @@ function build() {
   document.getElementById('tHelp').innerHTML = svg('keys'); document.getElementById('tHelp').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); toggleSheet(); });
   const ui = { el, stick: { x: 0, y: 0 }, run: false, sneak: false, on: {}, keys: null, B, state: {} };
   const DEF = { jump: ['jump', 'Jump'], act: ['act', 'Do'], drop: ['drop', 'Drop'], run: ['run', 'Run'], sneak: ['sneak', 'Sneak'], cam: ['camera', ''] };
-  const draw = k => { const s = ui.state[k], b = B[k]; if (!s) return; b.innerHTML = svg(s.icon) + (s.label && (k === 'jump' || k === 'act' || k === 'drop' || k === 'run' || k === 'sneak') ? '<span>' + s.label + '</span>' : ''); b.title = s.title || s.label || ''; b.classList.toggle('off', !s.enabled); b.classList.toggle('on', !!s.on); b.setAttribute('aria-disabled', s.enabled ? 'false' : 'true'); };
+  const draw = k => { const s = ui.state[k], b = B[k]; if (!s) return; b.innerHTML = svg(k === 'act' && s.label === 'Look' ? 'eye' : s.icon) + (s.label && (k === 'jump' || k === 'act' || k === 'drop' || k === 'run' || k === 'sneak') ? '<span>' + s.label + '</span>' : ''); b.title = s.title || s.label || ''; b.classList.toggle('off', !s.enabled); b.classList.toggle('on', !!s.on); b.setAttribute('aria-disabled', s.enabled ? 'false' : 'true'); };
   ui.set = (k, o) => { const s = ui.state[k]; if (!s) return; let ch = false; for (const p in o) if (s[p] !== o[p]) { s[p] = o[p]; ch = true; } if (ch) draw(k); };
   ui.setRun = on => { ui.run = on; if (ui.keys) ui.keys.run = on; ui.set('run', { on }); };
   ui.setSneak = on => { ui.sneak = on; ui.set('sneak', { on }); };
