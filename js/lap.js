@@ -647,7 +647,7 @@ function create(view, opts) {
     ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); ray.setFromCamera(ndc, camera);
   }
   function applyDrag(drag, target) {
-    const h = drag.h, fig = h.who, bone = BONES[fig][h.bone], set = setFor(cur.fig)[cur.beat], wts = weightsNow(), wb = wts[cur.beat] || 1;
+    const h = drag.h, fig = h.who, bone = BONES[fig][h.bone], rt = route(cur.fig, cur.beat, h.bone), set = setAt(cur.fig, rt.imp)[rt.beat], wts = rt.wts || weightsNow(), wb = wts[rt.beat] || 1;
     const entry = set[h.bone] || (set[h.bone] = { r: [0, 0, 0], p: [0, 0, 0] }); entry.r = entry.r || [0, 0, 0]; entry.p = entry.p || [0, 0, 0];
     if (h.kind === 'move') {
       const inv = new THREE.Matrix4().copy(bone.parent ? bone.parent.matrixWorld : new THREE.Matrix4()).invert();
@@ -675,7 +675,7 @@ function create(view, opts) {
       const want = [tot.x / DEG, tot.y / DEG, tot.z / DEG];
       if (root.__lapDebug) (root.__lapDebug.drag = root.__lapDebug.drag || []).push({ want: want.map(x => +x.toFixed(1)), procQ: proc.toArray().map(x => +x.toFixed(3)), curQ: bone.quaternion.toArray().map(x => +x.toFixed(3)), hasProc: !!bone.userData.proc, t: target.toArray().map(x => +x.toFixed(1)), tip: tip.toArray().map(x => +x.toFixed(1)), piv: pivot.toArray().map(x => +x.toFixed(1)) });
       for (let i = 0; i < 3; i++) {                      // the others' share of the total stays; the held beat's share takes the rest
-        let others = 0; for (const b in wts) if (b !== cur.beat && setFor(cur.fig)[b] && setFor(cur.fig)[b][h.bone]) others += wts[b] * ((setFor(cur.fig)[b][h.bone].r || [0, 0, 0])[i]);
+        let others = 0; for (const b in wts) if (b !== rt.beat && setAt(cur.fig, rt.imp)[b] && setAt(cur.fig, rt.imp)[b][h.bone]) others += wts[b] * ((setAt(cur.fig, rt.imp)[b][h.bone].r || [0, 0, 0])[i]);
         entry.r[i] = (want[i] - others) / wb;
       }
     }
@@ -691,7 +691,7 @@ function create(view, opts) {
     e.stopPropagation(); e.preventDefault();
     const h = hit.object.userData.handle; hs.bone = h.bone; controls.enabled = false;
     dragPlane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(new V3()).negate(), hit.point);
-    const set = setFor(cur.fig)[cur.beat], ent = set[h.bone];
+    const rt = route(cur.fig, cur.beat, h.bone), set = setAt(cur.fig, rt.imp)[rt.beat], ent = set[h.bone];
     hs.drag = { h, grab: hit.point.clone().sub(h.mesh.position), startWorld: h.tip.getWorldPosition(new V3()), startP: ent && ent.p ? ent.p.slice() : [0, 0, 0] };
     if (hs.onPick) hs.onPick(h.bone, h.label);
     renderer.domElement.setPointerCapture && renderer.domElement.setPointerCapture(e.pointerId);
@@ -708,22 +708,29 @@ function create(view, opts) {
   // position and implement are the scene's own (chosen outside the editor).
   const cur = { fig: 'giver', beat: 'contactL' };
   const bodyOf = fig => fig === 'jack' ? 'jack' : 'gerda';
-  const setFor = fig => SETS[posKey()][editKey][bodyOf(fig)][editImp()];
+  const setAt = (fig, imp) => SETS[posKey()][editKey][bodyOf(fig)][imp];
+  // Where an edit goes: with an arm pose selected, everything but her striking arm is the arm pose's (one set, applied in every beat); her striking arm, and everything when none is selected, is the held beat's.
+  const route = (fig, beat, bone) => { const v = variant(); return v && !(bodyOf(fig) === 'gerda' && RIGHT_ARM[bone]) ? { imp: v, beat: 'rest', wts: { rest: 1 } } : { imp: st.implement, beat, wts: null }; };
+  const setFor = (fig, beat, bone) => { const r = route(fig, beat, bone); return setAt(fig, r.imp); };
   const editor = {
     beats: GERDA_BEATS,
     bones: fig => Object.keys(BONES[bodyOf(fig)]).filter(n => (n !== 'paddle' || st.implement === 'paddle') && (n !== 'birch' || st.implement === 'birch')),
     // Can the scene be posed as it is? (the knee or the table, once he is there; the birch is for the table)
     editable() { return st.blend >= 1 && (st.to === 'table' || (st.to === 'lap' && st.implement !== 'birch')); },
     // What is locked for a bone at a beat (as loaded), and the sliders' values: the edit relative to it.
-    locked(fig, beat, bone) { beat = variant() ? 'rest' : beat; const e = (((LOCK[posKey()][editKey][bodyOf(fig)][editImp()] || {})[beat]) || {})[bone] || {}; return { r: (e.r || [0, 0, 0]).slice(), p: (e.p || [0, 0, 0]).slice() }; },
-    get(fig, beat, bone) { beat = variant() ? 'rest' : beat; const e = setFor(fig)[beat][bone] || {}, l = editor.locked(fig, beat, bone); return { r: [0, 1, 2].map(i => (e.r ? e.r[i] : 0) - l.r[i]), p: [0, 1, 2].map(i => (e.p ? e.p[i] : 0) - l.p[i]) }; },
+    locked(fig, beat, bone) { const r = route(fig, beat, bone); beat = r.beat; const e = (((LOCK[posKey()][editKey][bodyOf(fig)][r.imp] || {})[beat]) || {})[bone] || {}; return { r: (e.r || [0, 0, 0]).slice(), p: (e.p || [0, 0, 0]).slice() }; },
+    get(fig, beat, bone) { const e = setFor(fig, beat, bone)[route(fig, beat, bone).beat][bone] || {}, l = editor.locked(fig, beat, bone); return { r: [0, 1, 2].map(i => (e.r ? e.r[i] : 0) - l.r[i]), p: [0, 1, 2].map(i => (e.p ? e.p[i] : 0) - l.p[i]) }; },
     set(fig, beat, bone, r, p) {                      // r and p are offsets from the locked pose
-      beat = variant() ? 'rest' : beat;
-      const set = setFor(fig)[beat], l = editor.locked(fig, beat, bone), R = r.map((x, i) => x + l.r[i]), P = p.map((x, i) => x + l.p[i]);
+      const set = setFor(fig, beat, bone)[route(fig, beat, bone).beat], l = editor.locked(fig, beat, bone), R = r.map((x, i) => x + l.r[i]), P = p.map((x, i) => x + l.p[i]);
       if (R.every(v => Math.abs(v) < 0.05) && P.every(v => Math.abs(v) < 0.005)) delete set[bone]; else set[bone] = { r: R, p: P };
     },
-    resetBone(fig, beat, bone) { beat = variant() ? 'rest' : beat; const set = setFor(fig)[beat], l = editor.locked(fig, beat, bone); if (l.r.some(v => v) || l.p.some(v => v)) set[bone] = l; else delete set[bone]; },
-    resetBeat(fig, beat) { beat = variant() ? 'rest' : beat; const lk = (((LOCK[posKey()][editKey][bodyOf(fig)][editImp()] || {})[beat]) || {}); setFor(fig)[beat] = JSON.parse(JSON.stringify(lk)); },
+    resetBone(fig, beat, bone) { const set = setFor(fig, beat, bone)[route(fig, beat, bone).beat], l = editor.locked(fig, beat, bone); if (l.r.some(v => v) || l.p.some(v => v)) set[bone] = l; else delete set[bone]; },
+    resetBeat(fig, beat) {
+      const lock = (imp, bt) => (((LOCK[posKey()][editKey][bodyOf(fig)][imp] || {})[bt]) || {}), copy = o => JSON.parse(JSON.stringify(o)), v = variant();
+      if (!v) { setAt(fig, st.implement)[beat] = copy(lock(st.implement, beat)); return; }
+      setAt(fig, v).rest = copy(lock(v, 'rest'));                                                    // (the arm pose's set; and her striking arm, in the held beat)
+      if (bodyOf(fig) === 'gerda') { const cur_ = setAt(fig, st.implement)[beat], lk = lock(st.implement, beat); for (const b in RIGHT_ARM) { if (lk[b]) cur_[b] = copy(lk[b]); else delete cur_[b]; } }
+    },
     clear() { for (const f of ['giver', 'jack']) for (const b of GERDA_BEATS) editor.resetBeat(f, b); },
     sizeMin: SIZE_MIN, variant,
     hold(fig, beat) {
