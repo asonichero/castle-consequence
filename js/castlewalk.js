@@ -164,10 +164,10 @@ function run(G, W, opts) {
       later(3200, () => { A && A.thud && A.thud(0.9); st.shakeT = 1.0; say('Footsteps. Someone’s coming! I have to hide!'); $('cwObjt').textContent = 'Find somewhere to hide.'; $('cwObjt').style.display = 'block'; later(22000, gerdaScene); });
     }
     // ── Gerda, at full size: she opens the parlour door, circles the kitchen looking, and ends at the cupboard. Whatever she sees, she sees by line of sight. ──
-    const GS = FULL, gst = { x: 0, z: 0, h: 0, ph: 0, walk: 0, bend: 0, reach: 0, look: 0 }, EYE = 41;
+    const GS = FULL, gst = { x: 0, z: 0, h: 0, ph: 0, walk: 0, bend: 0, reach: 0, look: 0, tilt: 0, sit: 0, y: 0 }, EYE = 41;
     const gsay = t => G.caption('gerda', t);
-    function placeGerda() { gerda.root.position.set(gst.x, 0, gst.z); gerda.root.rotation.y = gst.h; }
-    function makeG(outfit) { gerda = root.Blocky.makeGerda(outfit || 'Fine'); gerda.root.scale.setScalar(GS); scene.add(gerda.root); gerda.after = r => { const w = Math.sin(gst.ph) * 0.62 * gst.walk; r.legL.thigh.rotation.x = w; r.legR.thigh.rotation.x = -w; r.armL.rotation.x = -w * 0.7; r.armR.rotation.x = w * 0.7 - gst.reach; r.torso.rotation.x = gst.bend; r.neck.rotation.x = gst.look - gst.bend * 0.6;
+    function placeGerda() { gerda.root.position.set(gst.x, gst.y || 0, gst.z); gerda.root.rotation.y = gst.h; }
+    function makeG(outfit) { gerda = root.Blocky.makeGerda(outfit || 'Fine'); gerda.root.scale.setScalar(GS); scene.add(gerda.root); gerda.after = r => { const w = Math.sin(gst.ph) * 0.62 * gst.walk; r.legL.thigh.rotation.x = w; r.legR.thigh.rotation.x = -w; r.armL.rotation.x = -w * 0.7; r.armR.rotation.x = w * 0.7 - gst.reach; r.torso.rotation.x = gst.bend; r.neck.rotation.x = gst.look - gst.bend * 0.6; r.neck.rotation.z = gst.tilt || 0; if (gst.sit > 0) { r.hips.position.y -= 6 * gst.sit; r.legL.thigh.rotation.x = r.legR.thigh.rotation.x = -1.5 * gst.sit; r.legL.knee.rotation.x = r.legR.knee.rotation.x = 1.5 * gst.sit; }
       const h = gst.hold || 0, HP = root.GerdaHold && root.GerdaHold.gerda; if (h > 0 && HP) { const L = (a, b) => a + (b - a) * h;                                  // holding Jack: the pose set in pose-editor.html (js/gerda-pose.js)
         r.hips.position.y -= HP.hipsY * h; r.torso.rotation.set(L(r.torso.rotation.x, HP.torsoX), L(0, HP.torsoY), L(0, HP.torsoZ)); r.neck.rotation.set(L(r.neck.rotation.x, HP.neckX), L(0, HP.neckY), 0);
         r.armR.rotation.set(L(r.armR.rotation.x, HP.armRx), 0, L(0, HP.armRz)); r.elbow.rotation.x = L(0, HP.elbowX); r.wrist.rotation.y = L(0, HP.wristY); r.armL.rotation.set(L(r.armL.rotation.x, HP.armLx), 0, L(0, HP.armLz));
@@ -514,14 +514,70 @@ function run(G, W, opts) {
       A && A.thud && A.thud(0.5);
       { const x0 = st.pos.x; for (let i = 1; i <= 14; i++) { const k = ease(i / 14); st.pos.x = x0 - 2.2 * k; st.walkN = 0.6; st.walkPh -= 0.3; await G.wait(0.04); } st.walkN = 0; }
       await G.wait(0.9);
-      // and in the doorway, Gerda
-      gerda.root.visible = true; gst.x = -238; gst.z = -192; gst.h = Math.atan2(st.pos.x - gst.x, st.pos.z - gst.z); gst.walk = 0; gst.bend = 0; placeGerda(); gerda.root.updateMatrixWorld(true);       // (further into the room than the doorway, and facing him)
+      // and in the room, Gerda
+      gerda.root.visible = true; gst.x = -238; gst.z = -192; gst.h = Math.atan2(st.pos.x - gst.x, st.pos.z - gst.z); gst.walk = 0; gst.bend = 0; gst.tilt = 0; gst.sit = 0; gst.y = 0; placeGerda(); gerda.root.updateMatrixWorld(true);       // (further into the room than the doorway, and facing him)
       A && A.thud && A.thud(0.7);
       G.cut({ pos: v(C0.x - 3, 8.1, C0.z + 3.6), look: v(-305.6, 26.6, -203.6), fov: 54 });       // (from the chest, over Jack, down the room to her)
-      await G.wait(2.6);
-      G.cut({ pos: v(st.pos.x + 4, 0.85 * Hj, st.pos.z - 13), look: v(st.pos.x, 0.8 * Hj, st.pos.z), fov: 34 });
-      await G.wait(1.6);
-      await finish('nursery');
+      await G.wait(2.2);
+      // her line, and the walk that brings her closer; he spins to face her
+      const gwalk = async (wx, wz, spd) => { const x0 = gst.x, z0 = gst.z, d = Math.hypot(wx - x0, wz - z0), n = Math.max(2, Math.ceil(d / (spd || 1.2))); for (let i = 1; i <= n; i++) { const k = i / n, h1 = Math.atan2(wx - gst.x, wz - gst.z); gst.x = x0 + (wx - x0) * k; gst.z = z0 + (wz - z0) * k; gst.h += angDiff(h1, gst.h) * 0.3; gst.ph += 0.4; gst.walk = 1; placeGerda(); await G.wait(0.04); } gst.walk = 0; };
+      const faceJ = () => { gst.h = Math.atan2(st.pos.x - gst.x, st.pos.z - gst.z); placeGerda(); };
+      const dirGJ = () => { const dx = gst.x - st.pos.x, dz = gst.z - st.pos.z, d = Math.hypot(dx, dz) || 1; return [dx / d, dz / d]; };
+      const shotG = () => { const [ux, uz] = dirGJ(); G.cut({ pos: v(st.pos.x - ux * 12 - uz * 8, 0.95 * HEIGHT * SC * st.s + 3, st.pos.z - uz * 12 + ux * 8), look: v(gst.x, 31, gst.z), fov: 44 }); };      // (on Gerda, from beside Jack: Jack in the corner of it)
+      const shotJ = () => { const [ux, uz] = dirGJ(); G.cut({ pos: v(gst.x + ux * 12 + uz * 9, 33, gst.z + uz * 12 - ux * 9), look: v(st.pos.x, 0.8 * HEIGHT * SC * st.s, st.pos.z), fov: 38 }); };      // (on Jack, over her shoulder)
+      const tx = st.pos.x - 27, tz = st.pos.z - 3, come = gwalk(tx, tz, 1.3);
+      const gline = t => G.say('gerda', t), jline = t => G.say('jack', t);
+      const spinTo = async () => { const h0 = st.heading, h1 = Math.atan2(gst.x - st.pos.x, gst.z - st.pos.z); for (let i = 1; i <= 10; i++) { st.heading = h0 + angDiff(h1, h0) * ease(i / 10); st.pose.armLz = 0.5 * ease(i / 10); st.pose.armRz = -0.5 * ease(i / 10); await G.wait(0.04); } };
+      await gline('Curiosity again.'); await G.wait(0.2); spinTo(); await come; faceJ();
+      shotJ(); W.paintJack(jackOut, { expr: 4 }); await jline('I wasn’t stealing!');
+      shotG(); for (let i = 1; i <= 10; i++) { gst.tilt = 0.32 * ease(i / 10); faceJ(); await G.wait(0.04); } await gline('No? Only looking, I’m sure.');
+      shotJ(); { const x0 = st.pos.x, z0 = st.pos.z, [ux, uz] = dirGJ(); for (let i = 1; i <= 8; i++) { const k = ease(i / 8); st.pos.x = x0 - ux * 3 * k; st.pos.z = z0 - uz * 3 * k; st.walkN = 0.5; st.walkPh -= 0.3; st.pose.torso = 0.08 * k; st.pose.armLz = W3(0.5, 0.15, k); st.pose.armRz = W3(-0.5, -0.15, k); await G.wait(0.04); } st.walkN = 0; }
+      await jline('I didn’t touch anything.');
+      shotG(); for (let i = 1; i <= 8; i++) { gst.look = 0.5 * ease(i / 8); faceJ(); await G.wait(0.04); } await G.wait(0.9);      // (her eyes sweep down to the book on the floor)
+      shotJ(); W.paintJack(jackOut, { expr: 3 }); await jline('You can’t just sneak up on me.');
+      shotG(); for (let i = 1; i <= 6; i++) { gst.look = 0.5 * (1 - ease(i / 6)); await G.wait(0.04); } await gline('Can’t I?');
+      await gline('You’re in my house, little climber. Why?');
+      // the questions: the truth, or a lie she sees through; after three lies only the truth is left
+      const TRUTH = 'I came to take something. Anything worth carrying home.', LIES = ['I was lost. I only wandered in.', 'I came looking for work. Somebody said you might need a hand.', 'I was bringing you a message from the village.'], SEE = ['Lost. Four storeys up, through a crack no wider than a thumb, and you wandered into my nursery. Again, please.', 'Work. In a nursery, with nothing in your hands but my book. Try again.', 'A message. Delivered to a chest, by hand, with the lid shut. Last chance, little climber.'];
+      let lies = 0;
+      for (;;) {
+        const opts = lies < 3 ? [TRUTH, LIES[lies]] : [TRUTH], k = await G.choose('jack', opts);
+        if (k === 0) break;
+        shotJ(); await jline(LIES[lies]); shotG(); await gline(SEE[lies]); lies++;
+      }
+      shotJ(); W.paintJack(jackOut, { expr: 2 }); await jline('We’ve nothing at home, and Mother’s frantic. I thought one small thing from a house this rich would make the climb worth it.');
+      // the truth is told: he grows, to half her size
+      A && A.blip && A.blip(); for (let i = 1; i <= 48; i++) { st.s = W3(0.35, 0.5, ease(i / 48)); await G.wait(0.05); } st.s = 0.5;
+      shotG();
+      await gline(['Honest, and at the first asking. I’ll say that for you.', 'The truth, after one fib. It is a start.', 'Two lies, and then the truth. You are getting there, slowly.', 'Three lies, and the truth only when you had run out of the other kind.'][lies]);
+      await gline('But I told you to stay put, and to touch nothing, did I not, ' + ['little one', 'little climber', 'little mouse', 'my little thief'][lies] + '?');
+      shotJ(); await jline('I’m not a—');
+      // she lifts him, and carries him to the chair by the cot
+      shotG(); st.boxed = true; st.pose = { thigh: -0.3, knee: 0.2, armLx: -0.2, armLz: 0.35, armRx: -0.2, armRz: -0.35, torso: 0, neckX: -0.2, neckY: 0 };
+      { const [ux, uz] = dirGJ(); await gwalk(st.pos.x + ux * 11, st.pos.z + uz * 11, 0.8); faceJ(); }
+      const Q = (ax, ang) => new THREE.Quaternion().setFromAxisAngle(ax, ang), UP = v(0, 1, 0), RX = v(1, 0, 0);
+      const carryAt = () => { const hip = gerda.root.localToWorld(v(0, 12, 6.5)); return hip; };
+      { const p0 = st.pos.clone(), h0 = st.heading, hold = carryAt().clone(); for (let i = 1; i <= 22; i++) { const k = ease(i / 22); gst.bend = 0.5 * k; gst.reach = 1.2 * k; gst.lreach = 1.2 * k; faceJ(); jackOut.root.position.set(W3(p0.x, carryAt().x, k), W3(0, carryAt().y + 2, k), W3(p0.z, carryAt().z, k)); jackOut.root.quaternion.copy(Q(UP, h0)).slerp(Q(UP, gst.h + Math.PI / 2).multiply(Q(RX, Math.PI / 2)), k); st.pose.thigh = W3(-0.3, -0.1, k); await G.wait(0.04); } gst.reach = 1.2; gst.lreach = 1.2; }
+      const chair = M.items.nurseryChair.g.position, SEATX = chair.x, SEATZ = chair.z;
+      const carryFrame = () => { faceJ0(); jackOut.root.position.copy(carryAt()).add(v(0, 2, 0)); jackOut.root.quaternion.copy(Q(UP, gst.h + Math.PI / 2).multiply(Q(RX, Math.PI / 2))); };
+      const faceJ0 = () => {};
+      const walkCarrying = async (wx, wz, spd) => { const x0 = gst.x, z0 = gst.z, d = Math.hypot(wx - x0, wz - z0), n = Math.max(2, Math.ceil(d / spd)); for (let i = 1; i <= n; i++) { const k = i / n, h1 = Math.atan2(wx - gst.x, wz - gst.z); gst.x = x0 + (wx - x0) * k; gst.z = z0 + (wz - z0) * k; gst.h += angDiff(h1, gst.h) * 0.3; gst.ph += 0.4; gst.walk = 0.6; placeGerda(); carryFrame(); await G.wait(0.04); } gst.walk = 0; };
+      G.cut({ pos: v(-160, 40, -240), look: v(SEATX, 14, SEATZ), fov: 46 });
+      await walkCarrying(SEATX - 12, SEATZ, 0.9);
+      // she turns and sits, with him across her knee
+      { const h0 = gst.h; for (let i = 1; i <= 26; i++) { const k = ease(i / 26); gst.h = h0 + angDiff(-Math.PI / 2, h0) * k; gst.x = W3(SEATX - 12, SEATX, k); gst.sit = k; gst.bend = W3(0.5, 0.05, k); gst.reach = W3(1.2, 0.6, k); gst.lreach = W3(1.2, 0.6, k); gst.y = 5.1 * k; placeGerda(); gerda.root.position.y = gst.y; carryFrame(); await G.wait(0.04); } }
+      root.Blocky.seatFeet && root.Blocky.seatFeet(gerda, 0);
+      const lapY = 17.5, lapX = SEATX - 6.5;
+      st.pose = { thigh: 0.2, knee: 0.3, armLx: -1.3, armLz: 0.1, armRx: -1.3, armRz: -0.1, torso: 0, neckX: 0.5, neckY: 0 };
+      { const q1 = Q(RX, Math.PI / 2), p0 = jackOut.root.position.clone(), q0 = jackOut.root.quaternion.clone(); for (let i = 1; i <= 20; i++) { const k = ease(i / 20); jackOut.root.position.set(W3(p0.x, lapX, k), W3(p0.y, lapY + 1.5, k), W3(p0.z, SEATZ - 7.3, k)); jackOut.root.quaternion.copy(q0).slerp(q1, k); await G.wait(0.04); } }
+      G.cut({ pos: v(SEATX - 34, 22, SEATZ - 30), look: v(SEATX - 5, 14, SEATZ), fov: 40 });
+      W.paintJack(jackOut, { expr: 4 }); await jline('No!');
+      for (let i = 1; i <= 36; i++) { const t = i * 0.35; st.pose.thigh = 0.2 + 0.7 * Math.sin(t * 2.3); st.pose.knee = 0.4 + 0.5 * Math.abs(Math.sin(t * 2.3 + 1)); st.pose.armLx = -1.3 + 0.4 * Math.sin(t * 2.9); st.pose.armRx = -1.3 + 0.4 * Math.sin(t * 2.9 + 2); jackOut.root.position.x = lapX + 0.25 * Math.sin(t * 3.1); jackOut.root.position.y = lapY + 1.5 + 0.2 * Math.abs(Math.sin(t * 2.3)); if (i === 8) jline('Let me go!'); await G.wait(0.04); }
+      await G.wait(0.6);
+      // her hand settles at the small of his back, warm and unyielding
+      for (let i = 1; i <= 16; i++) { const k = ease(i / 16); gst.reach = W3(0.6, 1.5, k); gst.lreach = W3(0.6, 0.6, k); st.pose.thigh = W3(st.pose.thigh, 0.1, k); st.pose.knee = W3(st.pose.knee, 0.2, k); await G.wait(0.04); }
+      await G.wait(2.4);
+      await finish('discipline');
     }
     function ch3Tick(dt) {
       const act = st.actReq; st.actReq = false; const pr = promptEl(); pr.style.display = 'none'; st.uiAct = null; if (st.scene) return;
