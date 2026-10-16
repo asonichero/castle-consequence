@@ -262,7 +262,7 @@ A.pad = function (vol) {
   if (!A.init()) return; const ctx = A.ctx, N = A.nodes, t = ctx.currentTime + 0.005, k = vol == null ? 0.6 : vol;
   const burst = (len, peak, type, f) => { const src = ctx.createBufferSource(); src.buffer = N.noise; const flt = ctx.createBiquadFilter(); flt.type = type; flt.frequency.value = f; const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(peak * k, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + len); src.connect(flt); flt.connect(g); g.connect(N.sfx); src.start(t, Math.random() * 2); src.stop(t + len + 0.02); };
-  burst(0.07, 0.34, 'lowpass', 320); burst(0.03, 0.1, 'bandpass', 1800);
+  burst(0.07, 0.22, 'lowpass', 300); burst(0.03, 0.05, 'bandpass', 1800);
 };
 // Cloth: folded things taken up or set down.
 A.rustle = function (vol) {
