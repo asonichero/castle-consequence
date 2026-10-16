@@ -1111,8 +1111,9 @@ function run(G, W, opts) {
         Object.assign(gst, { x: 273, z: -196, h: Math.PI, y: 0, seated: 0, walk: 0, reach: 0, lreach: 0, bend: 0, look: 0.2, headY: 0, p50: null, hold: 0, alive: 1 }); placeGerda(); gerda.root.visible = true;
         { const a1 = (doorTo(Math.PI / 2, true), roostD ? roostD.lg.rotation.y : 0); if (roostD) { roostD.lg.rotation.y = 0; roostD.og.userData.noCollide = true; A && A.latch && A.latch(); for (let i = 1; i <= 24; i++) { roostD.lg.rotation.y = a1 * ease(i / 24); await G.wait(0.04); } roostD.lg.rotation.y = a1; } }
         const dj = new V3(273 - st.pos.x, 0, -212 - st.pos.z).normalize(), tx = clamp(st.pos.x + dj.x * 26, 264, 410), tz = clamp(st.pos.z + dj.z * 26, -320, -216), mx = (tx + st.pos.x) / 2, mz = (tz + st.pos.z) / 2;
-        G.cut({ pos: v(mx < 330 ? mx + 62 : mx - 62, 36, mz + 8), look: v(mx, 24, mz), fov: 50 }); await G.fade(false, 0.8);
-        await walkG([[273, -214], [tx, tz]]); gst.h = Math.atan2(st.pos.x - gst.x, st.pos.z - gst.z); st.heading = Math.atan2(gst.x - st.pos.x, gst.z - st.pos.z); placeGerda();
+        const behind = g => { const dx = g.x - st.pos.x, dz = g.z - st.pos.z, d = Math.hypot(dx, dz) || 1; return { pos: v(clamp(st.pos.x - dx / d * 46, 258, 414), 33, clamp(st.pos.z - dz / d * 46, -324, -216)), look: v(g.x, 33, g.z), fov: 48 }; };       // (from behind him, on her)
+        st.pose = null; st.walkN = 0; st.jumpReq = false; hBroom.visible = hBucket.visible = hGrain.visible = false; G.cut(behind({ x: 273, z: -212 })); await G.fade(false, 0.8);
+        await walkG([[273, -214], [tx, tz]]); gst.h = Math.atan2(st.pos.x - gst.x, st.pos.z - gst.z); st.heading = Math.atan2(gst.x - st.pos.x, gst.z - st.pos.z); placeGerda(); G.cut(behind(gst));
         const rs = reasons();
         if (out.kind === 'squawk') {
           await sayW('gerda', 'Jack! What is all that noise? What have you done to her?');
