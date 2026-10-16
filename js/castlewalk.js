@@ -932,7 +932,8 @@ function run(G, W, opts) {
       // ── the room's things ──
       const patches = []; for (let k = 1; k <= 14; k++) { const it = IT['dirt' + k]; if (!it) break; const g = it.g; patches.push({ g, x: g.position.x, z: g.position.z, amount: 1, r: g.children[0].geometry.parameters.width / 2, orig: true }); }
       const prints = [], extra = [];
-      const addPrint = (x, z, heading, size, bird) => { const g = new THREE.Group(); g.position.set(x, 0.14, z); g.rotation.y = heading;
+      const underObj = (x, z) => { for (const e of C.near(x, z, 8)) if (!e.low && e.y0 < 4 && e.y1 > 1.5 && x > e.x0 - 3 && x < e.x1 + 3 && z > e.z0 - 3 && z < e.z1 + 3) return true; return false; };       // (what is under a thing cannot be seen, nor swept)
+      const addPrint = (x, z, heading, size, bird) => { if (underObj(x, z)) return; const g = new THREE.Group(); g.position.set(x, 0.14, z); g.rotation.y = heading;
         if (bird) for (const a of [-0.5, 0, 0.5]) { const t = mk(0.5, 0.2, 2.2, '#3a2a18', Math.sin(a) * 1.3, 0, Math.cos(a) * 1.3, g); t.rotation.y = a; } else { mk(2.6 * size, 0.2, 6 * size, '#3a2a18', 0, 0, 0, g); mk(2 * size, 0.2, 1.6 * size, '#3a2a18', 0, 0, 3.8 * size, g); }
         M.room.add(g); prints.push({ g, x, z, amount: 1 }); if (prints.length > 90) { const o = prints.shift(); M.room.remove(o.g); } };
       const S = {}, H = { pos: new V3(), target: new V3() };
@@ -967,7 +968,7 @@ function run(G, W, opts) {
       const dist = p => Math.hypot(p.x - st.pos.x, p.z - st.pos.z);
       const startRest = () => { H.mode = 'rest'; H.restLeft = restFor(H.trust); };
       const flee = from => { const away = H.pos.clone().sub(from); away.y = 0; if (away.lengthSq() < 0.01) away.set(1, 0, 0.3); away.normalize(); const t = H.pos.clone().addScaledVector(away, 34); t.x = clamp(t.x, 266, 408); t.z = clamp(t.z, -320, -222); H.target = t; H.mode = 'flee'; };
-      const addPatch = (x, z, amount, why, tag) => { if (patches.length >= 22) return null; const g2 = patches[0].g.clone(true); M.room.add(g2); g2.position.set(clamp(x, 262, 410), 0, clamp(z, -322, -214)); const p = { g: g2, x: g2.position.x, z: g2.position.z, amount, r: patches[0].r, tag: tag || null }; patches.push(p); S.chores.sweep = false; if (why) toast(why, 2600); return p; };
+      const addPatch = (x, z, amount, why, tag) => { if (patches.length >= 22) return null; let px = clamp(x, 262, 410), pz = clamp(z, -322, -214); for (let k = 0; k < 10 && underObj(px, pz); k++) { const a = Math.random() * 6.28, r = 8 + k * 4; px = clamp(x + Math.cos(a) * r, 262, 410); pz = clamp(z + Math.sin(a) * r, -322, -214); } if (underObj(px, pz)) return null; const g2 = patches[0].g.clone(true); M.room.add(g2); g2.position.set(px, 0, pz); const p = { g: g2, x: g2.position.x, z: g2.position.z, amount, r: patches[0].r, tag: tag || null }; patches.push(p); S.chores.sweep = false; if (why) toast(why, 2600); return p; };
       const nextDirt = () => { let best = null, bd = 1e9; for (const p of patches) { if (p.amount < 0.15 || p === S.workP || Math.hypot(p.x - st.pos.x, p.z - st.pos.z) < 24) continue; const d = Math.hypot(p.x - H.pos.x, p.z - H.pos.z); if (d < bd) { best = p; bd = d; } } return best; };
       const mess = p => { p.amount = Math.min(1, p.amount + 0.7); if (Math.random() < 0.6) { const ang = Math.random() * 6.28; addPatch(p.x + Math.cos(ang) * 11, p.z + Math.sin(ang) * 11, 0.8); } S.chores.sweep = false;
         S.messN++; if (S.messN === 1 || S.messN % 4 === 0) G.caption('jack', ['Oh, no. She’s making more of a mess than I’m clearing!', 'She’s undoing it as fast as I sweep!', 'Not there, girl! I only just cleared that.'][(S.messN / 4 | 0) % 3]); };
@@ -1032,7 +1033,7 @@ function run(G, W, opts) {
       const standUp = () => { S.sitting = false; st.seated = false; st.pos.set(chairP.x + frontDir.x * 16, 0, chairP.z + frontDir.z * 16); st.y = 0; st.fz = null; st.vy = 0; st.pose = null; };
       // how it stands at the end
       const finalState = () => { const left = tag => patches.filter(p => p.tag === tag && p.amount > 0.05).length, t = H.trust;
-        return { dirt: patches.filter(p => !p.tag && p.amount > 0.05).length, prints: prints.filter(p => p.amount > 0.05).length, water: left('water'), grain: left('grain'), litter: ['broom', 'bucket'].filter(n => itm[n].where !== 'home').length,
+        return { dirt: patches.filter(p => !p.tag && p.amount > 0.05).length, prints: prints.filter(p => p.amount > 0.05).length, water: left('water'), grain: left('grain'), litter: ['broom', 'bucket'].filter(n => (itm[n].where !== 'home' && !itm[n].forced)).length,
           dish: !S.chores.dish, trough: S.troughLevel < 60, stroked: S.chores.trust, bin: S.binOpen || S.binRaids > 0, hen: S.chores.trust || t >= 75 ? 'calm' : t < 25 ? 'frightened' : t < 60 ? 'wary' : 'calm' }; };
       const evidence = () => { const f = finalState(), r = [], at = (x, z) => ({ x, z }), tagged = tg => patches.find(p => p.tag === tg && p.amount > 0.05);       // (what he left, and where it lies, for the camera to cut to)
         if (f.dirt) { const p = patches.find(q => !q.tag && q.amount > 0.05); r.push(['left dirt on the floor', at(p.x, p.z)]); }
@@ -1041,7 +1042,7 @@ function run(G, W, opts) {
         if (f.grain) { const p = tagged('grain'); r.push(['left grain scattered about', at(p.x, p.z)]); }
         if (f.dish) r.push(['left her dish empty', at(dishP.x, dishP.z)]);
         if (f.trough) r.push([S.troughLevel > 0 ? 'left her trough only part full' : 'left her trough empty', at(troughP.x, troughP.z)]);
-        if (f.litter) { const l = ['broom', 'bucket'].filter(n => itm[n].where !== 'home'), q = itemPos(l[0]); r.push(['left the ' + l.join(' and the ') + ' lying about', at(q.x, q.z)]); }
+        if (f.litter) { const l = ['broom', 'bucket'].filter(n => (itm[n].where !== 'home' && !itm[n].forced)), q = itemPos(l[0]); r.push(['left the ' + l.join(' and the ') + ' lying about', at(q.x, q.z)]); }
         if (S.binRaids) r.push(['let the hen into the feed', at(binP.x, binP.z)]); else if (S.binOpen) r.push(['left the feed bin open', at(binP.x, binP.z)]);
         if (f.hen === 'frightened') r.push(['left the hen frightened', at(H.pos.x, H.pos.z)]); else if (f.hen === 'wary') r.push(['left the hen wary', at(H.pos.x, H.pos.z)]); else if (!f.stroked) r.push(['never won the hen over', at(H.pos.x, H.pos.z)]);
         return r; };
@@ -1113,8 +1114,8 @@ function run(G, W, opts) {
       // ── Gerda comes back, and asks how it went ──
       const returnScene = async out => {
         st.choreTick = null; $('cwPrompt').style.display = 'none'; hudEl.style.display = 'none'; $('cwObjt').style.display = 'none'; st.uiAct = null; st.uiDrop = false;
-        if (S.sitting) standUp(); st.seated = false; if (S.holding === 'broom' || S.holding === 'bucket') drop(); else if (S.holding) setHeld(null);
-        const undone = ['sweep', 'dish', 'water', 'trust'].filter(c => !S.chores[c]).length, lit = ['broom', 'bucket'].filter(n => itm[n].where !== 'home');
+        if (S.sitting) standUp(); st.seated = false; if (S.holding === 'broom' || S.holding === 'bucket') { const nm = S.holding, f = front(12), m = nm === 'broom' ? fBroom : fBucket; S.water = 0; itm[nm].where = 'floor'; itm[nm].x = f.x; itm[nm].z = f.z; itm[nm].forced = true; m.position.set(f.x, nm === 'broom' ? 1.2 : 2, f.z); m.rotation.set(0, st.heading, nm === 'broom' ? Math.PI / 2 : 1.45); setHeld(null); } else if (S.holding) setHeld(null);       // (whatever he holds is set down as she comes in: it is not held against him)
+        const undone = ['sweep', 'dish', 'water', 'trust'].filter(c => !S.chores[c]).length, lit = ['broom', 'bucket'].filter(n => (itm[n].where !== 'home' && !itm[n].forced));
         if (undone) shrink(0.02 * undone, undone + ' chore' + (undone > 1 ? 's' : '') + ' left undone'); if (lit.length) shrink(0.01 * lit.length, lit.length > 1 ? 'The broom and bucket left lying about' : 'The ' + lit[0] + ' left lying about'); if (out.clock) shrink(0.02, 'Taking too long');
         st.s = S.sTarget; st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); st.pose = null; st.vy = 0; st.walkN = 0; st.heading = Math.atan2(273 - st.pos.x, -212 - st.pos.z);
         hen.position.set(cushion.x, 9, cushion.z); hen.rotation.y = Math.PI;
