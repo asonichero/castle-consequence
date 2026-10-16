@@ -558,10 +558,10 @@ function create(view, opts) {
   // ── Frame loop ──────────────────────────────────────────────────────────────────────────────────────────────────────────
   function repaint() {
     st.expr = exprFor();
-    B.paintJackInto(jack.skin, { trousers: st.trousers, drawers: st.drawers, marks: st.marks, expr: st.expr, outfit: st.outfit.jack, hitched: true });
+    B.paintJackInto(jack.skin, { trousers: st.trousers, drawers: st.drawers, marks: st.marks, expr: st.expr, outfit: st.outfit.jack, hitched: true, strip: st.strip });
     jack.tex.needsUpdate = true;
     B.paintGlutesInto(glutes.skin, { trousers: st.trousers, drawers: st.drawers, marks: st.marks, outfit: st.outfit.jack }); glutes.tex.needsUpdate = true;
-    jack.legL.ring.visible = jack.legR.ring.visible = st.trousers === 'down';
+    jack.legL.ring.visible = jack.legR.ring.visible = st.trousers === 'down' && !st.strip;
     dirty = false;
   }
   function update(dt) {

@@ -93,7 +93,7 @@ function create(els) {
     const w = whoOf(who), box = document.getElementById('subChoices'); subWho.textContent = w[0]; subWho.style.color = w[1]; subText.textContent = ''; subs.style.display = 'block'; box.innerHTML = ''; box.style.display = 'block'; advance = null;
     const pick = i => { clearInterval(poll); root.removeEventListener('keydown', onKey, true); box.style.display = 'none'; box.innerHTML = ''; subs.style.display = 'none'; resolve(i); };
     const onKey = e => { const n = parseInt(e.key, 10); if (n >= 1 && n <= options.length) { e.preventDefault(); e.stopPropagation(); pick(n - 1); } };
-    options.forEach((o, i) => { const b = document.createElement('button'); b.className = 'choice'; b.textContent = (i + 1) + '. ' + o; b.onclick = e => { e.stopPropagation(); pick(i); }; box.appendChild(b); });
+    options.forEach((o, i) => { const b = document.createElement('button'); b.className = 'choice'; b.textContent = (i + 1) + '. ' + (typeof o === 'string' ? o : '(' + o.act + ')'); if (typeof o !== 'string') b.style.fontStyle = 'italic'; b.onclick = e => { e.stopPropagation(); pick(i); }; box.appendChild(b); });
     root.addEventListener('keydown', onKey, true);
     const poll = setInterval(() => { if (G.skipping) { clearInterval(poll); pick(0); } }, 80);
     if (G.skipping) pick(0);
