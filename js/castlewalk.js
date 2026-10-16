@@ -1271,7 +1271,7 @@ function run(G, W, opts) {
       // ── the undressing: Jack standing, Gerda kneeling before him, the tub behind him ──
       Object.assign(gst, { x: 350, z: -146, h: Math.PI, y: 0, seated: 0, kneel: 0, walk: 0, reach: 0, lreach: 0, bend: 0, look: 0.3, headY: 0, p50: null, hold: 0, alive: 1 }); placeGerda(); root.Blocky.step(gerda, 0);
       st.pos.set(350, 0, -160); st.y = 0; st.heading = 0; st.standY = 0; st.pose = null;
-      const camA = () => G.cut({ pos: v(316, 34, -143), look: v(351, 17, -156), fov: 50 }), camB = () => G.cut({ pos: v(322, 30, -150), look: v(351, 15, -158), fov: 40 });
+      const camA = () => G.cut({ pos: v(299, 44, -153), look: v(351, 20, -153), fov: 62 }), camB = () => G.cut({ pos: v(306, 32, -152), look: v(351, 14, -155), fov: 52 });
       if (A && A.ctx) A.startMusic({ theme: 'castle' });
       camA(); await G.fade(false, 1.2); await G.wait(0.5);
       await kneel(true, 0.9);
@@ -1314,7 +1314,7 @@ function run(G, W, opts) {
       st.heading = Math.PI / 2; st.walkN = 0; paint({ expr: 'smile' });
       st.pose = { legLx: -1.45, legRx: -1.45, kneeL: 0.25, kneeR: 0.25, armLx: -0.3, armRx: -0.3, armLz: 0.2, armRz: -0.2, elbowL: -0.5, elbowR: -0.5, torso: 0, neckX: 0.1 };
       sponge.visible = true;
-      G.cut({ pos: v(324, 36, -152), look: v(351, 16, -172), fov: 50 }); await G.fade(false, 0.9); await G.wait(0.4);
+      G.cut({ pos: v(299, 42, -146), look: v(352, 10, -172), fov: 62 }); await G.fade(false, 0.9); await G.wait(0.4);
       await sayW('gerda', 'There. Warm enough?');
       await sayW('jack', 'It’s lovely.');
       const scrub = async (T, secs, extra) => { const b = solveHand(T, false), n = Math.round(secs / 0.04); for (let i = 1; i <= n; i++) { const k = Math.min(1, i / 12); gst.bend = b.bd * k; gst.reach = b.rc * k + 0.14 * Math.sin(i * 0.5) * k; placeGerda(); if (extra) extra(i / n); await G.wait(0.04); } };

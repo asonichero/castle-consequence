@@ -270,7 +270,7 @@ function paintJackInto(k, st) {
     clearOver('jacket');
     for (const side of ['rArm', 'lArm']) { k.all(side, C.skin); k.fill(side, 'bottom', C.skinSh); k.band(side, C.skinHi, 6, 1); for (const f of SIDES) { k.px(side, f, 0, 7, C.skinSh); k.px(side, f, 0, 11, C.skinSh); } clearOver(sideOuter(side)); }
     k.px('rArm', 'front', 2, 10, C.skinSh); k.px('lArm', 'front', 1, 11, C.skinSh);
-    for (const leg of ['rLeg', 'lLeg']) { k.all(leg, C.skin); if (dr) for (const f of SIDES) { k.fill(leg, f, C.drawers, 0, 0, undefined, 4); k.fill(leg, f, C.drawersSh, 0, 3, undefined, 1); } k.fill(leg, 'top', dr ? C.drawers : C.skin); k.fill(leg, 'bottom', C.skinSh); k.band(leg, C.skinHi, 6, 1); }
+    for (const leg of ['rLeg', 'lLeg']) { k.all(leg, C.skin); if (dr) for (const f of SIDES) { k.fill(leg, f, C.drawers, 0, 0, undefined, 4); k.fill(leg, f, C.drawersSh, 0, 3, undefined, 1); } k.fill(leg, 'top', dr ? C.drawers : C.skin); k.fill(leg, 'bottom', C.skinSh); k.band(leg, C.skinHi, 6, 1); clearOver(sideOuter(leg)); }       // (the tunic's hem goes with the tunic)
   }
   k.grain(1021, 5, [{ x: 8, y: 8, w: 8, h: 8 }]);
   // Marks: the bare rear colours up, patchy at first. Each bare pixel gets a share of its cheek's mark, jittered by position.
