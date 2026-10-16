@@ -469,7 +469,7 @@ function run(G, W, opts) {
     };
     const cleanup = () => { if (jackOut.root.parent !== scene) { scene.add(jackOut.root); st.inHand = false; } root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('wheel', wheel); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu); G.updaters = G.updaters.filter(u => u !== tick); hud.remove(); css.remove(); ui.destroy(); jackOut.after = null; jackOut.root.scale.setScalar(SC); jackOut.root.visible = true; camera.near = nearOld; camera.updateProjectionMatrix(); };
     if (!opts.capture && A && A.ctx) { A.startMusic({ theme: 'castle' }); A.duckMusic(0.7, 3); }
-    G.updaters.push(tick); G.castleWalk = { st, cleanup, resolve, C, M, gst };
+    G.updaters.push(tick); G.castleWalk = { st, cleanup, resolve, C, M, gst, jackOut, getGerda: () => gerda };
     if (opts.capture) {                                                                                      // the capture, on its own (for scene-notes.html): Jack is hiding in the cupboard, and Gerda has just opened its doors
       if (G.seekTo == null) G.skipping = false;                                                            // (a 'Skip scene' pressed in an earlier scene must not carry over and skip this one)
       const cd = pantryG.userData.cupDoors; cd.dl.rotation.y = -1.7; cd.dr.rotation.y = 1.7; st.inCup = true;
@@ -1464,7 +1464,7 @@ function run(G, W, opts) {
       const head = () => jackOut.neck.localToWorld(new V3(0, 4, 0));
       let lookOn = false; const lookTick = dt => { if (!lookOn || !st.pose) return; const kT = 1 - Math.exp(-(dt || 0.04) * 4), kN = 1 - Math.exp(-(dt || 0.04) * 6); const gh = gerda.neck.getWorldPosition(new V3()), hh = head(), yaw = angDiff(Math.atan2(gh.x - hh.x, gh.z - hh.z), st.heading), pitch = Math.atan2(gh.y - hh.y, Math.hypot(gh.x - hh.x, gh.z - hh.z));       // (his head turns to her face, and tilts up to it, wherever she is)
         const tq = st.pose.torso || 0; st.pose.torso = tq + (Math.max(tq, 0) - tq) * kT;       // (lying back, he sits up to look at her)
-        st.pose.neckY = (st.pose.neckY || 0) + (clamp(-yaw, -1.3, 1.3) - (st.pose.neckY || 0)) * kN; st.pose.neckX = (st.pose.neckX || 0) + (clamp(0.1 - pitch - st.pose.torso, -0.8, 0.5) - (st.pose.neckX || 0)) * kN; }; G.updaters.push(lookTick);
+        st.pose.neckY = (st.pose.neckY || 0) + (clamp(yaw, -1.3, 1.3) - (st.pose.neckY || 0)) * kN; st.pose.neckX = (st.pose.neckX || 0) + (clamp(0.1 - pitch - st.pose.torso, -0.8, 0.5) - (st.pose.neckX || 0)) * kN; }; G.updaters.push(lookTick);
       const camWide = () => G.cut({ pos: v(299, 42, -146), look: v(352, 10, -172), fov: 62 }), camDoor = () => G.cut({ pos: v(380, 21, -160), look: v(325, 17.5, -160), fov: 64 }), camSide = () => G.cut({ pos: v(310, 72, -142), look: v(355, 7, -180), fov: 50 }), camB4 = () => G.cut({ pos: v(355.9, 21.5, -150.8), look: v(361.9, 15.1, -175.9), fov: 40 }), camB5 = () => G.cut({ pos: v(340.6, 51.2, -190.1), look: v(364, 10.5, -175.8), fov: 46 }), camB7 = () => G.cut({ pos: v(300, 25, -190), look: v(340, 12, -170), fov: 62 }), camB8 = () => G.cut({ pos: v(350, 25, -165), look: v(370, 11.5, -180), fov: 40 }), camB9 = () => G.cut({ pos: v(375, 40, -195), look: v(360, 8, -176), fov: 46 }), camB13 = () => G.cut({ pos: v(358, 18, -155), look: v(365, 11, -180), fov: 40 }), camB11 = () => G.cut({ pos: v(345, 20, -190), look: v(370, 12, -175), fov: 40 }), camB14 = () => G.cut({ pos: v(375, 35, -160), look: v(360, 2, -180), fov: 50 }), camWash1 = () => G.cut({ pos: v(298.7, 30.9, -196.1), look: v(357.8, 17.2, -177), fov: 40 }), camEars = () => G.cut({ pos: v(380, 20, -190), look: v(355, 17.5, -175), fov: 40 }), camFinal = () => G.cut({ pos: v(330.8, 20.4, -166), look: v(354.8, 17.4, -177), fov: 40 }), camWashStart = () => G.cut({ pos: v(350, 25, -125), look: v(355, 11, -180), fov: 40 }), camRest = () => G.cut({ pos: v(315, 14, -177), look: v(355, 10, -177), fov: 45 }), camReturn = () => G.cut({ pos: v(380, 17.5, -182), look: v(330, 17.5, -150), fov: 70 }), camEars2 = () => G.cut({ pos: v(380, 20, -190), look: v(355, 17.5, -175), fov: 40 }), camNight = () => G.cut({ pos: v(302, 50, -145), look: v(355, 14, -172.5), fov: 60 }), camOpen = () => G.cut({ pos: v(304, 25, -150), look: v(355, 25, -170), fov: 62 });
       const camFace = () => { const h = head(); G.cut({ pos: v(Math.max(301, h.x - 24), h.y + 2, h.z + 11), look: v(h.x, h.y - 1, h.z), fov: 40 }); }, camBack = () => G.cut({ pos: v(335, 21, -195), look: v(360, 20, -165), fov: 54 }), camTop = () => { const h = head(); G.cut({ pos: v(h.x + 10, h.y + 22, h.z + 20), look: v(h.x - 2, h.y - 8, h.z), fov: 46 }); };
       const walkTo = async wps => { for (const [wx, wz] of wps) while (Math.hypot(wx - gst.x, wz - gst.z) > 1) { const d = Math.hypot(wx - gst.x, wz - gst.z); gst.h += angDiff(Math.atan2(wx - gst.x, wz - gst.z), gst.h) * 0.3; gst.x += (wx - gst.x) / d * Math.min(0.9, d); gst.z += (wz - gst.z) / d * Math.min(0.9, d); gst.ph += 0.4; gst.walk = 1; placeGerda(); await G.wait(0.04); } gst.walk = 0; placeGerda(); };
@@ -1543,15 +1543,15 @@ function run(G, W, opts) {
           await scrub2(arm.localToWorld(new V3(0, -3, 0)), wrist(), 2.2); await tw({ [key]: -0.3 }, 0.5); }
         { const T = jackOut.legL.knee.localToWorld(new V3(0, -2, 0)); T.y = Math.min(T.y, 7); await scrub2(T, null, 2.4); }       // (his legs)
         paint({ expr: 'squint' }); camEars(); { const e = nearFar();       // (behind his ears: her left hand turns his head, her right hand washes)
-          await Promise.all([tw({ neckY: 0.7 }, 0.6), armsTo(null, jaw(e.far), 0.6)]); await scrub2(earP(e.near), jaw(e.far), 1.8);
-          await Promise.all([tw({ neckY: -0.8 }, 0.7), armsTo(null, jaw(e.near), 0.7)]); await scrub2(earP(e.far), jaw(e.near), 1.8); await tw({ neckY: 0 }, 0.5); }
+          await Promise.all([tw({ neckY: -0.7 }, 0.6), armsTo(null, jaw(e.far), 0.6)]); await scrub2(earP(e.near), jaw(e.far), 1.8);
+          await Promise.all([tw({ neckY: 0.8 }, 0.7), armsTo(null, jaw(e.near), 0.7)]); await scrub2(earP(e.far), jaw(e.near), 1.8); await tw({ neckY: 0 }, 0.5); }
         foamRate = 0; foamT = 0; sponge.visible = false; await rest(0.5); paint({ expr: 'smile' }); await G.wait(0.6);
       } else {
         await sayW('gerda', 'And did you wash yourself properly?');
         paint({ expr: 'smile' }); await sayW('jack', 'Yes, Gerda. Properly.');
         await sayW('gerda', 'Did you, now. Turn your head for me.');
         lookOn = false; await kneel(true, 0.7); camEars2(); { const e = nearFar();
-          await Promise.all([tw({ neckY: 0.7 }, 0.6), armsTo(null, jaw(e.far), 0.6)]); await G.wait(0.4); paint({ expr: 'squint' });
+          await Promise.all([tw({ neckY: -0.7 }, 0.6), armsTo(null, jaw(e.far), 0.6)]); await G.wait(0.4); paint({ expr: 'squint' });
           await sayW('gerda', 'Behind the ears. As I thought.'); paint({ expr: 'shy' }); await sayW('jack', 'Oh.');
           await armsTo(v(358, 9, -168), jaw(e.far), 0.6); A && A.blip && A.blip(); await G.wait(0.3);       // (her hand dips into the water)
           await scrub2(earP(e.near), jaw(e.far), 2.2); }
