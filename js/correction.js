@@ -30,7 +30,7 @@ function ui() {
 }
 
 // ── The player's camera: orbit, pan and zoom; the switcher puts it at a named view. ──
-function freeCam(G) {
+function freeCam(G, box) {       // (box: { x0, x1, z0, z1, h }: the room the camera is kept inside, its walls and its ceiling)
   const fc = new THREE.PerspectiveCamera(40, 1, 0.5, 4000), controls = new THREE.OrbitControls(fc, G.renderer.domElement);
   controls.enableDamping = true; controls.dampingFactor = 0.12; controls.minDistance = 6; controls.maxDistance = 240; controls.maxPolarAngle = 1.52;
   const orig = G.renderer.render; let tween = null;
@@ -38,7 +38,10 @@ function freeCam(G) {
     const w = G.renderer.domElement.clientWidth || innerWidth, h = G.renderer.domElement.clientHeight || innerHeight;
     if (Math.abs(fc.aspect - w / h) > 1e-3) { fc.aspect = w / h; fc.updateProjectionMatrix(); }
     if (tween) { const k = Math.min(1, (performance.now() - tween.t0) / tween.ms), e = k * k * (3 - 2 * k); fc.position.lerpVectors(tween.p0, tween.p1, e); controls.target.lerpVectors(tween.l0, tween.l1, e); if (k >= 1) tween = null; }
-    controls.update(); orig.call(G.renderer, scene, fc);
+    if (box) { const m = 3, cx = x => Math.max(box.x0 + m, Math.min(box.x1 - m, x)), cz = z => Math.max(box.z0 + m, Math.min(box.z1 - m, z)); controls.target.x = cx(controls.target.x); controls.target.z = cz(controls.target.z); controls.target.y = Math.max(0, Math.min(box.h - 9, controls.target.y)); }
+    controls.update();
+    if (box) { const m = 3; fc.position.x = Math.max(box.x0 + m, Math.min(box.x1 - m, fc.position.x)); fc.position.z = Math.max(box.z0 + m, Math.min(box.z1 - m, fc.position.z)); fc.position.y = Math.max(1.5, Math.min(box.h - 9, fc.position.y)); }       // (the camera never leaves the room)
+    orig.call(G.renderer, scene, fc);
   };
   return {
     fc, controls,
@@ -65,7 +68,7 @@ async function run(G, W, tier, opts) {
   G.setScene(cworld); G.drone = null; G.mode = 'correction'; document.body.classList.remove('cutscene');
   A && A.ambience({ wind: 0.1, birds: 0, fire: 0.8 });
 
-  const cam = freeCam(G), panel = ui(), camBtn = document.getElementById('corrCam'), redBtn = document.getElementById('corrRed');
+  const cam = freeCam(G, { x0: -75, x1: 75, z0: -75, z1: 75, h: 62 }), panel = ui(), camBtn = document.getElementById('corrCam'), redBtn = document.getElementById('corrRed');
   let red = false, shown = null;
   redBtn.onclick = () => { red = true; lap.red(); G.captionOff(); };
   // Named views of the stage (in its own units, so they follow it wherever it stands); the switcher offers the ones that suit what is on.

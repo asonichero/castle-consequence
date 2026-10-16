@@ -126,6 +126,7 @@ function run(G, W, opts) {
       for (const e of C.near(x, z, r)) { if (e.low || e.y1 <= up || e.y0 >= top) continue; const cx = clamp(x, e.x0, e.x1), cz = clamp(z, e.z0, e.z1); if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r) return true; } return false; };
     const floorAt = (x, z, y) => { const r = 1.2 * st.s, up = y + step() + 0.5; let g = 0; for (const e of C.near(x, z, r)) { if (e.y1 > up || e.y1 <= g) continue; const cx = clamp(x, e.x0, e.x1), cz = clamp(z, e.z0, e.z1); if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r) g = e.y1; } return g; };
     const ceilAt = p => (Math.abs(p.x) < 92 && Math.abs(p.z) < 112) ? root.Castle.HH : M.H;                     // (the hall's ceiling is higher)
+    const roomBox = (x, z) => { let rm = null; for (const r of M.rooms || []) if (x > r.x0 && x < r.x1 && z > r.z0 && z < r.z1 && (!rm || (r.x1 - r.x0) * (r.z1 - r.z0) < (rm.x1 - rm.x0) * (rm.z1 - rm.z0))) rm = r; return rm; };       // (the roofed room that holds a place: its walls and ceiling)
     const camBlocked = (p, s) => { if (p.y > ceilAt(p) - 9) return true; for (const e of C.near(p.x, p.z, 3)) if ((e.y1 - e.y0 > 30 || (st.inCup && e.pantry)) && p.x > e.x0 - 1.5 * s && p.x < e.x1 + 1.5 * s && p.z > e.z0 - 1.5 * s && p.z < e.z1 + 1.5 * s && p.y > e.y0 && p.y < e.y1) return true; return false; };
 
     // ── The kitchen table: things to look at, crumbs to take or leave, the loaf that is not his, and then footsteps overhead. ──
@@ -630,7 +631,7 @@ function run(G, W, opts) {
         mk(1.2, 8, 0.8, 0xb9bfc8, 0, -4.5, 0); mk(1.6, 3.6, 1.2, 0x4a3626, 0, 0, 0); mk(3, 0.7, 1.4, 0xb8923a, 0, -1.8, 0); knife.position.set(-5.6, 2, 0.4); lap.jack.hips.add(knife); }       // (his father's knife at his belt, as in the cottage; no satchel, which would be in the way)
       const lapTick = dt => lap.update(dt); G.updaters.push(lapTick);
       // (the cameras: the engine's own views, kept inside the room)
-      const Co = root.Correction, cam = Co.freeCam(G), panel = Co.ui(), camBtn = document.getElementById('corrCam'), redBtn = document.getElementById('corrRed'), RED = { red: true };
+      const Co = root.Correction, cam = Co.freeCam(G, roomBox(SEATX, SEATZ)), panel = Co.ui(), camBtn = document.getElementById('corrCam'), redBtn = document.getElementById('corrRed'), RED = { red: true };
       let red = false, shown = null;
       redBtn.onclick = () => { red = true; lap.red(); G.captionOff && G.captionOff(); };
       const showUI = on => panel.classList.toggle('on', !!on);
@@ -1027,22 +1028,28 @@ function run(G, W, opts) {
         else if (S.holding === 'grain') { setHeld(null); addPatch(f.x, f.z, 0.7, 'The grain scatters across the floor.', 'grain'); } };
       // the chair: he sits, and his legs swing; any movement stands him up
       const cr = chairG.rotation.y, frontDir = { x: Math.cos(cr), z: -Math.sin(cr) }, seatH = Math.atan2(frontDir.x, frontDir.z);
-      const sit = () => { jackOut.root.updateMatrixWorld(true); const hy = jackOut.hips.getWorldPosition(new V3()).y - st.y; S.sitting = true; st.seated = true; st.fz = { x: chairP.x - frontDir.x * 3, y: Math.max(0, 13.5 - hy + 1.5), z: chairP.z - frontDir.z * 3 }; st.heading = seatH; st.walkN = 0; st.camA = Math.atan2(-Math.cos(seatH + 1.1), -Math.sin(seatH + 1.1)) + Math.PI; st.pitch = 0.25; camPos.set(0, 0, 0); };
+      const sit = () => { jackOut.root.updateMatrixWorld(true); const hy = jackOut.hips.getWorldPosition(new V3()).y - st.y; S.sitting = true; st.seated = true; st.fz = { x: chairP.x + frontDir.x * 3.5, y: Math.max(0, 13.5 - hy + 1.5), z: chairP.z + frontDir.z * 3.5 }; st.heading = seatH; st.walkN = 0; st.camA = Math.atan2(-Math.cos(seatH + 1.1), -Math.sin(seatH + 1.1)) + Math.PI; st.pitch = 0.25; camPos.set(0, 0, 0); };
       const standUp = () => { S.sitting = false; st.seated = false; st.pos.set(chairP.x + frontDir.x * 16, 0, chairP.z + frontDir.z * 16); st.y = 0; st.fz = null; st.vy = 0; st.pose = null; };
       // how it stands at the end
       const finalState = () => { const left = tag => patches.filter(p => p.tag === tag && p.amount > 0.05).length, t = H.trust;
         return { dirt: patches.filter(p => !p.tag && p.amount > 0.05).length, prints: prints.filter(p => p.amount > 0.05).length, water: left('water'), grain: left('grain'), litter: ['broom', 'bucket'].filter(n => itm[n].where !== 'home').length,
           dish: !S.chores.dish, trough: S.troughLevel < 60, stroked: S.chores.trust, bin: S.binOpen || S.binRaids > 0, hen: S.chores.trust || t >= 75 ? 'calm' : t < 25 ? 'frightened' : t < 60 ? 'wary' : 'calm' }; };
-      const reasons = () => { const f = finalState(), r = [];
-        if (f.dirt) r.push('left dirt on the floor'); if (f.prints) r.push('left muddy footprints about'); if (f.water) r.push('left spilled water on the floor'); if (f.grain) r.push('left grain scattered about');
-        if (f.dish) r.push('left her dish empty'); if (f.trough) r.push(S.troughLevel > 0 ? 'left her trough only part full' : 'left her trough empty');
-        if (f.litter) r.push('left the ' + ['broom', 'bucket'].filter(n => itm[n].where !== 'home').join(' and the ') + ' lying about');
-        if (S.binRaids) r.push('let the hen into the feed'); else if (S.binOpen) r.push('left the feed bin open');
-        if (f.hen === 'frightened') r.push('left the hen frightened'); else if (f.hen === 'wary') r.push('left the hen wary'); else if (!f.stroked) r.push('never won the hen over'); return r; };
+      const evidence = () => { const f = finalState(), r = [], at = (x, z) => ({ x, z }), tagged = tg => patches.find(p => p.tag === tg && p.amount > 0.05);       // (what he left, and where it lies, for the camera to cut to)
+        if (f.dirt) { const p = patches.find(q => !q.tag && q.amount > 0.05); r.push(['left dirt on the floor', at(p.x, p.z)]); }
+        if (f.prints) { const q = prints.find(u => u.amount > 0.05); r.push(['left muddy footprints about', at(q.x, q.z)]); }
+        if (f.water) { const p = tagged('water'); r.push(['left spilled water on the floor', at(p.x, p.z)]); }
+        if (f.grain) { const p = tagged('grain'); r.push(['left grain scattered about', at(p.x, p.z)]); }
+        if (f.dish) r.push(['left her dish empty', at(dishP.x, dishP.z)]);
+        if (f.trough) r.push([S.troughLevel > 0 ? 'left her trough only part full' : 'left her trough empty', at(troughP.x, troughP.z)]);
+        if (f.litter) { const l = ['broom', 'bucket'].filter(n => itm[n].where !== 'home'), q = itemPos(l[0]); r.push(['left the ' + l.join(' and the ') + ' lying about', at(q.x, q.z)]); }
+        if (S.binRaids) r.push(['let the hen into the feed', at(binP.x, binP.z)]); else if (S.binOpen) r.push(['left the feed bin open', at(binP.x, binP.z)]);
+        if (f.hen === 'frightened') r.push(['left the hen frightened', at(H.pos.x, H.pos.z)]); else if (f.hen === 'wary') r.push(['left the hen wary', at(H.pos.x, H.pos.z)]); else if (!f.stroked) r.push(['never won the hen over', at(H.pos.x, H.pos.z)]);
+        return r; };
+      const reasons = () => evidence().map(e => e[0]);
       const demerits = () => { const f = finalState(); return (f.dirt ? 2 : 0) + (f.prints ? 0.5 + 0.25 * Math.min(f.prints, 6) : 0) + f.water + f.grain * 0.5 + (f.dish ? 2 : 0) + (f.trough ? 2 : 0) + f.litter * 0.5 + S.binRaids + (S.binOpen && !S.binRaids ? 0.5 : 0) + (f.hen === 'frightened' ? 2.5 : f.hen === 'wary' ? 1.5 : f.stroked ? 0 : 1); };
       const listOf = r => r.length <= 1 ? r.join('') : r.slice(0, -1).join(', ') + ' and ' + r[r.length - 1];
       const TIERS = [{ name: 'Token', hand: 14, paddle: 0, strength: 0.7, pace: 1.7 }, { name: 'Light', hand: 30, paddle: 0, strength: 0.85, pace: 1.8 }, { name: 'Firm', hand: 44, paddle: 0, strength: 0.9, pace: 1.9 }, { name: 'Severe', hand: 52, paddle: 0, strength: 1.0, pace: 2.0 }];
-      const VERDICT = ['No complaints, really. A few for luck, then.', 'A light correction, I think.', 'A firm one. Come along.', 'A severe one, I think. Come along.'];
+      const VERDICT = ['Not so very much wrong, really. A few for luck, then: over my lap, shorts staying up.', 'A light correction, I think: over my knee, with your shorts left up.', 'A firm one. Over my knee, and your shorts will be coming down for it.', 'A severe one. Over my knee, shorts and drawers both, and I shall not be gentle about it.'];
       const buildPlan = minTier => { const d = demerits(); let tier = d < 0.01 ? 0 : d < 1.5 ? 1 : d < 4 ? 2 : 3; if (S.lie) tier = Math.min(3, tier + 1); tier = Math.max(tier, minTier || 0); return Object.assign({ tier, verdict: VERDICT[tier] }, TIERS[tier]); };
       // ── a round: everything back as it was, and the player let loose ──
       const resetRoom = () => {
@@ -1123,7 +1130,7 @@ function run(G, W, opts) {
           await sayW('gerda', 'Jack! What is all that noise? What have you done to her?');
           await sayW('gerda', 'Listen to her. Frightened half out of her feathers. Is this how you look after something precious?');
           await sayW('jack', 'I only— I didn’t mean to—');
-          const plan = buildPlan(2); await sayW('gerda', 'No. You did not think. ' + plan.verdict + ' Over my knee. Now.');
+          const plan = buildPlan(2); await sayW('gerda', 'No. You did not think. ' + plan.verdict);
           await sayW('jack', 'Oh… I’m still sore from the last time.'); await sayW('gerda', 'Then you should have been gentler with her. Come here.');
           return { plan };
         }
@@ -1133,8 +1140,10 @@ function run(G, W, opts) {
         await sayW('jack', ci === 0 ? (rs.length ? 'I ' + listOf(rs) + '.' : 'Everything done, and she lets me near her.') : 'It all went perfectly.');
         if (!rs.length) { await sayW('gerda', ci === 0 ? 'Good. I like it when it is true.' : 'It is true, too. Well done.'); W.paintJack(jackOut, { outfit: 'Day', trousers: 'up', drawers: 'up', expr: 'smile' }); await sayW('gerda', 'Good boy.'); return { praised: true }; }
         const plan = buildPlan(0);
-        await sayW('gerda', ci === 0 ? 'Thank you for telling me straight. You ' + listOf(rs) + '.' : 'Does it? You ' + listOf(rs) + '. And now you have lied to me about it as well, which is the part that earns the extra.');
-        await sayW('gerda', plan.verdict + (plan.tier === 0 ? ' Across my lap, for luck.' : ' Over my knee. Now.'));
+        await sayW('gerda', ci === 0 ? 'Thank you for telling me straight. Let us go through it.' : 'Does it? Let us go through it, then.');
+        for (const [text, at] of evidence()) { const sx = clamp(at.x + 30, 258, 414), sz = clamp(at.z + 32, -324, -216); G.cut({ pos: v(sx, 30, sz), look: v(at.x, 3, at.z), fov: 46 }); await sayW('gerda', 'You ' + text + '.'); }       // (and the camera goes to each thing as she names it)
+        G.cut(behind(gst)); if (ci === 1) await sayW('gerda', 'And now you have lied to me about it as well, which is the part that earns the extra.');
+        await sayW('gerda', plan.verdict);
         await sayW('jack', 'Oh… I’m still sore from the last time.'); await sayW('gerda', 'Then you will know to take more care. Come here.');
         return { plan };
       };
@@ -1148,7 +1157,7 @@ function run(G, W, opts) {
         gerda.root.visible = false; jackOut.root.visible = false; chairG.visible = false; hen.position.set(cushion.x, 9, cushion.z);
         lap.reset(); lap.layers({ trousers: 'up', drawers: 'up' }); lap.armed(false); lap.implement('hand'); lap.place('lap', 0); lap.size(clamp(st.s / FULL, 0.5, 0.95)); lap.st.side = 'alt'; lap.st.noRecovery = true; lap.st.sound = true; lap.st.strength = plan.strength; lap.st.pace = plan.pace; lap.pain.ache = 0.35 * lap.pain.capacity();
         const lapTick = dt => lap.update(dt); G.updaters.push(lapTick);
-        const Co = root.Correction, cam = Co.freeCam(G), panel = Co.ui(), camBtn = document.getElementById('corrCam'), redBtn = document.getElementById('corrRed'), RED = { red: true };
+        const Co = root.Correction, cam = Co.freeCam(G, roomBox(chairP.x, chairP.z)), panel = Co.ui(), camBtn = document.getElementById('corrCam'), redBtn = document.getElementById('corrRed'), RED = { red: true }; G.fc = cam.fc;
         let red = false, shown = null; redBtn.onclick = () => { red = true; lap.red(); G.captionOff && G.captionOff(); };
         const showUI = on => panel.classList.toggle('on', !!on);
         const stageView = (name, ms) => { const V = lap.views[name]; lap.stage.updateMatrixWorld(true); const P = lap.stage.localToWorld(v(...V.pos)); if (ms === 0) { P.x = clamp(P.x, 258, 412); P.z = clamp(P.z, -324, -214); P.y = Math.min(P.y, 60); } cam.go(P, lap.stage.localToWorld(v(...V.at)), 46, ms == null ? 700 : ms); shown = name; };
