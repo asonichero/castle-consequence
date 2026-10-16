@@ -954,6 +954,8 @@ function run(G, W, opts) {
       const itemPos = name => itm[name].where === 'floor' ? new V3(itm[name].x, 0, itm[name].z) : name === 'broom' ? rackP : buckP;
       const shrink = (frac, why) => { S.sTarget = Math.max(FLOOR, S.sTarget - frac * FULL); toast(why + ': −' + Math.round(frac * 100) + '%', 2600); };
       const hudEl = (() => { let e = $('cwTrustW'); if (!e) { e = document.createElement('div'); e.id = 'cwTrustW'; e.style.cssText = 'position:absolute;left:50%;top:12px;transform:translateX(-50%);width:200px;font-size:13px;text-align:center;background:rgba(10,12,16,0.7);border:1px solid #4a4d58;border-radius:8px;padding:5px 8px;pointer-events:none;color:#ece8df;'; e.innerHTML = 'The hen trusts you <b id="cwTrustV"></b><div style="height:7px;margin-top:4px;background:#222;border-radius:4px;overflow:hidden"><i id="cwTrustB" style="display:block;height:100%;width:0;background:#e6c46a"></i></div>'; $('cwHud') ? $('cwHud').appendChild(e) : document.body.appendChild(e); } return e; })();
+      const dbgEl = (() => { let e = $('cwDebug'); if (!e) { e = document.createElement('pre'); e.id = 'cwDebug'; e.style.cssText = 'position:absolute;left:12px;top:84px;margin:0;padding:8px 10px;font:12px/1.45 monospace;color:#d8f0d0;background:rgba(10,12,16,0.78);border:1px solid #4a6a4a;border-radius:6px;pointer-events:none;display:none;white-space:pre;z-index:14;'; $('cwHud') ? $('cwHud').appendChild(e) : document.body.appendChild(e); } return e; })();
+      const debugOn = () => !!G.debugCtl || /[?&]debug\b/.test(root.location ? root.location.search : '');
       const setTrough = () => { const w = gp('henTrough').userData.water, f = S.troughLevel / 100; w.visible = f > 0.02; w.scale.y = Math.max(0.2, f); w.position.y = 3.65 + 0.35 * Math.max(0.2, f); };
       // the feed bin: its lid opens toward the room, whichever way the bin is turned
       const lid = binG.userData.box.lid; let lidSign = -1;
@@ -1105,6 +1107,8 @@ function run(G, W, opts) {
           if (act && bE) bE.fn(); if (put && bQ) bQ.fn();
           { const t = [bE ? 'E \u2014 ' + bE.label : '', bQ ? 'Q \u2014 ' + bQ.label : ''].filter(Boolean).join('     '); if (t) { pr.textContent = t; pr.style.display = 'block'; } else pr.style.display = 'none'; st.uiAct = bE ? bE.label : null; st.uiDrop = !!bQ; st.uiDropLabel = bQ ? (S.holding ? 'Put down' : 'Take') : null; }
           $('cwTrustV').textContent = Math.round(H.trust) + '%'; $('cwTrustB').style.width = H.trust + '%';
+          if (debugOn()) { const ck = b => b ? '[x]' : '[ ]', c = S.chores, lim = Math.max(0, TIME_LIMIT - S.t), dn = S.doneAt ? Math.max(0, 4 - (S.t - S.doneAt)) : null;
+            dbgEl.style.display = 'block'; dbgEl.textContent = 'CHORES\n' + ck(c.sweep) + ' swept   (dirt ' + patches.filter(p => p.amount > 0.02).length + ', prints ' + prints.filter(q => q.amount > 0.05).length + ')\n' + ck(c.dish) + ' dish filled\n' + ck(c.water) + ' trough >= 60%   (' + Math.round(S.troughLevel) + '%)\n' + ck(c.trust) + ' hen settled   (trust ' + Math.round(H.trust) + '%, ' + H.mode + ')\n' + ck(itm.broom.where === 'home') + ' broom put away  (' + itm.broom.where + ')\n' + ck(itm.bucket.where === 'home') + ' bucket put away (' + itm.bucket.where + ')\n' + ck(!S.holding) + ' hands empty' + (S.holding ? '  (' + S.holding + ')' : '') + '\n' + ck(!S.binOpen) + ' bin shut' + (S.binRaids ? '  (raids ' + S.binRaids + ')' : '') + '\n\nGERDA RETURNS\n  timer:    ' + lim.toFixed(0) + 's of ' + TIME_LIMIT + 's\n  all done: ' + (dn === null ? 'not yet' : 'in ' + dn.toFixed(1) + 's') + '\n  squawk:   ' + S.squawkT.toFixed(1) + 's of 6s'; } else dbgEl.style.display = 'none';
           // how the round ends: the hen left squawking, everything done (and a few moments to be sure), or the clock
           const done = ['sweep', 'dish', 'water', 'trust'].every(c => S.chores[c]) && itm.broom.where === 'home' && itm.bucket.where === 'home' && !S.holding;       // (not done until it is all put away) if (done && !S.doneAt) S.doneAt = S.t; if (!done) S.doneAt = 0;
           if (S.squawkT > 6) end('squawk'); else if (S.doneAt && S.t - S.doneAt > 4) end('done'); else if (S.t > TIME_LIMIT) end('time');
@@ -1112,7 +1116,7 @@ function run(G, W, opts) {
       });
       // ── Gerda comes back, and asks how it went ──
       const returnScene = async out => {
-        st.choreTick = null; $('cwPrompt').style.display = 'none'; hudEl.style.display = 'none'; $('cwObjt').style.display = 'none'; st.uiAct = null; st.uiDrop = false;
+        st.choreTick = null; $('cwPrompt').style.display = 'none'; hudEl.style.display = 'none'; dbgEl.style.display = 'none'; $('cwObjt').style.display = 'none'; st.uiAct = null; st.uiDrop = false;
         if (S.sitting) standUp(); st.seated = false;       // (what he is holding, he keeps holding)
         const undone = ['sweep', 'dish', 'water', 'trust'].filter(c => !S.chores[c]).length, lit = ['broom', 'bucket'].filter(n => itm[n].where !== 'home');
         if (undone) shrink(0.02 * undone, undone + ' chore' + (undone > 1 ? 's' : '') + ' left undone'); if (lit.length) shrink(0.01 * lit.length, lit.length > 1 ? 'The broom and bucket left lying about' : 'The ' + lit[0] + ' left lying about'); if (out.clock) shrink(0.02, 'Taking too long');
@@ -1227,7 +1231,7 @@ function run(G, W, opts) {
         places(); resetRoom(); W.paintJack(jackOut, { outfit: 'Day', trousers: 'up', drawers: 'up', expr: 'shy' }); await G.fade(false, 0.9);       // (the level resets, and she sends him back to it)
         CAM_BOTH(); await G.wait(0.5); await sayW('gerda', 'Again, then. Sweep, feed and water, and gently with the hen. Properly, this time.'); await nod(1); await sayW('jack', 'Yes, Gerda.'); await leave();
       }
-      st.seated = false; for (const q of prints) M.room.remove(q.g); hudEl.style.display = 'none'; $('cwObjt').style.display = 'none'; $('cwPrompt').style.display = 'none'; st.pose = null; st.uiAct = null; hBroom.visible = hBucket.visible = hGrain.visible = false;
+      st.seated = false; for (const q of prints) M.room.remove(q.g); hudEl.style.display = 'none'; dbgEl.style.display = 'none'; $('cwObjt').style.display = 'none'; $('cwPrompt').style.display = 'none'; st.pose = null; st.uiAct = null; hBroom.visible = hBucket.visible = hGrain.visible = false;
     }
     function ch3Tick(dt) {
       if (st.guard && !st.frozen) st.guard();       // (the way to the roost: some places he is kept from)
