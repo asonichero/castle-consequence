@@ -120,6 +120,7 @@ function paintJackInto(k, st) {
   const F = JACK_FACES[Math.max(0, Math.min(JACK_FACES.length - 1, jackExprIndex(st.expr)))];
   k.grid('head', 'front', ['HHHHHHHH', 'HhHHdHhH', 'HSSkHSSH', ...F], pal);
   if (jackExprIndex(st.expr) === 0) k.px('head', 'front', 1, 4, C.white);
+  if (st.blush) for (const [bx, by] of [[1, 5], [2, 5], [5, 5], [6, 5]]) k.px('head', 'front', bx, by, '#e8938a');       // (a flush on both cheeks)
   k.fill('head', 'top', C.hair);
   k.fill('head', 'back', C.hair); k.fill('head', 'back', C.hairDk, 0, 6, undefined, 2);
   for (const f of ['right', 'left']) { k.fill('head', f, C.skin); k.fill('head', f, C.hair, 0, 0, undefined, 3); }

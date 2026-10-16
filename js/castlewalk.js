@@ -924,7 +924,7 @@ function run(G, W, opts) {
       const walkG = async wps => { for (const [wx, wz] of wps) { while (Math.hypot(wx - gst.x, wz - gst.z) > 1) { const d = Math.hypot(wx - gst.x, wz - gst.z); gst.h += angDiff(Math.atan2(wx - gst.x, wz - gst.z), gst.h) * 0.3; gst.x += (wx - gst.x) / d * Math.min(0.95, d); gst.z += (wz - gst.z) / d * Math.min(0.95, d); gst.ph += 0.4; gst.walk = 1; placeGerda(); st.heading += angDiff(Math.atan2(gst.x - st.pos.x, gst.z - st.pos.z), st.heading) * 0.1; await G.wait(0.04); } } gst.walk = 0; placeGerda(); };
       const CAM_BOTH = () => G.cut({ pos: v(350, 46, -230), look: v(273, 32, -236), fov: 52 });
       // ── the places: Gerda just inside the door, facing the room; Jack before her, facing her ──
-      const places = () => { st.scene = true; st.pos.set(273, 0, -246); st.y = 0; st.heading = 0; st.standY = 0; st.pose = null; st.seated = false; st.fz = null; jackOut.root.visible = gerda.root.visible = true;
+      const places = () => { st.scene = true; st.air = false; st.cl = null; st.mant = null; st.pos.set(273, 0, -246); st.y = 0; st.heading = 0; st.standY = 0; st.pose = null; st.seated = false; st.fz = null; jackOut.root.visible = gerda.root.visible = true;
         Object.assign(gst, { x: 273, z: -222, h: Math.PI, y: 0, seated: 0, walk: 0, reach: 0, lreach: 0, bend: 0, look: 0.2, headY: 0, p50: null, hold: 0, alive: 1 }); placeGerda(); root.Blocky.step(gerda, 0); doorTo(Math.PI / 2, true); };
       const leave = async () => { G.cut({ pos: v(290, 24, -246), look: v(273, 20, -214), fov: 46 }); await walkG([[273, -214], [273, -200]]);       // (she goes, and shuts the door behind her)
         for (let i = 0; i < 10; i++) { gst.h += angDiff(0, gst.h) * 0.3; placeGerda(); await G.wait(0.04); } await G.wait(0.3);
@@ -1120,7 +1120,7 @@ function run(G, W, opts) {
       // ── Gerda comes back, and asks how it went ──
       const returnScene = async out => {
         st.choreTick = null; $('cwPrompt').style.display = 'none'; hudEl.style.display = 'none'; dbgEl.style.display = 'none'; $('cwObjt').style.display = 'none'; st.uiAct = null; st.uiDrop = false;
-        if (S.sitting) standUp(); st.seated = false;       // (what he is holding, he keeps holding)
+        if (S.sitting) standUp(); st.seated = false; st.air = false; st.cl = null; st.mant = null;       // (what he is holding, he keeps holding)
         const undone = ['sweep', 'dish', 'water', 'trust'].filter(c => !S.chores[c]).length, lit = ['broom', 'bucket'].filter(n => itm[n].where !== 'home');
         if (undone) shrink(0.02 * undone, undone + ' chore' + (undone > 1 ? 's' : '') + ' left undone'); if (lit.length) shrink(0.01 * lit.length, lit.length > 1 ? 'The broom and bucket left lying about' : 'The ' + lit[0] + ' left lying about'); if (out.clock) shrink(0.02, 'Taking too long');
         st.s = S.sTarget; st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); st.vy = 0; st.walkN = 0; st.heading = Math.atan2(273 - st.pos.x, -212 - st.pos.z);
@@ -1243,7 +1243,7 @@ function run(G, W, opts) {
       G.save({ step: 'ch3bath' });
       $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; $('cwPrompt').style.display = 'none'; G.mode = 'cutscene'; document.body.classList.add('cutscene'); G.skipping = false; G.cwState = st; G.captionOff && G.captionOff();
       { const f = $('fade'); f.style.transition = 'none'; f.style.opacity = 1; }
-      st.scene = true; st.frozen = false; st.boxed = false; st.inHand = false; st.guard = null; st.fz = null; st.gaze = null; st.pose = null; st.vy = 0; st.walkN = 0; st.seated = false; st.choreTick = null;
+      st.scene = true; st.frozen = false; st.boxed = false; st.inHand = false; st.guard = null; st.fz = null; st.gaze = null; st.pose = null; st.vy = 0; st.walkN = 0; st.seated = false; st.choreTick = null; st.air = false; st.cl = null; st.mant = null;
       jackOut.root.visible = gerda.root.visible = true; scene.attach(jackOut.root); jackOut.root.quaternion.identity();
       if (jackOut.gear) jackOut.gear.knife.visible = jackOut.gear.satchel.visible = jackOut.gear.flask.visible = false;
       { const bd = M.doors.find(d => d.axis === 'x' && Math.abs(d.fixed - 295) < 3 && Math.abs(d.c + 160) < 8); if (bd) { bd.lg.rotation.y = 0; bd.og.userData.noCollide = false; } }       // (the bathroom's door is shut)
@@ -1251,8 +1251,8 @@ function run(G, W, opts) {
       // dusk: the daylight is gone, and the candles are the light of the room
       const Lg = M.room.userData.lights || {}, lsave = Lg.hemi ? { hi: Lg.hemi.intensity, hc: Lg.hemi.color.getHex(), gc: Lg.hemi.groundColor.getHex(), bl: Lg.bathLamp ? Lg.bathLamp.intensity : 0 } : null;
       const lampSave = (Lg.all || []).filter(l => l !== Lg.candle && l !== Lg.fill).map(l => [l, l.intensity]); for (const [l] of lampSave) l.intensity = 0.04;       // (every other lamp in the castle dims: it is dusk)
-      if (Lg.hemi) { Lg.hemi.intensity = 0.16; Lg.hemi.color.setHex(0x8a7898); Lg.hemi.groundColor.setHex(0x3a3040); }
-      const flick = () => { const t = G.t; if (Lg.candle) Lg.candle.intensity = 1.6 + 0.14 * Math.sin(t * 9) + 0.08 * Math.sin(t * 23); if (Lg.fill) Lg.fill.intensity = 0.8 + 0.08 * Math.sin(t * 11 + 1); }; G.updaters.push(flick);
+      if (Lg.hemi) { Lg.hemi.intensity = 0.1; Lg.hemi.color.setHex(0x8a7898); Lg.hemi.groundColor.setHex(0x3a3040); }
+      const flick = () => { const t = G.t; if (Lg.candle) Lg.candle.intensity = 0.85 + 0.09 * Math.sin(t * 9) + 0.05 * Math.sin(t * 23); if (Lg.fill) Lg.fill.intensity = 0.34 + 0.04 * Math.sin(t * 11 + 1); }; G.updaters.push(flick);
       const PS = SC * 0.7;
       const dress = o => W.paintJack(jackOut, Object.assign({ outfit: 'Day', trousers: 'up', drawers: 'up' }, o));
       dress({ expr: 'shy' }); let cur = { expr: 'shy' }; const paint = o => { Object.assign(cur, o); dress(cur); };
@@ -1298,23 +1298,26 @@ function run(G, W, opts) {
       camB(); await G.wait(0.3);
       await handTo(jackOut.hips.localToWorld(new V3(0, 0, 0)), true, 0.6);
       paint({ strip: 2 }); props.heldDrawers.visible = true; A && A.blip && A.blip(); await G.wait(0.2);
-      { const from = { armLx: st.pose.armLx || 0, armRx: st.pose.armRx || 0, armLz: st.pose.armLz || 0.08, armRz: st.pose.armRz || -0.08 }; const to = { armLx: -0.35, armRx: -0.35, armLz: -0.42, armRz: 0.42, elbowL: -0.85, elbowR: -0.85, torso: 0.12, neckX: 0.5 };       // (his hands go to cover himself, and his head goes down)
-        for (let i = 1; i <= 12; i++) { const k = ease(i / 12); st.pose = Object.assign(st.pose, { armLx: W3(from.armLx, to.armLx, k), armRx: W3(from.armRx, to.armRx, k), armLz: W3(from.armLz, to.armLz, k), armRz: W3(from.armRz, to.armRz, k), elbowL: to.elbowL * k, elbowR: to.elbowR * k, torso: to.torso * k, neckX: to.neckX * k }); await G.wait(0.04); } }
+      { const from = { armLx: st.pose.armLx || 0, armRx: st.pose.armRx || 0, armLz: st.pose.armLz || 0.08, armRz: st.pose.armRz || -0.08 }; const to = { armLx: -0.55, armRx: -0.55, armLz: -0.5, armRz: 0.5, elbowL: -0.2, elbowR: -0.2, torso: 0.3, neckX: 0.55 }, h0 = st.heading;       // (his hands cross low in front of him, he hunches, bends his knees, turns half away, and goes red)
+        paint({ blush: true, expr: 'shy' });
+        for (let i = 1; i <= 14; i++) { const k = ease(i / 14); st.pose = Object.assign(st.pose, { armLx: W3(from.armLx, to.armLx, k), armRx: W3(from.armRx, to.armRx, k), armLz: W3(from.armLz, to.armLz, k), armRz: W3(from.armRz, to.armRz, k), elbowL: to.elbowL * k, elbowR: to.elbowR * k, torso: to.torso * k, neckX: to.neckX * k, neckY: 0.5 * k, legLx: -0.3 * k, legRx: -0.3 * k, kneeL: 0.5 * k, kneeR: 0.5 * k }); st.heading = h0 + 0.85 * k; await G.wait(0.04); } }
       await setDown(props.heldDrawers, props.drawers);
       await G.wait(0.4);
       await sayW('jack', '…');
       await sayW('gerda', 'Oh, Jack. There’s no call for that. Hands down, now.');
       await G.wait(0.5);
       await sayW('gerda', 'A bath is only a bath, and nobody here is going to think the less of you for it. There’s a good boy.');
-      { const from = { armLx: st.pose.armLx, armRx: st.pose.armRx, armLz: st.pose.armLz, armRz: st.pose.armRz, elbowL: st.pose.elbowL, elbowR: st.pose.elbowR, torso: st.pose.torso, neckX: st.pose.neckX };
-        for (let i = 1; i <= 24; i++) { const k = ease(i / 24); st.pose = Object.assign(st.pose, { armLx: W3(from.armLx, 0.05, k), armRx: W3(from.armRx, 0.05, k), armLz: W3(from.armLz, 0.1, k), armRz: W3(from.armRz, -0.1, k), elbowL: W3(from.elbowL, 0, k), elbowR: W3(from.elbowR, 0, k), torso: W3(from.torso, 0, k), neckX: W3(from.neckX, 0.25, k) }); await G.wait(0.04); } }       // (slowly, he lets them fall)
+      { const from = { armLx: st.pose.armLx, armRx: st.pose.armRx, armLz: st.pose.armLz, armRz: st.pose.armRz, elbowL: st.pose.elbowL, elbowR: st.pose.elbowR, torso: st.pose.torso, neckX: st.pose.neckX, neckY: st.pose.neckY, legLx: st.pose.legLx, legRx: st.pose.legRx, kneeL: st.pose.kneeL, kneeR: st.pose.kneeR, hd: st.heading };
+        for (let i = 1; i <= 26; i++) { const k = ease(i / 26); st.pose = Object.assign(st.pose, { armLx: W3(from.armLx, 0.05, k), armRx: W3(from.armRx, 0.05, k), armLz: W3(from.armLz, 0.1, k), armRz: W3(from.armRz, -0.1, k), elbowL: W3(from.elbowL, 0, k), elbowR: W3(from.elbowR, 0, k), torso: W3(from.torso, 0, k), neckX: W3(from.neckX, 0.25, k), neckY: W3(from.neckY, 0, k), legLx: W3(from.legLx, 0, k), legRx: W3(from.legRx, 0, k), kneeL: W3(from.kneeL, 0, k), kneeR: W3(from.kneeR, 0, k) }); st.heading = W3(from.hd, 0, k); await G.wait(0.04); } }       // (slowly, he lets them fall)
       await G.wait(0.6);
       await G.fade(true, 0.9);
       // ── in the bath: he sits in the warm water, and she kneels at its side with a sponge ──
       for (const k of ['heldShorts', 'heldTunic', 'heldDrawers']) props[k].visible = false;
       await rest(0.01); gst.x = 352; gst.z = -155; gst.h = Math.PI; placeGerda();
-      jackOut.root.updateMatrixWorld(true); { const hy = jackOut.hips.getWorldPosition(new V3()).y - st.y; st.pos.set(tubP.x - 5, 0, tubP.z); st.y = Math.max(0, 3.4 - hy + 1.2); }
-      st.heading = Math.PI / 2; st.walkN = 0; paint({ expr: 'smile' });
+      jackOut.root.updateMatrixWorld(true); { const hy = jackOut.hips.getWorldPosition(new V3()).y - st.y; st.pos.set(tubP.x + 6, 0, tubP.z); st.y = Math.max(0, 3.4 - hy + 1.2); }
+      st.heading = -Math.PI / 2;       // (facing the door)
+      st.air = false;
+      { jackOut.root.position.set(st.pos.x, st.y, st.pos.z); jackOut.root.scale.setScalar(SC * st.s); jackOut.root.updateMatrixWorld(true); const wy = jackOut.hips.getWorldPosition(new V3()).y + 3.4 * SC * st.s; if (tubG.userData.water) tubG.userData.water.position.y = Math.min(10.4, wy - 0.25); }       // (the water comes up to his waist) st.walkN = 0; paint({ expr: 'smile' });
       st.pose = { legLx: -1.45, legRx: -1.45, kneeL: 0.25, kneeR: 0.25, armLx: -0.3, armRx: -0.3, armLz: 0.2, armRz: -0.2, elbowL: -0.5, elbowR: -0.5, torso: 0, neckX: 0.1 };
       sponge.visible = true;
       G.cut({ pos: v(299, 42, -146), look: v(352, 10, -172), fov: 62 }); await G.fade(false, 0.9); await G.wait(0.4);

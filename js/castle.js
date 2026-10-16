@@ -361,7 +361,7 @@ function interior() {
     B(14, 1.2, 1.4, '#c9a23c', 0, 27, 0, g); B(1.4, 1.2, 8, '#c9a23c', 0, 27, 0, g);
     for (const [cx, cz] of [[-6.6, 0], [6.6, 0], [0, -3.8], [0, 3.8], [0, 0]]) { B(2.6, 0.8, 2.6, '#c9a23c', cx, 28, cz, g); candle(g, cx, 28.4, cz, 5); }
     movable('bathCandelabra', 'Candelabra', g, { x: 372, z: -122, ry: 0 }); }
-  lights.candle = lamp(372, 38, -124, 0xffb860, 0, 160); lights.fill = lamp(338, 30, -150, 0xffa850, 0, 120); room.userData.lights = lights;       // (dark in the day; the bathing scene lights them, at dusk)
+  lights.candle = lamp(372, 38, -124, 0xffb860, 0, 130); lights.fill = lamp(338, 30, -150, 0xffa850, 0, 90); room.userData.lights = lights;       // (dark in the day; the bathing scene lights them, at dusk)
   pot(364, -102, 1.3); pot(258, -15, 1);
   { const g = put(350, 0, -15, Math.PI); B(30, 16, 10, '#5a4026', 0, 8, 0, g); B(32, 2, 11, '#6a4a2e', 0, 17, 0, g); for (let i = 0; i < 3; i++) { B(3.6, 9, 3.6, pick(['#7a8a4a', '#8a3a3a', '#3a6a7a']), -8 + i * 8, 22, 0, g); B(1.6, 2.4, 1.6, '#c9a23c', -8 + i * 8, 27.6, 0, g); } candle(g, 11, 18, 2, 5); }
   { const g = put(276, 0, 44, 0); B(30, 6, 8, '#6a4a2e', 0, 3, 0, g); B(26, 2, 8, '#c9a23c', 0, 7, 0, g); }
