@@ -1297,17 +1297,15 @@ function run(G, W, opts) {
           if (r.d + l.d < best.e) best = { e: r.d + l.d, bd, rc: r.rc, lc: l.lc }; }
         Object.assign(gst, sv); placeGerda(); return best; };
       const armsTo = async (TR, TL, secs) => { const b = solveArms(TR, TL); await pose({ bend: b.bd, reach: b.rc, lreach: b.lc }, secs); return b; };
-      // the fourth time: she takes hold of his shoulder, turns him, and the hand falls on the nearer cheek
+      // the fourth time, as he stands covering himself: her right hand takes hold of his shoulder, and her left falls on the cheek nearest it (he is not turned: they are as they were)
       const smackHim = async () => {
-        const hb = st.heading, turned = Math.PI, shoulder = () => [jackOut.armL, jackOut.armR].map(a => a.getWorldPosition(new V3())).sort((a, b) => a.distanceTo(wl()) - b.distanceTo(wl()))[0];
-        const sh0 = shoulder(); await armsTo(null, sh0, 0.45); A && A.blip && A.blip();
-        st.heading = turned; jackOut.root.rotation.y = turned; jackOut.root.updateMatrixWorld(true);       // (where his shoulder and his cheek will be, once he is turned: found by turning him, and looking)
-        const shF = shoulder(), cheek = [-1, 1].map(sx => jackOut.hips.localToWorld(new V3(sx * 2.2, -1.5, -2.6))).sort((a, b) => a.distanceTo(wr()) - b.distanceTo(wr()))[0], up = cheek.clone().add(new V3(0, 10, 3));
-        st.heading = hb; jackOut.root.rotation.y = hb; jackOut.root.updateMatrixWorld(true);
-        await Promise.all([turnJ(turned, 0.7), armsTo(up, shF, 0.7)]); await G.wait(0.25);
-        await armsTo(cheek, shF, 0.09); A && A.thwack && A.thwack(0.9, false, 0.9); paint({ expr: 'wince' });
+        const nearest = (pts, to) => pts.sort((a, b) => a.distanceTo(to) - b.distanceTo(to))[0];
+        const shoulder = nearest([jackOut.armL, jackOut.armR].map(a => a.getWorldPosition(new V3())), wr()), cheek = nearest([-1, 1].map(sx => jackOut.hips.localToWorld(new V3(sx * 2.2, -1.5, -2.6))), wl());
+        await armsTo(shoulder, null, 0.45); A && A.blip && A.blip();
+        await armsTo(shoulder, cheek.clone().add(new V3(0, 10, 3)), 0.5); await G.wait(0.25);
+        await armsTo(shoulder, cheek, 0.09); A && A.thwack && A.thwack(0.9, false, 0.9); paint({ expr: 'wince' });
         for (let i = 1; i <= 6; i++) { st.pose.torso = (st.pose.torso || 0) - 0.04; st.pose.neckX = (st.pose.neckX || 0) - 0.06; await G.wait(0.04); }
-        await sayW('jack', 'Ow!'); await armsTo(null, shF, 0.35);
+        await sayW('jack', 'Ow!'); await rest(0.35);
       };
       const objectTo = async type => {
         obj++;
