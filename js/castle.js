@@ -51,7 +51,7 @@ function interior() {
 
   // ── Lighting: a warm daylight inside, and a few lamps. ──
   const hemi = new THREE.HemisphereLight(0xfff3e0, 0x8a7a64, 0.62); scene.add(hemi); const lights = { hemi };
-  const lamp = (x, y, z, c, i, d) => { const l = new THREE.PointLight(c, i, d, 1.4); l.position.set(x, y, z); scene.add(l); return l; };
+  const lamp = (x, y, z, c, i, d) => { const l = new THREE.PointLight(c, i, d, 1.4); l.position.set(x, y, z); scene.add(l); (lights.all = lights.all || []).push(l); return l; };
   lamp(0, 46, 20, 0xfff0d0, 0.95, 260); lamp(0, 24, -96, 0xffa860, 0.7, 150); lamp(-195, 44, -30, 0xffe6c0, 0.7, 190); lamp(-318, 44, -180, 0xffe6c0, 0.65, 230); lamp(-215, 44, -105, 0xdde8ff, 0.6, 150);
   lamp(-215, 44, -205, 0xfff0c0, 0.9, 150); lamp(-280, 40, -390, 0xe8dcc8, 0.55, 140); lamp(170, 40, -30, 0xffe0b0, 0.9, 190); lamp(290, 44, -350, 0xfff0c0, 0.95, 150); lights.bathLamp = lamp(300, 40, -170, 0xd8f0f8, 0.55, 140); lamp(166, 80, -210, 0xfff6e0, 0.8, 300);
 

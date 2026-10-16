@@ -1250,7 +1250,8 @@ function run(G, W, opts) {
       if (tubG.userData.water) tubG.userData.water.visible = true; if (tubG.userData.steam) tubG.userData.steam.on = true; if (bath.sink) bath.sink.visible = true;       // (the bath is run, and steams; so is the basin)
       // dusk: the daylight is gone, and the candles are the light of the room
       const Lg = M.room.userData.lights || {}, lsave = Lg.hemi ? { hi: Lg.hemi.intensity, hc: Lg.hemi.color.getHex(), gc: Lg.hemi.groundColor.getHex(), bl: Lg.bathLamp ? Lg.bathLamp.intensity : 0 } : null;
-      if (Lg.hemi) { Lg.hemi.intensity = 0.2; Lg.hemi.color.setHex(0x8a7898); Lg.hemi.groundColor.setHex(0x3a3040); } if (Lg.bathLamp) Lg.bathLamp.intensity = 0;
+      const lampSave = (Lg.all || []).filter(l => l !== Lg.candle && l !== Lg.fill).map(l => [l, l.intensity]); for (const [l] of lampSave) l.intensity = 0.04;       // (every other lamp in the castle dims: it is dusk)
+      if (Lg.hemi) { Lg.hemi.intensity = 0.16; Lg.hemi.color.setHex(0x8a7898); Lg.hemi.groundColor.setHex(0x3a3040); }
       const flick = () => { const t = G.t; if (Lg.candle) Lg.candle.intensity = 1.6 + 0.14 * Math.sin(t * 9) + 0.08 * Math.sin(t * 23); if (Lg.fill) Lg.fill.intensity = 0.8 + 0.08 * Math.sin(t * 11 + 1); }; G.updaters.push(flick);
       const PS = SC * 0.7;
       const dress = o => W.paintJack(jackOut, Object.assign({ outfit: 'Day', trousers: 'up', drawers: 'up' }, o));
@@ -1336,7 +1337,7 @@ function run(G, W, opts) {
       { const T = jackOut.legR.knee.localToWorld(new V3(0, -2, 0)); T.y = Math.min(T.y, 7); await scrub(T, 3.6); }       // (her hand goes down into the water)
       await G.fade(true, 1.8);
       sponge.visible = false; st.pose = null; gst.kneel = 0; gst.y = 0; if (tubG.userData.steam) tubG.userData.steam.on = false;
-      G.updaters = G.updaters.filter(u => u !== flick); if (Lg.candle) Lg.candle.intensity = 0; if (Lg.fill) Lg.fill.intensity = 0; if (lsave) { Lg.hemi.intensity = lsave.hi; Lg.hemi.color.setHex(lsave.hc); Lg.hemi.groundColor.setHex(lsave.gc); if (Lg.bathLamp) Lg.bathLamp.intensity = lsave.bl; }
+      G.updaters = G.updaters.filter(u => u !== flick); if (Lg.candle) Lg.candle.intensity = 0; if (Lg.fill) Lg.fill.intensity = 0; if (lsave) { Lg.hemi.intensity = lsave.hi; Lg.hemi.color.setHex(lsave.hc); Lg.hemi.groundColor.setHex(lsave.gc); } for (const [l, i] of lampSave) l.intensity = i;
     }
     function ch3Tick(dt) {
       if (st.guard && !st.frozen) st.guard();       // (the way to the roost: some places he is kept from)
