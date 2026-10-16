@@ -247,5 +247,41 @@ A.thud = function (vol) {                                       // a heavy tread
     g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.5 * v0, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(lp); lp.connect(g); g.connect(A.nodes.sfx || ctx.destination); o.start(t); o.stop(t + d + 0.1); }
 };
 
+// ── The bathroom: water, bare feet and cloth. ──
+// A splash: a burst of water, with a few bubbles after it.
+A.splash = function (power, vol) {
+  if (!A.init()) return; const ctx = A.ctx, N = A.nodes, t = ctx.currentTime + 0.01, k = vol == null ? 1 : vol, p = clamp(power == null ? 0.6 : power, 0.2, 1.2);
+  const src = ctx.createBufferSource(); src.buffer = N.noise; const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 0.8; f.frequency.setValueAtTime(900, t); f.frequency.exponentialRampToValueAtTime(2600, t + 0.25);
+  const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.28 * p * k, t + 0.04); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45 + 0.4 * p);
+  src.connect(f); f.connect(g); g.connect(N.sfx); src.start(t, Math.random() * 2); src.stop(t + 1.0);
+  for (let i = 0, n = 3 + Math.round(3 * p); i < n; i++) { const s = t + 0.1 + Math.random() * 0.5, o = ctx.createOscillator(), bg = ctx.createGain(), f0 = 500 + Math.random() * 700;
+    o.type = 'sine'; o.frequency.setValueAtTime(f0, s); o.frequency.exponentialRampToValueAtTime(f0 * 1.8, s + 0.06); bg.gain.setValueAtTime(0.0001, s); bg.gain.linearRampToValueAtTime(0.06 * p * k, s + 0.01); bg.gain.exponentialRampToValueAtTime(0.0001, s + 0.08); o.connect(bg); bg.connect(N.sfx); o.start(s); o.stop(s + 0.1); }
+};
+// A bare foot on tile: a soft pat, and the slap of skin.
+A.pad = function (vol) {
+  if (!A.init()) return; const ctx = A.ctx, N = A.nodes, t = ctx.currentTime + 0.005, k = vol == null ? 0.6 : vol;
+  const burst = (len, peak, type, f) => { const src = ctx.createBufferSource(); src.buffer = N.noise; const flt = ctx.createBiquadFilter(); flt.type = type; flt.frequency.value = f; const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(peak * k, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + len); src.connect(flt); flt.connect(g); g.connect(N.sfx); src.start(t, Math.random() * 2); src.stop(t + len + 0.02); };
+  burst(0.07, 0.34, 'lowpass', 320); burst(0.03, 0.1, 'bandpass', 1800);
+};
+// Cloth: folded things taken up or set down.
+A.rustle = function (vol) {
+  if (!A.init()) return; const ctx = A.ctx, N = A.nodes, t = ctx.currentTime + 0.01, k = vol == null ? 0.6 : vol;
+  const src = ctx.createBufferSource(); src.buffer = N.noise; const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 0.9; f.frequency.value = 2400; const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t); for (let i = 1; i <= 5; i++) g.gain.linearRampToValueAtTime((0.05 + 0.1 * Math.random()) * k, t + i * 0.06); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.42);
+  src.connect(f); f.connect(g); g.connect(N.sfx); src.start(t, Math.random() * 2); src.stop(t + 0.5);
+};
+// The room's water: a soft hush of steam, with drips and bubbles now and then (0 puts it out).
+A.water = function (level) {
+  if (!A.init()) return; const ctx = A.ctx, N = A.nodes, lv = level || 0;
+  if (!N.waterGain) { const src = ctx.createBufferSource(); src.buffer = N.noise; src.loop = true; const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 650; N.waterGain = ctx.createGain(); N.waterGain.gain.value = 0; src.connect(lp); lp.connect(N.waterGain); N.waterGain.connect(N.amb); src.start(); }
+  const t = ctx.currentTime; N.waterGain.gain.cancelScheduledValues(t); N.waterGain.gain.setValueAtTime(N.waterGain.gain.value, t); N.waterGain.gain.linearRampToValueAtTime(0.09 * lv, t + 1.2);
+  clearTimeout(N.waterTimer); if (lv < 0.02) return;
+  const drip = () => { const s = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain(), f0 = 700 + Math.random() * 900; o.type = 'sine'; o.frequency.setValueAtTime(f0, s); o.frequency.exponentialRampToValueAtTime(f0 * 0.55, s + 0.1);
+    g.gain.setValueAtTime(0.0001, s); g.gain.linearRampToValueAtTime(0.05 * lv, s + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, s + 0.14); o.connect(g); g.connect(N.amb); o.start(s); o.stop(s + 0.16);
+    N.waterTimer = setTimeout(drip, 600 + Math.random() * 2400); };
+  drip();
+};
+
 root.GameAudio = A;
 })(typeof window !== 'undefined' ? window : globalThis);
