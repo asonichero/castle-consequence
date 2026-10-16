@@ -84,7 +84,7 @@ function run(G, W, opts) {
       #cwPanel input[type=range] { width: 200px; max-width: 40vw; } #cwPanel select { background: #20232e; color: #ece8df; border: 1px solid #4a4d58; border-radius: 6px; padding: 4px; font-size: 14px; }
       #cwToast { position: absolute; left: 50%; bottom: 22vh; transform: translateX(-50%); background: rgba(10,12,16,0.8); border: 1px solid #4a4d58; padding: 7px 15px; border-radius: 8px; font-size: 14px; max-width: 80vw; text-align: center; opacity: 0; transition: opacity .5s; }
       #cwStamW { position: absolute; left: 50%; bottom: 14vh; transform: translateX(-50%); width: 160px; height: 10px; background: rgba(10,12,16,0.7); border: 1px solid #4a4d58; border-radius: 5px; display: none; overflow: hidden; } #cwStam { height: 100%; width: 100%; background: #e6c46a; }
-      #cwPrompt { position: absolute; left: 50%; bottom: 30vh; transform: translateX(-50%); background: rgba(10,12,16,0.82); border: 1px solid #c9a84c; color: #f3e4b0; padding: 6px 14px; border-radius: 8px; font-size: 15px; display: none; white-space: nowrap; }
+      #cwPrompt { position: absolute; left: 50%; bottom: 30vh; transform: translateX(-50%); background: rgba(10,12,16,0.82); border: 1px solid #c9a84c; color: #f3e4b0; padding: 6px 14px; border-radius: 8px; font-size: 15px; display: none; white-space: nowrap; cursor: pointer; pointer-events: auto; }
       #cwObjt { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(10,12,16,0.7); border: 1px solid #4a4d58; border-radius: 8px; padding: 8px 16px; font-size: 16px; display: none; }
       #cwPage { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0.96); width: min(520px, 80vw); padding: 44px 20px 36px; background: radial-gradient(ellipse at 50% 40%, #f3e8c8, #e2d0a0); border: 3px double #8a6a3a; box-shadow: 0 10px 60px #000; text-align: center; opacity: 0; transition: opacity 1.2s ease, transform 1.2s ease; pointer-events: none; z-index: 30; }
       #cwPage.on { opacity: 1; transform: translate(-50%, -50%) scale(1); } #cwPage span { font: italic 600 clamp(64px, 15vw, 128px)/1 'Snell Roundhand', 'Zapfino', 'Brush Script MT', 'Lucida Handwriting', 'Apple Chancery', cursive; color: #3a2616; text-shadow: 1px 1px 0 #b89a62; } #cwPage:after { content: '\\2766'; display: block; margin-top: 10px; font-size: 26px; color: #8a6a3a; }
@@ -133,6 +133,7 @@ function run(G, W, opts) {
     const sayW = async (who, text) => { const o = who === 'gerda' ? gst : st; o.talk = 1; if (who === 'jack' && gerda) gst.listen = 1; try { await G.say(who, text); } finally { o.talk = 0; if (who === 'jack' && gerda) gst.listen = 0; } };       // (she talks with her free hand, and he with a little head and hand: from the first word to the last)
     const say = t => G.caption('jack', t), later = (ms, f) => setTimeout(f, ms), tableG = M.items.kitchenTable.g, pantryG = M.items.pantry.g;
     const promptEl = () => $('cwPrompt');
+    $('cwPrompt').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); if (st.wait) { if (st.wait.key === 'q') st.putReq = true; else st.actReq = true; } });       // (the prompt is a button too: a click or a tap does what its key does)
     function storyTick(dt) {
       const Hj = HEIGHT * SC * st.s, pr = promptEl(); let text = '';
       { const lp = pantryG.worldToLocal(new V3(st.pos.x, st.y, st.pos.z)); st.inCup = Math.abs(lp.x) < 11.6 && lp.z > -6.2 && lp.z < 6.4 && lp.y > -1 && lp.y < 22; }               // (inside the cupboard its walls and doors hold the camera in)
@@ -372,8 +373,12 @@ function run(G, W, opts) {
     }
     async function finish(res) { A && A.stopMusic && A.stopMusic(2.2); G.castleResult = res; await G.fade(true, 2.2); await G.wait(0.3); cleanup(); G.mode = 'end'; document.body.classList.remove('cutscene'); resolve({ result: res }); }
     const tick = dt => {
-      if (st.scene || st.caught) ui.show(false); else ui.show(true);
-      if (st.scene) { st.jumpReq = st.actReq = st.putReq = false; if (!st.inHand && !st.boxed) { jackOut.root.scale.setScalar(SC * st.s); jackOut.root.position.set(st.pos.x, st.y, st.pos.z); jackOut.root.rotation.y = st.heading; } return; }
+      if ((st.scene && !st.wait) || st.caught) ui.show(false); else ui.show(true);
+      if (st.scene) { const w = st.wait, pe = promptEl();       // (a playable cutscene: the camera stays where it is put, and the one button answers what she asks)
+        if (w) { const q = w.key === 'q', hit = q ? st.putReq : st.actReq; pe.textContent = (q ? 'Q' : 'E') + ' \u2014 ' + w.label; pe.style.display = 'block'; st.uiAct = q ? null : w.label; st.uiDrop = q; st.uiDropLabel = q ? w.label : null;
+          ui.set('act', q ? { label: 'Do', enabled: false } : { label: w.label, enabled: true }); ui.set('drop', { label: q ? w.label : 'Drop', enabled: q }); ui.set('jump', { label: 'Jump', icon: 'jump', enabled: false }); ui.set('run', { enabled: false }); ui.set('sneak', { enabled: false });
+          if (hit || G.skipping) { st.wait = null; pe.style.display = 'none'; st.uiAct = null; st.uiDrop = false; w.res(); } }
+        st.jumpReq = st.actReq = st.putReq = false; if (!st.inHand && !st.boxed) { jackOut.root.scale.setScalar(SC * st.s); jackOut.root.position.set(st.pos.x, st.y, st.pos.z); jackOut.root.rotation.y = st.heading; } return; }
       const s = st.s; if (Math.abs(s - nearS) > 0.02) { nearS = s; camera.near = Math.max(0.1, 0.3 * s); camera.updateProjectionMatrix(); }       // (a nearer near plane only as he is small: the depth buffer keeps its precision, so flat surfaces do not shimmer)
       const f = v(-Math.cos(st.camA), 0, -Math.sin(st.camA)), r = v(Math.sin(st.camA), 0, -Math.cos(st.camA));
       if (st.frozen) { keys.up = keys.down = keys.left = keys.right = false; keys.space = false; stick.x = stick.y = 0; st.jumpReq = false; }       // (being dressed: he does not move, or jump; the camera is still the player's)
@@ -1254,6 +1259,7 @@ function run(G, W, opts) {
       if (Lg.hemi) { Lg.hemi.intensity = 0.1; Lg.hemi.color.setHex(0x8a7898); Lg.hemi.groundColor.setHex(0x3a3040); }
       const flick = () => { const t = G.t; if (Lg.candle) Lg.candle.intensity = 0.85 + 0.09 * Math.sin(t * 9) + 0.05 * Math.sin(t * 23); if (Lg.fill) Lg.fill.intensity = 0.34 + 0.04 * Math.sin(t * 11 + 1); }; G.updaters.push(flick);
       const PS = SC * 0.7;
+      const act = (label, key) => new Promise(res => { if (G.skipping) res(); else st.wait = { label, key: key || 'e', res }; });
       const dress = o => W.paintJack(jackOut, Object.assign({ outfit: 'Day', trousers: 'up', drawers: 'up' }, o));
       dress({ expr: 'shy' }); let cur = { expr: 'shy' }; const paint = o => { Object.assign(cur, o); dress(cur); };
       const props = (() => { const held = (build) => { const g = new THREE.Group(); build(g); g.scale.setScalar(PS * 1.1); g.visible = false; gerda.wrist.add(g); g.position.set(0, -6, 0.8); return g; }, onStool = (build, y) => { const g = new THREE.Group(); build(g); g.scale.setScalar(PS * 1.1); g.position.set(stoolP.x, 13.4 + y, stoolP.z); g.visible = false; scene.add(g); return g; };
@@ -1284,10 +1290,12 @@ function run(G, W, opts) {
       await sayW('gerda', 'Shorts first. Step out of them for me.');
       await handTo(jackOut.hips.localToWorld(new V3(0, 0, 0)), true, 0.6);
       paint({ shorts: false }); props.heldShorts.visible = true; A && A.blip && A.blip(); await G.wait(0.3);
+      await act('Step out');
       await liftFoot(true, true); await G.wait(0.2); await liftFoot(true, false); await liftFoot(false, true); await G.wait(0.2); await liftFoot(false, false);
       await setDown(props.heldShorts, props.shorts);
       // the tunic, over his head
       await sayW('gerda', 'And the tunic. Arms up high.');
+      await act('Arms up');
       for (let i = 1; i <= 14; i++) { const k = ease(i / 14); st.pose = Object.assign(st.pose || {}, { armLx: W3(0, -2.9, k), armRx: W3(0, -2.9, k), armLz: W3(0.08, 0.25, k), armRz: W3(-0.08, -0.25, k) }); await G.wait(0.04); }
       await handTo(jackOut.torso.localToWorld(new V3(0, 3, 4)), true, 0.5); await handTo(jackOut.torso.localToWorld(new V3(0, 22, 0)), true, 0.7);
       paint({ strip: 1 }); props.heldTunic.visible = true; A && A.blip && A.blip(); await G.wait(0.3);
@@ -1297,6 +1305,7 @@ function run(G, W, opts) {
       await sayW('gerda', 'And these, last of all.');
       camB(); await G.wait(0.3);
       await handTo(jackOut.hips.localToWorld(new V3(0, 0, 0)), true, 0.6);
+      await act('Step out');
       paint({ strip: 2 }); props.heldDrawers.visible = true; A && A.blip && A.blip(); await G.wait(0.2);
       { const from = { armLx: st.pose.armLx || 0, armRx: st.pose.armRx || 0, armLz: st.pose.armLz || 0.08, armRz: st.pose.armRz || -0.08 }; const to = { armLx: -0.55, armRx: -0.55, armLz: -0.5, armRz: 0.5, elbowL: -0.2, elbowR: -0.2, torso: 0.3, neckX: 0.55 }, h0 = st.heading;       // (his hands cross low in front of him, he hunches, bends his knees, turns half away, and goes red)
         paint({ blush: true, expr: 'shy' });
@@ -1305,11 +1314,13 @@ function run(G, W, opts) {
       await G.wait(0.4);
       await sayW('jack', '…');
       await sayW('gerda', 'Oh, Jack. There’s no call for that. Hands down, now.');
-      await G.wait(0.5);
+      await act('Lower your hands');
       await sayW('gerda', 'A bath is only a bath, and nobody here is going to think the less of you for it. There’s a good boy.');
       { const from = { armLx: st.pose.armLx, armRx: st.pose.armRx, armLz: st.pose.armLz, armRz: st.pose.armRz, elbowL: st.pose.elbowL, elbowR: st.pose.elbowR, torso: st.pose.torso, neckX: st.pose.neckX, neckY: st.pose.neckY, legLx: st.pose.legLx, legRx: st.pose.legRx, kneeL: st.pose.kneeL, kneeR: st.pose.kneeR, hd: st.heading };
         for (let i = 1; i <= 26; i++) { const k = ease(i / 26); st.pose = Object.assign(st.pose, { armLx: W3(from.armLx, 0.05, k), armRx: W3(from.armRx, 0.05, k), armLz: W3(from.armLz, 0.1, k), armRz: W3(from.armRz, -0.1, k), elbowL: W3(from.elbowL, 0, k), elbowR: W3(from.elbowR, 0, k), torso: W3(from.torso, 0, k), neckX: W3(from.neckX, 0.25, k), neckY: W3(from.neckY, 0, k), legLx: W3(from.legLx, 0, k), legRx: W3(from.legRx, 0, k), kneeL: W3(from.kneeL, 0, k), kneeR: W3(from.kneeR, 0, k) }); st.heading = W3(from.hd, 0, k); await G.wait(0.04); } }       // (slowly, he lets them fall)
       await G.wait(0.6);
+      await sayW('gerda', 'In you get, now. Mind the edge.');
+      await act('Step into the bath');
       await G.fade(true, 0.9);
       // ── in the bath: he sits in the warm water, and she kneels at its side with a sponge ──
       for (const k of ['heldShorts', 'heldTunic', 'heldDrawers']) props[k].visible = false;
@@ -1327,19 +1338,23 @@ function run(G, W, opts) {
       const chest = () => jackOut.torso.localToWorld(new V3(0, 14, 3));
       await sayW('gerda', 'Chest first.'); await scrub(chest(), 3.2);
       await sayW('gerda', 'Lean forward for me, and I’ll do your back.');
+      await act('Lean forward');
       for (let i = 1; i <= 10; i++) { st.pose.torso = 0.4 * ease(i / 10); await G.wait(0.04); }
       await scrub(jackOut.torso.localToWorld(new V3(0, 12, -4)), 3.2);
       for (let i = 1; i <= 10; i++) { st.pose.torso = 0.4 * (1 - ease(i / 10)); await G.wait(0.04); }
       await sayW('gerda', 'Now your arms. One, and the other.');
+      await act('Raise an arm');
       for (let i = 1; i <= 12; i++) { st.pose.armRx = W3(-0.3, -1.3, ease(i / 12)); await G.wait(0.04); }
       await scrub(jackOut.armR.localToWorld(new V3(0, -6, 0)), 2.6);
+      await act('Raise the other arm');
       for (let i = 1; i <= 12; i++) { st.pose.armRx = W3(-1.3, -0.3, ease(i / 12)); st.pose.armLx = W3(-0.3, -1.3, ease(i / 12)); await G.wait(0.04); }
       await scrub(jackOut.armL.localToWorld(new V3(0, -6, 0)), 2.6);
       for (let i = 1; i <= 12; i++) { st.pose.armLx = W3(-1.3, -0.3, ease(i / 12)); await G.wait(0.04); }
       await sayW('gerda', 'And now your legs.');
+      await act('Lift a leg');
       { const T = jackOut.legR.knee.localToWorld(new V3(0, -2, 0)); T.y = Math.min(T.y, 7); await scrub(T, 3.6); }       // (her hand goes down into the water)
       await G.fade(true, 1.8);
-      sponge.visible = false; st.pose = null; gst.kneel = 0; gst.y = 0; if (tubG.userData.steam) tubG.userData.steam.on = false;
+      st.wait = null; sponge.visible = false; st.pose = null; gst.kneel = 0; gst.y = 0; if (tubG.userData.steam) tubG.userData.steam.on = false;
       G.updaters = G.updaters.filter(u => u !== flick); if (Lg.candle) Lg.candle.intensity = 0; if (Lg.fill) Lg.fill.intensity = 0; if (lsave) { Lg.hemi.intensity = lsave.hi; Lg.hemi.color.setHex(lsave.hc); Lg.hemi.groundColor.setHex(lsave.gc); } for (const [l, i] of lampSave) l.intensity = i;
     }
     function ch3Tick(dt) {
