@@ -92,11 +92,15 @@ G.mode = 'free'; G.noSave = true; G.settings.auto = true; G.settings.subtitles =
 // ── What is kept, per beat. ──
 const KEY = 'castle-consequence:scene-notes:' + (SCENE === 'castle' ? 'castle:v1' : (SCENE === 'ch3close' || SCENE === 'ch3disc' || SCENE === 'ch3after') ? SCENE + ':' + LIES_N + ':v1' : SCENE === 'ch3tub' ? 'ch3tub:' + WASH + ':v1' : SCENE !== 'night' ? SCENE + ':v1' : 'night:v2:' + route);       // (v2: beats are camera angles)
 let kept = { cams: {}, notes: {}, lines: {}, expr: {} };
-try { const k = JSON.parse(localStorage.getItem(KEY)); if (k) kept = Object.assign(kept, k); } catch (e) { /* none yet */ }
+// (the bath: its first eleven beats are the same whichever he chooses, so what is kept for them is shared by both routes; only what follows the choice is kept per route)
+const SHARED = SCENE === 'ch3tub' ? 'castle-consequence:scene-notes:ch3tub:shared:v1' : null, SPLIT = 11, early = b => +b <= SPLIT, part = (o, keep) => { const r = {}; for (const f of ['cams', 'notes', 'lines', 'expr']) { r[f] = {}; for (const b in (o && o[f]) || {}) if (keep(b)) r[f][b] = o[f][b]; } return r; };
+const merge = o => { if (o) for (const f of ['cams', 'notes', 'lines', 'expr']) Object.assign(kept[f] = kept[f] || {}, o[f] || {}); };
+try { const mine = JSON.parse(localStorage.getItem(KEY)); if (!SHARED) { if (mine) kept = Object.assign(kept, mine); } else { let sh = JSON.parse(localStorage.getItem(SHARED)); if (!sh) { sh = part(mine, early); localStorage.setItem(SHARED, JSON.stringify(sh)); }       // (the first time: what was kept for this route before is the start of the shared set)
+    merge(sh); merge(part(mine, b => !early(b))); } } catch (e) { /* none yet */ }
 kept.expr = kept.expr || {};
 if (SCENE === 'castle' && !kept.mig) { delete kept.cams[13]; kept.mig = 1; }
 if (SCENE === 'castle' && kept.mig < 2) { for (const b of [1, 2, 3, 4, 5, 6, 7, 8, 9, 14]) delete kept.cams[b]; kept.mig = 2; }      // (the dialogue shots were re-framed (Jack in the shots on Gerda; over her shoulder for Jack): cameras kept against the old ones are dropped, once)                 // (beat 13's camera was set again in the code, to the angle wanted: the one kept before that is dropped, once)
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(kept)); } catch (e) { /* no storage */ } };
+const save = () => { try { if (SHARED) { localStorage.setItem(SHARED, JSON.stringify(part(kept, early))); localStorage.setItem(KEY, JSON.stringify(part(kept, b => !early(b)))); } else localStorage.setItem(KEY, JSON.stringify(kept)); } catch (e) { /* no storage */ } };
 const info = {};                                           // what each beat is, learnt as the scene runs: { who, text, cam (the scene's own angle) }
 const snap = s => ({ pos: [s.pos.x, s.pos.y, s.pos.z], look: [s.look.x, s.look.y, s.look.z], fov: s.fov });
 const spec = c => ({ pos: { x: c.pos[0], y: c.pos[1], z: c.pos[2] }, look: { x: c.look[0], y: c.look[1], z: c.look[2] }, fov: c.fov });

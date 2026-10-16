@@ -1460,20 +1460,22 @@ function run(G, W, opts) {
       // (he moves, and the water with him: dy is how far he sinks, wdy how far the water has risen)
       const tw = async (to, secs, dy, wdy, dx) => { const from = {}; for (const k in to) from[k] = st.pose[k] || 0; const ys = st.y, xs = st.pos.x, ws = water ? water.position.y : 0, n = Math.max(1, Math.round(secs / 0.04));
         for (let i = 1; i <= n; i++) { const k = ease(i / n); for (const key in to) st.pose[key] = W3(from[key], to[key], k); if (dy !== undefined) st.y = W3(ys, y0 + dy, k); if (dx !== undefined) st.pos.x = W3(xs, x0 + dx, k); if (water && wdy !== undefined) water.position.y = W3(ws, w0 + wdy, k); await G.wait(0.04); } };
-      const LAY = { torso: -0.8, neckX: -0.3, armLx: 0.05, armRx: 0.05, armLz: 0.12, armRz: -0.12, elbowL: -0.1, elbowR: -0.1 }, DEEP = { torso: -0.95, neckX: -0.45, armLz: 0.12, armRz: -0.12 };
+      const LAY = { torso: -0.8, neckX: -0.3, neckY: 0, armLx: 0.05, armRx: 0.05, armLz: 0.12, armRz: -0.12, elbowL: -0.1, elbowR: -0.1 }, DEEP = { torso: -0.95, neckX: -0.45, neckY: 0, armLz: 0.12, armRz: -0.12 };
       const head = () => jackOut.neck.localToWorld(new V3(0, 4, 0));
-      const camWide = () => G.cut({ pos: v(299, 42, -146), look: v(352, 10, -172), fov: 62 }), camDoor = () => G.cut({ pos: v(380, 21, -160), look: v(325, 17.5, -160), fov: 64 }), camSide = () => G.cut({ pos: v(310, 72, -142), look: v(355, 7, -180), fov: 50 }), camB4 = () => G.cut({ pos: v(355.9, 21.5, -150.8), look: v(361.9, 15.1, -175.9), fov: 40 }), camB5 = () => G.cut({ pos: v(340.6, 51.2, -190.1), look: v(364, 10.5, -175.8), fov: 46 }), camB7 = () => G.cut({ pos: v(305, 22, -141), look: v(340, 12, -170), fov: 62 }), camB8 = () => G.cut({ pos: v(345, 14, -166), look: v(369.2, 11.5, -180), fov: 40 }), camB9 = () => G.cut({ pos: v(372, 37, -156), look: v(360, 7, -176), fov: 46 }), camB13 = () => G.cut({ pos: v(357.8, 15.7, -153.3), look: v(366.7, 11.4, -178), fov: 40 }), camNight = () => G.cut({ pos: v(302, 50, -145), look: v(355, 14, -172.5), fov: 60 }), camOpen = () => G.cut({ pos: v(304, 25, -150), look: v(355, 25, -170), fov: 62 });
+      let lookOn = false; const lookTick = () => { if (!lookOn || !st.pose) return; const gh = gerda.neck.getWorldPosition(new V3()), hh = head(), yaw = angDiff(Math.atan2(gh.x - hh.x, gh.z - hh.z), st.heading), pitch = Math.atan2(gh.y - hh.y, Math.hypot(gh.x - hh.x, gh.z - hh.z));       // (his head turns to her face, and tilts up to it, wherever she is)
+        st.pose.neckY = (st.pose.neckY || 0) + (clamp(-yaw, -1.2, 1.2) - (st.pose.neckY || 0)) * 0.15; st.pose.neckX = (st.pose.neckX || 0) + (clamp(0.1 - pitch, -0.8, 0.4) - (st.pose.neckX || 0)) * 0.15; }; G.updaters.push(lookTick);
+      const camWide = () => G.cut({ pos: v(299, 42, -146), look: v(352, 10, -172), fov: 62 }), camDoor = () => G.cut({ pos: v(380, 21, -160), look: v(325, 17.5, -160), fov: 64 }), camSide = () => G.cut({ pos: v(310, 72, -142), look: v(355, 7, -180), fov: 50 }), camB4 = () => G.cut({ pos: v(355.9, 21.5, -150.8), look: v(361.9, 15.1, -175.9), fov: 40 }), camB5 = () => G.cut({ pos: v(340.6, 51.2, -190.1), look: v(364, 10.5, -175.8), fov: 46 }), camB7 = () => G.cut({ pos: v(300, 25, -190), look: v(340, 12, -170), fov: 62 }), camB8 = () => G.cut({ pos: v(350, 25, -165), look: v(370, 11.5, -180), fov: 40 }), camB9 = () => G.cut({ pos: v(375, 40, -195), look: v(360, 8, -176), fov: 46 }), camB13 = () => G.cut({ pos: v(358, 18, -155), look: v(365, 11, -180), fov: 40 }), camB11 = () => G.cut({ pos: v(345, 20, -190), look: v(370, 12, -175), fov: 40 }), camB14 = () => G.cut({ pos: v(375, 35, -160), look: v(360, 2, -180), fov: 50 }), camNight = () => G.cut({ pos: v(302, 50, -145), look: v(355, 14, -172.5), fov: 60 }), camOpen = () => G.cut({ pos: v(304, 25, -150), look: v(355, 25, -170), fov: 62 });
       const camFace = () => { const h = head(); G.cut({ pos: v(Math.max(301, h.x - 24), h.y + 2, h.z + 11), look: v(h.x, h.y - 1, h.z), fov: 40 }); }, camBack = () => G.cut({ pos: v(335, 21, -195), look: v(360, 20, -165), fov: 54 }), camTop = () => { const h = head(); G.cut({ pos: v(h.x + 10, h.y + 22, h.z + 20), look: v(h.x - 2, h.y - 8, h.z), fov: 46 }); };
       const walkTo = async wps => { for (const [wx, wz] of wps) while (Math.hypot(wx - gst.x, wz - gst.z) > 1) { const d = Math.hypot(wx - gst.x, wz - gst.z); gst.h += angDiff(Math.atan2(wx - gst.x, wz - gst.z), gst.h) * 0.3; gst.x += (wx - gst.x) / d * Math.min(0.9, d); gst.z += (wz - gst.z) / d * Math.min(0.9, d); gst.ph += 0.4; gst.walk = 1; placeGerda(); await G.wait(0.04); } gst.walk = 0; placeGerda(); };
       const doorAng = bathDoor ? bathDoor.lg.rotation.y : 0, swing = async (to, secs) => { if (!bathDoor) return; const a = bathDoor.lg.rotation.y, n = Math.round(secs / 0.04); bathDoor.og.userData.noCollide = true; for (let i = 1; i <= n; i++) { bathDoor.lg.rotation.y = W3(a, to, ease(i / n)); await G.wait(0.04); } bathDoor.lg.rotation.y = to; bathDoor.og.userData.noCollide = to !== 0; };
       camOpen(); await G.fade(false, 0.9); await G.wait(0.4);
-      tw({ neckY: 0.9 }, 0.5);       // (he looks at her)
+      lookOn = true;       // (he looks at her face)
       await sayW('gerda', lesson ? 'Sit gently, now. I shall be back soon, and you are to wash yourself properly.' : 'There. Warm enough? I shall be back soon, and you are to wash yourself properly, mind.');
       await sayW('jack', 'Yes, Gerda.');
       // she gathers his day clothes from the stool, and goes, shutting the door behind her
       await handTo(v(stoolP.x, 18, stoolP.z), false, 0.6);
       for (const k of ['tunic', 'shorts', 'drawers']) props[k].visible = false; for (const k of ['heldTunic', 'heldShorts', 'heldDrawers']) props[k].visible = true; A && A.blip && A.blip(); await rest(0.5);
-      camDoor(); const eyes = tw({ neckY: 0 }, 3.2); await walkTo([[318, -160], [296, -160], [278, -160]]); await eyes; gerda.root.visible = false; await G.wait(0.2);       // (his eyes follow her out)
+      camDoor(); await walkTo([[318, -160], [296, -160], [280, -160], [258, -160], [256, -136], [256, -118]]); gerda.root.visible = false; lookOn = false; await G.wait(0.2);       // (his eyes follow her out, and she turns left, past the door, before it shuts)
       await swing(0, 1.0); A && A.thud && A.thud(0.5); A && A.latch && A.latch(); await G.wait(0.8);
       // he sinks into the water, and lies back
       camSide(); paint({ expr: 'smile' }); await tw(LAY, 1.6, -0.6, 0.3);
@@ -1492,7 +1494,7 @@ function run(G, W, opts) {
       await sayW('jack', 'Gerda says what I did. Plainly. The dish, the lid, the hen. Every one of them something I could put right.');
       camSide();
       await sayW('jack', 'And when I did put it right, she said so. Mother has never once said so.');
-      camFace();
+      camB11();
       await sayW('jack', '…It’s a strange thing, to be known so exactly.');
       await G.wait(0.6);
       // what he does with the time she has given him
@@ -1513,47 +1515,53 @@ function run(G, W, opts) {
         camSide(); paint({ expr: 'smile' }); await tw(LAY, 1.4, -0.6, 0.3); await G.wait(1.0);
       } else {
         await sayW('jack', 'I’ll just lie here a little longer.');
-        camB13(); await tw(DEEP, 2.0, -1.0, 0.6, -3); await G.wait(1.0); camTop(); await G.wait(2.4);
+        camB13(); await tw(DEEP, 2.0, -1.0, 0.6, -3); await G.wait(1.0); camB14(); await G.wait(2.4);
       }
       // she is back, with his nightclothes: and she can tell by the bubbles whether he has washed
       const nightB = g => { mk(5.6, 0.8, 4.6, '#efede6', 0, 0, 0, g); mk(5, 0.6, 3.4, '#e8dfc6', 0, 0.7, 0, g); mk(0.9, 0.2, 2.4, '#cbbf9f', 0, 1.1, 0, g); };
       const night = new THREE.Group(); nightB(night); night.scale.setScalar(PS * 1.1); gerda.wrist.add(night); night.position.set(0, -6, 0.8);
       const nightOn = new THREE.Group(); nightB(nightOn); nightOn.scale.setScalar(PS * 1.1); nightOn.position.set(stoolP.x, 13.4, stoolP.z); nightOn.visible = false; scene.add(nightOn);
       for (const k of ['heldTunic', 'heldShorts', 'heldDrawers']) props[k].visible = false;
-      Object.assign(gst, { x: 275, z: -185, h: Math.atan2(20, 25), walk: 0, reach: 0, lreach: 0, bend: 0 }); placeGerda(); gerda.root.visible = true; camDoor();       // (on the corridor side of the shut door, clear of its swing)
-      await G.wait(0.4); await swing(doorAng, 1.2); A && A.latch && A.latch(); await G.wait(0.2);
-      await walkTo([[290, -165], [300, -160], [330, -156], [352, -152]]); gst.h = Math.PI; placeGerda(); camNight();
+      Object.assign(gst, { x: 255, z: -190, h: Math.atan2(41, 28), walk: 0, reach: 0, lreach: 0, bend: 0 }); placeGerda(); gerda.root.visible = true; camDoor();       // (on the corridor side of the shut door, clear of its swing)
+      A && A.latch && A.latch(); lookOn = true; await Promise.all([swing(doorAng, 1.2), walkTo([[296, -163], [330, -156], [352, -152]])]); gst.h = Math.PI; placeGerda(); camNight();       // (she is walking as the door begins to open)
       await sayW('gerda', 'There. Your nightclothes, warm from the fire.');
       await handTo(v(stoolP.x, 18, stoolP.z), false, 0.6); night.visible = false; nightOn.visible = true; A && A.blip && A.blip(); await rest(0.5);
-      const scrub = async (T, secs) => { const b = solveHand(T, false), n = Math.round(secs / 0.04); for (let i = 1; i <= n; i++) { const k = Math.min(1, i / 12); gst.bend = b.bd * k; gst.reach = b.rc * k + 0.14 * Math.sin(i * 0.5) * k; placeGerda(); await G.wait(0.04); } };
-      const ear = left => jackOut.neck.localToWorld(new V3(left ? 4.6 : -4.6, 3, -1));
+      const scrub2 = async (TR, TL, secs) => { const b = solveArms(TR, TL), n = Math.round(secs / 0.04); for (let i = 1; i <= n; i++) { const k = Math.min(1, i / 12); gst.bend = b.bd * k; gst.reach = TR ? b.rc * k + 0.14 * Math.sin(i * 0.5) * k : 0; gst.lreach = TL ? b.lc * k : 0; placeGerda(); await G.wait(0.04); } };       // (her right hand scrubs, her left holds)
+      const jaw = x => jackOut.neck.localToWorld(new V3(x, 1, 3)), earP = x => jackOut.neck.localToWorld(new V3(x, 3, -1));
+      const nearFar = () => { const e = [-4.6, 4.6].sort((a, b) => Math.hypot(earP(a).x - gst.x, earP(a).z - gst.z) - Math.hypot(earP(b).x - gst.x, earP(b).z - gst.z)); return { near: e[0], far: e[1] }; };       // (his ears, the one on her side and the one away from her)
       camBack();
       if (!washed) {
         await sayW('gerda', 'Hm. Not a bubble gone. You have not so much as lifted a hand, have you?');
         paint({ expr: 'shy' }); await sayW('jack', 'I was only… resting a moment.');
         await sayW('gerda', 'I thought as much. Sit up, then. I shall do it myself.');
-        await tw(SIT, 0.8, 0, 0); await kneel(true, 0.7); sponge.visible = true; foamRate = 1 / 16; camFace();
-        camBack(); await scrub(jackOut.torso.localToWorld(new V3(0, 14, 3)), 2.4);
-        await tw({ torso: 0.4 }, 0.4); await scrub(jackOut.torso.localToWorld(new V3(0, 12, -4)), 2.6); await tw({ torso: 0 }, 0.4);
-        await tw({ armRx: -1.3 }, 0.4); await scrub(jackOut.armR.localToWorld(new V3(0, -6, 0)), 2.0); await tw({ armRx: -0.3, armLx: -1.3 }, 0.5); await scrub(jackOut.armL.localToWorld(new V3(0, -6, 0)), 2.0); await tw({ armLx: -0.3 }, 0.4);
-        { const T = jackOut.legR.knee.localToWorld(new V3(0, -2, 0)); T.y = Math.min(T.y, 7); await scrub(T, 2.6); }
-        camFace(); await tw({ neckY: 0.6 }, 0.5); await scrub(ear(false), 1.8); await tw({ neckY: -0.6 }, 0.6); await scrub(ear(true), 1.8); await tw({ neckY: 0 }, 0.4);
+        lookOn = false; await tw(SIT, 0.8, 0, 0); await kneel(true, 0.7); sponge.visible = true; foamRate = 1 / 16; paint({ expr: 'gritted' }); camBack();
+        await scrub2(jackOut.torso.localToWorld(new V3(0, 8, 5)), null, 2.6);       // (his chest)
+        for (const near of [true, false]) {       // (his arms: she reaches in and lifts each by the wrist, and washes it)
+          const arm = near ? jackOut.armL : jackOut.armR, key = near ? 'armLx' : 'armRx', wrist = () => arm.localToWorld(new V3(0, -9, 0));
+          await armsTo(null, wrist(), 0.5); await Promise.all([tw({ [key]: -1.5 }, 0.7), pose({ lreach: gst.lreach + 0.25 }, 0.7)]);
+          await scrub2(arm.localToWorld(new V3(0, -3, 0)), wrist(), 2.2); await tw({ [key]: -0.3 }, 0.5); }
+        { const T = jackOut.legL.knee.localToWorld(new V3(0, -2, 0)); T.y = Math.min(T.y, 7); await scrub2(T, null, 2.4); }       // (his legs)
+        paint({ expr: 'squint' }); camFace(); { const e = nearFar();       // (behind his ears: her left hand turns his head, her right hand washes)
+          await Promise.all([tw({ neckY: 0.7 }, 0.6), armsTo(null, jaw(e.far), 0.6)]); await scrub2(earP(e.near), jaw(e.far), 1.8);
+          await Promise.all([tw({ neckY: -0.8 }, 0.7), armsTo(null, jaw(e.near), 0.7)]); await scrub2(earP(e.far), jaw(e.near), 1.8); await tw({ neckY: 0 }, 0.5); }
         foamRate = 0; foamT = 0; sponge.visible = false; await rest(0.5); paint({ expr: 'smile' }); await G.wait(0.6);
       } else {
         await sayW('gerda', 'And did you wash yourself properly?');
         paint({ expr: 'smile' }); await sayW('jack', 'Yes, Gerda. Properly.');
         await sayW('gerda', 'Did you, now. Turn your head for me.');
-        await kneel(true, 0.7); camFace(); await tw({ neckY: 0.6 }, 0.6); await handTo(ear(false), false, 0.7); await G.wait(0.4);
-        await sayW('gerda', 'Behind the ears. As I thought.'); paint({ expr: 'shy' }); await sayW('jack', 'Oh.');
-        await handTo(v(358, 9, -168), false, 0.6); A && A.blip && A.blip(); await G.wait(0.3); await handTo(ear(false), false, 0.6); await scrub(ear(false), 2.2);
+        lookOn = false; await kneel(true, 0.7); camFace(); { const e = nearFar();
+          await Promise.all([tw({ neckY: 0.7 }, 0.6), armsTo(null, jaw(e.far), 0.6)]); await G.wait(0.4); paint({ expr: 'squint' });
+          await sayW('gerda', 'Behind the ears. As I thought.'); paint({ expr: 'shy' }); await sayW('jack', 'Oh.');
+          await armsTo(v(358, 9, -168), jaw(e.far), 0.6); A && A.blip && A.blip(); await G.wait(0.3);       // (her hand dips into the water)
+          await scrub2(earP(e.near), jaw(e.far), 2.2); }
         await sayW('gerda', 'There. Gently, this once. I shall let you off.'); await tw({ neckY: 0 }, 0.5); await rest(0.5);
       }
-      await kneel(false, 0.7); camWide();
+      await kneel(false, 0.7); camWide(); lookOn = true;       // (he is looking at her)
       await sayW('gerda', 'You must be famished. We shall get you dry, and then I shall fix you something to eat before bed.');
       paint({ expr: 'smile' }); await sayW('jack', '…I am, rather.');
       await G.wait(0.8);
       await G.fade(true, 1.8);
-      G.updaters = G.updaters.filter(u => u !== foamTick); tubG.remove(foam); nightOn.visible = false;
+      G.updaters = G.updaters.filter(u => u !== foamTick && u !== lookTick); tubG.remove(foam); nightOn.visible = false;
       st.wait = null; sponge.visible = false; st.pose = null; gst.kneel = 0; gst.y = 0; if (tubG.userData.steam) tubG.userData.steam.on = false;
       G.updaters = G.updaters.filter(u => u !== flick); if (Lg.candle) Lg.candle.intensity = 0; if (Lg.fill) Lg.fill.intensity = 0; if (lsave) { Lg.hemi.intensity = lsave.hi; Lg.hemi.color.setHex(lsave.hc); Lg.hemi.groundColor.setHex(lsave.gc); } for (const [l, i] of lampSave) l.intensity = i;
     }
