@@ -260,6 +260,18 @@ function paintJackInto(k, st) {
     for (const leg of ['rLeg', 'lLeg']) for (const f of SIDES) { k.fill(leg, f, C.skin, 0, 0, undefined, 12); k.fill(leg, f, C.drawers, 0, 0, undefined, 4); k.fill(leg, f, C.drawersSh, 0, 3, undefined, 1); k.band(leg, C.skinHi, 5, 1); k.fill(leg, 'top', C.drawers); }
     k.band('rLeg', C.skinSh, 10, 1); k.band('lLeg', C.skinSh, 10, 1);
   }
+  // ── Bathing: st.strip 1 (the tunic and shorts off: bare chest, arms and legs, drawers on), 2 (the drawers off as well: all bare) ──
+  if (st.strip) {
+    const dr = st.strip === 1;
+    k.all('body', C.skin); k.fill('body', 'top', C.skin); k.fill('body', 'bottom', dr ? C.drawers : C.skinSh);
+    k.grid('body', 'front', ['kkSSSSkk', 'SSSsSsSS', 'SSSSSSSS', 'SSSSSSSS', 'SSSSSSSS', 'SSSSSSSS', 'SSSSSSSS', 'SSSSSSSS', 'SSSSSSSS'], { S: C.skin, s: C.skinSh, k: C.skinHi });
+    k.px('body', 'front', 2, 3, C.skinSh); k.px('body', 'front', 5, 3, C.skinSh);
+    if (dr) for (const f of SIDES) k.fill('body', f, C.drawers, 0, 10, undefined, 2);
+    clearOver('jacket');
+    for (const side of ['rArm', 'lArm']) { k.all(side, C.skin); k.fill(side, 'bottom', C.skinSh); k.band(side, C.skinHi, 6, 1); for (const f of SIDES) { k.px(side, f, 0, 7, C.skinSh); k.px(side, f, 0, 11, C.skinSh); } clearOver(sideOuter(side)); }
+    k.px('rArm', 'front', 2, 10, C.skinSh); k.px('lArm', 'front', 1, 11, C.skinSh);
+    for (const leg of ['rLeg', 'lLeg']) { k.all(leg, C.skin); if (dr) for (const f of SIDES) { k.fill(leg, f, C.drawers, 0, 0, undefined, 4); k.fill(leg, f, C.drawersSh, 0, 3, undefined, 1); } k.fill(leg, 'top', dr ? C.drawers : C.skin); k.fill(leg, 'bottom', C.skinSh); k.band(leg, C.skinHi, 6, 1); }
+  }
   k.grain(1021, 5, [{ x: 8, y: 8, w: 8, h: 8 }]);
   // Marks: the bare rear colours up, patchy at first. Each bare pixel gets a share of its cheek's mark, jittered by position.
   for (const [part, face, x, y, w, h, cheek] of bare) markRect(k, part, face, x, y, w, h, cheek, st.marks);
