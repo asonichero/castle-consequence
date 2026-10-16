@@ -1050,8 +1050,7 @@ function run(G, W, opts) {
       const demerits = () => { const f = finalState(); return (f.dirt ? 2 : 0) + (f.prints ? 0.5 + 0.25 * Math.min(f.prints, 6) : 0) + f.water + f.grain * 0.5 + (f.dish ? 2 : 0) + (f.trough ? 2 : 0) + f.litter * 0.5 + S.binRaids + (S.binOpen && !S.binRaids ? 0.5 : 0) + (f.hen === 'frightened' ? 2.5 : f.hen === 'wary' ? 1.5 : f.stroked ? 0 : 1); };
       const listOf = r => r.length <= 1 ? r.join('') : r.slice(0, -1).join(', ') + ' and ' + r[r.length - 1];
       const TIERS = [{ name: 'Token', hand: 14, paddle: 0, strength: 0.7, pace: 1.7 }, { name: 'Light', hand: 30, paddle: 0, strength: 0.85, pace: 1.8 }, { name: 'Firm', hand: 44, paddle: 0, strength: 0.9, pace: 1.9 }, { name: 'Severe', hand: 52, paddle: 0, strength: 1.0, pace: 2.0 }];
-      const VERDICT = ['Not so very much wrong, really. A few for luck, then: over my lap, shorts staying up.', 'A light correction, I think: over my knee, with your shorts left up.', 'A firm one. Over my knee, and your shorts will be coming down for it.', 'A severe one. Over my knee, shorts and drawers both, and I shall not be gentle about it.'];
-      const buildPlan = minTier => { const d = demerits(); let tier = d < 0.01 ? 0 : d < 1.5 ? 1 : d < 4 ? 2 : 3; if (S.lie) tier = Math.min(3, tier + 1); tier = Math.max(tier, minTier || 0); return Object.assign({ tier, verdict: VERDICT[tier] }, TIERS[tier]); };
+      const buildPlan = minTier => { const d = demerits(); let tier = d < 0.01 ? 0 : d < 1.5 ? 1 : d < 4 ? 2 : 3; if (S.lie) tier = Math.min(3, tier + 1); tier = Math.max(tier, minTier || 0); return Object.assign({ tier }, TIERS[tier]); };
       // ── a round: everything back as it was, and the player let loose ──
       const resetRoom = () => {
         for (const p of patches.slice()) { if (p.orig) { p.amount = 1; p.g.visible = true; p.g.scale.setScalar(1); p.tag = null; } else { M.room.remove(p.g); patches.splice(patches.indexOf(p), 1); } }
@@ -1131,7 +1130,7 @@ function run(G, W, opts) {
           await sayW('gerda', 'Jack! What is all that noise? What have you done to her?');
           await sayW('gerda', 'Listen to her. Frightened half out of her feathers. Is this how you look after something precious?');
           await sayW('jack', 'I only— I didn’t mean to—');
-          const plan = buildPlan(2); await sayW('gerda', 'No. You did not think. ' + plan.verdict);
+          const plan = buildPlan(2); await sayW('gerda', 'No. You did not think.');
           await sayW('jack', 'Oh… I’m still sore from the last time.'); await sayW('gerda', 'Then you should have been gentler with her. Come here.');
           return { plan };
         }
@@ -1144,8 +1143,7 @@ function run(G, W, opts) {
         await sayW('gerda', ci === 0 ? 'Thank you for telling me straight. Let us go through it.' : 'Does it? Let us go through it, then.');
         for (const [text, at] of evidence()) { const sx = clamp(at.x + 30, 258, 414), sz = clamp(at.z + 32, -324, -216); G.cut({ pos: v(sx, 30, sz), look: v(at.x, 3, at.z), fov: 46 }); await sayW('gerda', 'You ' + text + '.'); }       // (and the camera goes to each thing as she names it)
         G.cut(behind(gst)); if (ci === 1) await sayW('gerda', 'And now you have lied to me about it as well, which is the part that earns the extra.');
-        await sayW('gerda', plan.verdict);
-        await sayW('jack', 'Oh… I’m still sore from the last time.'); await sayW('gerda', 'Then you will know to take more care. Come here.');
+                await sayW('jack', 'Oh… I’m still sore from the last time.'); await sayW('gerda', 'Then you will know to take more care. Come here.');
         return { plan };
       };
       // ── the correction, over her knee in the roost ──
@@ -1172,7 +1170,7 @@ function run(G, W, opts) {
         stageView('overview', 0);
         try { try {
           await G.fade(false, 0.7); showUI(true); await wait(0.5);
-          await say('gerda', plan.tier === 0 ? 'Up you come. Across my lap, for luck.' : 'Across my knee, Jack. Hands out of the way.');
+          await say('gerda', 'Over my knee, Jack. Hands out of the way.');
           if (plan.tier <= 1) { await run(plan.hand); await say('gerda', plan.tier === 0 ? 'There. Off you go.' : 'That will do.'); }
           else if (plan.tier === 2) { await run(Math.ceil(plan.hand / 3)); lap.layers({ trousers: 'down' }); A && A.blip && A.blip(); await say('gerda', 'Shorts down. You know why.'); await run(plan.hand - Math.ceil(plan.hand / 3)); await say('gerda', 'Nearly done.'); await run(6); }
           else { lap.layers({ trousers: 'down' }); A && A.blip && A.blip(); await say('gerda', 'Shorts down. This is what carelessness costs.'); await run(Math.ceil(plan.hand / 2)); lap.layers({ trousers: 'down', drawers: 'down' }); A && A.blip && A.blip(); await say('jack', 'No! Wait! You can’t—'); await say('gerda', 'I can, and I will.'); await run(plan.hand - Math.ceil(plan.hand / 2) - 6); await step(['jack', 'Please — no more!'], 6); await say('gerda', 'And that is the last of it.'); }
