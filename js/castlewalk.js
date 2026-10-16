@@ -908,7 +908,7 @@ function run(G, W, opts) {
       const cushionG = gp('henCushion'), cushion = cushionG.position, hen = cushionG.userData.hen;
       const roostD = M.doors.find(d => d.axis === 'z' && Math.abs(d.fixed + 208) < 3 && Math.abs(d.c - 273) < 8);
       const mk = (w, h, d, col, x, y, z, par) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), root.Farm.plain(col)); m.position.set(x, y, z); par.add(m); return m; };
-      const TIME_LIMIT = 300, SPILL_ABOVE = 27, RUNNING = 38, ALARM_R = 34, BUCKET = 50;
+      const SQUAWK_LIMIT = 12, TIME_LIMIT = 300, SPILL_ABOVE = 27, RUNNING = 38, ALARM_R = 34, BUCKET = 50;
       if (!skip) G.save({ step: 'ch3chores' });
       $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; G.mode = 'cutscene'; document.body.classList.add('cutscene'); G.skipping = false; G.cwState = st;
       { const f = $('fade'); f.style.transition = 'none'; f.style.opacity = 1; }
@@ -977,9 +977,9 @@ function run(G, W, opts) {
       const cluck = (kind, v0) => { A && A.cluck && A.cluck(kind, v0); };
       const updateHen = dt => {
         const hx = H.pos.x, hz = H.pos.z, d = dist(H.pos), sneaking = S.speedN < 18, running = S.speedN > RUNNING; H.cool = Math.max(0, H.cool - dt); H.splashCool = Math.max(0, H.splashCool - dt); H.binCool = Math.max(0, H.binCool - dt); H.bob += dt * (H.mode === 'flee' ? 18 : 5);
-        if (H.mode !== 'rest') H.trust = Math.max(0, H.trust - 0.5 * dt);       // (unsettled, her trust leaks away)
-        if (running && d < ALARM_R && H.mode !== 'flee' && H.mode !== 'rest') { flee(st.pos); H.trust = Math.max(0, H.trust - 20); if (H.cool <= 0) { H.cool = 4; shrink(0.01, 'Startling the hen'); } }
-        if (st.vy > 1 && d < 30 && H.mode !== 'flee' && H.mode !== 'rest' && H.cool <= 0) { flee(st.pos); H.trust = Math.max(0, H.trust - 10); H.cool = 4; }       // (landing beside her is no gentler)
+        if (H.mode !== 'rest') H.trust = Math.max(0, H.trust - 0.2 * dt);       // (unsettled, her trust leaks away)
+        if (running && d < ALARM_R && H.mode !== 'flee' && H.mode !== 'rest') { flee(st.pos); H.trust = Math.max(0, H.trust - 14); if (H.cool <= 0) { H.cool = 4; shrink(0.01, 'Startling the hen'); } }
+        if (st.vy > 1 && d < 30 && H.mode !== 'flee' && H.mode !== 'rest' && H.cool <= 0) { flee(st.pos); H.trust = Math.max(0, H.trust - 7); H.cool = 4; }       // (landing beside her is no gentler)
         const binRadius = dist(binP) > 34;
         if (S.binOpen && binRadius && H.binCool <= 0 && H.mode !== 'flee' && H.mode !== 'bin' && !(H.mode === 'rest' && H.trust >= 100)) { H.mode = 'bin'; H.binWait = 0; H.scratch = 0; }       // (the lid left open: as soon as he is out of its reach, she is there)
         if (H.mode === 'bin' && !S.binOpen) H.mode = 'wander';
@@ -1108,10 +1108,10 @@ function run(G, W, opts) {
           { const t = [bE ? 'E \u2014 ' + bE.label : '', bQ ? 'Q \u2014 ' + bQ.label : ''].filter(Boolean).join('     '); if (t) { pr.textContent = t; pr.style.display = 'block'; } else pr.style.display = 'none'; st.uiAct = bE ? bE.label : null; st.uiDrop = !!bQ; st.uiDropLabel = bQ ? (S.holding ? 'Put down' : 'Take') : null; }
           $('cwTrustV').textContent = Math.round(H.trust) + '%'; $('cwTrustB').style.width = H.trust + '%';
           if (debugOn()) { const ck = b => b ? '[x]' : '[ ]', c = S.chores, lim = Math.max(0, TIME_LIMIT - S.t), dn = S.doneAt ? Math.max(0, 4 - (S.t - S.doneAt)) : null;
-            dbgEl.style.display = 'block'; dbgEl.textContent = 'CHORES\n' + ck(c.sweep) + ' swept   (dirt ' + patches.filter(p => p.amount > 0.02).length + ', prints ' + prints.filter(q => q.amount > 0.05).length + ')\n' + ck(c.dish) + ' dish filled\n' + ck(c.water) + ' trough >= 60%   (' + Math.round(S.troughLevel) + '%)\n' + ck(c.trust) + ' hen settled   (trust ' + Math.round(H.trust) + '%, ' + H.mode + ')\n' + ck(itm.broom.where === 'home') + ' broom put away  (' + itm.broom.where + ')\n' + ck(itm.bucket.where === 'home') + ' bucket put away (' + itm.bucket.where + ')\n' + ck(!S.holding) + ' hands empty' + (S.holding ? '  (' + S.holding + ')' : '') + '\n' + ck(!S.binOpen) + ' bin shut' + (S.binRaids ? '  (raids ' + S.binRaids + ')' : '') + '\n\nGERDA RETURNS\n  timer:    ' + lim.toFixed(0) + 's of ' + TIME_LIMIT + 's\n  all done: ' + (dn === null ? 'not yet' : 'in ' + dn.toFixed(1) + 's') + '\n  squawk:   ' + S.squawkT.toFixed(1) + 's of 6s'; } else dbgEl.style.display = 'none';
+            dbgEl.style.display = 'block'; dbgEl.textContent = 'CHORES\n' + ck(c.sweep) + ' swept   (dirt ' + patches.filter(p => p.amount > 0.02).length + ', prints ' + prints.filter(q => q.amount > 0.05).length + ')\n' + ck(c.dish) + ' dish filled\n' + ck(c.water) + ' trough >= 60%   (' + Math.round(S.troughLevel) + '%)\n' + ck(c.trust) + ' hen settled   (trust ' + Math.round(H.trust) + '%, ' + H.mode + ')\n' + ck(itm.broom.where === 'home') + ' broom put away  (' + itm.broom.where + ')\n' + ck(itm.bucket.where === 'home') + ' bucket put away (' + itm.bucket.where + ')\n' + ck(!S.holding) + ' hands empty' + (S.holding ? '  (' + S.holding + ')' : '') + '\n' + ck(!S.binOpen) + ' bin shut' + (S.binRaids ? '  (raids ' + S.binRaids + ')' : '') + '\n\nGERDA RETURNS\n  timer:    ' + lim.toFixed(0) + 's of ' + TIME_LIMIT + 's\n  all done: ' + (dn === null ? 'not yet' : 'in ' + dn.toFixed(1) + 's') + '\n  squawk:   ' + S.squawkT.toFixed(1) + 's of ' + SQUAWK_LIMIT + 's'; } else dbgEl.style.display = 'none';
           // how the round ends: the hen left squawking, everything done (and a few moments to be sure), or the clock
           const done = ['sweep', 'dish', 'water', 'trust'].every(c => S.chores[c]) && itm.broom.where === 'home' && itm.bucket.where === 'home' && !S.holding;       // (not done until it is all put away) if (done && !S.doneAt) S.doneAt = S.t; if (!done) S.doneAt = 0;
-          if (S.squawkT > 6) end('squawk'); else if (S.doneAt && S.t - S.doneAt > 4) end('done'); else if (S.t > TIME_LIMIT) end('time');
+          if (S.squawkT > SQUAWK_LIMIT) end('squawk'); else if (S.doneAt && S.t - S.doneAt > 4) end('done'); else if (S.t > TIME_LIMIT) end('time');
         };
       });
       // ── Gerda comes back, and asks how it went ──
