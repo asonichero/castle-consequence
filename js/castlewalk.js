@@ -1033,7 +1033,7 @@ function run(G, W, opts) {
       const standUp = () => { S.sitting = false; st.seated = false; st.pos.set(chairP.x + frontDir.x * 16, 0, chairP.z + frontDir.z * 16); st.y = 0; st.fz = null; st.vy = 0; st.pose = null; };
       // how it stands at the end
       const finalState = () => { const left = tag => patches.filter(p => p.tag === tag && p.amount > 0.05).length, t = H.trust;
-        return { dirt: patches.filter(p => !p.tag && p.amount > 0.05).length, prints: prints.filter(p => p.amount > 0.05).length, water: left('water'), grain: left('grain'), litter: ['broom', 'bucket'].filter(n => (itm[n].where !== 'home' && !itm[n].forced)).length,
+        return { dirt: patches.filter(p => !p.tag && p.amount > 0.05).length, prints: prints.filter(p => p.amount > 0.05).length, water: left('water'), grain: left('grain'), litter: ['broom', 'bucket'].filter(n => itm[n].where !== 'home').length,
           dish: !S.chores.dish, trough: S.troughLevel < 60, stroked: S.chores.trust, bin: S.binOpen || S.binRaids > 0, hen: S.chores.trust || t >= 75 ? 'calm' : t < 25 ? 'frightened' : t < 60 ? 'wary' : 'calm' }; };
       const evidence = () => { const f = finalState(), r = [], at = (x, z) => ({ x, z }), tagged = tg => patches.find(p => p.tag === tg && p.amount > 0.05);       // (what he left, and where it lies, for the camera to cut to)
         if (f.dirt) { const p = patches.find(q => !q.tag && q.amount > 0.05); r.push(['left dirt on the floor', at(p.x, p.z)]); }
@@ -1042,7 +1042,7 @@ function run(G, W, opts) {
         if (f.grain) { const p = tagged('grain'); r.push(['left grain scattered about', at(p.x, p.z)]); }
         if (f.dish) r.push(['left her dish empty', at(dishP.x, dishP.z)]);
         if (f.trough) r.push([S.troughLevel > 0 ? 'left her trough only part full' : 'left her trough empty', at(troughP.x, troughP.z)]);
-        if (f.litter) { const l = ['broom', 'bucket'].filter(n => (itm[n].where !== 'home' && !itm[n].forced)), q = itemPos(l[0]); r.push(['left the ' + l.join(' and the ') + ' lying about', at(q.x, q.z)]); }
+        if (f.litter) { const l = ['broom', 'bucket'].filter(n => itm[n].where !== 'home'), held = l.filter(n => itm[n].where === 'held'), q = itm[l[0]].where === 'held' ? st.pos : itemPos(l[0]); r.push([held.length === l.length ? 'still had the ' + l.join(' and the ') + ' in your hands' : 'left the ' + l.join(' and the ') + ' lying about', at(q.x, q.z)]); }
         if (S.binRaids) r.push(['let the hen into the feed', at(binP.x, binP.z)]); else if (S.binOpen) r.push(['left the feed bin open', at(binP.x, binP.z)]);
         if (f.hen === 'frightened') r.push(['left the hen frightened', at(H.pos.x, H.pos.z)]); else if (f.hen === 'wary') r.push(['left the hen wary', at(H.pos.x, H.pos.z)]); else if (!f.stroked) r.push(['never won the hen over', at(H.pos.x, H.pos.z)]);
         return r; };
@@ -1106,24 +1106,24 @@ function run(G, W, opts) {
           { const t = [bE ? 'E \u2014 ' + bE.label : '', bQ ? 'Q \u2014 ' + bQ.label : ''].filter(Boolean).join('     '); if (t) { pr.textContent = t; pr.style.display = 'block'; } else pr.style.display = 'none'; st.uiAct = bE ? bE.label : null; st.uiDrop = !!bQ; st.uiDropLabel = bQ ? (S.holding ? 'Put down' : 'Take') : null; }
           $('cwTrustV').textContent = Math.round(H.trust) + '%'; $('cwTrustB').style.width = H.trust + '%';
           // how the round ends: the hen left squawking, everything done (and a few moments to be sure), or the clock
-          const done = ['sweep', 'dish', 'water', 'trust'].every(c => S.chores[c]); if (done && !S.doneAt) S.doneAt = S.t; if (!done) S.doneAt = 0;
+          const done = ['sweep', 'dish', 'water', 'trust'].every(c => S.chores[c]) && itm.broom.where === 'home' && itm.bucket.where === 'home' && !S.holding;       // (not done until it is all put away) if (done && !S.doneAt) S.doneAt = S.t; if (!done) S.doneAt = 0;
           if (S.squawkT > 6) end('squawk'); else if (S.doneAt && S.t - S.doneAt > 4) end('done'); else if (S.t > TIME_LIMIT) end('time');
         };
       });
       // ── Gerda comes back, and asks how it went ──
       const returnScene = async out => {
         st.choreTick = null; $('cwPrompt').style.display = 'none'; hudEl.style.display = 'none'; $('cwObjt').style.display = 'none'; st.uiAct = null; st.uiDrop = false;
-        if (S.sitting) standUp(); st.seated = false; if (S.holding === 'broom' || S.holding === 'bucket') { const nm = S.holding, f = front(12), m = nm === 'broom' ? fBroom : fBucket; S.water = 0; itm[nm].where = 'floor'; itm[nm].x = f.x; itm[nm].z = f.z; itm[nm].forced = true; m.position.set(f.x, nm === 'broom' ? 1.2 : 2, f.z); m.rotation.set(0, st.heading, nm === 'broom' ? Math.PI / 2 : 1.45); setHeld(null); } else if (S.holding) setHeld(null);       // (whatever he holds is set down as she comes in: it is not held against him)
-        const undone = ['sweep', 'dish', 'water', 'trust'].filter(c => !S.chores[c]).length, lit = ['broom', 'bucket'].filter(n => (itm[n].where !== 'home' && !itm[n].forced));
+        if (S.sitting) standUp(); st.seated = false;       // (what he is holding, he keeps holding)
+        const undone = ['sweep', 'dish', 'water', 'trust'].filter(c => !S.chores[c]).length, lit = ['broom', 'bucket'].filter(n => itm[n].where !== 'home');
         if (undone) shrink(0.02 * undone, undone + ' chore' + (undone > 1 ? 's' : '') + ' left undone'); if (lit.length) shrink(0.01 * lit.length, lit.length > 1 ? 'The broom and bucket left lying about' : 'The ' + lit[0] + ' left lying about'); if (out.clock) shrink(0.02, 'Taking too long');
-        st.s = S.sTarget; st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); st.pose = null; st.vy = 0; st.walkN = 0; st.heading = Math.atan2(273 - st.pos.x, -212 - st.pos.z);
+        st.s = S.sTarget; st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); st.vy = 0; st.walkN = 0; st.heading = Math.atan2(273 - st.pos.x, -212 - st.pos.z);
         hen.position.set(cushion.x, 9, cushion.z); hen.rotation.y = Math.PI;
         // the door opens, and she comes in to him
         Object.assign(gst, { x: 273, z: -196, h: Math.PI, y: 0, seated: 0, walk: 0, reach: 0, lreach: 0, bend: 0, look: 0.2, headY: 0, p50: null, hold: 0, alive: 1 }); placeGerda(); gerda.root.visible = true;
         { const a1 = (doorTo(Math.PI / 2, true), roostD ? roostD.lg.rotation.y : 0); if (roostD) { roostD.lg.rotation.y = 0; roostD.og.userData.noCollide = true; A && A.latch && A.latch(); for (let i = 1; i <= 24; i++) { roostD.lg.rotation.y = a1 * ease(i / 24); await G.wait(0.04); } roostD.lg.rotation.y = a1; } }
         const dj = new V3(273 - st.pos.x, 0, -212 - st.pos.z).normalize(), tx = clamp(st.pos.x + dj.x * 26, 264, 410), tz = clamp(st.pos.z + dj.z * 26, -320, -216), mx = (tx + st.pos.x) / 2, mz = (tz + st.pos.z) / 2;
         const behind = g => { const dx = g.x - st.pos.x, dz = g.z - st.pos.z, d = Math.hypot(dx, dz) || 1; return { pos: v(clamp(st.pos.x - dx / d * 46, 258, 414), 33, clamp(st.pos.z - dz / d * 46, -324, -216)), look: v(g.x, 33, g.z), fov: 48 }; };       // (from behind him, on her)
-        st.pose = null; st.walkN = 0; st.jumpReq = false; hBroom.visible = hBucket.visible = hGrain.visible = false; G.cut(behind({ x: 273, z: -212 })); await G.fade(false, 0.8);
+        st.pose = S.holding ? { armRx: S.holding === 'broom' ? -0.9 : -1.15, armLx: S.holding === 'broom' ? -0.5 : -1.15, armRz: -0.1, armLz: 0.1 } : null; hBroom.rotation.z = 0; st.walkN = 0; st.jumpReq = false; G.cut(behind({ x: 273, z: -212 })); await G.fade(false, 0.8);
         await walkG([[273, -214], [tx, tz]]); gst.h = Math.atan2(st.pos.x - gst.x, st.pos.z - gst.z); st.heading = Math.atan2(gst.x - st.pos.x, gst.z - st.pos.z); placeGerda(); G.cut(behind(gst));
         const rs = reasons();
         if (out.kind === 'squawk') {
