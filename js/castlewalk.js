@@ -1054,7 +1054,7 @@ function run(G, W, opts) {
       const playRound = () => new Promise(resolve => {
         G.save({ step: 'ch3chorework', chSize: st.s });       // (a save point: the work begins)
         st.chore = { S, H, patches, prints, itm }; st.scene = false; G.mode = 'play'; document.body.classList.remove('cutscene'); st.pose = null; st.camA = 0.15; st.pitch = 0.42; st.zoom = 1; camPos.set(0, 0, 0); st.heading = Math.PI; st.walkN = 0; $('cwObjt').style.display = 'none'; hudEl.style.display = 'block'; S.px = st.pos.x; S.pz = st.pos.z;
-        G.cut({ pos: v(st.pos.x, 30, st.pos.z + 60), look: v(st.pos.x, 10, st.pos.z), fov: 48 });
+        G.cut({ pos: v(st.pos.x + 55, 36, st.pos.z - 10), look: v(st.pos.x, 10, st.pos.z), fov: 48 });
         let prevSweeping = false; const end = kind => { if (S.ended) return; S.ended = true; st.choreTick = null; resolve({ kind, clock: kind === 'time' }); };
         st.choreTick = dt => {
           S.t += dt; const sc = SC * st.s; carrier.scale.setScalar(1 / sc);
@@ -1182,9 +1182,10 @@ function run(G, W, opts) {
       // ── the sequence ──
       places(); resetRoom(); W.paintJack(jackOut, { outfit: 'Day', trousers: 'up', drawers: 'up', expr: 'shy' });
       if (A && A.ctx) A.startMusic({ theme: 'castle' });
+      CAM_BOTH();       // (the camera is in the room before the fade lifts, however the scene was reached)
       await G.fade(false, 1.2);
       if (!skip) {
-        CAM_BOTH(); await G.wait(0.6);
+        await G.wait(0.6);
         await sayW('gerda', 'Seeing as sitting patiently didn’t go so well, I have something to keep you in one place this afternoon. Nothing grand. Just care.');
         await nod(1); await sayW('jack', 'Yes, Gerda.');
         G.cut({ pos: v(276, 36, -230), look: v(320, 10, -270), fov: 46 }); faceG(cushion.x, cushion.z, 0.8);
