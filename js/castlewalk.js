@@ -1252,7 +1252,7 @@ function run(G, W, opts) {
       st.seated = false; for (const q of prints) M.room.remove(q.g); hudEl.style.display = 'none'; dbgEl.style.display = 'none'; $('cwObjt').style.display = 'none'; $('cwPrompt').style.display = 'none'; st.pose = null; st.uiAct = null; hBroom.visible = hBucket.visible = hGrain.visible = false;
     }
     // ── Bath time: in the bathroom, with the door shut. Gerda kneels to take his things off, one at a time; then he is in the water, and she takes a sponge to him. ──
-    async function bathScene() {
+    async function bathScene(from, washPick) {
       const ease = k => k * k * (3 - 2 * k), W3 = (a, b, k) => a + (b - a) * k, tubG = M.items.tub.g, tubP = tubG.position, stoolP = M.items.bathStool.g.position, bath = M.room.userData.bath || {};
       const mk = (w, h, d, col, x, y, z, par) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), root.Farm.plain(col)); m.position.set(x, y, z); par.add(m); return m; };
       G.save({ step: 'ch3bath' });
@@ -1360,6 +1360,9 @@ function run(G, W, opts) {
         await G.fade(true, 0.8); lap.stage.visible = false; stoolG.scale.y = 1; stack.forEach((g, i) => { g.visible = shown[i]; }); gerda.root.visible = true; jackOut.root.visible = true; G.captionOff && G.captionOff();
       };
       const faceJ0 = () => { gst.h = angle(st.pos.x - gst.x, st.pos.z - gst.z); placeGerda(); };
+      const outSign = () => { for (const s of [1, -1]) { bathDoor.lg.rotation.y = s * bathOpen; bathDoor.og.updateMatrixWorld(true); const bb = new THREE.Box3().setFromObject(bathDoor.lg); if ((bb.min.x + bb.max.x) / 2 < bathDoor.fixed) return s; } return 1; };       // (the door swings out into the corridor: in the room it would hang in the camera's way)
+      let lesson = false;
+      if (from !== 'tub') {       // (from the tub, for the scene notes: he is already in the bath, and the door open)
       // ── the undressing: Jack standing, Gerda kneeling before him, the tub behind him. The camera is the player's; nothing else is. ──
       Object.assign(gst, { x: 350, z: -146, h: Math.PI, y: 0, seated: 0, kneel: 0, walk: 0, reach: 0, lreach: 0, bend: 0, look: 0.3, headY: 0, p50: null, hold: 0, alive: 1 }); placeGerda(); root.Blocky.step(gerda, 0);
       st.pos.set(350, 0, -160); st.y = 0; st.heading = 0; st.standY = 0; st.pose = null;
@@ -1403,7 +1406,7 @@ function run(G, W, opts) {
       for (const k of ['heldShorts', 'heldTunic', 'heldDrawers']) props[k].visible = false;
       await sayW('gerda', 'In you get, now. Mind the edge.');
       const watch = () => { gst.h += angDiff(angle(st.pos.x - gst.x, st.pos.z - gst.z), gst.h) * 0.1; placeGerda(); }; G.updaters.push(watch);       // (she watches him wherever he goes)
-      if (bathDoor) { const sg = (() => { for (const s of [1, -1]) { bathDoor.lg.rotation.y = s * bathOpen; bathDoor.og.updateMatrixWorld(true); const bb = new THREE.Box3().setFromObject(bathDoor.lg); if ((bb.min.x + bb.max.x) / 2 < bathDoor.fixed) return s; } return 1; })(); bathDoor.lg.rotation.y = 0; bathDoor.og.userData.noCollide = true; A && A.latch && A.latch(); for (let i = 1; i <= 20; i++) { bathDoor.lg.rotation.y = sg * bathOpen * ease(i / 20); await G.wait(0.04); } }       // (the door stands open: it is for him to go through, if he is minded to)       // (the door swings out into the corridor: in the room it would hang in the camera's way)
+      if (bathDoor) { const sg = outSign(); bathDoor.lg.rotation.y = 0; bathDoor.og.userData.noCollide = true; A && A.latch && A.latch(); for (let i = 1; i <= 20; i++) { bathDoor.lg.rotation.y = sg * bathOpen * ease(i / 20); await G.wait(0.04); } }       // (the door stands open: it is for him to go through, if he is minded to)       // (the door swings out into the corridor: in the room it would hang in the camera's way)
       const COVER = { armLx: -0.55, armRx: -0.55, armLz: -0.5, armRz: 0.5, elbowL: -0.2, elbowR: -0.2, torso: 0.2, neckX: 0.4 };       // (his hands go low, in front of him, if he goes out of the room like this)
       st.pose = null; st.frozen = false; st.fz = null; st.walkN = 0; st.vy = 0; st.jumpReq = st.actReq = st.putReq = false; for (const k in keys) keys[k] = false; stick.x = stick.y = 0;
       $('cwObjt').textContent = 'Get into the bath.'; $('cwObjt').style.display = 'block';
@@ -1415,7 +1418,6 @@ function run(G, W, opts) {
         if (st.pos.x < 300 && st.pos.z > bathDoor.c - 14 && st.pos.z < bathDoor.c + 14) { st.choreTick = null; resolve('run'); } }; });
       st.choreTick = null; $('cwPrompt').style.display = 'none'; $('cwObjt').style.display = 'none'; st.uiAct = null; st.uiDrop = false;
       st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); st.walkN = 0; st.jumpReq = st.actReq = st.putReq = false; for (const k in keys) keys[k] = false; stick.x = stick.y = 0;
-      let lesson = false;
       if (where === 'run') {
         // ── out of the door, and she is after him ──
         G.updaters = G.updaters.filter(u => u !== watch); G.caption('gerda', 'Jack!');
@@ -1438,6 +1440,7 @@ function run(G, W, opts) {
         lesson = true; await bathDiscipline();
       }
       G.updaters = G.updaters.filter(u => u !== watch);
+      } else if (bathDoor) { bathDoor.lg.rotation.y = outSign() * bathOpen; bathDoor.og.userData.noCollide = true; }
       // ── in the bath, a cutscene: she leaves him to wash, he lies back and thinks, and she comes back with his nightclothes ──
       await G.fade(true, 0.9);
       for (const k of ['heldShorts', 'heldTunic', 'heldDrawers']) props[k].visible = false;
@@ -1489,7 +1492,7 @@ function run(G, W, opts) {
       await G.wait(0.6);
       // what he does with the time she has given him
       camWide();
-      const washed = (await G.choose('jack', ['I’ll just lie here a little longer.', 'I had better wash properly, as I was told.'])) === 1;
+      const washed = (washPick !== undefined ? washPick : await G.choose('jack', ['I’ll just lie here a little longer.', 'I had better wash properly, as I was told.'])) === 1;
       if (washed) {
         await sayW('jack', 'I had better wash properly, as I was told.');
         camFace(); await tw({ torso: 0.1, neckX: 0.2, armLz: 0.2, armRz: -0.2 }, 0.9, 0, 0);
@@ -1648,7 +1651,7 @@ function run(G, W, opts) {
     if (ch3) { if (opts.ch3start === 'nursery') { makeG('Work'); gerda.root.visible = false; st.s = 0.35; st.pos.set(-294, 0, -172); st.heading = Math.PI; st.camA = Math.atan2(-Math.cos(st.heading), -Math.sin(st.heading)); st.pitch = 0.45; st.zoom = 1; camPos.set(0, 0, 0); G.skipping = false; st.scene = false; st.pose = null; $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); f.style.transition = ''; await G.fade(false, 1.0); return; }
       if (opts.ch3dress) { st.scene = true; st.s = 0.7; makeG('Work'); G.gerdaNamed = true; G.mode = 'cutscene'; if (A && A.ctx && !opts.ch3notes) A.startMusic({ theme: 'castle' }); await dressScene(); await choreScene(); await bathScene(); await finish('bath'); return; }
       if (opts.ch3chores) { st.scene = true; st.s = opts.chSize || 0.98; makeG('Work'); G.gerdaNamed = true; G.mode = 'cutscene'; await choreScene(!!opts.ch3chorework); await bathScene(); await finish('bath'); return; }
-      if (opts.ch3bath) { st.scene = true; st.s = opts.chSize || 0.98; makeG('Work'); G.gerdaNamed = true; G.mode = 'cutscene'; await bathScene(); await finish('bath'); return; }
+      if (opts.ch3bath) { st.scene = true; st.s = opts.chSize || 0.98; makeG('Work'); G.gerdaNamed = true; G.mode = 'cutscene'; await bathScene(opts.bathFrom, opts.bathWash); await finish('bath'); return; }
       if (opts.ch3disc) { st.scene = true; st.s = 0.5; makeG('Work'); st.pos.set(-294, 0, -172); G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; if (A && A.ctx && !opts.ch3notes) A.startMusic({ theme: 'nursery' }); await disciplineScene(opts.ch3lies || 0); return; }       // (the correction is a scene of its own, after the one in which he is put across her knee)
       if (opts.ch3notes === 'close') { st.scene = true; st.s = 0.4; makeG('Work'); gerda.root.visible = false; const cg = M.items.chest.g.position; st.pos.set(cg.x - 12, 0, cg.z + 10); st.heading = Math.PI / 2; $('cwPanel').style.display = 'none'; await chestScene(); return; } await ch3Open(); return; }
     if (!story) { G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); f.style.transition = ''; await G.fade(false, 1.2); return; }
