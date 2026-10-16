@@ -134,7 +134,7 @@ function playLoop(G, W, M) {
     // Input.
     const KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right', Shift: 'run' };
     const kd = e => { if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return; const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); }
-      if (e.key === ' ') e.preventDefault(); if (e.repeat) return; if (e.key === 'c' || e.key === 'C' || e.key === 'x' || e.key === 'X') toggleSneak(); if (e.key === 'e' || e.key === 'E') interact(); if (e.key === 'q' || e.key === 'Q') drop(); if (e.key === ' ') st.jumpReq = true; if (e.key === 'v' || e.key === 'V') cycleZoom(); };
+      if (e.key === ' ') e.preventDefault(); if (e.repeat) return; if (e.key === 'c' || e.key === 'C' || e.key === 'x' || e.key === 'X') toggleSneak(); if (e.key === 'e' || e.key === 'E') interact(); if (e.key === 'q' || e.key === 'Q') take(); if (e.key === ' ') st.jumpReq = true; if (e.key === 'v' || e.key === 'V') cycleZoom(); };
     const ku = e => { const k = KM[e.key]; if (k) keys[k] = false; };
     root.addEventListener('keydown', kd); root.addEventListener('keyup', ku);
     const drags = new Map(), el = G.renderer.domElement;
@@ -146,15 +146,19 @@ function playLoop(G, W, M) {
     function setSneak(on) { st.sneak = on; tu.setSneak(on); if (on && tu.run) tu.setRun(false); toast(on ? 'Sneaking: slow and quiet.' : 'Walking.'); }              // (the C key and the on-screen Sneak button share this)
     function toggleSneak() { setSneak(!st.sneak); }
     ui.tu = tu; camIcon();
-    tu.on.cam = () => cycleZoom(); tu.on.jump = () => { st.jumpReq = true; }; tu.on.act = () => interact(); tu.on.drop = () => drop(); tu.on.sneak = on => { st.sneak = on; toast(on ? 'Sneaking: slow and quiet.' : 'Walking.'); };
+    tu.on.cam = () => cycleZoom(); tu.on.jump = () => { st.jumpReq = true; }; tu.on.act = () => interact(); tu.on.drop = () => take(); tu.on.sneak = on => { st.sneak = on; toast(on ? 'Sneaking: slow and quiet.' : 'Walking.'); };
     const findBar = () => OBJECTS.find(o => o.climb && st.y < o.top - 1 && inBox(o, st.pos.x, st.pos.z, 9) && Math.cos(st.heading) * ((o.z0 + o.z1) / 2 - st.pos.z) + Math.sin(st.heading) * ((o.x0 + o.x1) / 2 - st.pos.x) > 0);   // (the barrel Jack is beside and facing)
     const toast = (t, ms = 3200) => { ui.toast.textContent = root.Tips.clean(t); ui.toast.style.opacity = 1; st.toastAt = performance.now() + ms; };
     const near = (p, r) => Math.hypot(st.pos.x - p.x, st.pos.z - p.z) < r;
 
-    function interact() {
-      if (st.attached) return;
+    function take() {                                                                                   // Q: take the lead (off its hook, or from where it was dropped), or put it down
+      if (st.attached) return; if (st.hasLead) { drop(); return; }
       if (!st.hasLead && hanging.visible && near(LEADSPOT, 20)) { st.hasLead = true; ja.lead = true; held.visible = true; hanging.visible = false; toast('You take the lead off its hook.'); return; }
       if (!st.hasLead && st.leadDropped && Math.hypot(st.pos.x - dropped.position.x, st.pos.z - dropped.position.z) < 18) { st.hasLead = true; st.leadDropped = false; ja.lead = true; held.visible = true; dropped.visible = false; toast('You pick the lead up.'); return; }
+      toast('Nothing to take here.');
+    }
+    function interact() {                                                                                // E: the action: put the lead on her
+      if (st.attached) return;
       const d = cowGap(st.pos.x, st.pos.z, cow);
       if (st.hasLead && d < 16) {
         if (cow.trust >= 99.5 && cow.mode !== 'flee') attach();
@@ -252,7 +256,7 @@ function playLoop(G, W, M) {
       ui.obj.textContent = root.Tips.clean(!st.hasLead ? 'Fetch the cow’s lead from the cowshed.' : cow.trust >= 99.5 ? 'Put the lead on Milky-White (E).' : 'Win Milky-White’s trust, gently: sneak (C) up and wait beside her.');
       ui.trustWrap.style.display = near_ ? 'block' : 'none'; ui.trustBar.style.width = cow.trust + '%'; ui.trustVal.textContent = Math.round(cow.trust) + '%'; ui.trustBar.classList.toggle('full', cow.trust >= 99.5);
       ui.pace.textContent = pace + (st.speedN > ALARM && d < 44 && cow.mode !== 'calm' ? ' — too fast near her!' : ''); ui.pace.classList.toggle('warn', st.speedN > ALARM && d < 44);
-      const h = !st.hasLead && (hanging.visible && near(LEADSPOT, 20) || st.leadDropped && Math.hypot(st.pos.x - dropped.position.x, st.pos.z - dropped.position.z) < 18) ? 'E: take the lead' : st.hasLead && gap < 16 ? (cow.trust >= 99.5 ? 'E: put the lead on her' : 'She is still jumpy. Stay slow, stay close.') : '';
+      const h = !st.hasLead && (hanging.visible && near(LEADSPOT, 20) || st.leadDropped && Math.hypot(st.pos.x - dropped.position.x, st.pos.z - dropped.position.z) < 18) ? 'Q: take the lead' : st.hasLead && gap < 16 ? (cow.trust >= 99.5 ? 'E: put the lead on her' : 'She is still jumpy. Stay slow, stay close.') : '';
       const h2 = h || (st.hasLead && !st.attached ? (near(LEADSPOT, 24) && st.y < 16 ? 'Q: hang the lead back up' : 'Q: drop the lead') : '');
       ui.hint.textContent = h2; ui.hint.style.display = h2 ? 'block' : 'none';
       if (st.toastAt && performance.now() > st.toastAt) { ui.toast.style.opacity = 0; st.toastAt = 0; }
@@ -260,8 +264,8 @@ function playLoop(G, W, M) {
       { const bar = !st.climb && st.grounded && findBar(), ground = st.grounded && !st.climb && !st.attached;
         tu.set('jump', bar ? { label: 'Climb', icon: 'climb', enabled: ground } : { label: 'Jump', icon: 'jump', enabled: ground });
         const lead = !st.hasLead && hanging.visible && near(LEADSPOT, 20), dropd = !st.hasLead && st.leadDropped && Math.hypot(st.pos.x - dropped.position.x, st.pos.z - dropped.position.z) < 18;
-        tu.set('act', st.attached ? { label: 'Do', enabled: false } : lead ? { label: 'Take', enabled: true } : dropd ? { label: 'Pick up', enabled: true } : st.hasLead && gap < 16 ? { label: 'Use', enabled: true } : { label: 'Do', enabled: false });
-        tu.set('drop', { label: st.hasLead && near(LEADSPOT, 24) && st.y < 16 ? 'Hang up' : 'Drop', enabled: st.hasLead && !st.attached }); }
+        tu.set('act', !st.attached && st.hasLead && gap < 16 ? { label: 'Use', enabled: true } : { label: 'Do', enabled: false });
+        tu.set('drop', { label: st.hasLead ? (near(LEADSPOT, 24) && st.y < 16 ? 'Hang up' : 'Put down') : 'Take', enabled: !st.attached && (st.hasLead || lead || dropd) }); }
     };
     st.scolds = 0; st.scoldAt = 0;
     M.play = { st, cow, interact, toggleSneak, cycleZoom, drop };                                                                       // (for the tests)

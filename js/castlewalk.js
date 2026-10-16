@@ -135,7 +135,7 @@ function run(G, W, opts) {
     function storyTick(dt) {
       const Hj = HEIGHT * SC * st.s, pr = promptEl(); let text = '';
       { const lp = pantryG.worldToLocal(new V3(st.pos.x, st.y, st.pos.z)); st.inCup = Math.abs(lp.x) < 11.6 && lp.z > -6.2 && lp.z < 6.4 && lp.y > -1 && lp.y < 22; }               // (inside the cupboard its walls and doors hold the camera in)
-      st.uiAct = null; st.uiDrop = false;
+      st.uiAct = null; st.uiDrop = false; st.uiDropLabel = null;
       if (st.hiding) { pr.style.display = 'none'; return; }
       if (st.busy) { pr.style.display = 'none'; st.actReq = st.putReq = false; return; }                          // (he is saying what he has to say: nothing else can be touched until it is said)
       const onTable = st.y >= 25.3 && Math.abs(st.pos.x - tableG.position.x) <= 25 && Math.abs(st.pos.z - tableG.position.z) <= 13;
@@ -143,15 +143,16 @@ function run(G, W, opts) {
       if (st.tMount && !st.alarm) { const el = (performance.now() - st.tMount) / 1000; if ((st.loafTaken && el >= 50) || el >= 110) alarm(); }
       const act = st.actReq, put = st.putReq; st.actReq = st.putReq = false;
       if (st.held) {                                                                                       // a crumb in his hand: eat it, or put it back
-        text = 'E \u2014 eat it     Q \u2014 put it back'; st.uiAct = 'Eat'; st.uiDrop = true;
+        text = 'E \u2014 eat it     Q \u2014 put it back'; st.uiAct = 'Eat'; st.uiDrop = true; st.uiDropLabel = 'Put back';
         if (act) { st.eaten++; const k = st.held; st.held = null; const mm = say(st.eaten === 1 ? 'Mm. Sorry. It was only a crumb.' : 'Mm.'); if (st.eaten >= 4) { st.busy = true; mm.then(() => say('That barely touched it... I’m still hungry.')).then(() => { st.loafReady = true; st.busy = false; }); } }
         else if (put) { st.held.o.visible = true; st.held = null; say('No. Better to leave it where it was.'); }
       } else {
         let best = null, bd = 1e9;
         for (const t of things) { if (t.kind === 'crumb' && !t.o.visible) continue; const dx = t.pos.x - st.pos.x, dz = t.pos.z - st.pos.z, d = Math.hypot(dx, dz); if (d < (t.kind === 'crumb' ? 1.7 : 3.4) * Hj && Math.abs(t.pos.y - st.y) < 1.4 * Hj && d < bd) { best = t; bd = d; } }
         if (best) {
-          st.uiAct = best.kind === 'crumb' ? 'Pick up' : best.kind === 'loaf' ? (st.loafReady ? 'Take' : 'Look') : 'Look';
-          text = best.kind === 'crumb' ? 'E \u2014 pick up the crumb' : best.kind === 'loaf' ? (st.loafReady ? 'E \u2014 take a crumb of the loaf' : 'E \u2014 look at the loaf') : 'E \u2014 look';
+          st.uiAct = best.kind === 'crumb' ? null : best.kind === 'loaf' ? (st.loafReady ? 'Take' : 'Look') : 'Look'; if (best.kind === 'crumb') { st.uiDrop = true; st.uiDropLabel = 'Pick up'; }
+          text = best.kind === 'crumb' ? 'Q \u2014 pick up the crumb' : best.kind === 'loaf' ? (st.loafReady ? 'E \u2014 take a crumb of the loaf' : 'E \u2014 look at the loaf') : 'E \u2014 look';
+          if (put && best.kind === 'crumb') { best.o.visible = false; st.held = best; if (!st.firstCrumb) { st.firstCrumb = true; say('Should I? It isn’t mine... it doesn’t belong to me.'); } }
           if (act) {
             if (best.kind === 'look') say(best.text);
             else if (best.kind === 'crumb') { best.o.visible = false; st.held = best; if (!st.firstCrumb) { st.firstCrumb = true; say('Should I? It isn’t mine... it doesn’t belong to me.'); } }
@@ -438,7 +439,7 @@ function run(G, W, opts) {
         else if (!cb && !busy && st.y <= gy + 0.01 && downReady()) ui.set('jump', { label: 'Climb', icon: 'climb', enabled: true });
         else if (cb) ui.set('jump', cb.gap <= 0.75 * Hj ? { label: 'Pull up', icon: 'pull', enabled: true } : { label: 'Climb', icon: 'climb', enabled: true });
         else ui.set('jump', { label: 'Jump', icon: 'jump', enabled: st.y <= gy + 0.01 });
-        ui.set('act', st.uiAct ? { label: st.uiAct, enabled: true } : { label: 'Do', enabled: false }); ui.set('drop', { label: st.held ? 'Put back' : 'Drop', enabled: !!st.uiDrop }); }
+        ui.set('act', st.uiAct ? { label: st.uiAct, enabled: true } : { label: 'Do', enabled: false }); ui.set('drop', { label: st.uiDropLabel || (st.held ? 'Put back' : 'Drop'), enabled: !!st.uiDrop }); }
       if (st.frozen && !st.scene) { ui.set('jump', { label: 'Jump', icon: 'jump', enabled: false }); ui.set('drop', { label: 'Drop', enabled: false }); ui.set('run', { enabled: false }); ui.set('sneak', { enabled: false }); }
       if ((st.frozen || st.seated) && st.fz) { st.y = st.fz.y; st.vy = 0; st.standY = st.fz.y; st.pos.x = st.fz.x; st.pos.z = st.fz.z; }       // (being dressed: he stands where he was put, on the table, whatever is under him)
       st.air = !st.cl && !st.mant && (st.vy > 1 || st.y > gy + 0.5 * s); if (!st.air && !st.cl && !st.mant) st.stam = 1;
@@ -1078,21 +1079,24 @@ function run(G, W, opts) {
           updateHen(dt);
           if (H.trust >= 100 && H.mode === 'rest' && !S.chores.trust) { S.chores.trust = true; toast('The hen settles on her cushion, and lets you near. ✔', 3000); }
           if (H.trust < 100 && S.chores.trust && H.mode !== 'rest') S.chores.trust = false;
-          // E: the nearest thing he can do; Q: put down what he holds, or shut the bin
-          const act = st.actReq, put = st.putReq; st.actReq = st.putReq = false; const pr = promptEl(); let best = null;
-          if (put && S.holding && !S.sitting) drop(); else if (put && S.binOpen && !S.holding && dist(binP) < 30) closeBin();
-          let fb = null; const fallback = (label, fn) => { fb = { d: 1e9, label, fn }; };       // (what he does when there is nothing nearer to do)
-          const add = (p, r, label, fn) => { const d = dist(p); if (d < r && (!best || d < best.d)) best = { d, label, fn }; };
-          if (S.sitting) add(chairP, 400, 'Stand up', standUp);
+          // E: an action (the nearest); Q: take up or put down
+          const act = st.actReq, put = st.putReq; st.actReq = st.putReq = false; const pr = promptEl(); let bE = null, bQ = null, fE = null, fQ = null;
+          const addE = (p, r, label, fn) => { const d = dist(p); if (d < r && (!bE || d < bE.d)) bE = { d, label, fn }; }, addQ = (p, r, label, fn) => { const d = dist(p); if (d < r && (!bQ || d < bQ.d)) bQ = { d, label, fn }; };
+          if (S.sitting) addE(chairP, 400, 'Stand up', standUp);
           else {
-            if (!S.holding) { for (const nm of ['broom', 'bucket']) add(itemPos(nm), nm === 'broom' && itm.broom.where === 'home' ? 28 : 24, 'Take the ' + nm, () => { setHeld(nm); S.water = 0; }); add(binP, 26, S.binOpen ? 'Scoop grain' : 'Open the bin', S.binOpen ? scoop : openBin); add(chairP, 26, 'Sit on the chair', sit); }
-            if (S.holding === 'broom') { add(rackP, 28, 'Hang up the broom', () => putHome('broom')); fallback('Sweep', () => { S.stroke = 0.9; }); }
-            if (S.holding === 'bucket') { add(wellP, 32, S.water < BUCKET ? 'Fill the bucket' : 'Full', () => { if (S.water < BUCKET) { S.water = BUCKET; S.spillAcc = 0; toast('You fill the bucket. Walk, so that it does not slop.', 2600); } }); if (S.water > 0) add(troughP, 34, 'Pour into the trough', pour); add(buckP, 24, 'Put the bucket back', () => { if (S.water > 0) dumpWater('Putting it back full'); putHome('bucket'); }); if (S.water > 0) fallback('Pour it out', () => dumpWater('Pouring the water out')); }
-            if (S.holding === 'grain') { add(dishP, 22, 'Fill the dish', () => { if (Math.hypot(H.pos.x - dishP.x, H.pos.z - dishP.z) < 9) { toast('The hen is in the way of the dish.', 2400); return; } gp('henDish').userData.grain.visible = true; setHeld(null); S.chores.dish = true; toast('You fill her dish with grain. ✔', 2600); }); add(binP, 26, 'Tip it back', () => setHeld(null)); }
+            if (!S.holding) { for (const nm of ['broom', 'bucket']) addQ(itemPos(nm), nm === 'broom' && itm.broom.where === 'home' ? 28 : 24, 'Take the ' + nm, () => { setHeld(nm); S.water = 0; }); if (S.binOpen) addQ(binP, 26, 'Scoop grain', scoop); }
+            else { if (S.holding === 'broom') addQ(rackP, 28, 'Hang up the broom', () => putHome('broom')); if (S.holding === 'bucket') addQ(buckP, 24, 'Put the bucket back', () => { if (S.water > 0) dumpWater('Putting it back full'); putHome('bucket'); }); if (S.holding === 'grain') addQ(binP, 26, 'Tip it back', () => setHeld(null)); fQ = { d: 1e9, label: 'Put it down', fn: drop }; }
+            addE(binP, 26, S.binOpen ? 'Close the bin' : 'Open the bin', S.binOpen ? closeBin : openBin);
+            if (!S.holding) addE(chairP, 26, 'Sit on the chair', sit);
+            if (S.holding === 'broom') fE = { d: 1e9, label: 'Sweep', fn: () => { S.stroke = 0.9; } };
+            if (S.holding === 'bucket') { addE(wellP, 32, S.water < BUCKET ? 'Fill the bucket' : 'Full', () => { if (S.water < BUCKET) { S.water = BUCKET; S.spillAcc = 0; toast('You fill the bucket. Walk, so that it does not slop.', 2600); } }); if (S.water > 0) addE(troughP, 34, 'Pour into the trough', pour); if (S.water > 0) fE = { d: 1e9, label: 'Pour it out', fn: () => dumpWater('Pouring the water out') }; }
+            if (S.holding === 'grain') addE(dishP, 22, 'Fill the dish', () => { if (Math.hypot(H.pos.x - dishP.x, H.pos.z - dishP.z) < 9) { toast('The hen is in the way of the dish.', 2400); return; } gp('henDish').userData.grain.visible = true; setHeld(null); S.chores.dish = true; toast('You fill her dish with grain. ✔', 2600); });
+            if (S.holding !== 'broom' && !S.scooping) addE(H.pos, 30, 'Speak softly', soothe);       // (and not while he sweeps)
           }
-          if (!S.scooping) add(H.pos, 30, 'Speak softly', soothe);
-          if (!best && fb) best = fb;
-          if (best && !S.scooping) { pr.textContent = 'E — ' + best.label; pr.style.display = 'block'; st.uiAct = best.label; st.uiDrop = (S.holding || (S.binOpen && dist(binP) < 30)) ? true : false; if (act) best.fn(); } else { pr.style.display = 'none'; st.uiAct = null; st.uiDrop = false; }
+          if (!bE && fE) bE = fE; if (!bQ && fQ) bQ = fQ;
+          if (S.scooping) bE = bQ = null;
+          if (act && bE) bE.fn(); if (put && bQ) bQ.fn();
+          { const t = [bE ? 'E \u2014 ' + bE.label : '', bQ ? 'Q \u2014 ' + bQ.label : ''].filter(Boolean).join('     '); if (t) { pr.textContent = t; pr.style.display = 'block'; } else pr.style.display = 'none'; st.uiAct = bE ? bE.label : null; st.uiDrop = !!bQ; st.uiDropLabel = bQ ? (S.holding ? 'Put down' : 'Take') : null; }
           $('cwTrustV').textContent = Math.round(H.trust) + '%'; $('cwTrustB').style.width = H.trust + '%';
           // how the round ends: the hen left squawking, everything done (and a few moments to be sure), or the clock
           const done = ['sweep', 'dish', 'water', 'trust'].every(c => S.chores[c]); if (done && !S.doneAt) S.doneAt = S.t; if (!done) S.doneAt = 0;
