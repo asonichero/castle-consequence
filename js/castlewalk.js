@@ -1687,6 +1687,36 @@ function run(G, W, opts) {
       st.wait = null; sponge.visible = false; st.pose = null; gst.kneel = 0; gst.y = 0; if (tubG.userData.steam) tubG.userData.steam.on = false;
       G.updaters = G.updaters.filter(u => u !== flick); if (Lg.candle) Lg.candle.intensity = 0; if (Lg.fill) Lg.fill.intensity = 0; if (lsave) { Lg.hemi.intensity = lsave.hi; Lg.hemi.color.setHex(lsave.hc); Lg.hemi.groundColor.setHex(lsave.gc); } for (const [l, i] of lampSave) l.intensity = i;
     }
+    // ═══ Chapter Four, waking: he opens his eyes in the nursery cot, at dawn, from the dream of home ═══
+    async function wakeScene() {
+      const Lg = M.room.userData.lights || {}, ease = k => k * k * (3 - 2 * k), W3 = (a, b, k) => a + (b - a) * k;
+      const mk = (w, h, d, col, x, y, z, par) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), root.Farm.plain(col)); m.position.set(x, y, z); par.add(m); return m; };
+      const npaint = o => W.paintJack(jackOut, Object.assign({ outfit: 'Night', trousers: 'up', drawers: 'up' }, o));
+      const cot = M.items.cot.g, cth = cot.rotation.y, cs = Math.sin(cth), cc = Math.cos(cth), cW = (x, z) => [cot.position.x + x * cc + z * cs, cot.position.z - x * cs + z * cc];
+      const headDir = new V3(-cc, 0, cs), upV = new V3(0, 1, 0), X = new V3().crossVectors(headDir, upV).normalize(), lieQ = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, headDir, upV));
+      const Lj = 31 * SC * st.s, pillow = cW(-13, 0), feet = new V3(pillow[0] - headDir.x * (Lj - 4 * SC * st.s), 13.2, pillow[1] - headDir.z * (Lj - 4 * SC * st.s));
+      const quilt = new THREE.Group(); quilt.position.set(cot.position.x, 15.7, cot.position.z); quilt.rotation.y = cth; scene.add(quilt); mk(24, 1.3, 21, '#cfc4a8', 5, 0, 0, quilt); mk(24, 0.4, 21.6, '#8f6a8a', 5, 0.7, 0, quilt);
+      for (const l of (Lg.all || [])) if (l !== Lg.candle && l !== Lg.fill) l.intensity = 0.06;
+      const lampAt = (x, z) => (Lg.all || []).find(l => Math.abs(l.position.x - x) < 3 && Math.abs(l.position.z - z) < 3), nl = lampAt(-215, -205); if (nl) nl.intensity = 0.35;       // (the nursery's, low)
+      const bg0 = scene.background; scene.background = new THREE.Color(0xe9bf94);
+      if (Lg.hemi) { Lg.hemi.intensity = 0.6; Lg.hemi.color.setHex(0xffd8b0); Lg.hemi.groundColor.setHex(0x7a6a60); }
+      jackOut.root.visible = true; scene.attach(jackOut.root); st.scene = true; st.frozen = false; st.fz = null; st.boxed = true; st.inHand = false; st.air = false; st.cl = null; st.mant = null; st.vy = 0; st.walkN = 0; st.choreTick = null; st.s = 0.7;
+      jackOut.root.scale.setScalar(SC * st.s); jackOut.root.position.copy(feet); jackOut.root.quaternion.copy(lieQ);
+      st.pose = { legLz: 0, legRz: 0, legLy: 0, legRy: 0, legLx: 0, legRx: 0, kneeL: 0, kneeR: 0, armLx: 0, armRx: 0, armLz: 0.1, armRz: -0.1, torso: 0, neckX: 0.1, elbowL: 0, elbowR: 0, neckY: 0 };
+      npaint({ expr: 'squint' }); G.mode = 'cutscene'; document.body.classList.add('cutscene');
+      const fd = $('fade'); fd.style.transition = 'none'; fd.style.opacity = 1; void fd.offsetWidth; fd.style.transition = '';
+      G.cut({ pos: v(-141.3, 47, -256.5), look: v(-131.3, 14.3, -275.9), fov: 34 }); if (A && A.ctx) A.startMusic({ theme: 'nursery' });
+      await G.fade(false, 2.4); await G.wait(1.2);
+      for (let i = 1; i <= 24; i++) { st.pose.neckY = 0.25 * Math.sin(i * 0.4); st.pose.neckX = 0.1 + 0.05 * Math.sin(i * 0.3); await G.wait(0.05); }       // (restless, then still)
+      npaint({ expr: 'wince' }); await sayW('jack', 'Mother…'); await G.wait(0.6);
+      npaint({ expr: 'shy' }); st.pose.neckY = 0; await G.wait(0.8);
+      G.cut({ pos: v(pillow[0] + 24, 26, pillow[1] - 8), look: v(pillow[0], 13, pillow[1]), fov: 36 });
+      await sayW('jack', 'It was only a dream. It was only a dream.'); await G.wait(0.4);
+      await sayW('jack', 'But she was right. I cannot go home with nothing in my hands.');
+      await sayW('jack', 'Not again.');
+      await G.wait(0.8);
+      scene.background = bg0;
+    }
     function ch3Tick(dt) {
       if (st.guard && !st.frozen) st.guard();       // (the way to the roost: some places he is kept from)
       if (st.choreTick && !st.scene) { st.choreTick(dt); return; }       // (the hen's room: the chores are played in their own tick)
@@ -1786,6 +1816,7 @@ function run(G, W, opts) {
     if (ch3) { if (opts.ch3start === 'nursery') { makeG('Work'); gerda.root.visible = false; st.s = 0.35; st.pos.set(-294, 0, -172); st.heading = Math.PI; st.camA = Math.atan2(-Math.cos(st.heading), -Math.sin(st.heading)); st.pitch = 0.45; st.zoom = 1; camPos.set(0, 0, 0); G.skipping = false; st.scene = false; st.pose = null; $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); f.style.transition = ''; await G.fade(false, 1.0); return; }
       if (opts.ch3dress) { st.scene = true; st.s = 0.7; makeG('Work'); G.gerdaNamed = true; G.mode = 'cutscene'; if (A && A.ctx && !opts.ch3notes) A.startMusic({ theme: 'castle' }); await dressScene(); await choreScene(); await bathScene(); await finish('bed'); return; }
       if (opts.ch3chores) { st.scene = true; st.s = opts.chSize || 0.98; makeG('Work'); G.gerdaNamed = true; G.mode = 'cutscene'; await choreScene(!!opts.ch3chorework); await bathScene(); await finish('bed'); return; }
+      if (opts.ch4wake) { st.scene = true; st.s = 0.7; makeG('Work'); gerda.root.visible = false; G.gerdaNamed = true; $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; await wakeScene(); await finish('wake'); return; }
       if (opts.ch3bath) { st.scene = true; st.s = opts.chSize || 0.98; makeG('Work'); G.gerdaNamed = true; G.mode = 'cutscene'; await bathScene(opts.bathFrom, opts.bathWash, opts.bedTier); await finish('bed'); return; }
       if (opts.ch3disc) { st.scene = true; st.s = 0.5; makeG('Work'); st.pos.set(-294, 0, -172); G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; if (A && A.ctx && !opts.ch3notes) A.startMusic({ theme: 'nursery' }); await disciplineScene(opts.ch3lies || 0); return; }       // (the correction is a scene of its own, after the one in which he is put across her knee)
       if (opts.ch3notes === 'close') { st.scene = true; st.s = 0.4; makeG('Work'); gerda.root.visible = false; const cg = M.items.chest.g.position; st.pos.set(cg.x - 12, 0, cg.z + 10); st.heading = Math.PI / 2; $('cwPanel').style.display = 'none'; await chestScene(); return; } await ch3Open(); return; }

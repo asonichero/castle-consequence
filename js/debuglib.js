@@ -13,7 +13,7 @@ const LIB = {
   ],
   parts: ['pose-editor-fist.html', 'pose-editor-half.html'],       // (the two halves of the pose editor)
   data: ['js/capture-cams.js', 'js/castle-layout.js', 'js/farm-layout.js', 'js/gerda-pose.js', 'js/gerda-pose-half.js', 'js/lap-poses.js'],
-  files: ['js/game.js', 'js/menus.js', 'js/debuglib.js', 'js/buildbadge.js', 'js/blocky.js', 'js/cast.js', 'js/audio.js', 'js/pain.js', 'js/farm.js', 'js/opening.js', 'js/touchui.js', 'js/market.js', 'js/road.js', 'js/night.js', 'js/correction.js', 'js/garden.js',
+  files: ['js/game.js', 'js/menus.js', 'js/debuglib.js', 'js/buildbadge.js', 'js/blocky.js', 'js/cast.js', 'js/audio.js', 'js/pain.js', 'js/farm.js', 'js/opening.js', 'js/touchui.js', 'js/market.js', 'js/road.js', 'js/night.js', 'js/correction.js', 'js/chapter4.js', 'js/garden.js',
     'js/chapter3.js', 'js/climb.js', 'js/meadow.js', 'js/castle.js', 'js/castlewalk.js', 'js/lap.js', 'js/level.js'],
 };
 (typeof window !== 'undefined' ? window : globalThis).DebugLib = LIB;
