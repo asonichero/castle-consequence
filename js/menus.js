@@ -121,7 +121,7 @@ async function playCastle(story, extra) {
 // Chapter Three, The Measure of a Man: it opens in the kitchen, with Jack in the box on the table, at a quarter of his size.
 async function ch3Scene(W, extra) { if (root.CastleWalk) { G.save({ step: 'ch3' }); await root.CastleWalk.run(G, W, Object.assign({ ch3: true, scale: 0.25 }, extra || {})); if (G.castleResult === 'discipline') { await root.CastleWalk.run(G, W, { ch3: true, ch3disc: true, ch3lies: G.ch3lies || 0 }); } await afterCh3(W); showEnd(); } }
 // Chapter Four, The Golden Egg: it opens on the dream of home, and he wakes from it in the nursery.
-async function ch4Dream(W, opts) { if (!root.Dream) return; G.save({ step: 'ch4' }); await root.Dream.run(G, W, opts); await root.CastleWalk.run(G, W, { ch3: true, ch4wake: true }); }
+async function ch4Dream(W, opts) { if (!root.Dream) return; G.skipping = false; G.save({ step: 'ch4' }); await root.Dream.run(G, W, opts); await root.CastleWalk.run(G, W, { ch3: true, ch4wake: true }); }
 const afterCh3 = async W => { if (G.castleResult === 'bed') { await titleCard('Four', 'The Golden Egg'); await ch4Dream(W); } };       // (what follows the night in the nursery)
 async function playCh4(opts) {
   G.skipping = false; hideAll(); $('dev').style.display = 'none'; wake(); G.mode = 'cutscene';

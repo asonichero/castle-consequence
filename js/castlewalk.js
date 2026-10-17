@@ -1689,6 +1689,7 @@ function run(G, W, opts) {
     }
     // ═══ Chapter Four, waking: he opens his eyes in the nursery cot, at dawn, from the dream of home ═══
     async function wakeScene() {
+      G.skipping = false;
       const Lg = M.room.userData.lights || {}, ease = k => k * k * (3 - 2 * k), W3 = (a, b, k) => a + (b - a) * k;
       const mk = (w, h, d, col, x, y, z, par) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), root.Farm.plain(col)); m.position.set(x, y, z); par.add(m); return m; };
       const npaint = o => W.paintJack(jackOut, Object.assign({ outfit: 'Night', trousers: 'up', drawers: 'up' }, o));
