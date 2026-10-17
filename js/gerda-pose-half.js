@@ -1,4 +1,4 @@
-// Climbing Toward Consequence — how Gerda holds Jack at half his size: carried upright between her hands, across her knee, Jack reaching back for his knife, his wrist held behind him, and the two of them standing hand in hand. Written by pose-editor-half.html (Copy pose): paste it over this file. Jack's place is in Gerda's own frame (her feet at the origin, facing +z).
+// Climbing Toward Consequence — how Gerda holds Jack at half his size: carried upright between her hands, across her knee, Jack reaching back for his knife, his wrist held behind him, the two of them standing hand in hand, and Jack asleep in her arms. Written by pose-editor-half.html (Copy pose): paste it over this file. Jack's place is in Gerda's own frame (her feet at the origin, facing +z).
 (function (root) {
 'use strict';
 root.GerdaHold50 = {
@@ -24,6 +24,12 @@ root.GerdaHold50 = {
     "gerda": { "hipsY": 6, "torsoX": 0.05, "torsoY": 0, "torsoZ": 0, "neckX": 0.32, "neckY": 0, "armRx": -0.97, "armRz": 0.738, "elbowX": 0.253, "wristY": -0.2, "armLx": -0.57, "armLz": -0.737, "legLx": -1.5, "legLknee": 1.5, "legRx": -1.5, "legRknee": 1.5, "elbowLx": -0.145, "armLy": 0.707
 },
     "jack": { "px": -4.845, "py": 8.522, "pz": 5.497, "rx": 1.571, "ry": 0, "rz": -1.571, "armLx": -2.5, "armRx": 0.067, "armLz": -0.524, "armRz": 0.615, "legLx": 0.2, "legRx": 0.2, "kneeL": 0.3, "kneeR": 0.3, "torsoX": -0.267, "neckX": -0.214, "armLy": 0, "armRy": 0.005, "elbowLx": 0, "elbowRx": 0.363, "s": 0.7
+}
+  },
+  "arms": {
+    "gerda": { "hipsY": 0, "torsoX": -0.12, "torsoY": 0, "torsoZ": 0, "neckX": 0.55, "neckY": 0, "armRx": -0.9, "armRz": 0.15, "elbowX": -0.7, "wristY": 0, "armLx": -0.9, "armLz": -0.15, "legLx": 0, "legLknee": 0, "legRx": 0, "legRknee": 0, "elbowLx": -0.7, "armLy": 0
+},
+    "jack": { "px": -19, "py": 19, "pz": 14, "rx": -1.571, "ry": 0, "rz": -1.571, "armLx": 0.5, "armRx": 0.5, "armLz": -0.2, "armRz": 0.2, "legLx": 0.25, "legRx": 0.25, "kneeL": 0.4, "kneeR": 0.4, "torsoX": 0, "neckX": 0, "elbowLx": 0, "elbowRx": 0, "armLy": 0, "armRy": 0, "s": 0.98
 }
   },
   "hold": {
