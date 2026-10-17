@@ -258,7 +258,7 @@ function paintJackInto(k, st) {
       k.px('rArm', 'front', 2, 10, C.skinSh); k.px('lArm', 'front', 1, 11, C.skinSh);
     }
   } else if (st.shorts === false) {
-    for (const leg of ['rLeg', 'lLeg']) for (const f of SIDES) { k.fill(leg, f, C.skin, 0, 0, undefined, 12); k.fill(leg, f, C.drawers, 0, 0, undefined, 4); k.fill(leg, f, C.drawersSh, 0, 3, undefined, 1); k.band(leg, C.skinHi, 5, 1); k.fill(leg, 'top', C.drawers); }
+    for (const leg of ['rLeg', 'lLeg']) for (const f of SIDES) { k.fill(leg, f, C.skin, 0, 0, undefined, 12); if (!st.nodraw) { k.fill(leg, f, C.drawers, 0, 0, undefined, 4); k.fill(leg, f, C.drawersSh, 0, 3, undefined, 1); } k.band(leg, C.skinHi, 5, 1); k.fill(leg, 'top', st.nodraw ? C.skin : C.drawers); }       // (st.nodraw: nothing under the nightshirt)
     k.band('rLeg', C.skinSh, 10, 1); k.band('lLeg', C.skinSh, 10, 1);
   }
   // ── Bathing: st.strip 1 (the tunic and shorts off: bare chest, arms and legs, drawers on), 2 (the drawers off as well: all bare) ──
