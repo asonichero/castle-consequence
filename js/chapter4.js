@@ -78,10 +78,12 @@ async function run(G, W, opts) {
   const axis = () => { const a = mother.root.position, b = jackIn.root.position, dx = b.x - a.x, dz = b.z - a.z, n = Math.hypot(dx, dz) || 1; return { a, b, ux: dx / n, uz: dz / n }; };       // (u: from her to him)
   const otsMother = () => { const { a, b, ux, uz } = axis(); cutOnce('M', { pos: v(room(b.x + ux * 10 - uz * 5), 14, room(b.z + uz * 10 + ux * 5)), look: v(a.x, mother.pose === 'sit' ? 17 : 22, a.z), fov: 46 }); };       // (over Jack's shoulder, to her)
   const otsJack = () => { const { a, b, ux, uz } = axis(); cutOnce('J', { pos: v(room(a.x - ux * 30 + uz * 20), 38, room(a.z - uz * 30 - ux * 20)), look: v(b.x, 9, b.z), fov: 46 }); };                 // (over her shoulder, down to him)
+  const camD = { pos: v(-46, 21, 31), look: v(-12.5, 12, -24), fov: 46 };       // (from the west: her reply, her calling him over, and his walk to her are all in this one angle)
+  const sayD = async t => { cutOnce('D', camD); await say('mother', t); };
   const sayM = async t => { otsMother(); await say('mother', t); }, sayJ = async t => { otsJack(); await say('jack', t); };
   // Walking to a place: his, until he is within r of it (in scene notes it is done for him, by way of the points).
   const goTo = (p, r, text, cam, via) => new Promise(async res => {
-    cutOnce(cam === camA ? 'A' : 'C', cam); st.yaw = yawFor(cam);
+    cutOnce(cam === camA ? 'A' : 'D', cam); st.yaw = yawFor(cam);
     const done = () => { st.free = false; hint.style.display = 'none'; ui.show(false); for (const k in keys) keys[k] = false; stick.x = stick.y = 0; ja.speed = 0; G.mode = 'cutscene'; document.body.classList.add('cutscene'); res(); };
     if (NOTES) {
       for (const q of (via || []).concat([[p.x, p.z]])) { const last = q[0] === p.x && q[1] === p.z; while (Math.hypot(q[0] - st.pos.x, q[1] - st.pos.z) > (last ? r : 2)) { const ang = Math.atan2(q[0] - st.pos.x, q[1] - st.pos.z); st.heading = ang; st.pos.x += Math.sin(ang) * 0.6; st.pos.z += Math.cos(ang) * 0.6; ja.speed = 15; ja.phase += 0.3; jackIn.root.position.set(st.pos.x, 0, st.pos.z); jackIn.root.rotation.y = st.heading; await G.wait(0.04); } }
@@ -123,9 +125,9 @@ async function run(G, W, opts) {
   const a2 = await pickOf('jack', [['I’ll bring something, Mother. I promise.', 0], ['I was looked after. I had a bed.', 1], ['Perhaps I would, if you ever said a kind word!', 2]]);
   await sayJ( ['I’ll bring something, Mother. I promise.', 'I was looked after. I had a bed.', 'Perhaps I would, if you ever said a kind word!'][a2]);
   ma.gesture = a2 === 0 ? 0 : 1; ma.wag = a2 === 2 ? 1 : 0.3;
-  await sayM( ['You promise.', 'By whom?', 'Kind.'][a2]);
-  if (a2 === 1) { paint({ expr: 3 }); await G.wait(0.9); await sayM( 'By whom, Jack?'); }
-  else await sayM( ['You always promise.', '', 'I have been kind to you all your life, and look what you bring me.'][a2]);
+  await sayD(['You promise.', 'By whom?', 'Kind.'][a2]);
+  if (a2 === 1) { paint({ expr: 3 }); await G.wait(0.9); await sayD('By whom, Jack?'); }
+  else await sayD(['You always promise.', '', 'I have been kind to you all your life, and look what you bring me.'][a2]);
   await G.wait(0.4); reset();
   // ── 4. Come here. ──
   await G.fade(true, 0.8);
@@ -133,10 +135,9 @@ async function run(G, W, opts) {
   const cl = (a, y, b) => v(SEAT.x + a * Math.sin(SEAT.ry) + (b || 0) * Math.cos(SEAT.ry), y, SEAT.z + a * Math.cos(SEAT.ry) - (b || 0) * Math.sin(SEAT.ry));
   const J1 = cl(52, 0); st.pos.copy(J1); st.heading = SEAT.ry + Math.PI; st.yaw = SEAT.ry + Math.PI; jackIn.root.position.copy(J1); jackIn.root.rotation.y = st.heading; paint({});
   for (let i = 0; i < 12; i++) { B.step(mother, 0.1); B.step(jackIn, 0.1); } B.seatFeet(mother, 0);
-  const camC = { pos: v(room(J1.x + Math.sin(SEAT.ry) * 14 + Math.cos(SEAT.ry) * 11), 10, room(J1.z + Math.cos(SEAT.ry) * 14 - Math.sin(SEAT.ry) * 11)), look: v(SEAT.x, 20, SEAT.z), fov: 54 };       // (low behind Jack, to her in the chair)
-  cutOnce('C', camC); await G.fade(false, 0.9);
+  cutOnce('D', camD); await G.fade(false, 0.9);
   await say('mother', 'Come here.'); await say('mother', 'Come here, Jack.');
-  await goTo(cl(20, 0), 15, 'Go to her.', camC);
+  await goTo(cl(20, 0), 15, 'Go to her.', camD);
   if (NOTES) { endInput(); G.updaters = G.updaters.filter(u => u !== tick); G.mode = 'end'; return { tier: 0, slip }; }
   // ── 5. The correction: over her knee, with the hand; shorter than the one at the close of Chapter One, and harder. ──
   const tier = Math.min(2, Math.floor((pts.score + (slip >= 2 ? 1 : 0)) / 2)), pick = (a, b, c) => [a, b, c][tier];
@@ -166,25 +167,20 @@ async function run(G, W, opts) {
     W.jackGl.mesh.visible = true; B.paintGlutesInto(W.jackGl.skin, { trousers: 'down', drawers: tier >= 1 ? 'down' : 'up', marks: lap.st.marks, outfit: OUT }); W.jackGl.tex.needsUpdate = true;
     for (let i = 0; i < 12; i++) { B.step(mother, 0.1); B.step(jackIn, 0.1); } B.seatFeet(mother, 0);
   };
-  const handScene = async () => {
+  const handScene = async () => {       // (it begins with him already across her knee, and the first smack landing: how he came to be there is not shown)
     placeStage(SEAT); lap.stage.visible = true; int.chair.visible = false; jackIn.root.visible = mother.root.visible = false;
-    lap.reset(); lap.size(JS); lap.layers({ trousers: 'up', drawers: 'up' }); lap.armed(false); lap.implement('hand'); lap.place('seat', 0); lap.giver('mother', 1);
+    lap.reset(); lap.size(JS); lap.layers({ trousers: 'down', drawers: tier >= 1 ? 'down' : 'up' }); lap.armed(false); lap.implement('hand'); lap.place('lap', 0); lap.giver('mother', 1);
     lap.st.sound = true; lap.st.strength = 1.45; lap.st.pace = 1.7;       // (her hand is heavier than Gerda's, and quicker)
     showUI(true); cam.enable(true); stageView('overview', 0);
-    await G.fade(false, 0.6); await wait(0.6);
-    await cap('jack', pick('Mother, please—', 'Mother, you can’t—', 'You wouldn’t—'));
-    lap.fumble(1); await wait(0.3);
-    await cap('mother', 'Empty hands, Jack. Empty hands, again.');
-    lap.layers({ trousers: 'down', drawers: tier >= 1 ? 'down' : 'up' }); A && A.blip && A.blip(); await wait(0.5);
-    await cap('jack', 'Mother!'); lap.fumble(0); lap.cover(1); await wait(0.3);
-    await cap('mother', 'Over my knee.');
-    lap.cover(0); lap.place('lap', 1.2); await wait(1.5);
-    await step(['mother', 'This is what coming home with nothing earns.'], pick(16, 20, 24));
-    await step(['jack', pick('Ow! I’m sorry, I’m sorry!', 'Ow! Mother, that’s enough!', 'Ow! It isn’t fair!')], 6);
-    await step(null, pick(10, 14, 18));
-    await step(['mother', 'Not one thing, in all this time. Not one thing to show for it.'], pick(12, 16, 20));
-    await step(['jack', pick('I’ll bring something! I will!', 'Ow! I’ll bring something, I will!', 'I’ll bring you something! Ow! You’ll see!')], 6);
+    G.fade(false, 0.5);
+    await step(['mother', 'Empty hands.'], pick(8, 10, 12));
+    await step(['jack', pick('Ow! Mother, please—', 'Ow! Mother, that’s—', 'Ow! Get off—')], 6);
+    await step(['mother', 'Empty hands, Jack. Empty hands, again.'], pick(10, 14, 18));
     await step(null, pick(8, 12, 16));
+    await step(['mother', 'Not one thing in all this time. Not one thing to show for it.'], pick(10, 14, 18));
+    await step(['jack', pick('I’ll bring something! I will!', 'Ow! I’ll bring something, I will!', 'I’ll bring you something! Ow! You’ll see!')], 6);
+    await step(['mother', 'Say it.'], 4);
+    await step(['jack', pick('I won’t come home with nothing, Mother! I won’t!', 'Ow! I won’t come home empty-handed! I won’t!', 'I won’t come home with nothing! Ow! I won’t, I won’t!')], 6);
     await wait(0.4); await cap('mother', 'Up.');
     lap.place('seat', 1.1); lap.cover(1); await wait(1.3);
   };
