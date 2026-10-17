@@ -1593,28 +1593,34 @@ function run(G, W, opts) {
         npaint({ expr: 'smile' }); jackOut.root.updateMatrixWorld(true); const hy = jackOut.hips.getWorldPosition(new V3()).y - st.y;
         st.pos.set(165, 0, -17); st.heading = Math.PI; st.y = SEAT - hy + 1.5;
         const SEATED = { legLx: -1.5, legRx: -1.5, kneeL: 1.5, kneeR: 1.5, armLx: -0.55, armRx: -0.75, armLz: 0.15, armRz: -0.15, elbowL: -1.0, elbowR: -1.1, torso: 0.1, neckX: 0.2, neckY: 0 }; st.pose = Object.assign({}, SEATED);
-        const plate = mk(8, 0.6, 8, '#e8e4d8', 165, 25.8, -34, scene), slice = mk(5, 0.9, 5, '#d9b26a', 165, 26.5, -34, scene); mk(5, 0.3, 5, '#b98a44', 0, 0.5, 0, slice);
-        Object.assign(gst, { x: 140, z: -24, h: Math.PI / 2, y: 0, seated: 0, kneel: 0, walk: 0, reach: 0, lreach: 0, bend: 0, look: 0.2, headY: 0, p50: null, hold: 0, alive: 1 }); placeGerda(); root.Blocky.step(gerda, 0);
+        const plate = mk(8, 0.6, 8, '#e8e4d8', 165, 25.8, -28, scene), slice = mk(3.2, 0.9, 3.2, '#d9b26a', 0, -2.4, 0.6, jackOut.wrist); mk(3.2, 0.3, 3.2, '#b98a44', 0, 0.45, 0, slice);       // (what is left of the bread is in his hand)
+        Object.assign(gst, { x: 114.5, z: -92, h: -Math.PI / 2, y: 0, seated: 0, kneel: 0, walk: 0, reach: 0, lreach: 0, bend: 0, look: 0.2, headY: 0, p50: null, hold: 0, alive: 1 }); placeGerda(); root.Blocky.step(gerda, 0);
+        const shafts = []; M.scene.updateMatrixWorld(true); M.scene.traverse(o => { if (o.isMesh && o.material && o.material.blending === THREE.AdditiveBlending && o.material.transparent) { o.material = o.material.clone(); shafts.push({ o, c: o.material.color.clone(), a: o.material.opacity }); } });       // (the moonbeams at every window: they are only to look at, and cast no light into the room)
+        const shaftTo = k => { for (const s of shafts) { s.o.material.color.copy(s.c).lerp(new THREE.Color(0x7d96e0), 0.55 + 0.45 * k); s.o.material.opacity = s.a * (0.55 - 0.15 * k); } }; shaftTo(0);
+        G.bedBg = scene.background; scene.background = new THREE.Color(0x060a1a);       // (night outside, throughout)
         setLamp(kitchenLamp, 0.75); if (Lg.hemi) { Lg.hemi.intensity = 0.14; Lg.hemi.color.setHex(0x8a7898); Lg.hemi.groundColor.setHex(0x3a3040); }
         if (A && A.ctx) A.startMusic({ theme: 'castle' });
-        const kCam1 = () => G.cut({ pos: v(198, 30, -2), look: v(152, 18, -22), fov: 52 }), kCam2 = () => G.cut({ pos: v(160, 42, -62), look: v(165, 19, -18), fov: 40 }), kCam3 = () => G.cut({ pos: v(200, 32, 6), look: v(168, 20, -12), fov: 50 });
+        const kCam1 = () => G.cut({ pos: v(177.7, 34.2, -39), look: v(164, 27.8, -18.9), fov: 52 }), kCam2 = () => G.cut({ pos: v(156.1, 30, -37), look: v(167.5, 32, -16), fov: 40 }), kCam3 = () => G.cut({ pos: v(199.1, 37.1, 3.2), look: v(165.7, 30.5, -15), fov: 50 });
         kCam1(); await G.fade(false, 1.6); await G.wait(0.5);
         { const bite = async () => { for (let i = 1; i <= 16; i++) { const k = Math.sin(Math.PI * i / 16); st.pose.armRx = W3(-0.75, -1.9, k); st.pose.neckX = 0.2 + 0.1 * k; await G.wait(0.04); } };
-          await bite(); await G.wait(0.3); await sayW('gerda', 'Slowly. There is no one to race.'); await bite(); npaint({ expr: 'shy' }); await sayW('jack', 'Mm. Sorry. It is very good.'); }
+          const crumb = k => { slice.scale.x = slice.scale.z = k; if (k <= 0.02) slice.visible = false; };
+          await bite(); crumb(0.55); await G.wait(0.4); npaint({ expr: 'shy' }); await sayW('jack', 'Mm. This is very good.'); await bite(); crumb(0); await G.wait(0.6); }
         // he is nodding: his head dips, and comes up with a start, and dips again
         kCam2(); npaint({ expr: 'squint' });
-        { const dip = async (to, secs) => { const from = st.pose.neckX, n = Math.round(secs / 0.04); for (let i = 1; i <= n; i++) { st.pose.neckX = W3(from, to, ease(i / n)); st.pose.armRx = W3(st.pose.armRx, -0.45, 0.03); await G.wait(0.04); } };
+        { const dip = async (to, secs) => { const from = st.pose.neckX, n = Math.round(secs / 0.04); for (let i = 1; i <= n; i++) { st.pose.neckX = W3(from, to, ease(i / n)); await G.wait(0.04); } };
+          { const a0 = Object.assign({}, st.pose); for (let i = 1; i <= 15; i++) { const k = ease(i / 15); st.pose.armRx = W3(a0.armRx, 0.05, k); st.pose.armLx = W3(a0.armLx, 0.05, k); st.pose.elbowL = W3(a0.elbowL, 0, k); st.pose.elbowR = W3(a0.elbowR, 0, k); st.pose.armLz = W3(a0.armLz, 0.1, k); st.pose.armRz = W3(a0.armRz, -0.1, k); await G.wait(0.04); } }       // (the bread finished, his hands fall to his sides)
           await dip(0.75, 1.6); await dip(0.25, 0.25); await G.wait(0.4); await dip(0.85, 1.8); }
-        kCam3(); await sayW('gerda', 'Jack.'); npaint({ expr: 'wince' }); for (let i = 1; i <= 10; i++) { st.pose.neckX = W3(st.pose.neckX, 0.1, ease(i / 10)); await G.wait(0.04); }
+        kCam3(); await faceTo(st.pos.x, st.pos.z, 0.5); await sayW('gerda', 'Jack.'); npaint({ expr: 'wince' }); for (let i = 1; i <= 10; i++) { st.pose.neckX = W3(st.pose.neckX, 0.1, ease(i / 10)); await G.wait(0.04); }
         await sayW('jack', 'I am awake.'); npaint({ expr: 'shy' });
+        await walkTo([[128, -62], [140, -28], [149, -15]]); await faceTo(st.pos.x, st.pos.z, 0.3);       // (round the table to the stool)
         await sayW('gerda', 'Of course you are. Stand up for me, now.');
-        // he stands, swaying
-        { const y1 = 0, z1 = st.pos.z, to = { legLx: 0, legRx: 0, kneeL: 0, kneeR: 0, armLx: 0.05, armRx: 0.05, armLz: 0.1, armRz: -0.1, elbowL: 0, elbowR: 0, torso: 0.15, neckX: 0.4 }, from = Object.assign({}, st.pose), ys = st.y, n = 28;
-          for (let i = 1; i <= n; i++) { const k = ease(i / n); for (const key in to) st.pose[key] = W3(from[key] || 0, to[key], k); st.y = W3(ys, y1, k); st.pos.z = W3(z1, -9, k); st.walkN = 0; await G.wait(0.04); }
+        // he stands, swaying, on the stool
+        { const y1 = SEAT, z1 = st.pos.z, to = { legLx: 0, legRx: 0, kneeL: 0, kneeR: 0, armLx: 0.05, armRx: 0.05, armLz: 0.1, armRz: -0.1, elbowL: 0, elbowR: 0, torso: 0.15, neckX: 0.4 }, from = Object.assign({}, st.pose), ys = st.y, n = 28;
+          for (let i = 1; i <= n; i++) { const k = ease(i / n); for (const key in to) st.pose[key] = W3(from[key] || 0, to[key], k); st.y = W3(ys, y1, k); st.pos.z = z1; st.walkN = 0; await G.wait(0.04); }
           for (let i = 1; i <= 20; i++) { st.pose.torso = 0.15 + 0.05 * Math.sin(i * 0.5); await G.wait(0.04); } }
         // she gathers him up
         await faceTo(st.pos.x, st.pos.z, 0.2); { const hp = { a: 'arms', b: 'arms', t: 0, w: 0 }; gst.p50 = hp;
-          await walkTo([[st.pos.x - 22, -9]]); await faceTo(st.pos.x, st.pos.z, 0.3);
+          await faceTo(st.pos.x, st.pos.z, 0.3);
           await handTo(jackOut.hips.localToWorld(new V3(0, 0, 0)), true, 0.7); await G.wait(0.2);
           st.boxed = true; jackOut.root.position.set(st.pos.x, st.y, st.pos.z); jackOut.root.rotation.set(0, st.heading, 0);
           const from = { p: jackOut.root.position.clone(), q: jackOut.root.quaternion.clone(), pose: Object.assign({}, st.pose) };
@@ -1622,23 +1628,20 @@ function run(G, W, opts) {
           for (let i = 1; i <= 36; i++) { const k = ease(i / 36); hp.w = k; gst.bend = 0.8 * (1 - k); gst.reach = gst.reach * 0.97; gst.lreach = gst.lreach * 0.97; placeGerda(); putArms(from, k); await G.wait(0.04); } hp.w = 1; gst.bend = 0; gst.reach = gst.lreach = 0; placeGerda(); putArms(); }
         A && A.rustle && A.rustle(0.5); npaint({ expr: 'squint' });
         await sayW('jack', 'I can walk.'); await sayW('gerda', 'I know you can. Hush.');
-        G.cut({ pos: v(150, 40, 6), look: v(110, 22, -20), fov: 54 });
+        G.cut({ pos: v(141.6, 39.6, -63.2), look: v(107.3, 30.9, -19.2), fov: 54 });
         await carryWalk([[130, -16], [100, -24]]); await G.fade(true, 1.2);
-        stool.position.z = stool0; for (const m of [plate, slice]) scene.remove(m);
+        stool.position.z = stool0; plate.parent.remove(plate); slice.parent.remove(slice);
         // ── the nursery ──
         const cot = M.items.cot.g, cth = cot.rotation.y, cs = Math.sin(cth), cc = Math.cos(cth), cW = (x, z) => [cot.position.x + x * cc + z * cs, cot.position.z - x * cs + z * cc];       // (a place in the cot's own frame, in the room's)
         const headDir = new V3(-cc, 0, cs), upV = new V3(0, 1, 0), lie = () => { const X = new V3().crossVectors(headDir, upV).normalize(), M4 = new THREE.Matrix4().makeBasis(X, headDir, upV); return new THREE.Quaternion().setFromRotationMatrix(M4); };
-        const Lj = 31 * SC * st.s, pillow = cW(-13, 0), feet = new V3(pillow[0] - headDir.x * (Lj - 4), 13.2, pillow[1] - headDir.z * (Lj - 4)), side = cW(0, 17), sideFace = Math.atan2(cot.position.x - side[0], cot.position.z - side[1]);
+        const Lj = 31 * SC * st.s, pillow = cW(-13, 0), feet = new V3(pillow[0] - headDir.x * (Lj - 4 * SC * st.s), 13.2, pillow[1] - headDir.z * (Lj - 4 * SC * st.s)), side = cW(0, 17), sideFace = Math.atan2(cot.position.x - side[0], cot.position.z - side[1]);
         const quilt = new THREE.Group(); quilt.position.set(cot.position.x, 15.7, cot.position.z); quilt.rotation.y = cth; scene.add(quilt); const qb = mk(24, 1.3, 21, '#cfc4a8', 0, 0, 0, quilt); mk(24, 0.4, 21.6, '#8f6a8a', 0, 0.7, 0, quilt).scale.x = 1; quilt.visible = false;
         npaint({ expr: 'squint' }); jackOut.root.visible = true;
         setLamp(kitchenLamp, 0.04); setLamp(nurseryLamp, 0.8);
-        Object.assign(gst, { x: -294, z: -150, h: Math.PI, walk: 0, bend: 0, reach: 0, lreach: 0, sniff: 0, headY: 0 }); placeGerda(); putArms();
-        const shafts = []; M.scene.updateMatrixWorld(true); M.scene.traverse(o => { if (o.isMesh && o.material && o.material.blending === THREE.AdditiveBlending && o.material.transparent) { const wp = o.getWorldPosition(new V3()); if (wp.x < -99 && wp.x > -316 && wp.z < -160 && wp.z > -293) { o.material = o.material.clone(); shafts.push({ o, c: o.material.color.clone(), a: o.material.opacity }); } } });       // (the light through the nursery's windows: it is night, and dim already, and goes blue)
-        const shaftTo = k => { for (const s of shafts) { s.o.material.color.copy(s.c).lerp(new THREE.Color(0x7d96e0), 0.55 + 0.45 * k); s.o.material.opacity = s.a * (0.55 - 0.15 * k); } }; shaftTo(0);
-        { G.cut({ pos: v(-108, 72, -287), look: v(-205, 16, -212), fov: 62 }); await G.fade(false, 1.2);       // (one high angle for the whole walk from the door to the cot)
-          await carryWalk([[-294, -190], [-250, -205], [-170, -212], [-148, -232], [side[0], side[1]]]); }
+        Object.assign(gst, { x: -190, z: -208, h: -Math.PI / 2, walk: 0, bend: 0, reach: 0, lreach: 0, sniff: 0, headY: 0 }); placeGerda(); putArms();
+                { G.cut({ pos: v(-104, 46, -246), look: v(cot.position.x, 12, cot.position.z), fov: 48 }); await G.fade(false, 1.2);
+          await carryWalk([[-170, -212], [-148, -232], [side[0], side[1]]]); }
         await faceTo(cot.position.x, cot.position.z, 0.5);
-        G.cut({ pos: v(-104, 46, -246), look: v(cot.position.x, 12, cot.position.z), fov: 48 });
         // she lays him down
         { const hp = gst.p50, lieQ = lie(), from = { p: jackOut.root.position.clone(), q: jackOut.root.quaternion.clone(), pose: Object.assign({}, st.pose) }, lp = feet.clone(), n = 50;
           const lieKeys = { legLz: 0, legRz: 0, legLy: 0, legRy: 0, legLx: 0, legRx: 0, kneeL: 0, kneeR: 0, armLx: 0, armRx: 0, armLz: 0.1, armRz: -0.1, torso: 0, neckX: 0.1, elbowL: 0, elbowR: 0, neckY: 0 };
@@ -1652,7 +1655,7 @@ function run(G, W, opts) {
           const up = run(0.12, 1.0, 2.2), hands = (async () => { await armsTo(hand(8, 8), hand(8, 7), 0.5); await armsTo(hand(-2, 8), hand(-2, 7), 1.6); })(); await Promise.all([up, hands]); A && A.rustle && A.rustle(0.6);
           for (let r = 0; r < 2; r++) { await armsTo(hand(2, 10), hand(-6, 10), 0.4); await armsTo(hand(12, 10), hand(4, 10), 0.4); } await rest(0.5); }
         // what she says, by how he has done
-        G.cut({ pos: v(pillow[0] + 24, 26, pillow[1] - 8), look: v(pillow[0], 13, pillow[1]), fov: 36 }); npaint({ expr: 'squint' });
+        G.cut({ pos: v(-105.8, 9.5, -290.1), look: v(-124.4, 20.9, -271.9), fov: 36 }); npaint({ expr: 'squint' });
         await faceTo(pillow[0], pillow[1], 0.4); gst.sniff = 0.1;
         const SAY = [
           ['You have been so good, Jack. Not a moment’s trouble, and the truth the first time you were asked.', 'I am proud of you. I do not say it lightly.', 'Sleep now. Nobody will hurt you here.'],
@@ -1663,24 +1666,24 @@ function run(G, W, opts) {
         if (LOG.lies > 0 && slip < 2) await sayW('gerda', 'And the truth first, next time, not last.');
         await sayW('jack', 'Mm.'); await sayW('gerda', 'Goodnight, Jack.');
         // she goes to the door, and looks up
-        G.cut({ pos: v(-170, 62, -262), look: v(-270, 24, -190), fov: 52 });
-        await walkTo([[-148, -232], [-170, -212], [-250, -205], [-290, -190], [-294, -172]]); await faceTo(-215, -226, 0.6);
+        G.cut({ pos: v(-223.7, 78.3, -267.6), look: v(-271.6, 27.5, -189.1), fov: 52 }); jackOut.root.updateMatrixWorld(true);
+        Object.assign(gst, { x: -240, z: -207, h: -Math.PI / 2, walk: 0, bend: 0, sniff: 0 }); placeGerda();       // (she is already well on her way to the door)
+        await walkTo([[-262, -198], [-278, -190]]); await faceTo(-230, -226, 0.8);
         for (let i = 1; i <= 12; i++) { gst.sniff = W3(0.1, -0.55, ease(i / 12)); placeGerda(); await G.wait(0.04); } await G.wait(0.5);
         { const flames = []; for (const k of ['chandelier6', 'chandelier7']) M.items[k].g.traverse(o => { const q = o.isMesh && o.geometry && o.geometry.parameters; if (q && q.width === 1.6 && q.height === 1.8 && q.depth === 1.6) { o.material = o.material.clone(); if (o.material.emissive) o.material.emissive.copy(o.material.color).multiplyScalar(0.9); flames.push({ o, c: o.material.color.clone() }); } });       // (the candles' flames: the small boxes of the chandeliers)
-          const moon = new THREE.PointLight(0x9db4ff, 0, 190, 1.2); moon.position.set(-165, 60, -235); scene.add(moon); G.bedMoon = moon;
-          const h0 = Lg.hemi ? { i: Lg.hemi.intensity, c: Lg.hemi.color.clone() } : null, hc = new THREE.Color(0x7388c8);
-          for (let i = 1; i <= 75; i++) { const k = ease(i / 75); for (const f of flames) { f.o.material.color.copy(f.c).multiplyScalar(1 - 0.88 * k); if (f.o.material.emissive) f.o.material.emissive.copy(f.c).multiplyScalar(0.9 * (1 - k)); } setLamp(nurseryLamp, W3(0.8, 0.02, k)); moon.intensity = 0.95 * k; shaftTo(k); if (Lg.hemi) { Lg.hemi.intensity = W3(h0.i, 0.3, k); Lg.hemi.color.copy(h0.c).lerp(hc, k); } await G.wait(0.04); } }
+                    const h0 = Lg.hemi ? { i: Lg.hemi.intensity, c: Lg.hemi.color.clone() } : null, hc = new THREE.Color(0x7388c8);
+          for (let i = 1; i <= 75; i++) { const k = ease(i / 75); for (const f of flames) { f.o.material.color.copy(f.c).multiplyScalar(1 - 0.88 * k); if (f.o.material.emissive) f.o.material.emissive.copy(f.c).multiplyScalar(0.9 * (1 - k)); } setLamp(nurseryLamp, W3(0.8, 0.02, k)); shaftTo(k); if (Lg.hemi) { Lg.hemi.intensity = W3(h0.i, 0.2, k); Lg.hemi.color.copy(h0.c).lerp(hc, k); } await G.wait(0.04); } }
         gst.sniff = 0; await G.wait(0.5);
         // she goes; the door is drawn to behind her
         await walkTo([[-294, -150]]); gerda.root.visible = false; { const d = M.doors.find(q => q.axis === 'z' && Math.abs(q.fixed + 160) < 3 && Math.abs(q.c + 294) < 8); if (d) { const a = d.lg.rotation.y, n = 30; d.og.userData.noCollide = true; for (let i = 1; i <= n; i++) { d.lg.rotation.y = W3(a, 0, ease(i / n)); await G.wait(0.04); } A && A.thud && A.thud(0.3); A && A.latch && A.latch(0.4); } }
         // Jack, in the moonlight
-        G.cut({ pos: v(pillow[0] - 26, 28, pillow[1] + 32), look: v(pillow[0] - 1, 14.5, pillow[1] - 1), fov: 34 }); await G.wait(1.2);
+        G.cut({ pos: v(-141.3, 47, -256.5), look: v(-131.3, 14.3, -275.9), fov: 34 }); await G.wait(1.2);
         await sayW('jack', 'Mother will be worried… or angry…'); await G.wait(0.4);
         npaint({ expr: 'squint' }); await sayW('jack', 'I will go down tomorrow.');
-        await G.wait(1.6); G.cut({ pos: v(-100, 90, -230), look: v(-150, 14, -265), fov: 50 }); await G.wait(2.2);
+        await G.wait(1.6); G.cut({ pos: v(-219.5, 24.1, -197.4), look: v(-150, 14, -265), fov: 50 }); await G.wait(2.2);
         await G.fade(true, 2.4);
       }
-      G.bathPaint = null; A && A.water && A.water(0); G.updaters = G.updaters.filter(u => u !== foamTick && u !== lookTick); if (foam.parent) tubG.remove(foam); if (nightOn) nightOn.visible = false; if (G.bedMoon) { scene.remove(G.bedMoon); G.bedMoon = null; }
+      G.bathPaint = null; A && A.water && A.water(0); G.updaters = G.updaters.filter(u => u !== foamTick && u !== lookTick); if (foam.parent) tubG.remove(foam); if (nightOn) nightOn.visible = false; if (G.bedBg) { scene.background = G.bedBg; G.bedBg = null; }
       st.wait = null; sponge.visible = false; st.pose = null; gst.kneel = 0; gst.y = 0; if (tubG.userData.steam) tubG.userData.steam.on = false;
       G.updaters = G.updaters.filter(u => u !== flick); if (Lg.candle) Lg.candle.intensity = 0; if (Lg.fill) Lg.fill.intensity = 0; if (lsave) { Lg.hemi.intensity = lsave.hi; Lg.hemi.color.setHex(lsave.hc); Lg.hemi.groundColor.setHex(lsave.gc); } for (const [l, i] of lampSave) l.intensity = i;
     }
