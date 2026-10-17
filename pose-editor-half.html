@@ -79,10 +79,10 @@ const A = {
   jhandL: { name: 'Jack: left hand', who: 'jack', keys: ['armLx', 'armLz', 'armLy', 'elbowLx'], pt: () => wp(jack.wristL, 0, -6, 0), solve: ['armLx', 'armLz', 'armLy', 'elbowLx'] },
   jelbowR: { name: 'Jack: right elbow', who: 'jack', keys: ['armRx', 'armRz'], pt: () => wp(jack.elbow, 0, 0, 0), solve: ['armRx', 'armRz'] },
   jhandR: { name: 'Jack: right hand', who: 'jack', keys: ['armRx', 'armRz', 'armRy', 'elbowRx'], pt: () => wp(jack.wrist, 0, -6, 0), solve: ['armRx', 'armRz', 'armRy', 'elbowRx'] },
-  jkneeL: { name: 'Jack: left knee (swing, spread, turn out)', who: 'jack', keys: ['legLx', 'legLz', 'legLy'], pt: () => wp(jack.legL.knee, 0, 0, 0), solve: ['legLx', 'legLz'], turn: 'legLy' },
-  jkneeR: { name: 'Jack: right knee (swing, spread, turn out)', who: 'jack', keys: ['legRx', 'legRz', 'legRy'], pt: () => wp(jack.legR.knee, 0, 0, 0), solve: ['legRx', 'legRz'], turn: 'legRy' },
-  jfootL: { name: 'Jack: left foot', who: 'jack', keys: ['legLx', 'kneeL'], pt: () => wp(jack.legL.knee, 0, -6, 0), solve: ['legLx', 'kneeL'] },
-  jfootR: { name: 'Jack: right foot', who: 'jack', keys: ['legRx', 'kneeR'], pt: () => wp(jack.legR.knee, 0, -6, 0), solve: ['legRx', 'kneeR'] },
+  jkneeL: { name: 'Jack: left knee (swing, spread, turn out)', who: 'jack', keys: ['legLx', 'legLz', 'legLy', 'kneeL'], pt: () => wp(jack.legL.knee, 0, 0, 0), solve: ['legLx', 'legLz'], turn: 'legLy' },
+  jkneeR: { name: 'Jack: right knee (swing, spread, turn out)', who: 'jack', keys: ['legRx', 'legRz', 'legRy', 'kneeR'], pt: () => wp(jack.legR.knee, 0, 0, 0), solve: ['legRx', 'legRz'], turn: 'legRy' },
+  jfootL: { name: 'Jack: left foot', who: 'jack', keys: ['legLx', 'legLz', 'legLy', 'kneeL'], pt: () => wp(jack.legL.knee, 0, -6, 0), solve: ['legLx', 'legLz', 'kneeL'], turn: 'legLy' },
+  jfootR: { name: 'Jack: right foot', who: 'jack', keys: ['legRx', 'legRz', 'legRy', 'kneeR'], pt: () => wp(jack.legR.knee, 0, -6, 0), solve: ['legRx', 'legRz', 'kneeR'], turn: 'legRy' },
   jhead:  { name: 'Jack: head and lean', who: 'jack', keys: ['torsoX', 'neckX'], pt: () => wp(jack.neck, 0, 4, 0), solve: ['torsoX', 'neckX'] },
 };
 const keys = Object.keys(A), home = {}; for (const k of keys) home[k] = {}; const snapHome = () => { for (const k of keys) { const a = A[k]; for (const q of a.keys) home[k][q] = DEF[a.who][q] || 0; } }; snapHome();
