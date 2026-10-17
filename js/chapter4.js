@@ -125,6 +125,7 @@ async function run(G, W, opts) {
   await sayM(['You were good, and what did it buy? Nothing in your hands.', 'The truth when it suits you, and a fib when it doesn’t, and home you come with nothing.', 'You lied, and you sulked, and you made a mess of every task you were given, and you come home with nothing.'][slip]);
   const a2 = await pickOf('jack', [['I’ll bring something, Mother. I promise.', 0], ['I was looked after. I had a bed.', 1], ['Perhaps I would, if you ever said a kind word!', 2]]);
   await sayJ( ['I’ll bring something, Mother. I promise.', 'I was looked after. I had a bed.', 'Perhaps I would, if you ever said a kind word!'][a2]);
+  await sayD(['You promise.', 'Looked after. And what did you promise them, Jack?', 'Kind words. I gave you those, and you promised me the world for them.'][a2]);       // (each answer is met, and each leads to the same: she has heard it before)
   // ── 4. Come here: she is seated when the angle opens. ──
   reset();
   B.setPose(mother, 'sit'); mother.pose = 'sit'; mother.root.position.set(SEAT.x, STAGE_Y, SEAT.z); mother.root.rotation.y = SEAT.ry; ma.fold = 0; ma.side = 0;
