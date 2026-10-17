@@ -27,15 +27,15 @@ root.GerdaHold50 = {
 }
   },
   "arms": {
-    "gerda": { "hipsY": 0, "torsoX": 0, "torsoY": 0, "torsoZ": 0, "neckX": 0.1, "neckY": 0, "armRx": 0, "armRz": 0.05, "elbowX": 0, "wristY": 0, "armLx": 0, "armLz": -0.05, "legLx": 0, "legLknee": 0, "legRx": 0, "legRknee": 0, "elbowLx": 0, "armLy": 0
+    "gerda": { "hipsY": 0, "torsoX": 0, "torsoY": 0, "torsoZ": 0, "neckX": 0.1, "neckY": 0, "armRx": -0.6896295210241143, "armRz": 1.3779738568320825, "elbowX": 0.049472083217579677, "wristY": 0, "armLx": -0.45, "armLz": 1.4, "legLx": 0, "legLknee": 0, "legRx": 0, "legRknee": 0, "elbowLx": -1.7, "armLy": 0, "armRy": 0
 },
-    "jack": { "px": 0, "py": 0, "pz": 16, "rx": 0, "ry": 3.142, "rz": 0, "armLx": 0, "armRx": 0, "armLz": 0, "armRz": 0, "legLx": 0, "legRx": 0, "kneeL": 0, "kneeR": 0, "torsoX": 0, "neckX": 0, "elbowLx": 0, "elbowRx": 0, "armLy": 0, "armRy": 0, "legLz": 0, "legRz": 0, "legLy": 0, "legRy": 0, "s": 0.98
+    "jack": { "px": 4.8957684695924, "py": 12.46204582918558, "pz": 3.6431723705304426, "rx": 0, "ry": 3.9, "rz": 0, "armLx": -1.1778597351774482, "armRx": -1.9002429004589259, "armLz": 0.9855507569428481, "armRz": 0.6002105561646409, "legLx": -1.3817400610938757, "legRx": -1.4485761024214558, "kneeL": 1.4, "kneeR": 1.4, "torsoX": -0.15, "neckX": 0.4, "elbowLx": 0.00626956093591604, "elbowRx": 0.002909382727791306, "armLy": -0.5999328054512953, "armRy": -1.898873132190892, "legLz": 0.40699103152528027, "legRz": 0.4552902684164214, "legLy": 0, "legRy": 0, "s": 0.7
 }
   },
   "hold": {
     "gerda": { "hipsY": 0, "torsoX": 0.03, "torsoY": 0, "torsoZ": 0, "neckX": 0.25, "neckY": 0, "armRx": -0.25, "armRz": -0.3, "elbowX": -0.3, "wristY": 0, "armLx": 0, "armLz": -0.08, "legLx": 0, "legLknee": 0, "legRx": 0, "legRknee": 0, "elbowLx": 0, "armLy": 0
 },
-    "jack": { "px": -12, "py": 0, "pz": 2, "rx": 0, "ry": 0, "rz": 0, "armLx": -1.6, "armRx": 0, "armLz": -0.4, "armRz": -0.08, "legLx": 0, "legRx": 0, "kneeL": 0, "kneeR": 0, "torsoX": 0, "neckX": -0.3, "elbowLx": -1.4, "elbowRx": 0, "armLy": 0, "armRy": 0, "s": 0.7
+    "jack": { "px": -12, "py": 0, "pz": 2, "rx": 0, "ry": 0, "rz": 0, "armLx": -1.6, "armRx": 0, "armLz": -0.4, "armRz": -0.08, "legLx": 0, "legRx": 0, "kneeL": 0, "kneeR": 0, "torsoX": 0, "neckX": -0.3, "elbowLx": -1.4, "elbowRx": 0, "armLy": 0, "armRy": 0, "s": 0.7, "legLz": 0, "legRz": 0, "legLy": 0, "legRy": 0
 }
   }
 };
