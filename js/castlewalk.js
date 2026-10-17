@@ -1708,6 +1708,7 @@ function run(G, W, opts) {
       const lampAt = (x, z) => (Lg.all || []).find(l => Math.abs(l.position.x - x) < 3 && Math.abs(l.position.z - z) < 3), nl = lampAt(-215, -205); if (nl) nl.intensity = 0.35;       // (the nursery's, low)
       const bg0 = scene.background; scene.background = new THREE.Color(0xe9bf94);
       if (Lg.hemi) { Lg.hemi.intensity = 0.6; Lg.hemi.color.setHex(0xffd8b0); Lg.hemi.groundColor.setHex(0x7a6a60); }
+      if (jackOut.gear) jackOut.gear.knife.visible = jackOut.gear.satchel.visible = jackOut.gear.flask.visible = false;       // (his gear is put by)
       jackOut.root.visible = true; scene.attach(jackOut.root); st.scene = true; st.frozen = false; st.fz = null; st.boxed = true; st.inHand = false; st.air = false; st.cl = null; st.mant = null; st.vy = 0; st.walkN = 0; st.choreTick = null; st.s = 0.7;
       jackOut.root.scale.setScalar(SC * st.s); jackOut.root.position.copy(feet); jackOut.root.quaternion.copy(lieQ);
       st.pose = { legLz: 0, legRz: 0, legLy: 0, legRy: 0, legLx: 0, legRx: 0, kneeL: 0, kneeR: 0, armLx: 0, armRx: 0, armLz: 0.1, armRz: -0.1, torso: 0, neckX: 0.1, elbowL: 0, elbowR: 0, neckY: 0 };
