@@ -1633,9 +1633,8 @@ function run(G, W, opts) {
         Object.assign(gst, { x: -294, z: -150, h: Math.PI, walk: 0, bend: 0, reach: 0, lreach: 0, sniff: 0, headY: 0 }); placeGerda(); putArms();
         const shafts = []; M.scene.updateMatrixWorld(true); M.scene.traverse(o => { if (o.isMesh && o.material && o.material.blending === THREE.AdditiveBlending && o.material.transparent) { const wp = o.getWorldPosition(new V3()); if (wp.x < -99 && wp.x > -316 && wp.z < -160 && wp.z > -293) { o.material = o.material.clone(); shafts.push({ o, c: o.material.color.clone(), a: o.material.opacity }); } } });       // (the light through the nursery's windows: it is night, and dim already, and goes blue)
         const shaftTo = k => { for (const s of shafts) { s.o.material.color.copy(s.c).lerp(new THREE.Color(0x7d96e0), 0.55 + 0.45 * k); s.o.material.opacity = s.a * (0.55 - 0.15 * k); } }; shaftTo(0);
-        const nTrack = () => { const gx = gst.x, gz = gst.z; G.cutNow({ pos: v(clamp(gx + 58, -312, -100), 36, clamp(gz + 34, -291, -161)), look: v(gx, 22, gz - 6), fov: 48 }); };
-        { nTrack(); await G.fade(false, 1.2); const track = () => nTrack(); G.updaters.push(track);
-          await carryWalk([[-294, -190], [-250, -205], [-170, -212], [-148, -232], [side[0], side[1]]]); G.updaters = G.updaters.filter(u => u !== track); }
+        { G.cut({ pos: v(-108, 72, -287), look: v(-205, 16, -212), fov: 62 }); await G.fade(false, 1.2);       // (one high angle for the whole walk from the door to the cot)
+          await carryWalk([[-294, -190], [-250, -205], [-170, -212], [-148, -232], [side[0], side[1]]]); }
         await faceTo(cot.position.x, cot.position.z, 0.5);
         G.cut({ pos: v(-104, 46, -246), look: v(cot.position.x, 12, cot.position.z), fov: 48 });
         // she lays him down
@@ -1673,7 +1672,7 @@ function run(G, W, opts) {
         // she goes; the door is drawn to behind her
         await walkTo([[-294, -150]]); gerda.root.visible = false; { const d = M.doors.find(q => q.axis === 'z' && Math.abs(q.fixed + 160) < 3 && Math.abs(q.c + 294) < 8); if (d) { const a = d.lg.rotation.y, n = 30; d.og.userData.noCollide = true; for (let i = 1; i <= n; i++) { d.lg.rotation.y = W3(a, 0, ease(i / n)); await G.wait(0.04); } A && A.thud && A.thud(0.3); A && A.latch && A.latch(0.4); } }
         // Jack, in the moonlight
-        G.cut({ pos: v(pillow[0] - 14, 24, pillow[1] + 16), look: v(pillow[0] - 1, 14.5, pillow[1] - 1), fov: 34 }); await G.wait(1.2);
+        G.cut({ pos: v(pillow[0] - 26, 28, pillow[1] + 32), look: v(pillow[0] - 1, 14.5, pillow[1] - 1), fov: 34 }); await G.wait(1.2);
         await sayW('jack', 'Mother will be worried… or angry…'); await G.wait(0.4);
         npaint({ expr: 'squint' }); await sayW('jack', 'I will go down tomorrow.');
         await G.wait(1.6); G.cut({ pos: v(-100, 90, -230), look: v(-150, 14, -265), fov: 50 }); await G.wait(2.2);
