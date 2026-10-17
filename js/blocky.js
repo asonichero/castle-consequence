@@ -585,6 +585,10 @@ function apply() {
     const l = this[k];
     l.thigh.rotation.x = s.thighX; l.thigh.rotation.z = l.sign * s.spread; l.knee.rotation.x = s.shinX;
   }
+  // Whatever the base pose does not set returns to standard each frame (the elbows, the wrists, the arms' turn, the thighs' spread and turn), so that nothing a scene bent stays bent once the scene stops asking for it.
+  for (const k of ['elbow', 'elbowL', 'wrist', 'wristL']) if (this[k]) this[k].rotation.set(0, 0, 0);
+  for (const k of ['armL', 'armR']) { const a = this[k]; a.rotation.order = 'ZXY'; a.rotation.y = 0; }
+  for (const k of ['legL', 'legR']) { const t = this[k].thigh; t.rotation.order = 'ZXY'; t.rotation.y = 0; }
   if (this.after) this.after(this);   // a scene's own additions to the pose (the lap scene's swing and kicks)
 }
 

@@ -86,12 +86,12 @@ async function run(G, W, opts) {
   const goTo = (p, r, text, cam, via) => new Promise(async res => {
     cutOnce(cam === camA ? 'A' : 'D', cam); st.yaw = yawFor(cam);
     const done = () => { st.free = false; hint.style.display = 'none'; ui.show(false); for (const k in keys) keys[k] = false; stick.x = stick.y = 0; ja.speed = 0; G.mode = 'cutscene'; document.body.classList.add('cutscene'); res(); };
-    if (NOTES) {
+    if (NOTES) { G.note && G.note(text);
       for (const q of (via || []).concat([[p.x, p.z]])) { const last = q[0] === p.x && q[1] === p.z; while (Math.hypot(q[0] - st.pos.x, q[1] - st.pos.z) > (last ? r : 2)) { const ang = Math.atan2(q[0] - st.pos.x, q[1] - st.pos.z); st.heading = ang; st.pos.x += Math.sin(ang) * 0.6; st.pos.z += Math.cos(ang) * 0.6; ja.speed = 15; ja.phase += 0.3; jackIn.root.position.set(st.pos.x, 0, st.pos.z); jackIn.root.rotation.y = st.heading; await G.wait(0.04); } }
       done(); return;
     }
     G.skipping = false; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); ui.show(true);
-    hint.textContent = text; hint.style.display = 'block'; st.free = true; st.goal = p; st.goalR = r; st.onGoal = done;
+    G.note && G.note(text);     hint.textContent = text; hint.style.display = 'block'; st.free = true; st.goal = p; st.goalR = r; st.onGoal = done;
   });
   const faceEach = async () => {
     const a = mother.root.position, b = jackIn.root.position, tm = Math.atan2(b.x - a.x, b.z - a.z), tj = tm + Math.PI;

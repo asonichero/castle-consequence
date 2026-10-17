@@ -56,6 +56,7 @@ function create(els) {
   const whoOf = who => { const w = WHO[who] || [who, '#e6c46a']; return who === 'gerda' && !G.gerdaNamed ? ['The Giantess', w[1]] : w; };       // (Jack does not know her name until she gives it)
   let capTok = 0; const caps = new Set(), supersede = () => { capTok++; for (const f of [...caps]) f(); }, live = { say: 0 };      // (a spoken line ends any caption still up, and no caption is drawn over a line while it is up: the two used to overwrite, and hide, each other)
   G.say = (who, text, opts) => new Promise(resolve => {
+    if (G.sayOverride) { const o = G.sayOverride(who, text); if (o === null) { resolve(); return; } if (typeof o === 'string') text = o; }       // (scene notes: a line as it has been rewritten there, or taken out)
     const ep = G.epoch;
     if (G.skipping || (!G.settings.subtitles && !(opts && opts.force))) { resolve(); return; }
     supersede(); live.say++;
@@ -138,6 +139,7 @@ function create(els) {
   const setMuted = m => { muted = m; const A = Audio_; if (A && A.nodes && A.nodes.master && A.ctx) { if (m) A.nodes.master.gain.value = 0; else A.setVol(); } };
   // Hooks for tools that work on the beats (scene-notes.html): onBeat(info) at every beat call; beatGate(n) may return a promise that holds the scene at the start of beat n;
   // camOverride(n) may return a camera { pos, look, fov } to use for beat n in place of the scene's own.
+  G.sayOverride = null; G.note = text => { if (G.onBeat) G.onBeat({ beat: G.beat, kind: 'note', name: 'action', args: [text], isNew: false }); };       // (G.note: something the player is asked to do, for the script in the scene notes)
   G.onBeat = null; G.beatGate = null; G.camOverride = null; G.specOf = specOf; G.cutNow = cutNow;
   let stall = null, deferred = null;
   // A beat is one camera angle: it begins when the scene cuts (or moves) to a new angle and runs until the next one, whatever is said and done in between. (Lines said before any angle
