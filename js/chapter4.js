@@ -13,6 +13,7 @@ const SC = 0.95, STAGE_Y = 5.7, JS = 0.5, OUT = 'Day', RED = { red: true };
 
 async function run(G, W, opts) {
   opts = opts || {};
+  const NOTES = !!opts.notes;       // (scene notes: no walking by hand, and it stops where the correction would begin)
   const { jackIn, ja, mother, ma, int, SEAT, scene } = W, say = (w, t, o) => G.say(w, t, o);
   const L = Object.assign({ lies: G.ch3lies || 0, rounds: 0, choreLied: false, obj: 0, washed: true }, G.ch3log || {});
   const day = L.lies + L.rounds + (L.choreLied ? 1 : 0) + 0.5 * Math.min(L.obj, 3) + (L.washed ? 0 : 0.5);
@@ -37,7 +38,7 @@ async function run(G, W, opts) {
   const st = { free: false, pos: J0.clone(), heading: Math.PI, yaw: 0, pitch: 0.5, hb: 0, goal: null, onGoal: null };
   const tp = int.table.position, RECTS = [[tp.x - 19, tp.x + 19, tp.z - 14, tp.z + 14], [-58, -12, 49, 74], [-82, -50, -15, 35]], BLOCK = [[SEAT.x, SEAT.z, 12], [-65, -65, 9], [66, -66, 8]], LIM = 66;       // (the table, the bed, the stairs; the chair, the barrel, the crate)
   const blocked = (x, z) => Math.abs(x) > LIM || Math.abs(z) > LIM || BLOCK.some(b => Math.hypot(x - b[0], z - b[1]) < b[2]) || RECTS.some(r => x > r[0] && x < r[1] && z > r[2] && z < r[3]);
-  const keys = {}, ui = root.TouchUI.create({ keys }), stick = ui.stick;
+  const keys = {}, ui = NOTES ? { show() {}, destroy() {}, stick: { x: 0, y: 0 } } : root.TouchUI.create({ keys }), stick = ui.stick;
   const KM = { w: 'up', W: 'up', ArrowUp: 'up', s: 'down', S: 'down', ArrowDown: 'down', a: 'left', A: 'left', ArrowLeft: 'left', d: 'right', D: 'right', ArrowRight: 'right' };
   const kd = e => { const k = KM[e.key]; if (k) { keys[k] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); } }, ku = e => { const k = KM[e.key]; if (k) keys[k] = false; };
   root.addEventListener('keydown', kd); root.addEventListener('keyup', ku);
@@ -45,7 +46,6 @@ async function run(G, W, opts) {
   el.addEventListener('pointerdown', pd); el.addEventListener('pointermove', pm); el.addEventListener('pointerup', pu); el.addEventListener('pointercancel', pu);
   const hint = document.createElement('div'); hint.id = 'dHint'; hint.style.cssText = 'position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:30;padding:6px 14px;background:rgba(10,12,20,.72);color:#e8e2d0;font:italic 15px Georgia,serif;border-radius:4px;display:none;pointer-events:none';
   document.body.appendChild(hint);
-  const camPos = v(0, 0, 0), camLook = v(0, 0, 0);
   const tick = dt => {
     if (!st.free) return;
     const f = v(-Math.sin(st.yaw), 0, -Math.cos(st.yaw)), r = v(Math.cos(st.yaw), 0, -Math.sin(st.yaw));
@@ -61,61 +61,71 @@ async function run(G, W, opts) {
     jackIn.root.position.set(st.pos.x, 0, st.pos.z); jackIn.root.rotation.y = st.heading;
     const near = st.goal ? Math.hypot(st.pos.x - st.goal.x, st.pos.z - st.goal.z) : 99;
     st.hb += dt; if (A && A.thud && st.hb > lerp(0.5, 1.3, clamp((near - 20) / 90, 0, 1))) { st.hb = 0; A.thud(0.12); }       // (a heartbeat, quickening as he nears her)
-    const d = 44, at = v(st.pos.x, 8, st.pos.z), want = v(at.x + Math.sin(st.yaw) * Math.cos(st.pitch) * d, Math.max(4, at.y + Math.sin(st.pitch) * d), at.z + Math.cos(st.yaw) * Math.cos(st.pitch) * d);
-    want.x = clamp(want.x, -70, 70); want.z = clamp(want.z, -70, 70); want.y = Math.min(want.y, 56);       // (the camera stays inside the room)
-    if (camPos.lengthSq() === 0) camPos.copy(want); else camPos.lerp(want, Math.min(1, dt * 8)); camLook.copy(at);
-    G.cut({ pos: camPos, look: camLook, fov: 48 });
     if (st.goal && near < st.goalR && st.onGoal) { const f2 = st.onGoal; st.onGoal = null; f2(); }
   };
   G.updaters.push(tick);
+  const endInput = () => { ui.destroy(); hint.remove(); root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu); };
   G.dream = { st, M1, slip };       // (for tools and tests)
-  // Walking to a place: his, until he is within r of it.
-  const goTo = (p, r, text) => new Promise(res => {
-    G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); ui.show(true);
-    hint.textContent = text; hint.style.display = 'block'; camPos.set(0, 0, 0); st.free = true; st.goal = p; st.goalR = r;
-    st.onGoal = () => { st.free = false; hint.style.display = 'none'; ui.show(false); for (const k in keys) keys[k] = false; stick.x = stick.y = 0; ja.speed = 0; G.mode = 'cutscene'; document.body.classList.add('cutscene'); res(); };
-  });
-  // Talk: the two of them side-on, as a pair.
-  const pair = () => {
-    const a = mother.root.position, b = jackIn.root.position, mx = (a.x + b.x) / 2, mz = (a.z + b.z) / 2, dx = b.x - a.x, dz = b.z - a.z, n = Math.hypot(dx, dz) || 1, px = -dz / n, pz = dx / n, sg = pz > 0 ? -1 : 1;       // (the camera takes the side away from the table, which would stand between)
-    G.cut({ pos: v(clamp(mx + px * sg * 78, -68, 68), 24, clamp(mz + pz * sg * 78, -68, 68)), look: v(mx, 15, mz), fov: 42 });
+  // The cameras are fixed: low behind Jack with Mother in view as he walks (it does not follow him); over the shoulder for the talk.
+  const yawFor = c => Math.atan2(-(c.look.x - c.pos.x), -(c.look.z - c.pos.z));
+  const room = x => clamp(x, -70, 70);
+  const camA = { pos: v(46, 10, 68), look: v(6, 16, -24), fov: 56 };       // (east of the table's line, or it would stand between him and her)
+  let shotKey = null; const cutOnce = (k, spec) => { if (shotKey === k) return; shotKey = k; G.cut(spec); };       // (a beat is a camera angle: the same angle is not cut to twice running)
+  const wide = () => {       // (the pair of them from the far side, away from the table)
+    const a = mother.root.position, b = jackIn.root.position, mx = (a.x + b.x) / 2, mz = (a.z + b.z) / 2, dx = b.x - a.x, dz = b.z - a.z, n = Math.hypot(dx, dz) || 1, px = -dz / n, pz = dx / n, sg = pz > 0 ? -1 : 1;
+    cutOnce('wide', { pos: v(room(mx + px * sg * 78), 24, room(mz + pz * sg * 78)), look: v(mx, 15, mz), fov: 42 });
   };
+  const axis = () => { const a = mother.root.position, b = jackIn.root.position, dx = b.x - a.x, dz = b.z - a.z, n = Math.hypot(dx, dz) || 1; return { a, b, ux: dx / n, uz: dz / n }; };       // (u: from her to him)
+  const otsMother = () => { const { a, b, ux, uz } = axis(); cutOnce('M', { pos: v(room(b.x + ux * 10 - uz * 5), 14, room(b.z + uz * 10 + ux * 5)), look: v(a.x, mother.pose === 'sit' ? 17 : 22, a.z), fov: 46 }); };       // (over Jack's shoulder, to her)
+  const otsJack = () => { const { a, b, ux, uz } = axis(); cutOnce('J', { pos: v(room(a.x - ux * 30 + uz * 20), 38, room(a.z - uz * 30 - ux * 20)), look: v(b.x, 9, b.z), fov: 46 }); };                 // (over her shoulder, down to him)
+  const sayM = async t => { otsMother(); await say('mother', t); }, sayJ = async t => { otsJack(); await say('jack', t); };
+  // Walking to a place: his, until he is within r of it (in scene notes it is done for him, by way of the points).
+  const goTo = (p, r, text, cam, via) => new Promise(async res => {
+    cutOnce(cam === camA ? 'A' : 'C', cam); st.yaw = yawFor(cam);
+    const done = () => { st.free = false; hint.style.display = 'none'; ui.show(false); for (const k in keys) keys[k] = false; stick.x = stick.y = 0; ja.speed = 0; G.mode = 'cutscene'; document.body.classList.add('cutscene'); res(); };
+    if (NOTES) {
+      for (const q of (via || []).concat([[p.x, p.z]])) { const last = q[0] === p.x && q[1] === p.z; while (Math.hypot(q[0] - st.pos.x, q[1] - st.pos.z) > (last ? r : 2)) { const ang = Math.atan2(q[0] - st.pos.x, q[1] - st.pos.z); st.heading = ang; st.pos.x += Math.sin(ang) * 0.6; st.pos.z += Math.cos(ang) * 0.6; ja.speed = 15; ja.phase += 0.3; jackIn.root.position.set(st.pos.x, 0, st.pos.z); jackIn.root.rotation.y = st.heading; await G.wait(0.04); } }
+      done(); return;
+    }
+    G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); ui.show(true);
+    hint.textContent = text; hint.style.display = 'block'; st.free = true; st.goal = p; st.goalR = r; st.onGoal = done;
+  });
   const faceEach = async () => {
     const a = mother.root.position, b = jackIn.root.position, tm = Math.atan2(b.x - a.x, b.z - a.z), tj = tm + Math.PI;
     for (let i = 0; i < 16; i++) { mother.root.rotation.y = turn(mother.root.rotation.y, tm, 0.3); jackIn.root.rotation.y = turn(jackIn.root.rotation.y, tj, 0.3); await G.wait(0.04); }
   };
   const pts = { score: 0 };
-  const pickOf = async (who, opts2) => { const i = await G.choose(who, opts2.map(o => o[0])); pts.score += opts2[i][1]; return i; };
+  let pickN = 0;
+  const pickOf = async (who, opts2) => { otsMother(); const i = opts.picks ? Math.min(opts.picks[pickN++] || 0, opts2.length - 1) : await G.choose(who, opts2.map(o => o[0])); pts.score += opts2[i][1]; return i; };
 
   // ── 1. The threshold. ──
   G.mode = 'cutscene'; document.body.classList.add('cutscene'); const f = document.getElementById('fade'); f.style.transition = 'none'; f.style.opacity = 1; void f.offsetWidth; f.style.transition = '';
-  G.cut({ pos: v(70, 30, 84), look: v(0, 14, 0), fov: 52 }); await G.wait(0.2); G.fade(false, 2.2); await G.wait(1.6);
-  await goTo(M1, 28, 'Go to Mother.');
+  cutOnce('A', camA); await G.wait(0.2); G.fade(false, 2.2); await G.wait(0.6);
+  await goTo(M1, 28, 'Go to Mother.', camA, [[28, 45], [28, 0]]);
   // ── 2. What did you bring me? ──
-  await faceEach(); reset(); ma.side = 1; pair(); await G.wait(0.6);
-  await say('mother', 'Jack.'); await G.wait(0.5);
-  await say('mother', 'What did you bring me?');
+  await faceEach(); reset(); ma.side = 1; wide(); await G.wait(1.0);
+  await sayM( 'Jack.'); await G.wait(0.5);
+  await sayM( 'What did you bring me?');
   const a1 = await pickOf('jack', [['Nothing, Mother. I’m sorry.', 0], ['It’s coming. I only need a little longer.', 1], ['You never gave me the chance to finish!', 2], [{ act: 'Turn out your pockets' }, 0]]);
   if (a1 === 3) {
-    for (let i = 1; i <= 14; i++) { ja.hold = 0.5 * i / 14; ja.cover = 0; await G.wait(0.04); } A && A.rustle && A.rustle(0.5); await G.wait(0.5);
+    otsJack(); for (let i = 1; i <= 14; i++) { ja.hold = 0.5 * i / 14; ja.cover = 0; await G.wait(0.04); } A && A.rustle && A.rustle(0.5); await G.wait(0.5);
     paint({ expr: 3 }); await G.wait(0.8); ja.hold = 0;
-    await say('mother', 'Empty.'); await say('mother', 'Empty, Jack.');
+    await sayM( 'Empty.'); await sayM( 'Empty, Jack.');
   } else {
-    await say('jack', ['Nothing, Mother. I’m sorry.', 'It’s coming. I only need a little longer.', 'You never gave me the chance to finish!'][a1]);
+    await sayJ( ['Nothing, Mother. I’m sorry.', 'It’s coming. I only need a little longer.', 'You never gave me the chance to finish!'][a1]);
     ma.gesture = a1 === 2 ? 1 : 0.3; ma.wag = a1 === 2 ? 0.6 : 0;
-    await say('mother', ['Nothing.', 'A little longer.', 'Finish.'][a1]);
-    await say('mother', ['Nothing.', 'A little longer.', 'You have never finished a thing in your life.'][a1]);
+    await sayM( ['Nothing.', 'A little longer.', 'Finish.'][a1]);
+    await sayM( ['Nothing.', 'A little longer.', 'You have never finished a thing in your life.'][a1]);
   }
   reset(); ma.side = 1;
   // ── 3. The accounting: it is of his day, and it is hers. ──
-  pair();
-  await say('mother', ['You were good, and what did it buy? Nothing in your hands.', 'The truth when it suits you, and a fib when it doesn’t, and home you come with nothing.', 'You lied, and you sulked, and you made a mess of every task you were given, and you come home with nothing.'][slip]);
+  await sayM(['You were good, and what did it buy? Nothing in your hands.', 'The truth when it suits you, and a fib when it doesn’t, and home you come with nothing.', 'You lied, and you sulked, and you made a mess of every task you were given, and you come home with nothing.'][slip]);
   const a2 = await pickOf('jack', [['I’ll bring something, Mother. I promise.', 0], ['I was looked after. I had a bed.', 1], ['Perhaps I would, if you ever said a kind word!', 2]]);
-  await say('jack', ['I’ll bring something, Mother. I promise.', 'I was looked after. I had a bed.', 'Perhaps I would, if you ever said a kind word!'][a2]);
+  await sayJ( ['I’ll bring something, Mother. I promise.', 'I was looked after. I had a bed.', 'Perhaps I would, if you ever said a kind word!'][a2]);
   ma.gesture = a2 === 0 ? 0 : 1; ma.wag = a2 === 2 ? 1 : 0.3;
-  await say('mother', ['You promise.', 'By whom?', 'Kind.'][a2]);
-  if (a2 === 1) { paint({ expr: 3 }); await G.wait(0.9); await say('mother', 'By whom, Jack?'); }
-  else await say('mother', ['You always promise.', '', 'I have been kind to you all your life, and look what you bring me.'][a2]);
+  await sayM( ['You promise.', 'By whom?', 'Kind.'][a2]);
+  if (a2 === 1) { paint({ expr: 3 }); await G.wait(0.9); await sayM( 'By whom, Jack?'); }
+  else await sayM( ['You always promise.', '', 'I have been kind to you all your life, and look what you bring me.'][a2]);
   await G.wait(0.4); reset();
   // ── 4. Come here. ──
   await G.fade(true, 0.8);
@@ -123,12 +133,14 @@ async function run(G, W, opts) {
   const cl = (a, y, b) => v(SEAT.x + a * Math.sin(SEAT.ry) + (b || 0) * Math.cos(SEAT.ry), y, SEAT.z + a * Math.cos(SEAT.ry) - (b || 0) * Math.sin(SEAT.ry));
   const J1 = cl(52, 0); st.pos.copy(J1); st.heading = SEAT.ry + Math.PI; st.yaw = SEAT.ry + Math.PI; jackIn.root.position.copy(J1); jackIn.root.rotation.y = st.heading; paint({});
   for (let i = 0; i < 12; i++) { B.step(mother, 0.1); B.step(jackIn, 0.1); } B.seatFeet(mother, 0);
-  G.cut({ pos: cl(22, 22, 52), look: cl(10, 14, 0), fov: 44 }); await G.fade(false, 0.9);
+  const camC = { pos: v(room(J1.x + Math.sin(SEAT.ry) * 14 + Math.cos(SEAT.ry) * 11), 10, room(J1.z + Math.cos(SEAT.ry) * 14 - Math.sin(SEAT.ry) * 11)), look: v(SEAT.x, 20, SEAT.z), fov: 54 };       // (low behind Jack, to her in the chair)
+  cutOnce('C', camC); await G.fade(false, 0.9);
   await say('mother', 'Come here.'); await say('mother', 'Come here, Jack.');
-  await goTo(cl(20, 0), 15, 'Go to her.');
+  await goTo(cl(20, 0), 15, 'Go to her.', camC);
+  if (NOTES) { endInput(); G.updaters = G.updaters.filter(u => u !== tick); G.mode = 'end'; return { tier: 0, slip }; }
   // ── 5. The correction: over her knee, with the hand; shorter than the one at the close of Chapter One, and harder. ──
   const tier = Math.min(2, Math.floor((pts.score + (slip >= 2 ? 1 : 0)) / 2)), pick = (a, b, c) => [a, b, c][tier];
-  ui.destroy(); hint.remove(); root.removeEventListener('keydown', kd); root.removeEventListener('keyup', ku); el.removeEventListener('pointerdown', pd); el.removeEventListener('pointermove', pm); el.removeEventListener('pointerup', pu); el.removeEventListener('pointercancel', pu);
+  endInput();
   const lap = Lap.create(null, { external: { scene, camera: G.camera, renderer: G.renderer }, table: false, jackFull: 1 });
   lap.giver('mother', 1); lap.stage.scale.setScalar(SC); lap.stage.visible = false; lap.jack.root.visible = true; lap.st.noRecovery = true; lap.st.side = 'alt'; lap.outfit('jack', OUT);
   G.lap = lap;
