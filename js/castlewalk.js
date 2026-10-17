@@ -378,9 +378,10 @@ function run(G, W, opts) {
     const tick = dt => {
       if ((st.scene && !st.wait) || st.caught) ui.show(false); else ui.show(true);
       if (st.scene) { const w = st.wait, pe = promptEl();       // (a playable cutscene: the camera stays where it is put, and the one button answers what she asks)
-        if (w) { const q = w.key === 'q', hit = q ? st.putReq : st.actReq; pe.textContent = (q ? 'Q' : 'E') + ' \u2014 ' + w.label; pe.style.display = 'block'; st.uiAct = q ? null : w.label; st.uiDrop = q; st.uiDropLabel = q ? w.label : null;
-          ui.set('act', q ? { label: 'Do', enabled: false } : { label: w.label, enabled: true }); ui.set('drop', { label: q ? w.label : 'Drop', enabled: q }); ui.set('jump', { label: 'Jump', icon: 'jump', enabled: false }); ui.set('run', { enabled: false }); ui.set('sneak', { enabled: false });
-          if (hit || G.skipping) { st.wait = null; pe.style.display = 'none'; st.uiAct = null; st.uiDrop = false; w.res(); } }
+        if (w) { const q = w.key === 'q', locked = !!w.lockUntil && G.t < w.lockUntil, lbl = locked ? w.lockLabel : w.label, hit = q ? st.putReq : st.actReq; pe.textContent = (q ? 'Q' : 'E') + ' \u2014 ' + lbl + (w.alt ? '     Q \u2014 ' + w.alt.label : ''); pe.style.display = 'block'; st.uiAct = q ? null : lbl; st.uiDrop = q || !!w.alt; st.uiDropLabel = q ? w.label : w.alt ? w.alt.label : null;       // (a wait may be locked for a while: a press then is early; and may offer a second thing on Q)
+          ui.set('act', q ? { label: 'Do', enabled: false } : { label: lbl, enabled: true }); ui.set('drop', { label: q ? w.label : w.alt ? w.alt.label : 'Drop', enabled: q || !!w.alt }); ui.set('jump', { label: 'Jump', icon: 'jump', enabled: false }); ui.set('run', { enabled: false }); ui.set('sneak', { enabled: false });
+          if (w.alt && st.putReq) { st.putReq = false; w.alt.fn(); }
+          if (hit || G.skipping) { st.wait = null; pe.style.display = 'none'; st.uiAct = null; st.uiDrop = false; w.res(locked && !G.skipping ? 'early' : 'ok'); } }
         st.jumpReq = st.actReq = st.putReq = false; if (!st.inHand && !st.boxed) { jackOut.root.scale.setScalar(SC * st.s); jackOut.root.position.set(st.pos.x, st.y, st.pos.z); jackOut.root.rotation.y = st.heading; } return; }
       const s = st.s; if (Math.abs(s - nearS) > 0.02) { nearS = s; camera.near = Math.max(0.1, 0.3 * s); camera.updateProjectionMatrix(); }       // (a nearer near plane only as he is small: the depth buffer keeps its precision, so flat surfaces do not shimmer)
       const f = v(-Math.cos(st.camA), 0, -Math.sin(st.camA)), r = v(Math.sin(st.camA), 0, -Math.cos(st.camA));
@@ -1698,6 +1699,7 @@ function run(G, W, opts) {
     // ═══ Chapter Four, waking: he opens his eyes in the nursery cot, at dawn, from the dream of home ═══
     async function wakeScene() {
       G.skipping = false;
+      { const it = M.items.keepsakeBox, bg = it.g; bg.position.set(it.def.x, it.y, it.def.z); bg.rotation.set(0, it.def.ry || 0, 0); bg.userData.box.lid.rotation.x = 0; }       // (the box is on the pantry, where it has stood since the morning she took it down)
       const Lg = M.room.userData.lights || {}, ease = k => k * k * (3 - 2 * k), W3 = (a, b, k) => a + (b - a) * k;
       const mk = (w, h, d, col, x, y, z, par) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), root.Farm.plain(col)); m.position.set(x, y, z); par.add(m); return m; };
       const npaint = o => W.paintJack(jackOut, Object.assign({ outfit: 'Night', trousers: 'up', drawers: 'up' }, o));
@@ -1869,6 +1871,165 @@ function run(G, W, opts) {
       await G.wait(0.4);
       G.updaters = G.updaters.filter(u => u !== bandTick); scene.background = bg0; G.bathPaint = null;
     }
+    // ═══ Chapter Four, breakfast: porridge in the kitchen. She brings him in, goes to the stove and gets on with the hen's feed; he is left to climb the stool and finish the bowl, and eating it is his: slowly. ═══
+    async function breakfastScene() {
+      G.skipping = false;
+      { const it = M.items.keepsakeBox, bg = it.g; bg.position.set(it.def.x, it.y, it.def.z); bg.rotation.set(0, it.def.ry || 0, 0); bg.userData.box.lid.rotation.x = 0; }       // (the box is on the pantry, where it has stood since the morning she took it down)
+      const ease = k => k * k * (3 - 2 * k), W3 = (a, b, k) => a + (b - a) * k;
+      const mk = (w, h, d, col, x, y, z, par) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), root.Farm.plain(col)); m.position.set(x, y, z); par.add(m); return m; };
+      const stool = M.items.tallStool.g, stool0 = stool.position.z, SX = stool.position.x, SZ = stool0 + 5, TOP = 25.5, SEAT = 22; stool.position.z = SZ;       // (drawn back from the table, that he can sit at it)
+      const Lg = M.room.userData.lights || {}, lampAt = (x, z) => (Lg.all || []).find(l => Math.abs(l.position.x - x) < 3 && Math.abs(l.position.z - z) < 3), kl = lampAt(170, -30); if (kl) kl.intensity = 0.7;
+      if (Lg.hemi) { Lg.hemi.intensity = 0.55; Lg.hemi.color.setHex(0xffe6c0); Lg.hemi.groundColor.setHex(0x8a7a68); }
+      let dayState = { outfit: 'Day', trousers: 'up', drawers: 'up', expr: 'smile' }; const paint = o => { Object.assign(dayState, o); W.paintJack(jackOut, dayState); }; G.bathPaint = () => paint({});
+      st.scene = true; st.frozen = false; st.fz = null; st.boxed = false; st.inHand = false; st.air = false; st.cl = null; st.mant = null; st.vy = 0; st.walkN = 0; st.choreTick = null; st.guard = null; st.pose = {}; st.s = st.s || G.ch3Size || 0.98; G.cwState = st;
+      jackOut.root.visible = gerda.root.visible = true; scene.attach(jackOut.root); jackOut.root.quaternion.identity(); jackOut.root.scale.setScalar(SC * st.s); G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; G.captionOff && G.captionOff();
+      if (jackOut.gear) jackOut.gear.knife.visible = jackOut.gear.satchel.visible = jackOut.gear.flask.visible = false;
+      const wr = () => gerda.wrist.localToWorld(new V3(0, -6, 0)), wl = () => gerda.wristL.localToWorld(new V3(0, -6, 0));
+      // ── her hands (the helpers of the dressing) ──
+      const pose = async (to, secs) => { const from = { bend: gst.bend, reach: gst.reach, lreach: gst.lreach }, n = Math.max(1, Math.round((secs || 0.5) / 0.04)); for (let i = 1; i <= n; i++) { const k = ease(i / n); for (const key in to) gst[key] = W3(from[key], to[key], k); placeGerda(); await G.wait(0.04); } };
+      const solveArms = (TR, TL, maxB) => { const sv = { bend: gst.bend, reach: gst.reach, lreach: gst.lreach }; let best = { e: 1e9, bd: 0, rc: 0, lc: 0 };
+        const at = (bd, rc, lc) => { gst.bend = bd; gst.reach = rc; gst.lreach = lc; placeGerda(); root.Blocky.step(gerda, 0); gerda.root.updateMatrixWorld(true); };
+        for (let bd = 0; bd <= (maxB === undefined ? 1.1 : maxB); bd += 0.1) { let r = { d: 0, rc: 0 }, l = { d: 0, lc: 0 };
+          if (TR) { r = { d: 1e9, rc: 0 }; for (let rc = 0.3; rc <= 2.3; rc += 0.1) { at(bd, rc, 0); const d = wr().distanceTo(TR); if (d < r.d) r = { d, rc }; } }
+          if (TL) { l = { d: 1e9, lc: 0 }; for (let lc = 0.3; lc <= 2.3; lc += 0.1) { at(bd, 0, lc); const d = wl().distanceTo(TL); if (d < l.d) l = { d, lc }; } }
+          if (r.d + l.d < best.e) best = { e: r.d + l.d, bd, rc: r.rc, lc: l.lc }; }
+        Object.assign(gst, sv); placeGerda(); return best; };
+      const armsTo = async (TR, TL, secs, maxB) => { const b = solveArms(TR, TL, maxB); await pose({ bend: b.bd, reach: b.rc, lreach: b.lc }, secs); return b; };
+      const rest = secs => pose({ bend: 0, reach: 0, lreach: 0 }, secs || 0.5);
+      let stepAt3 = 0; const walkG = async wps => { for (const [wx, wz] of wps) while (Math.hypot(wx - gst.x, wz - gst.z) > 1) { const d = Math.hypot(wx - gst.x, wz - gst.z); gst.h += angDiff(Math.atan2(wx - gst.x, wz - gst.z), gst.h) * 0.3; gst.x += (wx - gst.x) / d * Math.min(0.9, d); gst.z += (wz - gst.z) / d * Math.min(0.9, d); gst.ph += 0.4; gst.walk = 1; placeGerda(); { const sp = Math.floor(gst.ph / 4.8); if (sp !== stepAt3) { stepAt3 = sp; A && A.pad && A.pad(0.3); } } await G.wait(0.04); } gst.walk = 0; placeGerda(); };
+      const faceG = async (x, z, secs) => { const h0 = gst.h, tg = Math.atan2(x - gst.x, z - gst.z), n = Math.max(1, Math.round((secs || 0.5) / 0.04)); for (let i = 1; i <= n; i++) { gst.h = h0 + angDiff(tg, h0) * ease(i / n); placeGerda(); await G.wait(0.04); } };
+      const tp = async (to, secs) => { st.pose = st.pose || {}; const from = {}; for (const k in to) from[k] = st.pose[k] || 0; const n = Math.max(1, Math.round((secs || 0.4) / 0.04)); for (let i = 1; i <= n; i++) { const k = ease(i / n); for (const key in to) st.pose[key] = W3(from[key], to[key], k); await G.wait(0.04); } };
+      // ── the table, the bowl, the spoon ──
+      const bowl = new THREE.Group(); bowl.position.set(SX, TOP, SZ - 12); scene.add(bowl); mk(9, 3.2, 9, '#d8d4c8', 0, 1.6, 0, bowl); mk(7.4, 0.5, 7.4, '#c8c3b4', 0, 3.1, 0, bowl); const mush = mk(7, 1, 7, '#ebdfbc', 0, 3.2, 0, bowl); mk(2.2, 0.5, 2, '#d9b26a', -1, 3.8, 0.5, mush);
+      let level = 6; const setLevel = () => { mush.scale.y = Math.max(0.05, level / 6); mush.position.y = 2.7 + 0.5 * Math.max(0.05, level / 6); mush.visible = level > 0; };
+      const spoon = new THREE.Group(); mk(0.9, 9, 0.9, '#8a6a42', 0, -4.5, 0, spoon); const sbowl = mk(2.6, 0.7, 3.4, '#9a7a52', 0, -9.2, 0.5, spoon); const load = mk(2.2, 0.8, 2.8, '#ebdfbc', 0, -8.7, 0.5, spoon); load.visible = false; spoon.position.set(0, -6, 0); jackOut.wrist.add(spoon);
+      const splash = new THREE.Group(); mk(2.4, 0.5, 2, '#ebdfbc', 0, 0, 0, splash); mk(1.2, 0.4, 3, '#ebdfbc', 1.6, 0, 0.8, splash); splash.visible = false; scene.add(splash);       // (what goes on the table when he rushes)
+      const chin = new THREE.Group(); mk(1.6, 1.2, 0.5, '#ebdfbc', 0, 0, 0, chin); mk(2.4, 0.8, 0.5, '#ebdfbc', 0.4, -3, 0.2, chin); chin.visible = false; jackOut.torso.add(chin); chin.position.set(0, 15, 2.5);       // (and on his front)
+      const cloth = new THREE.Group(); mk(3.6, 0.5, 3.6, '#f2eee4', 0, 0, 0, cloth); cloth.visible = false; gerda.wrist.add(cloth); cloth.position.set(0, -6, 0.8); cloth.scale.setScalar(SC * 0.7 * 1.1);
+      setLevel();
+      // ── Gerda at the stove, with her back to the room: the hen's feed ──
+      const STOVE = [118, -63];
+      Object.assign(gst, { x: 66, z: -26, h: Math.PI / 2, y: 0, seated: 0, kneel: 0, walk: 0, reach: 0, lreach: 0, bend: 0, look: 0.2, headY: 0, p50: null, hold: 0, alive: 1, sniff: 0, noSwingR: 0 }); placeGerda(); root.Blocky.step(gerda, 0);
+      let stirring = false; const stirTick = () => { if (!stirring) return; gst.reach = 0.85 + 0.25 * Math.sin(G.t * 3.2); gst.bend = 0.14; gst.lreach = 0; placeGerda(); }; G.updaters.push(stirTick);
+      const pail = new THREE.Group(); mk(6, 7, 6, '#7a5a3a', 0, 3.5, 0, pail); mk(5, 0.6, 5, '#d9b26a', 0, 6.8, 0, pail); pail.position.set(STOVE[0] + 2, 0, STOVE[1] + 14); scene.add(pail);       // (the hen's feed: what she measures out)
+      const heldSay = t => G.caption('gerda', t);
+      // ── 1. In from the hall, hand in hand ──
+      st.pos.set(66, 0, -16); st.heading = Math.PI / 2; jackOut.root.position.set(66, 0, -16);
+      G.cut({ pos: v(150, 34, 8), look: v(96, 18, -22), fov: 54 }); { const f = $('fade'); f.style.transition = 'none'; f.style.opacity = 1; void f.offsetWidth; f.style.transition = ''; }
+      paint({ expr: 'smile' }); if (A && A.ctx) A.startMusic({ theme: 'castle' });
+      { const hh = Math.PI / 2, lz = 3; let lx = -10; const wp = () => v(gst.x + lx * Math.cos(gst.h) + lz * Math.sin(gst.h), 0, gst.z - lx * Math.sin(gst.h) + lz * Math.cos(gst.h));
+        gst.bend = 0; let best = { c: 1e9 }; const xAx = new V3(Math.cos(hh), 0, -Math.sin(hh)); const q0 = wp(); jackOut.root.position.set(q0.x, 0, q0.z); jackOut.root.rotation.set(0, hh, 0);
+        for (const rc of [0, 0.2, 0.4, 0.6]) { gst.reach = rc; placeGerda(); root.Blocky.step(gerda, 0); gerda.root.updateMatrixWorld(true); const Wp = wr();
+          for (let ax = -2.6; ax <= -0.2; ax += 0.4) for (let el = -1.9; el <= 0; el += 0.38) for (const az of [-0.6, -0.3, 0]) { st.pose.armLx = ax; st.pose.elbowL = el; st.pose.armLz = az; root.Blocky.step(jackOut, 0); jackOut.root.updateMatrixWorld(true); const e = Wp.clone().sub(jackOut.wristL.localToWorld(new V3(0, -6, 0))), lat = e.dot(xAx), c = Math.abs(e.y) + Math.hypot(e.x - lat * xAx.x, e.z - lat * xAx.z) + 0.3 * Math.abs(lat) + (lx + lat > -4 ? 50 : 0); if (c < best.c) best = { c, rc, ax, el, az, lat }; } }
+        lx = Math.min(-4, lx + best.lat); gst.reach = best.rc; gst.noSwingR = 1; placeGerda(); Object.assign(st.pose, { armLx: best.ax, armLz: best.az, elbowL: best.el });
+        const q1 = wp(); st.pos.set(q1.x, 0, q1.z); st.heading = hh; st.walkN = 1;
+        await G.fade(false, 1.2);
+        const walkWith = async (tx, tz) => { while (Math.hypot(tx - gst.x, tz - gst.z) > 1) { const d = Math.hypot(tx - gst.x, tz - gst.z); gst.h += angDiff(Math.atan2(tx - gst.x, tz - gst.z), gst.h) * 0.25; gst.x += (tx - gst.x) / d * Math.min(0.6, d); gst.z += (tz - gst.z) / d * Math.min(0.6, d); gst.ph += 0.3; gst.walk = 0.7; placeGerda(); const q = wp(); st.pos.set(q.x, 0, q.z); st.heading = gst.h; st.walkN = 1; st.walkPh += 0.38; { const sp = Math.floor(gst.ph / 4.8); if (sp !== stepAt3) { stepAt3 = sp; A && A.pad && A.pad(0.3); } } await G.wait(0.04); } gst.walk = 0; st.walkN = 0; placeGerda(); };
+        await walkWith(112, -22);
+        await sayW('gerda', 'Here we are. Porridge, nice and hot, and waiting for you.');
+        { const a0 = { armLx: st.pose.armLx, armLz: st.pose.armLz, elbowL: st.pose.elbowL }; await Promise.all([rest(0.6), (async () => { for (let i = 1; i <= 14; i++) { const k = ease(i / 14); st.pose.armLx = W3(a0.armLx, 0.05, k); st.pose.armLz = W3(a0.armLz, 0.1, k); st.pose.elbowL = W3(a0.elbowL, 0, k); await G.wait(0.04); } })()]); gst.noSwingR = 0; }
+      }
+      st.pose = {}; { const h0 = gst.h; for (let i = 1; i <= 10; i++) { gst.h = h0 + angDiff(Math.atan2(SX - gst.x, SZ - gst.z), h0) * ease(i / 10); placeGerda(); await G.wait(0.04); } }
+      await sayW('gerda', 'Up you climb, little climber. I’ll be just here, with the hen’s feed.');
+      await walkG([[STOVE[0], STOVE[1] + 10], [STOVE[0], STOVE[1]]]); await faceG(STOVE[0] - 10, STOVE[1], 0.5); stirring = true; gst.talk = 0;
+      // ── 2. The kitchen is his: the stool, and the porridge; she asks him to keep to it, and he means to ──
+      st.scene = false; st.frozen = false; st.pos.set(st.pos.x, 0, st.pos.z); st.camA = Math.atan2(-Math.cos(st.heading), -Math.sin(st.heading)); st.pitch = 0.4; st.zoom = 1; camPos.set(0, 0, 0); G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine();
+      $('cwObjt').textContent = 'Climb up to the table, and finish your porridge.'; $('cwObjt').style.display = 'block';
+      const Z = { x0: 94, x1: 246, z0: -108, z1: 50 }, firm = ['Jack.', 'Jack. The table.', 'Jack. Porridge, please.']; let nFirm = 0, tFirm = 0;
+      st.guard = () => { const p = st.pos; if (p.x < Z.x0 || p.x > Z.x1 || p.z < Z.z0 || p.z > Z.z1) { p.x = Math.max(Z.x0 + 1, Math.min(Z.x1 - 1, p.x)); p.z = Math.max(Z.z0 + 1, Math.min(Z.z1 - 1, p.z)); const now = performance.now(); if (now - tFirm > 4000) { tFirm = now; const n = nFirm++; G.caption('gerda', firm[Math.min(n, firm.length - 1)]); gst.talk = 1; setTimeout(() => { gst.talk = 0; }, 1500); setTimeout(() => G.caption('jack', ['Sorry, Gerda. I’m going.', 'Sorry. I’m staying close.', 'Yes, Gerda. The table.'][Math.min(n, 2)]), 1700); } } };       // (kept in the kitchen: a firm word, and his own)
+      const near = () => Math.hypot(st.pos.x - SX, st.pos.z - (SZ + 9)) < 16;
+      let myAct = false; const onKey = e => { if (e.key === 'e' || e.key === 'E') myAct = true; }, onTap = e => { e.preventDefault(); e.stopPropagation(); myAct = true; }, oldAct = ui.on.act; root.addEventListener('keydown', onKey); $('cwPrompt').addEventListener('pointerdown', onTap, true); ui.on.act = () => { if (near()) myAct = true; else oldAct(); };
+      await new Promise(res => { const poll = () => { const pe = promptEl(); if (near()) { pe.textContent = 'E — Climb up'; pe.style.display = 'block'; ui.set('act', { label: 'Climb', enabled: true }); if (myAct) { myAct = false; pe.style.display = 'none'; G.updaters = G.updaters.filter(u => u !== poll); res(); } } else myAct = false; }; G.updaters.push(poll); });
+      root.removeEventListener('keydown', onKey); $('cwPrompt').removeEventListener('pointerdown', onTap, true); ui.on.act = oldAct; st.guard = null; $('cwObjt').style.display = 'none';
+      // ── he climbs: the stool is taller than he is ──
+      st.scene = true; st.frozen = false; st.fz = null; G.mode = 'cutscene'; document.body.classList.add('cutscene'); st.walkN = 0; st.pose = {};
+      G.cut({ pos: v(SX + 34, 26, SZ + 26), look: v(SX, 16, SZ), fov: 48 });
+      jackOut.root.updateMatrixWorld(true); const hy = jackOut.hips.getWorldPosition(new V3()).y - st.y, seatY = SEAT - hy + 1.5;
+      { const p0 = st.pos.clone(), h0 = st.heading; for (let i = 1; i <= 14; i++) { const k = ease(i / 14); st.pos.set(W3(p0.x, SX, k), 0, W3(p0.z, SZ + 9, k)); st.heading = h0 + angDiff(Math.PI, h0) * k; st.walkN = 1; st.walkPh += 0.5; await G.wait(0.04); } st.walkN = 0; st.heading = Math.PI; }
+      A && A.rustle && A.rustle(0.4);
+      { const n = 44; for (let i = 1; i <= n; i++) { const k = ease(i / n), c = Math.sin(i * 0.5); st.y = W3(0, seatY, k); st.pos.z = W3(SZ + 9, SZ, k); Object.assign(st.pose, { armLx: W3(0.05, -2.4, Math.min(1, k * 2)) + 0.2 * c, armRx: W3(0.05, -2.4, Math.min(1, k * 2)) - 0.2 * c, legLx: -1.2 * k * (0.5 + 0.5 * c), legRx: -1.2 * k * (0.5 - 0.5 * c), kneeL: 0.9 * k, kneeR: 0.9 * k, torso: 0.25 * k }); await G.wait(0.04); } }
+      const SEATED = { legLx: -1.5, legRx: -1.5, kneeL: 1.5, kneeR: 1.5, armLx: -0.55, armRx: -0.75, armLz: 0.15, armRz: -0.15, elbowL: -1.0, elbowR: -1.1, torso: 0.1, neckX: 0.2, neckY: 0, legLz: 0, legRz: 0, legLy: 0, legRy: 0 };
+      await tp(SEATED, 0.6); st.pos.z = SZ; st.y = seatY; paint({ expr: 'smile' });
+      // ── 3. The bowl: the cue is the wait: press early, and it goes on the table ──
+      G.cut({ pos: v(205, 32, -12), look: v(160, 20, -34), fov: 48 });
+      await G.wait(0.5);
+      const ask = (label, lockLabel, secs) => new Promise(res => { G.note && G.note(label); if (G.skipping) res('ok'); else if (G.manual) setTimeout(() => res('ok'), 700); else st.wait = { label, key: 'e', res, lockLabel, lockUntil: secs ? G.t + secs : 0, alt: { label: 'Look around', fn: () => looks() } }; });
+      const THOUGHTS = ['She’s humming. She hasn’t looked round once. She trusts me to sit here.', 'A jug as tall as a cottage. Mother would sell a month of milk for one like it.', 'Warm light, and a floor I could lose a village on. And I’m not afraid of it any more. Why am I not afraid of it?', 'Every one of those eggs is bigger than I am. There must be something in this house worth carrying home.', 'The hen. If I’m good, she’ll let me near the hen again.', 'It’s good porridge. I’ll not say so out loud.'];
+      let looking = false, tn = 0; const looks = async () => { if (looking) return; looking = true; const w = st.wait; st.wait = null; $('cwPrompt').style.display = 'none'; await G.think(THOUGHTS[tn++ % THOUGHTS.length]); if (w) { st.wait = w; } looking = false; };
+      const scoop = async () => { await tp({ armRx: -1.25, elbowR: -0.3, neckX: 0.3 }, 0.5); load.visible = true; A && A.blip && A.blip(); await tp({ armRx: -1.9, elbowR: -1.3, neckX: 0.3 }, 0.6); };
+      const eat = async () => { await tp({ neckX: 0.42 }, 0.2); load.visible = false; A && A.rustle && A.rustle(0.3); level--; setLevel(); paint({ expr: 'smile' }); await tp({ armRx: -0.75, elbowR: -1.1, neckX: 0.2 }, 0.5); };
+      const spill = async () => { await tp({ armRx: -1.6, elbowR: -0.4, neckX: 0.3 }, 0.35); load.visible = true; await tp({ armRx: -2.1, elbowR: -1.0, neckX: 0.1 }, 0.25); load.visible = false; A && A.thwack && A.thwack(0.25, true, 0.3); splash.position.set(SX + 4, TOP + 0.3, SZ - 8); splash.visible = true; chin.visible = true; paint({ expr: 'wince' }); await tp({ armRx: -0.75, elbowR: -1.1, neckX: 0.4 }, 0.5); };
+      let messes = 0;
+      const wipe = async n => {       // she comes across, and wipes his face and his front, and goes back
+        stirring = false; await rest(0.3); await walkG([[SX - 22, SZ - 6]]); await faceG(SX, SZ, 0.4);
+        await sayW('gerda', n === 1 ? 'Oh, little climber. Slowly, now. There’s no race.' : 'Jack. Slowly. I will not ask a third time.');
+        cloth.visible = true; await armsTo(jackOut.neck.localToWorld(new V3(0, 2, 4)), null, 0.6, 0.5);
+        for (let i = 0; i < 4; i++) { await armsTo(jackOut.neck.localToWorld(new V3(i % 2 ? 2 : -2, 1, 4)), null, 0.18, 0.5); }
+        await armsTo(jackOut.torso.localToWorld(new V3(0, 12, 4)), null, 0.4, 0.5); chin.visible = false; splash.visible = false; A && A.rustle && A.rustle(0.4); await G.wait(0.2); cloth.visible = false; await rest(0.5);
+        await sayW('jack', n === 1 ? 'Sorry, Gerda.' : 'Slowly. Yes, Gerda.'); paint({ expr: 'shy' });
+        await walkG([[STOVE[0], STOVE[1] + 10], [STOVE[0], STOVE[1]]]); await faceG(STOVE[0] - 10, STOVE[1], 0.4); stirring = true; paint({ expr: 'smile' });
+      };
+      let correctedNow = false, clean = 0;
+      while (level > 0 && !correctedNow) {
+        const r = await ask('Scoop', '…slowly', clean || messes ? 2.4 : 0.5);
+        if (r === 'early') { messes++; await spill(); if (messes >= 3) { correctedNow = true; break; } await wipe(messes); }
+        else { await scoop(); await eat(); clean++; if (clean === 1) heldSay('That’s it.'); else if (clean === 3) heldSay('Slowly. Good boy.'); else if (clean === 5) heldSay('Nearly there.'); }
+      }
+      stirring = false;
+      if (correctedNow) {
+        await correction();
+      }
+      await finishBreakfast();
+      // ── the correction: in place: the bowl moved out of reach, he kneels up to the table, and a few firm smacks ──
+      async function correction() {
+        await rest(0.3); await walkG([[SX - 22, SZ - 6]]); await faceG(SX, SZ, 0.4); chin.visible = false;
+        await sayW('gerda', 'That is three, Jack.');
+        { const b0 = bowl.position.clone(), b1 = new V3(SX + 20, TOP, SZ - 34); await armsTo(bowl.getWorldPosition(new V3()).add(new V3(0, 3, 0)), null, 0.6, 0.6); for (let i = 1; i <= 20; i++) { const k = ease(i / 20); bowl.position.lerpVectors(b0, b1, k); await G.wait(0.04); } await rest(0.5); }       // (the porridge goes out of his reach)
+        await sayW('gerda', 'Up on your knees for me. Hands flat on the table.');
+        await new Promise(res => { G.note && G.note('Kneel up'); if (G.skipping) res(); else if (G.manual) setTimeout(res, 700); else st.wait = { label: 'Kneel up', key: 'e', res }; });
+        const kneelY = SEAT + 6 * SC * st.s - hy + 1.2;
+        await tp({ legLx: 0.02, legRx: 0.02, kneeL: 1.55, kneeR: 1.55, torso: 1.4, armLx: -1.5, armRx: -1.5, armLz: 0.15, armRz: -0.15, elbowL: -0.3, elbowR: -0.3, neckX: -0.3 }, 0.9);
+        { const y0 = st.y; for (let i = 1; i <= 8; i++) { st.y = W3(y0, kneelY, ease(i / 8)); await G.wait(0.04); } }
+        paint({ trousers: 'down', drawers: 'down', hitched: true, expr: 'wince' }); A && A.blip && A.blip(); await G.wait(0.4);
+        const cheeks = [-1, 1].map(sx => () => jackOut.hips.localToWorld(new V3(sx * 2.2, -1.5, -2.6)));
+        const lines = [['That is for rushing.', 'Ow!'], ['And that is for not listening.', 'Ow! I’m sorry!'], ['Porridge is for eating, Jack. Not for wearing.', 'Ow!'], ['There. That is the end of it.', 'Yes, Gerda…']];
+        for (let i = 0; i < lines.length; i++) {
+          const cheek = cheeks[i % 2](), back = jackOut.torso.localToWorld(new V3(0, 8, -2));
+          await sayW('gerda', lines[i][0]);
+          await armsTo(cheek.clone().add(new V3(0, 9, 3)), back, 0.45, 0.8); await G.wait(0.15);
+          await armsTo(cheek, back, 0.09, 0.8); A && A.thwack && A.thwack(0.85, false, 0.9);
+          for (let k = 1; k <= 5; k++) { st.pose.torso += 0.03; st.pose.neckX -= 0.05; await G.wait(0.04); }
+          await sayW('jack', lines[i][1]); await tp({ torso: 1.4, neckX: -0.3 }, 0.25);
+        }
+        await rest(0.4); paint({ trousers: 'up', drawers: 'up', hitched: false, expr: 'shy' }); A && A.blip && A.blip();
+        await tp({ torso: 0.1, neckX: 0.2, armLx: -0.55, armRx: -0.75, armLz: 0.15, armRz: -0.15, elbowL: -1.0, elbowR: -1.1, legLx: -1.5, legRx: -1.5, kneeL: 1.5, kneeR: 1.5 }, 0.8); { const y0 = st.y; for (let i = 1; i <= 8; i++) { st.y = W3(y0, seatY, ease(i / 8)); await G.wait(0.04); } }
+        // she feeds him the rest
+        { const b1 = bowl.position.clone(), b0 = new V3(SX, TOP, SZ - 12); await armsTo(bowl.getWorldPosition(new V3()).add(new V3(0, 3, 0)), null, 0.5, 0.6); for (let i = 1; i <= 20; i++) { const k = ease(i / 20); bowl.position.lerpVectors(b1, b0, k); await G.wait(0.04); } }
+        await sayW('gerda', 'Now. Open wide, and I will do it for you.');
+        const spoonG = new THREE.Group(); mk(0.9, 9, 0.9, '#8a6a42', 0, -4.5, 0, spoonG); mk(2.6, 0.7, 3.4, '#9a7a52', 0, -9.2, 0.5, spoonG); const gl = mk(2.2, 0.8, 2.8, '#ebdfbc', 0, -8.7, 0.5, spoonG); spoonG.scale.setScalar(SC * 0.7 * 1.1); spoonG.position.set(0, -6, 0.8); gerda.wrist.add(spoonG); spoon.visible = false;
+        paint({ expr: 'shy' }); const take = level; let k = 0;
+        while (level > 0) {
+          await armsTo(bowl.getWorldPosition(new V3()).add(new V3(0, 5, 0)), null, 0.5, 0.6); gl.visible = true;
+          await armsTo(jackOut.neck.localToWorld(new V3(0, 1, 7)), null, 0.6, 0.6);
+          await new Promise(res => { G.note && G.note('Open wide'); if (G.skipping) res(); else if (G.manual) setTimeout(res, 700); else st.wait = { label: 'Open wide', key: 'e', res }; });
+          await tp({ neckX: 0.55 }, 0.2); gl.visible = false; level--; setLevel(); A && A.rustle && A.rustle(0.3); await tp({ neckX: 0.2 }, 0.3); k++;
+          if (level > 0 && k % 2 === 1) await sayW('gerda', ['Mm-hm. That’s it.', 'Good boy. Another.', 'Nearly there.'][Math.min(2, k >> 1)]);
+        }
+        spoonG.visible = false; await rest(0.5);
+      }
+      async function finishBreakfast() {
+        if (!correctedNow) { await G.wait(0.5); }
+        spoon.visible = false; load.visible = false; await tp(SEATED, 0.4);
+        await faceG(SX - 22, SZ - 6, 0.3); await walkG([[SX - 22, SZ - 6]]); await faceG(SX, SZ, 0.4); stirring = false;
+        await sayW('gerda', correctedNow ? 'There. All gone. And you will find it is not so hard, with a little patience.' : 'All gone! You see how well you do when you take your time?');
+        paint({ expr: 'smile' }); await sayW('gerda', 'Now, down you come, little climber.');
+        await new Promise(res => { G.note && G.note('Climb down'); if (G.skipping) res(); else if (G.manual) setTimeout(res, 700); else st.wait = { label: 'Climb down', key: 'e', res }; });
+        { const n = 40; for (let i = 1; i <= n; i++) { const k = ease(i / n), c = Math.sin(i * 0.5); st.y = W3(seatY, 0, k); st.pos.z = W3(SZ, SZ + 9, k); Object.assign(st.pose, { armLx: -0.8 - 0.3 * c, armRx: -0.8 + 0.3 * c, legLx: -0.6 * (1 - k) - 0.3 * k * (0.5 + 0.5 * c), legRx: -0.6 * (1 - k) - 0.3 * k * (0.5 - 0.5 * c), kneeL: 0.9 * (1 - k), kneeR: 0.9 * (1 - k), torso: 0.2 }); await G.wait(0.04); } st.pose = {}; st.y = 0; }
+        await sayW('gerda', 'Come along. The hen has been asking after you.');
+        await G.fade(true, 1.2);
+      }
+      G.updaters = G.updaters.filter(u => u !== stirTick); stool.position.z = stool0; for (const g of [bowl, splash, pail]) scene.remove(g); spoon.parent && spoon.parent.remove(spoon); G.bathPaint = null; st.pose = null; st.guard = null;
+    }
     function ch3Tick(dt) {
       if (st.guard && !st.frozen) st.guard();       // (the way to the roost: some places he is kept from)
       if (st.choreTick && !st.scene) { st.choreTick(dt); return; }       // (the hen's room: the chores are played in their own tick)
@@ -1969,7 +2130,8 @@ function run(G, W, opts) {
     if (ch3) { if (opts.ch3start === 'nursery') { makeG('Work'); gerda.root.visible = false; st.s = 0.35; st.pos.set(-294, 0, -172); st.heading = Math.PI; st.camA = Math.atan2(-Math.cos(st.heading), -Math.sin(st.heading)); st.pitch = 0.45; st.zoom = 1; camPos.set(0, 0, 0); G.skipping = false; st.scene = false; st.pose = null; $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; G.mode = 'play'; document.body.classList.remove('cutscene'); G.hideLine && G.hideLine(); f.style.transition = ''; await G.fade(false, 1.0); return; }
       if (opts.ch3dress) { st.scene = true; st.s = 0.7; makeG('Work'); G.gerdaNamed = true; G.mode = 'cutscene'; if (A && A.ctx && !opts.ch3notes) A.startMusic({ theme: 'castle' }); await dressScene(); await choreScene(); await bathScene(); await finish('bed'); return; }
       if (opts.ch3chores) { st.scene = true; st.s = opts.chSize || 0.98; makeG('Work'); G.gerdaNamed = true; G.mode = 'cutscene'; await choreScene(!!opts.ch3chorework); await bathScene(); await finish('bed'); return; }
-      if (opts.ch4wake) { st.scene = true; st.s = G.ch3Size || 0.98; makeG('Work'); gerda.root.visible = false; G.gerdaNamed = true; $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; await wakeScene(); await finish('wake'); return; }
+      if (opts.ch4wake) { st.scene = true; st.s = G.ch3Size || 0.98; makeG('Work'); gerda.root.visible = false; G.gerdaNamed = true; $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; await wakeScene(); if (!opts.wakeOnly) { await G.fade(true, 0.8); await breakfastScene(); await finish('breakfast'); } else await finish('wake'); return; }
+      if (opts.ch4breakfast) { st.scene = true; st.s = G.ch3Size || 0.98; makeG('Work'); G.gerdaNamed = true; $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; await breakfastScene(); await finish('breakfast'); return; }
       if (opts.ch3bath) { st.scene = true; st.s = opts.chSize || 0.98; makeG('Work'); G.gerdaNamed = true; G.mode = 'cutscene'; await bathScene(opts.bathFrom, opts.bathWash, opts.bedTier); await finish('bed'); return; }
       if (opts.ch3disc) { st.scene = true; st.s = 0.5; makeG('Work'); st.pos.set(-294, 0, -172); G.mode = 'cutscene'; document.body.classList.add('cutscene'); $('cwPanel').style.display = 'none'; $('cwObjt').style.display = 'none'; if (A && A.ctx && !opts.ch3notes) A.startMusic({ theme: 'nursery' }); await disciplineScene(opts.ch3lies || 0); return; }       // (the correction is a scene of its own, after the one in which he is put across her knee)
       if (opts.ch3notes === 'close') { st.scene = true; st.s = 0.4; makeG('Work'); gerda.root.visible = false; const cg = M.items.chest.g.position; st.pos.set(cg.x - 12, 0, cg.z + 10); st.heading = Math.PI / 2; $('cwPanel').style.display = 'none'; await chestScene(); return; } await ch3Open(); return; }

@@ -54,14 +54,14 @@ function create(els) {
   subs.addEventListener('pointerdown', e => { e.stopPropagation(); if (G.mode === 'cutscene') tap(); });
   const WHO = { mother: ['Mother', '#e6b8a0'], jack: ['Jack', '#a8d8a0'], gerda: ['Gerda', '#e6a0c0'], peddler: ['Peddler', '#c8c090'], merchant: ['Merchant', '#a0c8f0'], narrator: ['', '#e6c46a'] };
   const whoOf = who => { const w = WHO[who] || [who, '#e6c46a']; return who === 'gerda' && !G.gerdaNamed ? ['The Giantess', w[1]] : w; };       // (Jack does not know her name until she gives it)
-  let capTok = 0; const caps = new Set(), supersede = () => { capTok++; for (const f of [...caps]) f(); }, live = { say: 0 };      // (a spoken line ends any caption still up, and no caption is drawn over a line while it is up: the two used to overwrite, and hide, each other)
+  let capTok = 0; const caps = new Set(), supersede = () => { subs.classList.remove('thought'); capTok++; for (const f of [...caps]) f(); }, live = { say: 0 };      // (a spoken line ends any caption still up, and no caption is drawn over a line while it is up: the two used to overwrite, and hide, each other)
   G.say = (who, text, opts) => new Promise(resolve => {
     if (G.sayOverride) { const o = G.sayOverride(who, text); if (o === null) { resolve(); return; } if (typeof o === 'string') text = o; }       // (scene notes: a line as it has been rewritten there, or taken out)
     const ep = G.epoch;
     if (G.skipping || (!G.settings.subtitles && !(opts && opts.force))) { resolve(); return; }
     supersede(); live.say++;
-    const w = whoOf(who); subWho.textContent = w[0]; subWho.style.color = w[1]; subs.style.display = 'block'; subText.textContent = '';
-    const cps = 34 * G.settings.speed, typeSecs = Math.max(0.6, text.length / cps), voice = Audio_ && who !== 'narrator' ? Audio_.speak(who, text, typeSecs, { muffle: opts && opts.muffle }) : null;
+    const th = !!(opts && opts.thought), w = whoOf(who); subs.classList.toggle('thought', th); subWho.textContent = th ? w[0] + ' · thinking' : w[0]; subWho.style.color = th ? '#9fb4e8' : w[1]; subs.style.display = 'block'; subText.textContent = '';       // (a thought: not said; its own look, no voice, and no one in the scene hears it)
+    const cps = 34 * G.settings.speed, typeSecs = Math.max(0.6, text.length / cps), voice = Audio_ && who !== 'narrator' && !th ? Audio_.speak(who, text, typeSecs, { muffle: opts && opts.muffle }) : null;
     const t0 = G.t; let typed = false, holdAt = null, poll = null, typing = null; const gateBtn = document.getElementById('subGate');
     let closed = false; const close = () => { if (!closed) { closed = true; live.say = Math.max(0, live.say - 1); } clearInterval(typing); clearInterval(poll); if (voice) voice.stop(); if (ep !== G.epoch) return; advance = null; if (gateBtn) gateBtn.style.display = 'none'; if (!G.keepLine) subs.style.display = 'none'; resolve(); };
     const gateLabel = opts && opts.gate;
@@ -77,7 +77,7 @@ function create(els) {
   // A caption: a line spoken over the scene while it goes on (nothing waits for it, though the promise resolves when it has had its time). The next caption replaces it.
   G.caption = (who, text, opts) => new Promise(resolve => {
     if (live.say > 0) { resolve(); return; }
-    const tok = ++capTok, w = whoOf(who), cps = 34 * G.settings.speed, typeSecs = Math.max(0.6, text.length / cps), holdSecs = Math.max(1.1, text.length * 0.048 / G.settings.speed);
+    subs.classList.remove('thought'); const tok = ++capTok, w = whoOf(who), cps = 34 * G.settings.speed, typeSecs = Math.max(0.6, text.length / cps), holdSecs = Math.max(1.1, text.length * 0.048 / G.settings.speed);
     subWho.textContent = w[0]; subWho.style.color = w[1]; subs.style.display = 'block'; subText.textContent = '';
     const voice = Audio_ && who !== 'narrator' ? Audio_.speak(who, text, typeSecs, { muffle: opts && opts.muffle }) : null, t0 = G.t, ep = G.epoch;
     const finish = () => { clearInterval(iv); caps.delete(finish); if (voice && voice.stop) voice.stop(); if (tok === capTok) subs.style.display = 'none'; resolve(); };
@@ -88,7 +88,8 @@ function create(els) {
     }, 30);
     caps.add(finish);
   });
-  G.captionOff = () => { capTok++; for (const f of [...caps]) f(); subs.style.display = 'none'; };
+  G.think = (text, opts) => G.say('jack', text, Object.assign({ thought: true }, opts || {}));       // (Jack's thought, as distinct from what he says)
+  G.captionOff = () => { subs.classList.remove('thought'); capTok++; for (const f of [...caps]) f(); subs.style.display = 'none'; };
   // A choice for the player: buttons inside the dialogue box (or the keys 1 to 9); resolves with the index picked.
   G.choose = (who, options) => new Promise(resolve => {
     const w = whoOf(who), box = document.getElementById('subChoices'); subWho.textContent = w[0]; subWho.style.color = w[1]; subText.textContent = ''; subs.style.display = 'block'; box.innerHTML = ''; box.style.display = 'block'; advance = null;
