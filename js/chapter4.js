@@ -77,8 +77,8 @@ async function run(G, W, opts) {
   });
   // Talk: the two of them side-on, as a pair.
   const pair = () => {
-    const a = mother.root.position, b = jackIn.root.position, mx = (a.x + b.x) / 2, mz = (a.z + b.z) / 2, dx = b.x - a.x, dz = b.z - a.z, n = Math.hypot(dx, dz) || 1, px = -dz / n, pz = dx / n;
-    G.cut({ pos: v(mx + px * 78, 24, mz + pz * 78), look: v(mx, 15, mz), fov: 42 });
+    const a = mother.root.position, b = jackIn.root.position, mx = (a.x + b.x) / 2, mz = (a.z + b.z) / 2, dx = b.x - a.x, dz = b.z - a.z, n = Math.hypot(dx, dz) || 1, px = -dz / n, pz = dx / n, sg = pz > 0 ? -1 : 1;       // (the camera takes the side away from the table, which would stand between)
+    G.cut({ pos: v(clamp(mx + px * sg * 78, -68, 68), 24, clamp(mz + pz * sg * 78, -68, 68)), look: v(mx, 15, mz), fov: 42 });
   };
   const faceEach = async () => {
     const a = mother.root.position, b = jackIn.root.position, tm = Math.atan2(b.x - a.x, b.z - a.z), tj = tm + Math.PI;
@@ -90,7 +90,7 @@ async function run(G, W, opts) {
   // ── 1. The threshold. ──
   G.mode = 'cutscene'; document.body.classList.add('cutscene'); const f = document.getElementById('fade'); f.style.transition = 'none'; f.style.opacity = 1; void f.offsetWidth; f.style.transition = '';
   G.cut({ pos: v(70, 30, 84), look: v(0, 14, 0), fov: 52 }); await G.wait(0.2); G.fade(false, 2.2); await G.wait(1.6);
-  await goTo(M1, 34, 'Go to Mother.');
+  await goTo(M1, 28, 'Go to Mother.');
   // ── 2. What did you bring me? ──
   await faceEach(); reset(); ma.side = 1; pair(); await G.wait(0.6);
   await say('mother', 'Jack.'); await G.wait(0.5);
