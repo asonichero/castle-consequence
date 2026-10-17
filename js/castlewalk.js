@@ -1597,6 +1597,7 @@ function run(G, W, opts) {
         Object.assign(gst, { x: 114.5, z: -92, h: -Math.PI / 2, y: 0, seated: 0, kneel: 0, walk: 0, reach: 0, lreach: 0, bend: 0, look: 0.2, headY: 0, p50: null, hold: 0, alive: 1 }); placeGerda(); root.Blocky.step(gerda, 0);
         const shafts = []; M.scene.updateMatrixWorld(true); M.scene.traverse(o => { if (o.isMesh && o.material && o.material.blending === THREE.AdditiveBlending && o.material.transparent) { o.material = o.material.clone(); shafts.push({ o, c: o.material.color.clone(), a: o.material.opacity }); } });       // (the moonbeams at every window: they are only to look at, and cast no light into the room)
         const shaftTo = k => { for (const s of shafts) { s.o.material.color.copy(s.c).lerp(new THREE.Color(0x7d96e0), 0.55 + 0.45 * k); s.o.material.opacity = s.a * (0.55 - 0.15 * k); } }; shaftTo(0);
+        const nurseryFlames = []; for (const k of [1, 2, 3, 4, 5, 6, 7]) M.items['chandelier' + k].g.traverse(o => { const q = o.isMesh && o.geometry && o.geometry.parameters; if (q && q.width === 1.6 && q.height === 1.8 && q.depth === 1.6) { o.material = o.material.clone(); if (o.material.emissive) o.material.emissive.copy(o.material.color).multiplyScalar(0.9); if (k >= 6) nurseryFlames.push({ o, c: o.material.color.clone() }); } });       // (every chandelier's flames are alight from the start; the nursery's are put out at the end)
         G.bedBg = scene.background; scene.background = new THREE.Color(0x060a1a);       // (night outside, throughout)
         setLamp(kitchenLamp, 0.9); setLamp(lampAt(0, 20), 0.7);       // (the chandeliers of the kitchen and the hall are lit)
         if (Lg.hemi) { Lg.hemi.intensity = 0.14; Lg.hemi.color.setHex(0x8a7898); Lg.hemi.groundColor.setHex(0x3a3040); }
@@ -1669,7 +1670,7 @@ function run(G, W, opts) {
         Object.assign(gst, { x: -240, z: -207, h: -Math.PI / 2, walk: 0, bend: 0, sniff: 0 }); placeGerda();       // (she is already well on her way to the door)
         await walkTo([[-262, -198], [-278, -190]]); await faceTo(-230, -226, 0.8);
         for (let i = 1; i <= 12; i++) { gst.sniff = W3(0.1, -0.55, ease(i / 12)); placeGerda(); await G.wait(0.04); } await G.wait(0.5);
-        { const flames = []; for (const k of ['chandelier6', 'chandelier7']) M.items[k].g.traverse(o => { const q = o.isMesh && o.geometry && o.geometry.parameters; if (q && q.width === 1.6 && q.height === 1.8 && q.depth === 1.6) { o.material = o.material.clone(); if (o.material.emissive) o.material.emissive.copy(o.material.color).multiplyScalar(0.9); flames.push({ o, c: o.material.color.clone() }); } });       // (the candles' flames: the small boxes of the chandeliers)
+        { const flames = nurseryFlames;       // (the candles' flames: the small boxes of the chandeliers)
                     const h0 = Lg.hemi ? { i: Lg.hemi.intensity, c: Lg.hemi.color.clone() } : null, hc = new THREE.Color(0x7388c8);
           for (let i = 1; i <= 75; i++) { const k = ease(i / 75); for (const f of flames) { f.o.material.color.copy(f.c).multiplyScalar(1 - 0.88 * k); if (f.o.material.emissive) f.o.material.emissive.copy(f.c).multiplyScalar(0.9 * (1 - k)); } setLamp(nurseryLamp, W3(1.1, 0.02, k)); shaftTo(k); if (Lg.hemi) { Lg.hemi.intensity = W3(h0.i, 0.2, k); Lg.hemi.color.copy(h0.c).lerp(hc, k); } await G.wait(0.04); } }
         gst.sniff = 0; await G.wait(0.5);
