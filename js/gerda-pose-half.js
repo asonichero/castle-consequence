@@ -29,7 +29,7 @@ root.GerdaHold50 = {
   "arms": {
     "gerda": { "hipsY": 0, "torsoX": 0, "torsoY": 0, "torsoZ": 0, "neckX": 0.1, "neckY": 0, "armRx": 0, "armRz": 0.05, "elbowX": 0, "wristY": 0, "armLx": 0, "armLz": -0.05, "legLx": 0, "legLknee": 0, "legRx": 0, "legRknee": 0, "elbowLx": 0, "armLy": 0
 },
-    "jack": { "px": 0, "py": 0, "pz": 16, "rx": 0, "ry": 3.142, "rz": 0, "armLx": 0, "armRx": 0, "armLz": 0, "armRz": 0, "legLx": 0, "legRx": 0, "kneeL": 0, "kneeR": 0, "torsoX": 0, "neckX": 0, "elbowLx": 0, "elbowRx": 0, "armLy": 0, "armRy": 0, "legLz": 0, "legRz": 0, "s": 0.98
+    "jack": { "px": 0, "py": 0, "pz": 16, "rx": 0, "ry": 3.142, "rz": 0, "armLx": 0, "armRx": 0, "armLz": 0, "armRz": 0, "legLx": 0, "legRx": 0, "kneeL": 0, "kneeR": 0, "torsoX": 0, "neckX": 0, "elbowLx": 0, "elbowRx": 0, "armLy": 0, "armRy": 0, "legLz": 0, "legRz": 0, "legLy": 0, "legRy": 0, "s": 0.98
 }
   },
   "hold": {
