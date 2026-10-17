@@ -250,6 +250,7 @@ const cowNeck = (W, out) => { W.cowM.updateMatrixWorld(true); return W.cowM.user
 // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 let WORLD = null;
 async function run(G, opts) {
+  G.skipping = false;       // (a Skip applies to the scene it was pressed in)
   const W = WORLD || (WORLD = build(G));
   G.mode = 'cutscene'; document.body.classList.add('cutscene');
   G.setScene(W.world); G.drone = null; A && A.ambience({ wind: 0.35, birds: 0.9, fire: 0 }); A && A.duckMusic(0.5, 3); A && A.startMusic();

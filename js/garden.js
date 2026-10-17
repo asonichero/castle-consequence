@@ -24,6 +24,7 @@ const HOPES = [
 ];
 
 function run(G, W, tier) {
+  G.skipping = false;       // (a Skip applies to the scene it was pressed in)
   return new Promise(resolve => {
     const { ext, jackOut, aOut, world } = W, scene = ext.scene, mat = F.mat, plain = F.plain, box = F.box;
     const el = G.renderer.domElement;

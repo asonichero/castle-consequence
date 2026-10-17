@@ -99,6 +99,7 @@ function build(G) {
 
 // ──────────────────────────────────────────────────────────────────────────────────────────
 async function run(G, choices, opts) {
+  G.skipping = false;       // (a Skip applies to the scene it was pressed in)
   opts = opts || {};
   const W = build(G), tier = tierOf(choices), who = (w, t, o) => G.say(w, t, o);
   const { jackOut, aOut, jackIn, ja, mother, ma, int, SEAT } = W;

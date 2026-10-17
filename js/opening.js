@@ -50,6 +50,7 @@ function build(G) {
 }
 
 async function run(G, W) {
+  G.skipping = false;       // (a Skip applies to the scene it was pressed in)
   const { ext, int, acts, paintJack, mother } = W;
   const sx = ext.windowTarget;
   G.mode = 'cutscene'; document.body.classList.add('cutscene');

@@ -36,6 +36,7 @@ const surfRf = (fr, y, a) => (fr < 4 ? 4.0 : surfR(y, a));
 const angDiff = (a, b) => { let d = (a - b) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; };
 
 function run(G, W) {
+  G.skipping = false;       // (a Skip applies to the scene it was pressed in)
   return new Promise(resolve => {
     const { ext, jackOut, world } = W, E = ext.scene, el = G.renderer.domElement, box = F.box, plain = F.plain;
     const C3 = root.Chapter3; C3 && C3.ensureDawn && C3.ensureDawn(E);

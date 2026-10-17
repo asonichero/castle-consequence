@@ -62,6 +62,7 @@ function ensureDawn(E) {
 const STALK_VIEW = () => ({ pos: new THREE.Vector3(250, 230, 520), look: new THREE.Vector3(-40, 330, 0), fov: 66 });
 
 async function run(G, W, opts) {
+  G.skipping = false;       // (a Skip applies to the scene it was pressed in)
   const { ext, int, jackIn, jackOut, ja, aOut } = W, A_ = A, I = int.scene, E = ext.scene;
   G.mode = 'cutscene'; document.body.classList.add('cutscene'); G.drone = null; G.keepLine = false;
   // ── The room, in the dark, the fire banked low. ──

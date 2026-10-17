@@ -29,6 +29,7 @@ function collect(room, ceiling, pantry) {
 }
 
 function run(G, W, opts) {
+  G.skipping = false;       // (a Skip applies to the scene it was pressed in)
   opts = opts || {}; const ch3 = !!opts.ch3, story = !!opts.story, ROOMS = { hall: [-88, 88, -108, 108], kitchen: [92, 248, -109, 51], hallKitchenDoor: [86, 94, -45, -5] };
   return new Promise(async resolve => {
     const { jackOut, aOut } = W, el = G.renderer.domElement, camera = G.camera, nearOld = camera.near;
@@ -509,6 +510,7 @@ function run(G, W, opts) {
     }
     // the chest: he opens it, finds what is inside, reads the first page, and drops the book. Gerda is in the doorway.
     async function chestScene() {
+      G.skipping = false;
       const ch = M.items.chest.g, K = ch.userData.chest, Hj = HEIGHT * SC * st.s, ease = k => k * k * (3 - 2 * k), W3 = (a, b, k) => a + (b - a) * k;
       c3.done = true; st.busy = true; st.scene = true; G.mode = 'cutscene'; document.body.classList.add('cutscene'); st.lockT = 0; st.walkN = 0; $('cwPrompt').style.display = 'none'; $('cwPage').classList.remove('on');
       const P = ch.localToWorld(new V3(0, 0, 11.5)), C0 = ch.localToWorld(new V3(0, 0, 0)), hh = Math.PI / 2;
@@ -625,6 +627,7 @@ function run(G, W, opts) {
       G.ch3lies = lies; await finish('discipline');
     }
     async function disciplineScene(lies) {
+      G.skipping = false;
       const ease = k => k * k * (3 - 2 * k), W3 = (a, b, k) => a + (b - a) * k;
       // ── The discipline: the lap engine (js/lap.js) takes over from the carried pose, in the nursery, with Jack at half size over her knee ──
       if (!root.Lap) { await finish('discipline'); return; }
@@ -769,6 +772,7 @@ function run(G, W, opts) {
     }
     // ── Dressed: the playable sequence at the kitchen table. Jack stands on it, Gerda before him at its edge; he cannot move or jump, and the one button answers what she asks of him. ──
     async function dressScene(lapStage) {
+      G.skipping = false;
       const ease = k => k * k * (3 - 2 * k), W3 = (a, b, k) => a + (b - a) * k, tc = M.items.kitchenTable.g.position, TOP = 25.5, JX = tc.x + 9, JZ = tc.z + 9;       // (the kitchen table, where the box and his clothes stood when he woke)
       const mk = (w, h, d, col, x, y, z, par) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), root.Farm.plain(col)); m.position.set(x, y, z); par.add(m); return m; };
       if (!ch3Items.clothes) { const cl = new THREE.Group(); cl.position.set(tc.x - 9, TOP, tc.z - 6); cl.scale.setScalar(2); scene.add(cl); ch3Items.clothes = cl; mk(2.7, 0.7, 2.2, '#5a7a3e', 0, 0.35, 0, cl); mk(0.9, 0.22, 0.5, '#e8dcb8', -0.4, 0.76, -0.8, cl); mk(2.1, 0.5, 2.8, '#6d5233', 0.1, 0.95, 0.1, cl); mk(0.3, 0.2, 2.3, '#8a6a42', -0.6, 1.3, 0.1, cl); mk(0.9, 0.8, 2.1, '#3a2616', 2.1, 0.4, -0.6, cl); mk(0.9, 0.8, 2.1, '#3a2616', 2.1, 0.4, 1.0, cl); }
@@ -913,6 +917,7 @@ function run(G, W, opts) {
     }
     // ── The chores: the hen's room. Gerda sets the task and leaves; the mechanics are the test level's (js/level.js), the hen's way of going on the Market Road's cow's. ──
     async function choreScene(skip) {
+      G.skipping = false;
       const ease = k => k * k * (3 - 2 * k), W3 = (a, b, k) => a + (b - a) * k, IT = M.items, gp = k => IT[k].g, FLOOR = 0.5 * FULL;
       const cushionG = gp('henCushion'), cushion = cushionG.position, hen = cushionG.userData.hen;
       const roostD = M.doors.find(d => d.axis === 'z' && Math.abs(d.fixed + 208) < 3 && Math.abs(d.c - 273) < 8);
@@ -1256,6 +1261,7 @@ function run(G, W, opts) {
     }
     // ── Bath time: in the bathroom, with the door shut. Gerda kneels to take his things off, one at a time; then he is in the water, and she takes a sponge to him. ──
     async function bathScene(from, washPick, bedTier) {
+      G.skipping = false;
       const ease = k => k * k * (3 - 2 * k), W3 = (a, b, k) => a + (b - a) * k, tubG = M.items.tub.g, tubP = tubG.position, stoolP = M.items.bathStool.g.position, bath = M.room.userData.bath || {};
       const mk = (w, h, d, col, x, y, z, par) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), root.Farm.plain(col)); m.position.set(x, y, z); par.add(m); return m; };
       G.save({ step: 'ch3bath' });
@@ -1571,6 +1577,7 @@ function run(G, W, opts) {
       await G.wait(0.8);
       await G.fade(true, 1.8);
       }
+      G.skipping = false;       // (skipping the bath skips to here, and no further)
       // ═══ Bedtime: Jack on the stool at the kitchen table in his nightclothes, nodding off; she carries him, in her arms, to the nursery, tucks him in, and puts out the light ═══
       {
         const LOG = Object.assign({ lies: G.ch3lies || 0, rounds: 0, choreLied: false, obj: 0, washed: true }, G.ch3log || {});
@@ -1744,6 +1751,7 @@ function run(G, W, opts) {
         if (best) { pr.textContent = 'E — ' + (best.cat === 'chest' ? 'open the chest' : 'look at the ' + LK[best.cat].name); pr.style.display = 'block'; st.uiAct = best.cat === 'chest' ? 'Open' : 'Look'; if (act) doLook(best); } }
     }
     async function ch3Open() {
+      G.skipping = false;
       const f = $('fade'), tgp = M.items.kitchenTable.g, TOP = 25.5, bx = M.items.keepsakeBox.g, box = bx.userData.box, tc = bx.position.clone(), bs = SC * st.s;
       $('cwPanel').style.display = 'none'; G.mode = 'cutscene'; document.body.classList.add('cutscene'); st.scene = true; st.boxed = true; G.save({ step: 'ch3' }); f.style.transition = 'none'; f.style.opacity = 1;
       const ease = k => k * k * (3 - 2 * k), W3 = (a, b, k) => a + (b - a) * k;

@@ -52,6 +52,7 @@ function freeCam(G, box) {       // (box: { x0, x1, z0, z1, h }: the room the ca
 }
 
 async function run(G, W, tier, opts) {
+  G.skipping = false;       // (a Skip applies to the scene it was pressed in)
   opts = opts || {};
   const { jackIn, ja, mother, ma, int, SEAT, scene } = W;
   const pick = (a, b, c) => [a, b, c][tier];

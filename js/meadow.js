@@ -113,6 +113,7 @@ function addGear(rig) {
 }
 
 function run(G, W) {
+  G.skipping = false;       // (a Skip applies to the scene it was pressed in)
   return new Promise(async resolve => {
     const { jackOut, aOut } = W, el = G.renderer.domElement, camera = G.camera, nearOld = camera.near;
     const M = build(), scene = M.scene, world = { scene, update(dt, t) { M.update(dt, t); aOut.t += dt; root.Blocky.step(jackOut, dt); } };      // (Jack is stepped here: his own world's update is not running)

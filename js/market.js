@@ -75,6 +75,7 @@ function build(G, W) {
 
 // ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 async function run(G, W, M) {
+  G.skipping = false;       // (a Skip applies to the scene it was pressed in)
   const { ext, jack, mother, ja, ma, paintJack, hanging, held, cord, halter } = M, cowM = ext.cow, A_ = A;
   const scene = ext.scene;
   G.mode = 'cutscene'; document.body.classList.add('cutscene');

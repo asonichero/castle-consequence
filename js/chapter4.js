@@ -125,19 +125,13 @@ async function run(G, W, opts) {
   await sayM(['You were good, and what did it buy? Nothing in your hands.', 'The truth when it suits you, and a fib when it doesn’t, and home you come with nothing.', 'You lied, and you sulked, and you made a mess of every task you were given, and you come home with nothing.'][slip]);
   const a2 = await pickOf('jack', [['I’ll bring something, Mother. I promise.', 0], ['I was looked after. I had a bed.', 1], ['Perhaps I would, if you ever said a kind word!', 2]]);
   await sayJ( ['I’ll bring something, Mother. I promise.', 'I was looked after. I had a bed.', 'Perhaps I would, if you ever said a kind word!'][a2]);
-  ma.gesture = a2 === 0 ? 0 : 1; ma.wag = a2 === 2 ? 1 : 0.3;
-  await sayD(['You promise.', 'By whom?', 'Kind.'][a2]);
-  if (a2 === 1) { paint({ expr: 3 }); await G.wait(0.9); await sayD('By whom, Jack?'); }
-  else await sayD(['You always promise.', '', 'I have been kind to you all your life, and look what you bring me.'][a2]);
-  await G.wait(0.4); reset();
-  // ── 4. Come here. ──
-  await G.fade(true, 0.8);
+  // ── 4. Come here: she is seated when the angle opens. ──
+  reset();
   B.setPose(mother, 'sit'); mother.pose = 'sit'; mother.root.position.set(SEAT.x, STAGE_Y, SEAT.z); mother.root.rotation.y = SEAT.ry; ma.fold = 0; ma.side = 0;
   const cl = (a, y, b) => v(SEAT.x + a * Math.sin(SEAT.ry) + (b || 0) * Math.cos(SEAT.ry), y, SEAT.z + a * Math.cos(SEAT.ry) - (b || 0) * Math.sin(SEAT.ry));
   const J1 = cl(52, 0); st.pos.copy(J1); st.heading = SEAT.ry + Math.PI; st.yaw = SEAT.ry + Math.PI; jackIn.root.position.copy(J1); jackIn.root.rotation.y = st.heading; paint({});
   for (let i = 0; i < 12; i++) { B.step(mother, 0.1); B.step(jackIn, 0.1); } B.seatFeet(mother, 0);
-  cutOnce('D', camD); await G.fade(false, 0.9);
-  await say('mother', 'Come here.'); await say('mother', 'Come here, Jack.');
+  await sayD('You always promise, Jack.'); await sayD('Come here.');
   await goTo(cl(20, 0), 15, 'Go to her.', camD);
   if (NOTES) { endInput(); G.updaters = G.updaters.filter(u => u !== tick); G.mode = 'end'; return { tier: 0, slip }; }
   // ── 5. The correction: over her knee, with the hand; shorter than the one at the close of Chapter One, and harder. ──
@@ -188,24 +182,19 @@ async function run(G, W, opts) {
   const aftermath = async () => {
     showUI(false); cam.enable(true);
     await G.fade(true, 0.5); standBefore(); stageView('seat', 0); await G.fade(false, 0.6);
-    await cap('mother', 'Pull your trousers up.'); await cap('jack', 'Yes, Mother.');
-    ja.rub = 0; ja.bow = 0.3; paint({ expr: 1, trousers: 'down', drawers: tier >= 1 ? 'down' : 'up', marks: lap.st.marks });
-    for (let i = 1; i <= 34; i++) { ja.hitch = i / 34; if (i === 20) { paint({ expr: 1 }); W.jackGl.mesh.visible = false; A && A.blip && A.blip(); } await wait(0.04); }
-    ja.hitch = 0; await wait(0.5);
-    await cap('mother', 'And you will not come home to me with empty hands again, Jack. Not ever.');
-    await cap('jack', 'No, Mother.'); await wait(1.0);
+    await cap('mother', 'You will not come home to me with empty hands again, Jack. Not ever.');
+    await cap('jack', 'No, Mother.');
+    await cap('mother', 'I will make sure of it. Fetch the birch.'); await wait(0.8);
   };
   try {
     try { await handScene(); await aftermath(); }
     catch (e) {
       if (e !== RED) throw e;
-      lap.stop(); G.captionOff && G.captionOff(); red = false; showUI(false);
-      await G.caption('jack', 'Red! No more, please!'); await G.caption('mother', 'Alright, Jack. I hear you. That’s an end to it.'); await G.wait(0.4);
-      await aftermath();
+      lap.stop(); G.captionOff && G.captionOff(); red = false; showUI(false);       // (Red here goes straight to waking)
     }
   } finally { showUI(false); cam.restore(); }
   G.updaters = G.updaters.filter(u => u !== tick);
-  A && A.stopMusic && A.stopMusic(2); await G.fade(true, 2.4); A && A.ambience({ wind: 0, birds: 0, fire: 0 }); G.captionOff && G.captionOff(); await G.wait(0.6);
+  A && A.stopMusic && A.stopMusic(1); await G.fade(true, 0.8); A && A.ambience({ wind: 0, birds: 0, fire: 0 }); G.captionOff && G.captionOff(); await G.wait(0.6);
   lap.stage.visible = false; G.mode = 'end';
   scene.background = keep.bg; scene.fog = keep.fog; int.hemi.color.setHex(keep.hc); int.hemi.intensity = keep.hi; int.dim.color.setHex(keep.dc); int.dim.intensity = keep.di; W.jackGl.mesh.visible = false; jackIn.root.scale.setScalar(SC);
   return { tier, slip };
